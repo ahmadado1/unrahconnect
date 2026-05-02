@@ -10,7 +10,7 @@ export default function UmrahStackLayout() {
         headerLargeTitle: false,
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Umrah" }} />
+      <Stack.Screen name="index" options={{ title: "Umrah Guide" }} />
       <Stack.Screen name="details" options={{ title: "Umrah Details" }} />
       <Stack.Screen name="hotels" options={{ title: "Hotels" }} />
     </Stack>

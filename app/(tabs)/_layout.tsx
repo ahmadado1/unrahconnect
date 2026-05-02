@@ -14,13 +14,18 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="umrah">
-        <Label>Umrah</Label>
+        <Label>Umrah Guide</Label>
         <Icon sf={{ default: "moon", selected: "moon.fill" }} drawable="ic_menu_today" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="favorite">
-        <Label>Favorite</Label>
-        <Icon sf={{ default: "heart", selected: "heart.fill" }} drawable="btn_star" />
+      <NativeTabs.Trigger name="hotels">
+        <Label>Hotels</Label>
+        <Icon sf={{ default: "bed.double", selected: "bed.double.fill" }} drawable="ic_menu_myplaces" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="restaurants">
+        <Label>Restaurants</Label>
+        <Icon sf={{ default: "fork.knife", selected: "fork.knife.circle.fill" }} drawable="ic_menu_compass" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
