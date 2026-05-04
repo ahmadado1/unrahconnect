@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    marginBottom: 40,
+    marginBottom: 80,
   },
   tipLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "bold", marginBottom: 8 },
   tipText: { color: "#fff", fontSize: 14, lineHeight: 22, fontStyle: "italic" },
