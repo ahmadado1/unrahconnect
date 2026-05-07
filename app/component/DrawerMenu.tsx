@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useRef } from "react";
@@ -33,71 +34,77 @@ export default function DrawerMenu({ isOpen, onClose } : props) {
 
       return (
         <>
-          {/* Dark overlay behind drawer */}
           {isOpen && (
             <TouchableOpacity
               style={styles.overlay}
               activeOpacity={1}
               onPress={onClose}
             />
-        )}
-            {/* Drawer Panel */}
-                <Animated.View
-                style={[
-                    styles.drawer,
-                    { transform: [{ translateX: slideAnim }] }
-                ]}
-                >
-                {/* Header */}
-                <View style={styles.drawerHeader}>
-                    <View style={styles.drawerLogo}>
-                    <Text style={styles.drawerLogoText}>🌙</Text>
-                    </View>
-                    <Text style={styles.drawerTitle}>UmrahConnect</Text>
-                    <Text style={styles.drawerSubtitle}>Your Umrah companion</Text>
-                </View>
-
-
-                {/* Menu Items */}
-                <View style={styles.menuItems}>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="person-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>Profile</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="heart-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>Favorites</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="notifications-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>Notifications</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="settings-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>Settings</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.menuDivider} />
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="information-circle-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>About Us</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="call-outline" size={22} color="#1E3A5F" />
-                        <Text style={styles.menuText}>Contact Us</Text>
-                    </TouchableOpacity>
-
-                </View>
-                </Animated.View>
-    </>
           )}
+          <Animated.View
+            style={[
+              styles.drawer,
+              { transform: [{ translateX: slideAnim }] }
+            ]}
+          >
+            <View style={styles.drawerHeader}>
+              <View style={styles.drawerLogo}>
+                <Text style={styles.drawerLogoText}>🌙</Text>
+              </View>
+              <Text style={styles.drawerTitle}>UmrahConnect</Text>
+              <Text style={styles.drawerSubtitle}>Your Umrah companion</Text>
+            </View>
 
+            <View style={styles.menuItems}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/profile"); onClose(); }}>
+                <Ionicons name="person-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>Profile</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Ionicons name="heart-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>Favorites</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Ionicons name="notifications-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>Notifications</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Ionicons name="settings-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>Settings</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Ionicons name="information-circle-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>About Us</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem}>
+                <Ionicons name="call-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.menuText}>Contact Us</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={async () => {
+                  await supabase.auth.signOut()
+                  onClose()
+                }}
+              >
+                <Ionicons name="log-out-outline" size={22} color="#E24B4A" />
+                <Text style={[styles.menuText, { color: "#E24B4A" }]}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </>
+      )
+}
 
 const styles = StyleSheet.create({
   overlay: {
