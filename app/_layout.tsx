@@ -51,6 +51,12 @@ export default function RootLayout() {
       <Stack.Screen name="auth/login" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="favorites" />
+      <Stack.Screen name="about" />
+      <Stack.Screen name="contact" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="terms" />
     </Stack>
   )
 }

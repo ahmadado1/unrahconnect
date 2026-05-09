@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase, toggleFavorite } from "../../lib/supabase";
 
 type Restaurant = {
   id: string;
@@ -56,10 +58,49 @@ const fastFood: Restaurant[] = [
 
 export default function RestaurantsScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
+  const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<Set<string>>(new Set())
   const filters = ["All", "Makkah", "Madinah"];
+
+  const loadFavoriteRestaurants = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setFavoriteRestaurantIds(new Set())
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .eq("item_type", "restaurant")
+
+    if (error) {
+      console.error("loadFavoriteRestaurants error:", error.message)
+      return
+    }
+
+    setFavoriteRestaurantIds(new Set((data ?? []).map((row) => String(row.item_id))))
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavoriteRestaurants()
+    }, [])
+  )
 
   function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     const router = useRouter();
+    const isFavorited = favoriteRestaurantIds.has(restaurant.id)
+
+    const handleFavoritePress = async () => {
+      const newState = await toggleFavorite(restaurant.id, "restaurant")
+      setFavoriteRestaurantIds((prev) => {
+        const next = new Set(prev)
+        if (newState) next.add(restaurant.id)
+        else next.delete(restaurant.id)
+        return next
+      })
+    }
 
     return (
       <TouchableOpacity
@@ -70,8 +111,14 @@ export default function RestaurantsScreen() {
           <View style={cardStyles.badge}>
             <Text style={cardStyles.badgeText}>{restaurant.type === "ours" ? "⭐ Featured" : "External"}</Text>
           </View>
-          <TouchableOpacity style={cardStyles.heart}>
-            <Ionicons name="heart-outline" size={18} color="#fff" />
+          <TouchableOpacity
+            style={cardStyles.heart}
+            onPress={(event) => {
+              event.stopPropagation()
+              handleFavoritePress()
+            }}
+          >
+            <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#C9A84C" : "#fff"} />
           </TouchableOpacity>
           <Text style={cardStyles.imageLabel}>
             {restaurant.city} · {restaurant.distance}

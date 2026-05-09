@@ -13,3 +13,65 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 })
+
+// Checks if a specific item is already in the user's favorites
+export const isFavorite = async (itemId: string, itemType: string) => {
+  // Get the currently logged in user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  // Search favorites table for a row matching this user, item and type
+  const { data, error } = await supabase
+    .from("favorites")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("item_id", String(itemId))
+    .eq("item_type", itemType)
+    .maybeSingle()
+
+  if (error) {
+    console.error("isFavorite error:", error.message)
+    return false
+  }
+
+  // If data exists it means it's already a favorite
+  return !!data
+}
+
+// Adds or removes a favorite depending on current state
+export const toggleFavorite = async (itemId: string, itemType: string) => {
+  // Get the currently logged in user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  // Check if already favorited
+  const already = await isFavorite(itemId, itemType)
+
+  if (already) {
+    // Already a favorite — remove it from the table
+    const { error } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("item_id", String(itemId))
+      .eq("item_type", itemType)
+
+    if (error) {
+      console.error("toggleFavorite delete error:", error.message)
+      return true
+    }
+  } else {
+    // Not a favorite yet — add it to the table
+    const { error } = await supabase
+      .from("favorites")
+      .insert({ user_id: user.id, item_id: String(itemId), item_type: itemType })
+
+    if (error) {
+      console.error("toggleFavorite insert error:", error.message)
+      return false
+    }
+  }
+
+  // Return the new state — true if now favorited, false if removed
+  return !already
+}

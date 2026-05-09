@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState, useEffect } from "react";
+import { isFavorite, toggleFavorite } from "../../lib/supabase";
 
 const allHotels = [
   { id: "1", name: "Hilton Suites Makkah", distance: "500m from Haram", price: 180, rating: 4.7, stars: 5, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600", description: "Experience luxury at the heart of Makkah. Just steps from Masjid Al-Haram, this hotel offers stunning views and world-class amenities for a truly blessed Umrah experience.", amenities: ["Free WiFi", "Breakfast included", "Airport shuttle", "24/7 room service", "Prayer room"] },
@@ -28,7 +30,29 @@ const allHotels = [
 export default function HotelDetailScreen() {
   const { id } = useLocalSearchParams()
   const router = useRouter()
-  const hotel = allHotels.find(h => h.id === id)
+  const hotelId = Array.isArray(id) ? id[0] : id
+  const hotel = allHotels.find((h) => h.id === hotelId)
+  // Tracks whether this hotel is currently saved as a favorite
+  const [favorited, setFavorited] = useState(false)
+
+  // When screen loads check if this hotel is already in favorites
+  useEffect(() => {
+    if (!hotel) return
+
+    const checkFav = async () => {
+      const result = await isFavorite(hotel.id, "hotel")
+      setFavorited(result)
+    }
+    checkFav()
+  }, [hotel])
+
+  // Called when user taps the heart button
+  const handleFavorite = async () => {
+    if (!hotel) return
+
+    const newState = await toggleFavorite(hotel.id, "hotel")
+    setFavorited(newState ?? false)
+  }
 
   if (!hotel) {
     return (
@@ -51,8 +75,12 @@ export default function HotelDetailScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.heartBtn}>
-            <Ionicons name="heart-outline" size={22} color="#fff" />
+          <TouchableOpacity style={styles.heartBtn} onPress={handleFavorite}>
+            <Ionicons 
+              name={favorited ? "heart" : "heart-outline"} 
+              size={22} 
+              color={favorited ? "#C9A84C" : "#fff"} 
+            />
           </TouchableOpacity>
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>{hotel.type === "ours" ? "Our pick" : "External"}</Text>
@@ -113,6 +141,15 @@ export default function HotelDetailScreen() {
             <Text style={styles.locationText}>{hotel.city}, Saudi Arabia · {hotel.distance}</Text>
           </View>
 
+          {/* Get Directions Button */}
+          <TouchableOpacity
+            style={styles.directionsBtn}
+            onPress={() => Linking.openURL(`https://maps.google.com/?q=${hotel.name}, ${hotel.city}, Saudi Arabia`)}
+          >
+            <Ionicons name="navigate" size={18} color="#fff" />
+            <Text style={styles.directionsBtnText}>Get Directions</Text>
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
 
@@ -172,6 +209,18 @@ const styles = StyleSheet.create({
 
   locationBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", padding: 14, borderRadius: 12, borderWidth: 0.5, borderColor: "#E0D9CE" },
   locationText: { fontSize: 14, color: "#444" },
+
+  directionsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2C5F8A",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+  },
+  directionsBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
 
   bookingBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, backgroundColor: "#fff", borderTopWidth: 0.5, borderTopColor: "#E0D9CE", paddingBottom: 34 },
   bookingPrice: { fontSize: 20, fontWeight: "bold", color: "#1E3A5F" },

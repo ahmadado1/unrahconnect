@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase, toggleFavorite } from "../../lib/supabase";
 
 type Hotel = {
   id: string;
@@ -19,7 +21,35 @@ type Hotel = {
 
 export default function HotelsScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
+  const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
   const filters = ["All", "Makkah", "Madinah"];
+
+  const loadFavoriteHotels = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setFavoriteHotelIds(new Set())
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .eq("item_type", "hotel")
+
+    if (error) {
+      console.error("loadFavoriteHotels error:", error.message)
+      return
+    }
+
+    setFavoriteHotelIds(new Set((data ?? []).map((row) => String(row.item_id))))
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavoriteHotels()
+    }, [])
+  )
 
   const makkahHotels: Hotel[] = [
     { id: "1", name: "Hilton Suites Makkah", distance: "500m from Haram", price: 180, rating: 4.7, stars: 5, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600" },
@@ -60,6 +90,17 @@ export default function HotelsScreen() {
 
   function HotelCard({ hotel }: { hotel: Hotel }) {
     const router = useRouter();
+    const isFavorited = favoriteHotelIds.has(hotel.id)
+
+    const handleFavoritePress = async () => {
+      const newState = await toggleFavorite(hotel.id, "hotel")
+      setFavoriteHotelIds((prev) => {
+        const next = new Set(prev)
+        if (newState) next.add(hotel.id)
+        else next.delete(hotel.id)
+        return next
+      })
+    }
 
     return (
       <TouchableOpacity
@@ -70,8 +111,14 @@ export default function HotelsScreen() {
           <View style={cardStyles.badge}>
             <Text style={cardStyles.badgeText}>{hotel.type === "ours" ? "Our pick" : "External"}</Text>
           </View>
-          <TouchableOpacity style={cardStyles.heart}>
-            <Ionicons name="heart-outline" size={18} color="#fff" />
+          <TouchableOpacity
+            style={cardStyles.heart}
+            onPress={(event) => {
+              event.stopPropagation()
+              handleFavoritePress()
+            }}
+          >
+            <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#C9A84C" : "#fff"} />
           </TouchableOpacity>
           <Text style={cardStyles.imageLabel}>
             {hotel.city} · {hotel.distance}
