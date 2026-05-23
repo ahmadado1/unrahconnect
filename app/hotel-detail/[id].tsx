@@ -160,7 +160,14 @@ export default function HotelDetailScreen() {
           <Text style={styles.bookingRating}>★ {hotel.rating} · {hotel.stars} star</Text>
         </View>
         {hotel.type === "ours" ? (
-          <TouchableOpacity style={styles.bookBtn}>
+          <TouchableOpacity style={styles.bookBtn} onPress={() => router.push({
+            pathname: "/booking",
+            params: {
+              hotelName: hotel.name,
+              hotelCity: hotel.city,
+              hotelPrice: String(hotel.price),
+            },
+          })}>
             <Text style={styles.bookBtnText}>Book now</Text>
           </TouchableOpacity>
         ) : (

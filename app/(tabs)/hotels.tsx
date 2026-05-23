@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -88,6 +88,23 @@ export default function HotelsScreen() {
     { id: "18", name: "Millennium Makkah", distance: "700m from Haram", price: 180, rating: 4.3, stars: 4, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600" },
   ];
 
+
+  const filterHotels = (hotels: Hotel[]) => {
+    if (activeFilter === "All") return hotels;
+    return hotels.filter((hotel) => hotel.city === activeFilter);
+  };
+
+  const fiveStarHotels: Hotel[] = [
+    ...makkahHotels,
+    ...madinahHotels,
+    ...kaabaViewHotels,
+    ...familyHotels,
+  ].filter(
+    (hotel, index, list) =>
+      hotel.stars === 5 && list.findIndex((h) => h.id === hotel.id) === index
+  );
+
+
   function HotelCard({ hotel }: { hotel: Hotel }) {
     const router = useRouter();
     const isFavorited = favoriteHotelIds.has(hotel.id)
@@ -143,22 +160,27 @@ export default function HotelsScreen() {
     );
   }
 
-  const renderSection = (title: string, hotels: Hotel[]) => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAll}>See all →</Text>
-        </TouchableOpacity>
-      </View>
+  const renderSection = (title: string, hotels: Hotel[]) => {
+    const filtered = filterHotels(hotels);
+    if (filtered.length === 0) return null;
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
-        {hotels.map(hotel => (
-          <HotelCard key={hotel.id} hotel={hotel} />
-        ))}
-      </ScrollView>
-    </View>
-  );
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAll}>See all →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+          {filtered.map((hotel) => (
+            <HotelCard key={hotel.id} hotel={hotel} />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const recommended: Hotel[] = [makkahHotels[1], kaabaViewHotels[1], madinahHotels[1]].filter(
     (hotel): hotel is Hotel => Boolean(hotel)
@@ -208,8 +230,9 @@ export default function HotelsScreen() {
           </ScrollView>
         </View>
 
-        {renderSection("⭐ Top Picks", recommended)}
-        {renderSection("5 Star Hotels", madinahHotels)}
+        {renderSection("⭐ Recommended", recommended)}
+        {renderSection("🕋 Makkah Top Picks", makkahHotels)}
+        {renderSection("⭐ 5 Star Hotels", fiveStarHotels)}
         {renderSection("🕋 Kaaba View", kaabaViewHotels)}
         {renderSection("🚶 Closest to Haram", closestHotels)}
         {renderSection("💰 Budget Friendly", budgetHotels)}

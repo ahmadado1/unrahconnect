@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase, toggleFavorite } from "../../lib/supabase";
@@ -56,10 +56,29 @@ const fastFood: Restaurant[] = [
   { id: "r18", name: "Pizza Hut Makkah", distance: "800m from Haram", cuisine: "🍕 Pizza", priceRange: "$", rating: 4.1, isOpen: true, type: "external", city: "Makkah", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600" },
 ];
 
+// Curated lists for city-specific sections (must include city: "Makkah" or "Madinah" on each item)
+const makkahRestaurants: Restaurant[] = [
+  topPicks[0]!,
+  topPicks[1]!,
+  nearHaram[0]!,
+];
+
+const madinahRestaurants: Restaurant[] = [
+  topPicks[2]!,
+  arabicGrills[2]!,
+  international[2]!,
+];
+
+// Hand-picked mix for Recommended — add entries here (same objects as in other arrays)
+const recommended: Restaurant[] = [topPicks[0]!, nearHaram[0]!, topPicks[2]!];
+
+type CityFilter = "All" | "Makkah" | "Madinah";
+
 export default function RestaurantsScreen() {
-  const [activeFilter, setActiveFilter] = useState("All");
+  // Tracks which pill is selected; drives all section filtering below
+  const [activeFilter, setActiveFilter] = useState<CityFilter>("All");
   const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<Set<string>>(new Set())
-  const filters = ["All", "Makkah", "Madinah"];
+  const filters: CityFilter[] = ["All", "Makkah", "Madinah"];
 
   const loadFavoriteRestaurants = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -87,6 +106,41 @@ export default function RestaurantsScreen() {
       loadFavoriteRestaurants()
     }, [])
   )
+
+  /**
+   * City filter — same pattern as filterHotels on the Hotels tab.
+   * 1. "All" → return the section list unchanged
+   * 2. "Makkah" / "Madinah" → keep only items whose `city` field matches the pill
+   */
+  const filterRestaurants = useCallback(
+    (restaurants: Restaurant[]) => {
+      if (activeFilter === "All") return restaurants;
+      return restaurants.filter((restaurant) => restaurant.city === activeFilter);
+    },
+    [activeFilter]
+  );
+
+  // Recompute visible sections whenever the pill changes (fixes stale UI after tap)
+  const visibleSections = useMemo(
+    () =>
+      [
+        { title: "⭐ Recommended", restaurants: recommended },
+        { title: "🕋 Makkah Top Picks", restaurants: makkahRestaurants },
+        { title: "🕋 Near Haram", restaurants: nearHaram },
+        { title: "🍖 Arabic & Grills", restaurants: arabicGrills },
+        { title: "🌍 International", restaurants: international },
+        { title: "☕ Cafes & Desserts", restaurants: cafesAndDesserts },
+        { title: "🥡 Fast Food", restaurants: fastFood },
+        { title: "🌙 Madinah Picks", restaurants: madinahRestaurants },
+      ]
+        .map((section) => ({
+          title: section.title,
+          restaurants: filterRestaurants(section.restaurants),
+        }))
+        // Hide entire section when no restaurants match the active city
+        .filter((section) => section.restaurants.length > 0),
+    [filterRestaurants]
+  );
 
   function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     const router = useRouter();
@@ -143,22 +197,6 @@ export default function RestaurantsScreen() {
     );
   }
 
-  const renderSection = (title: string, restaurants: Restaurant[]) => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAll}>See all →</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
-        {restaurants.map(restaurant => (
-          <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -191,10 +229,11 @@ export default function RestaurantsScreen() {
             style={styles.pillsRow}
             contentContainerStyle={{ gap: 8 }}
           >
-            {filters.map(filter => (
+            {filters.map((filter) => (
               <TouchableOpacity
                 key={filter}
                 style={[styles.pill, activeFilter === filter && styles.pillActive]}
+                // Updates activeFilter → useMemo rebuilds visibleSections → list re-renders
                 onPress={() => setActiveFilter(filter)}
               >
                 <Text style={[styles.pillText, activeFilter === filter && styles.pillTextActive]}>{filter}</Text>
@@ -203,12 +242,28 @@ export default function RestaurantsScreen() {
           </ScrollView>
         </View>
 
-        {renderSection("🌟 Top Picks", topPicks)}
-        {renderSection("🕋 Near Haram", nearHaram)}
-        {renderSection("🍖 Arabic & Grills", arabicGrills)}
-        {renderSection("🌍 International", international)}
-        {renderSection("☕ Cafes & Desserts", cafesAndDesserts)}
-        {renderSection("🥡 Fast Food", fastFood)}
+        {/* key forces ScrollView children to refresh when the city pill changes */}
+        <View key={activeFilter}>
+          {visibleSections.map((section) => (
+            <View key={section.title} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <TouchableOpacity>
+                  <Text style={styles.seeAll}>See all →</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+              >
+                {section.restaurants.map((restaurant) => (
+                  <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+                ))}
+              </ScrollView>
+            </View>
+          ))}
+        </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
