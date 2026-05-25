@@ -1,6 +1,8 @@
+import { getUmrahProgress, markPhaseComplete, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { useEffect, useState } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -75,6 +77,7 @@ const phasesData = [
       "Keep reciting Talbiyah until you begin Tawaf",
       "If you accidentally violate Ihram rules, consult a scholar about the expiation",
     ],
+    femaleNote: "Women wear their normal modest clothing — any colour. Do not cover the face or hands during Ihram. Recite Talbiyah quietly.",
   },
   {
     id: "3",
@@ -109,6 +112,7 @@ const phasesData = [
       "This moment is known to be one of the best times for dua acceptance",
       "Enter the masjid calmly with full focus and presence of heart",
     ],
+    femaleNote: "Women do not need to do Raml (brisk walking) or Idtiba (exposing shoulder). Walk at a normal pace throughout all 7 rounds.",
   },
   {
     id: "4",
@@ -145,6 +149,7 @@ const phasesData = [
       "If you lose count of your rounds, assume the lesser number",
       "Tawaf can be done on the ground floor or upper levels if crowded",
     ],
+    femaleNote: "Women do not run between the green lights. Walk at a normal pace for all 7 trips.",
   },
   {
     id: "5",
@@ -180,6 +185,7 @@ const phasesData = [
       "Count your trips carefully — you must end at Marwa on the 7th",
       "Make personal dua in your own language — Allah hears every language",
     ],
+    femaleNote: "Women do NOT shave their head. Cut a fingertip length from the end of your hair only.",
   },
   {
     id: "6",
@@ -239,12 +245,46 @@ const phasesData = [
   },
 ]
 
+    // Quick reference for next phase preview
+    const phaseOrder = [
+      { id: "1", title: "Madinah Visit" },
+      { id: "2", title: "Entering Ihram" },
+      { id: "3", title: "Arriving in Makkah" },
+      { id: "4", title: "Tawaf" },
+      { id: "5", title: "Sa'i" },
+      { id: "6", title: "Halq / Taqsir" },
+      { id: "7", title: "Umrah Complete" },
+    ]
+
 export default function PhaseDetailScreen() {
   const { phase } = useLocalSearchParams<{ phase?: string | string[] }>()
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const phaseId = Array.isArray(phase) ? phase[0] : phase
   const data = phasesData.find(p => p.id === phaseId)
+  // Find the next phase — if current id is "3", next is "4"
+  const currentIndex = phaseOrder.findIndex(p => p.id === phaseId)
+  const nextPhase = phaseOrder[currentIndex + 1]
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [gender, setGender] = useState<"male" | "female">("male")
+
+  // Check if this phase is already marked complete
+      useEffect(() => {
+        const checkProgress = async () => {
+          const progress = await getUmrahProgress()
+          setIsCompleted(progress.includes(phaseId ?? ""))
+          
+          // Also fetch user gender
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) setGender(user.user_metadata?.gender || "male")
+        }
+        checkProgress()
+      }, [])
+    // Called when user taps the complete button — right after the useEffect above
+    const handleMarkComplete = async () => {
+      const newState = await markPhaseComplete(phaseId ?? "")
+      setIsCompleted(newState ?? false)
+    }
 
   if (!data) {
     return (
@@ -257,6 +297,9 @@ export default function PhaseDetailScreen() {
     )
   }
 
+        
+
+      
   return (
     <View style={styles.screen}>
       <StatusBar style="light" backgroundColor={data.textColor}  />
@@ -280,6 +323,13 @@ export default function PhaseDetailScreen() {
           {/* Description */}
           <Text style={styles.description}>{data.description}</Text>
 
+          {/* Gender specific note — only shows for female users when phase has a female note */}
+          {gender === "female" && data.femaleNote && (
+            <View style={styles.femaleNote}>
+              <Ionicons name="information-circle" size={18} color="#1E3A5F" />
+              <Text style={styles.femaleNoteText}>{data.femaleNote}</Text>
+            </View>
+          )}
           <View style={styles.divider} />
 
           {/* Steps */}
@@ -318,9 +368,53 @@ export default function PhaseDetailScreen() {
             </View>
           ))}
 
-        </View>
+    </View>
 
-        <View style={{ height: 100 }} />
+      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* Next step section — outside content View, inside ScrollView */}
+      <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
+        {nextPhase ? (
+          <TouchableOpacity
+            style={styles.nextBtn}
+            onPress={() => router.push(`/umrah/${nextPhase.id}`)}
+          >
+            <View style={styles.nextBtnContent}>
+              <View>
+                <Text style={styles.nextBtnLabel}>Next Step</Text>
+                <Text style={styles.nextBtnTitle}>{nextPhase.title}</Text>
+              </View>
+              <Ionicons name="arrow-forward-circle" size={32} color="#C9A84C" />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.completionBox}>
+            <Text style={styles.completionEmoji}>🎉</Text>
+            <Text style={styles.completionTitle}>Umrah Complete!</Text>
+            <Text style={styles.completionText}>
+              May Allah accept your Umrah and grant you the highest reward. Ameen.
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Mark as complete button */}
+      <TouchableOpacity
+          style={[styles.completeBtn, isCompleted && styles.completeBtnDone]}
+          onPress={handleMarkComplete}
+        >
+          <Ionicons
+            name={isCompleted ? "checkmark-circle" : "checkmark-circle-outline"}
+            size={22}
+            color={isCompleted ? "#1E3A5F" : "#fff"}
+          />
+          <Text style={[styles.completeBtnText, isCompleted && styles.completeBtnTextDone]}>
+            {isCompleted ? "Completed ✓" : "Mark as Complete"}
+          </Text>
+        </TouchableOpacity>
+
+      <View style={{ height: 50 }} />
 
       </ScrollView>
     </View>
@@ -349,6 +443,9 @@ const styles = StyleSheet.create({
     stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 },
     stepNumText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
     stepText: { flex: 1, fontSize: 14, color: "#444", lineHeight: 22 },
+
+    femaleNote: { flexDirection: "row", gap: 8, backgroundColor: "#E6F1FB", borderRadius: 10, padding: 12, marginTop: 12, alignItems: "flex-start" },
+  femaleNoteText: { flex: 1, fontSize: 13, color: "#0C447C", lineHeight: 20 },
   
     duaCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5, borderColor: "#E0D9CE" },
     duaTitle: { fontSize: 12, fontWeight: "bold", color: "#888", marginBottom: 10 },
@@ -359,4 +456,22 @@ const styles = StyleSheet.create({
   
     tipRow: { flexDirection: "row", gap: 10, marginBottom: 10, alignItems: "flex-start" },
     tipText: { flex: 1, fontSize: 14, color: "#444", lineHeight: 22 },
+
+    // Gold button when not completed
+    completeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "green", marginHorizontal: 20, borderRadius: 25, padding: 14, marginBottom: 12 },
+    // Lighter style when already completed
+    completeBtnDone: { backgroundColor: "#C9A84C" },
+    // White text on green button
+    completeBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
+    // Navy text on gold button
+    completeBtnTextDone: { color: "#1E3A5F" },
+
+    nextBtn: { backgroundColor: "#1E3A5F", borderRadius: 14, padding: 16, marginTop: 4 },
+    nextBtnContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    nextBtnLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "600", marginBottom: 4 },
+    nextBtnTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+    completionBox: { backgroundColor: "#1E3A5F", borderRadius: 14, padding: 24, alignItems: "center" },
+    completionEmoji: { fontSize: 48, marginBottom: 12 },
+    completionTitle: { color: "#C9A84C", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+    completionText: { color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22 },
   })

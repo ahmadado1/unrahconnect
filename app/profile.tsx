@@ -28,6 +28,8 @@ export default function ProfileScreen() {
     const [editing, setEditing] = useState(false)
     // True while saving to Supabase, used to show loading and disable button
     const [loading, setLoading] = useState(false)
+    const [gender, setGender] = useState<"male" | "female">("male")
+    
 
     // Runs getUser() once when the screen first opens
     useEffect(() => {
@@ -48,6 +50,8 @@ export default function ProfileScreen() {
           setPhone(user.user_metadata?.phone || "")
           // Get nationality from user_metadata, use empty string if not set yet
           setNationality(user.user_metadata?.nationality || "")
+          // Get gender from user metadata
+          setGender(user.user_metadata?.gender || "male")
         }
       }
 
@@ -58,10 +62,10 @@ export default function ProfileScreen() {
         // Send updated data to Supabase to update the user's metadata
         const { error } = await supabase.auth.updateUser({
           data: {
-            // Save the three fields we allow editing
             full_name: fullName,
             phone: phone,
             nationality: nationality,
+            gender: gender,
           }
         })
         // If something went wrong, log it to the console
@@ -172,6 +176,29 @@ export default function ProfileScreen() {
                         <Text style={styles.fieldValue}>{nationality || "Not set"}</Text>
                     )}
                     </View>
+
+                    {/* Gender field */}
+                      <View style={styles.field}>
+                        <Text style={styles.fieldLabel}>Gender</Text>
+                        {editing ? (
+                          <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                            <TouchableOpacity
+                              style={[styles.genderBtn, gender === "male" && styles.genderBtnActive]}
+                              onPress={() => setGender("male")}
+                            >
+                              <Text style={[styles.genderBtnText, gender === "male" && styles.genderBtnTextActive]}>👨 Male</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.genderBtn, gender === "female" && styles.genderBtnActive]}
+                              onPress={() => setGender("female")}
+                            >
+                              <Text style={[styles.genderBtnText, gender === "female" && styles.genderBtnTextActive]}>👩 Female</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <Text style={styles.fieldValue}>{gender === "male" ? "👨 Male" : "👩 Female"}</Text>
+                        )}
+                      </View>
 
                 </View>
 
@@ -301,4 +328,9 @@ export default function ProfileScreen() {
                     },
                     // Button text
                     accountBtnText: { flex: 1, fontSize: 15, color: "#1E3A5F" },
+
+                    genderBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: "#E0D9CE", alignItems: "center" },
+                    genderBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
+                    genderBtnText: { fontSize: 13, color: "#888" },
+                    genderBtnTextActive: { color: "#fff" },
                   })

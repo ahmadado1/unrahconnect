@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -79,6 +79,7 @@ export default function RestaurantsScreen() {
   const [activeFilter, setActiveFilter] = useState<CityFilter>("All");
   const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<Set<string>>(new Set())
   const filters: CityFilter[] = ["All", "Makkah", "Madinah"];
+  const [searchQuery, setSearchQuery] = useState("")
 
   const loadFavoriteRestaurants = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -114,10 +115,16 @@ export default function RestaurantsScreen() {
    */
   const filterRestaurants = useCallback(
     (restaurants: Restaurant[]) => {
-      if (activeFilter === "All") return restaurants;
-      return restaurants.filter((restaurant) => restaurant.city === activeFilter);
+      return restaurants.filter((restaurant) => {
+        // Check if restaurant matches selected city pill
+        const matchesCity = activeFilter === "All" || restaurant.city === activeFilter
+        // Check if restaurant name contains search query — case insensitive
+        const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase())
+        // Must match BOTH city AND search
+        return matchesCity && matchesSearch
+      });
     },
-    [activeFilter]
+    [activeFilter, searchQuery] // Add searchQuery here so useMemo updates when user types
   );
 
   // Recompute visible sections whenever the pill changes (fixes stale UI after tap)
@@ -217,9 +224,11 @@ export default function RestaurantsScreen() {
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
             <TextInput
-              placeholder="Search restaurants..."
+              placeholder="Search hotels..."
               placeholderTextColor="rgba(255,255,255,0.45)"
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
           </View>
 

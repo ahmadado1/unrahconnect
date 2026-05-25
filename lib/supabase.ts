@@ -75,3 +75,83 @@ export const toggleFavorite = async (itemId: string, itemType: string) => {
   // Return the new state — true if now favorited, false if removed
   return !already
 }
+
+// Gets all completed phase ids for the current user
+export const getUmrahProgress = async () => {
+  // Get logged in user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // Get all completed phases for this user
+  const { data } = await supabase
+    .from("umrah_progress")
+    .select("phase_id")
+    .eq("user_id", user.id)
+
+  // Return just the phase ids as an array like ["1", "2", "3"]
+  return (data ?? []).map(row => row.phase_id)
+}
+
+// Marks a phase as complete or incomplete (toggles)
+export const markPhaseComplete = async (phaseId: string) => {
+  // Get logged in user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // Check if already completed
+  const { data } = await supabase
+    .from("umrah_progress")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("phase_id", phaseId)
+    .single()
+
+  if (data) {
+    // Already completed — remove it (unmark)
+    await supabase
+      .from("umrah_progress")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("phase_id", phaseId)
+    return false // Now incomplete
+  } else {
+    // Not completed — add it (mark as done)
+    await supabase
+      .from("umrah_progress")
+      .insert({ user_id: user.id, phase_id: phaseId })
+    return true // Now complete
+  }
+}
+
+// Gets all completed Hajj phase ids for the current user
+export const getHajjProgress = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from("hajj_progress")
+    .select("phase_id")
+    .eq("user_id", user.id)
+
+  return (data ?? []).map(row => row.phase_id)
+}
+
+export const markHajjPhaseComplete = async (phaseId: string) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data } = await supabase
+    .from("hajj_progress")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("phase_id", phaseId)
+    .single()
+
+  if (data) {
+    await supabase.from("hajj_progress").delete().eq("user_id", user.id).eq("phase_id", phaseId)
+    return false
+  } else {
+    await supabase.from("hajj_progress").insert({ user_id: user.id, phase_id: phaseId })
+    return true
+  }
+}

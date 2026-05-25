@@ -5,8 +5,8 @@ import { StatusBar } from "expo-status-bar";
 // useState stores data that changes
 import { useState } from "react";
 // UI components we need
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 // Gets dynamic island height
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
@@ -146,7 +146,7 @@ export default function BookingScreen() {
     // Just close the calendar without changing anything
     setShowPicker(null)
   }
-
+  
   // Main booking function — runs when user taps "Confirm Booking"
   const handleBooking = async () => {
 

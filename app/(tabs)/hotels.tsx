@@ -23,6 +23,7 @@ export default function HotelsScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
   const filters = ["All", "Makkah", "Madinah"];
+  const [searchQuery, setSearchQuery] = useState("")
 
   const loadFavoriteHotels = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,8 +91,14 @@ export default function HotelsScreen() {
 
 
   const filterHotels = (hotels: Hotel[]) => {
-    if (activeFilter === "All") return hotels;
-    return hotels.filter((hotel) => hotel.city === activeFilter);
+    return hotels.filter((hotel) => {
+      // Check if hotel matches the selected city pill
+      const matchesCity = activeFilter === "All" || hotel.city === activeFilter
+      // Check if hotel name contains what user typed — case insensitive
+      const matchesSearch = hotel.name.toLowerCase().includes(searchQuery.toLowerCase())
+      // Hotel must match BOTH conditions to show
+      return matchesCity && matchesSearch
+    });
   };
 
   const fiveStarHotels: Hotel[] = [
@@ -209,6 +216,8 @@ export default function HotelsScreen() {
               placeholder="Search hotels..."
               placeholderTextColor="rgba(255,255,255,0.45)"
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
           </View>
 

@@ -1,52 +1,49 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function RootLayout() {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
-  const [initialRoute, setInitialRoute] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuth()
 
+    // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         router.replace("/auth/login")
+      }
+      if (event === "SIGNED_IN") {
+        router.replace("/(tabs)")
       }
     })
 
     return () => authListener.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (ready && initialRoute) {
-      router.replace(initialRoute as any)
-    }
-  }, [ready, initialRoute])
-
   const checkAuth = async () => {
     try {
+      // Small delay to let the router mount properly
+      await new Promise(resolve => setTimeout(resolve, 300))
+
       const seen = await AsyncStorage.getItem("onboardingSeen")
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!seen) {
-        setInitialRoute("/onboarding")
+        router.replace("/onboarding")
       } else if (!session) {
-        setInitialRoute("/auth/login")
+        router.replace("/auth/login")
       } else {
-        setInitialRoute("/(tabs)")
+        router.replace("/(tabs)")
       }
     } catch (e) {
-      setInitialRoute("/auth/login")
+      router.replace("/auth/login")
     }
   }
 
   return (
-    <Stack
-      screenOptions={{ headerShown: false }}
-    >
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="auth/login" />
       <Stack.Screen name="(tabs)" />
@@ -58,6 +55,10 @@ export default function RootLayout() {
       <Stack.Screen name="privacy" />
       <Stack.Screen name="terms" />
       <Stack.Screen name="booking" />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="hajj" />
+      <Stack.Screen name="hajj/[hajj]" />
+      <Stack.Screen name="umrah-guide" />
     </Stack>
   )
 }

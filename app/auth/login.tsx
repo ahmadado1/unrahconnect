@@ -13,6 +13,7 @@ export default function LoginScreen() {
     const [error, setError] = useState("")
     const [isSignUp, setIsSignUp] = useState(false)
     const [fullName, setFullName] = useState("")
+    const [gender, setGender] = useState<"male"| "female">('male')
 
     const handleResetPassword = async () => {
       if (!email) {
@@ -49,7 +50,11 @@ export default function LoginScreen() {
         setError("")
     
         if (isSignUp) {
-            const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
+          const { data, error } = await supabase.auth.signUp({ 
+            email, 
+            password, 
+            options: { data: { full_name: fullName, gender: gender } } 
+          })
             if (error) setError(error.message)
             else router.replace("/(tabs)")
         } else {
@@ -95,6 +100,33 @@ export default function LoginScreen() {
               />
             </View>
           )}
+             {/* Gender selector — only shows during signup */}
+             {isSignUp&&  (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>I am</Text>
+              <View style={styles.genderRow}>
+                {/* Male button */}
+                <TouchableOpacity
+                  style={[styles.genderBtn, gender === "male" && styles.genderBtnActive]}
+                  onPress={() => setGender("male")}
+                >
+                  <Text style={[styles.genderBtnText, gender === "male" && styles.genderBtnTextActive]}>
+                    👨 Male
+                  </Text>
+                </TouchableOpacity>
+                {/* Female button */}
+                <TouchableOpacity
+                  style={[styles.genderBtn, gender === "female" && styles.genderBtnActive]}
+                  onPress={() => setGender("female")}
+                >
+                  <Text style={[styles.genderBtnText, gender === "female" && styles.genderBtnTextActive]}>
+                    👩 Female
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              </View>
+             )
+             }
     
               {/* Email */}
               <View style={styles.inputGroup}>
@@ -171,6 +203,12 @@ const styles = StyleSheet.create({
     logo: { fontSize: 60, marginBottom: 12 },
     title: { fontSize: 28, fontWeight: "bold", color: "#1E3A5F", marginBottom: 6 },
     subtitle: { fontSize: 15, color: "#888" },
+
+    genderRow: { flexDirection: "row", gap: 12 },
+    genderBtn: { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#E0D9CE", alignItems: "center", backgroundColor: "#fff" },
+    genderBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
+    genderBtnText: { fontSize: 14, color: "#888", fontWeight: "500" },
+    genderBtnTextActive: { color: "#fff" },
   
     form: { flex: 1 },
     inputGroup: { marginBottom: 20 },
