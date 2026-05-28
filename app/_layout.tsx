@@ -1,3 +1,4 @@
+import { ThemeProvider } from "@/context/themeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -42,8 +43,11 @@ export default function RootLayout() {
     }
   }
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
+  
+    return (
+      <ThemeProvider>
+        {/* your existing stack/tabs here */}
+        <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="auth/login" />
       <Stack.Screen name="(tabs)" />
@@ -60,5 +64,8 @@ export default function RootLayout() {
       <Stack.Screen name="hajj/[hajj]" />
       <Stack.Screen name="umrah-guide" />
     </Stack>
-  )
-}
+      </ThemeProvider>
+    );
+  }
+
+ 

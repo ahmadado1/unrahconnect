@@ -1,336 +1,199 @@
-// Importing UI components we need from React Native
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-// Lets us navigate between screens
-import { useRouter } from "expo-router";
-// useState stores data that can change, useEffect runs code after screen loads
-import { useEffect, useState } from "react";
-// Our Supabase connection to talk to the database
-import { supabase } from "../lib/supabase";
-// Icon library for the back button and edit icons
+import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
-// Gets the dynamic island/notch height so content doesn't go behind it
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "../lib/supabase";
 
 export default function ProfileScreen() {
-    // Lets us go back or navigate to other screens
-    const router = useRouter()
-    // Gets the safe area padding for dynamic island
-    const insets = useSafeAreaInsets()
-    // Stores the full user object from Supabase (email, id, metadata etc)
-    const [user, setUser] = useState<any>(null)
-    // Stores the user's full name — starts empty until we fetch from Supabase
-    const [fullName, setFullName] = useState("")
-    // Stores the user's phone number — starts empty
-    const [phone, setPhone] = useState("")
-    // Stores the user's nationality — starts empty
-    const [nationality, setNationality] = useState("")
-    // Controls whether we're in view mode (false) or edit mode (true)
-    const [editing, setEditing] = useState(false)
-    // True while saving to Supabase, used to show loading and disable button
-    const [loading, setLoading] = useState(false)
-    const [gender, setGender] = useState<"male" | "female">("male")
-    
+  const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const { theme, isDark } = useTheme()
+  const [user, setUser] = useState<any>(null)
+  const [fullName, setFullName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [nationality, setNationality] = useState("")
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [gender, setGender] = useState<"male" | "female">("male")
 
-    // Runs getUser() once when the screen first opens
-    useEffect(() => {
-        getUser()
-      }, [])
-    
-      // Fetches the currently logged in user's data from Supabase
-      const getUser = async () => {
-        // Asks Supabase "who is logged in right now?"
-        const { data: { user } } = await supabase.auth.getUser()
-        // Only run if a user was actually found
-        if (user) {
-          // Save the full user object to state
-          setUser(user)
-          // Get full_name from user_metadata, use empty string if not set yet
-          setFullName(user.user_metadata?.full_name || "")
-          // Get phone from user_metadata, use empty string if not set yet
-          setPhone(user.user_metadata?.phone || "")
-          // Get nationality from user_metadata, use empty string if not set yet
-          setNationality(user.user_metadata?.nationality || "")
-          // Get gender from user metadata
-          setGender(user.user_metadata?.gender || "male")
-        }
-      }
+  useEffect(() => {
+    getUser()
+  }, [])
 
-      // Saves the updated profile info back to Supabase
-      const saveProfile = async () => {
-        // Show loading state while saving
-        setLoading(true)
-        // Send updated data to Supabase to update the user's metadata
-        const { error } = await supabase.auth.updateUser({
-          data: {
-            full_name: fullName,
-            phone: phone,
-            nationality: nationality,
-            gender: gender,
-          }
-        })
-        // If something went wrong, log it to the console
-        if (error) console.log(error)
-        // If save was successful, switch back to view mode
-        else setEditing(false)
-        // Hide loading state whether it succeeded or failed
-        setLoading(false)
-      }
+  const getUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUser(user)
+      setFullName(user.user_metadata?.full_name || "")
+      setPhone(user.user_metadata?.phone || "")
+      setNationality(user.user_metadata?.nationality || "")
+      setGender(user.user_metadata?.gender || "male")
+    }
+  }
 
-      return (
-            // Scrollable screen so content doesn't get cut off
-            <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
-        
-            {/* Header — navy blue bar at top with back button */}
-            <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        
-                {/* Back button — goes back to previous screen */}
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
-                </TouchableOpacity>
-        
-                <Text style={styles.headerTitle}>Profile</Text>
-        
-                {/* Edit/Save button — toggles between edit and save */}
-                <TouchableOpacity onPress={editing ? saveProfile : () => setEditing(true)}>
-                <Text style={styles.headerAction}>
-                    {editing ? (loading ? "Saving..." : "Save") : "Edit"}
-                </Text>
-                </TouchableOpacity>
-        
+  const saveProfile = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.updateUser({
+      data: { full_name: fullName, phone, nationality, gender }
+    })
+    if (error) console.log(error)
+    else setEditing(false)
+    setLoading(false)
+  }
+
+  return (
+    <ScrollView style={[styles.screen, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <TouchableOpacity onPress={editing ? saveProfile : () => setEditing(true)}>
+          <Text style={styles.headerAction}>
+            {editing ? (loading ? "Saving..." : "Save") : "Edit"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Avatar section — always navy */}
+      <View style={[styles.avatarSection, { backgroundColor: theme.header }]}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {fullName ? fullName[0].toUpperCase() : "?"}
+          </Text>
+        </View>
+        <Text style={styles.userName}>{fullName || "Your Name"}</Text>
+        <Text style={styles.userEmail}>{user?.email}</Text>
+        <Text style={styles.memberSince}>
+          Member since {user ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : ""}
+        </Text>
+      </View>
+
+      {/* Personal Info */}
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Personal Info</Text>
+
+        {/* Full Name */}
+        <View style={[styles.field, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Full Name</Text>
+          {editing ? (
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Enter your full name"
+              placeholderTextColor={theme.textSecondary}
+            />
+          ) : (
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{fullName || "Not set"}</Text>
+          )}
+        </View>
+
+        {/* Phone */}
+        <View style={[styles.field, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Phone</Text>
+          {editing ? (
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Enter your phone number"
+              placeholderTextColor={theme.textSecondary}
+              keyboardType="phone-pad"
+            />
+          ) : (
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{phone || "Not set"}</Text>
+          )}
+        </View>
+
+        {/* Nationality */}
+        <View style={[styles.field, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Nationality</Text>
+          {editing ? (
+            <TextInput
+              style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
+              value={nationality}
+              onChangeText={setNationality}
+              placeholder="Enter your nationality"
+              placeholderTextColor={theme.textSecondary}
+            />
+          ) : (
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{nationality || "Not set"}</Text>
+          )}
+        </View>
+
+        {/* Gender */}
+        <View style={[styles.field, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Gender</Text>
+          {editing ? (
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+              <TouchableOpacity
+                style={[styles.genderBtn, { borderColor: theme.border }, gender === "male" && styles.genderBtnActive]}
+                onPress={() => setGender("male")}
+              >
+                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>👨 Male</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.genderBtn, { borderColor: theme.border }, gender === "female" && styles.genderBtnActive]}
+                onPress={() => setGender("female")}
+              >
+                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>👩 Female</Text>
+              </TouchableOpacity>
             </View>
+          ) : (
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{gender === "male" ? "👨 Male" : "👩 Female"}</Text>
+          )}
+        </View>
+      </View>
 
-            {/* Avatar circle showing user's initials */}
-                    <View style={styles.avatarSection}>
+      {/* Account section */}
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
 
-                {/* Circle with first letter of user's name */}
-                <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                    {fullName ? fullName[0].toUpperCase() : "?"}
-                </Text>
-                </View>
+        <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]}>
+          <Ionicons name="lock-closed-outline" size={20} color={theme.text} />
+          <Text style={[styles.accountBtnText, { color: theme.text }]}>Change Password</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+        </TouchableOpacity>
 
-                {/* User's name below the circle */}
-                <Text style={styles.userName}>{fullName || "Your Name"}</Text>
+        <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]}>
+          <Ionicons name="trash-outline" size={20} color="#E24B4A" />
+          <Text style={[styles.accountBtnText, { color: "#E24B4A" }]}>Delete Account</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
-                {/* User's email below the name */}
-                <Text style={styles.userEmail}>{user?.email}</Text>
+      <View style={{ height: 60 }} />
+    </ScrollView>
+  )
+}
 
-                {/* When they joined */}
-                <Text style={styles.memberSince}>
-                Member since {user ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : ""}
-                </Text>
-
-                </View>
-
-                {/* Personal info section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Personal Info</Text>
-
-                    {/* Full Name field */}
-                    <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Full Name</Text>
-                    {editing ? (
-                        // When editing — show text input
-                        <TextInput
-                        style={styles.fieldInput}
-                        value={fullName}
-                        onChangeText={setFullName}
-                        placeholder="Enter your full name"
-                        placeholderTextColor="#888"
-                        />
-                    ) : (
-                        // When not editing — just show the value
-                        <Text style={styles.fieldValue}>{fullName || "Not set"}</Text>
-                    )}
-                    </View>
-
-                    {/* Phone field */}
-                    <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Phone</Text>
-                    {editing ? (
-                        <TextInput
-                        style={styles.fieldInput}
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder="Enter your phone number"
-                        placeholderTextColor="#888"
-                        keyboardType="phone-pad"
-                        />
-                    ) : (
-                        <Text style={styles.fieldValue}>{phone || "Not set"}</Text>
-                    )}
-                    </View>
-
-                    {/* Nationality field */}
-                    <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Nationality</Text>
-                    {editing ? (
-                        <TextInput
-                        style={styles.fieldInput}
-                        value={nationality}
-                        onChangeText={setNationality}
-                        placeholder="Enter your nationality"
-                        placeholderTextColor="#888"
-                        />
-                    ) : (
-                        <Text style={styles.fieldValue}>{nationality || "Not set"}</Text>
-                    )}
-                    </View>
-
-                    {/* Gender field */}
-                      <View style={styles.field}>
-                        <Text style={styles.fieldLabel}>Gender</Text>
-                        {editing ? (
-                          <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
-                            <TouchableOpacity
-                              style={[styles.genderBtn, gender === "male" && styles.genderBtnActive]}
-                              onPress={() => setGender("male")}
-                            >
-                              <Text style={[styles.genderBtnText, gender === "male" && styles.genderBtnTextActive]}>👨 Male</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.genderBtn, gender === "female" && styles.genderBtnActive]}
-                              onPress={() => setGender("female")}
-                            >
-                              <Text style={[styles.genderBtnText, gender === "female" && styles.genderBtnTextActive]}>👩 Female</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : (
-                          <Text style={styles.fieldValue}>{gender === "male" ? "👨 Male" : "👩 Female"}</Text>
-                        )}
-                      </View>
-
-                </View>
-
-                {/* Account section */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Account</Text>
-
-                        {/* Change password button */}
-                        <TouchableOpacity style={styles.accountBtn}>
-                        <Ionicons name="lock-closed-outline" size={20} color="#1E3A5F" />
-                        <Text style={styles.accountBtnText}>Change Password</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#888" />
-                        </TouchableOpacity>
-
-                        {/* Delete account button */}
-                        <TouchableOpacity style={styles.accountBtn}>
-                        <Ionicons name="trash-outline" size={20} color="#E24B4A" />
-                        <Text style={[styles.accountBtnText, { color: "#E24B4A" }]}>Delete Account</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#888" />
-                        </TouchableOpacity>
-
-                    </View>
-
-                    <View style={{ height: 60 }} />
-
-                    </ScrollView>
-                )
-                }
-
-                const styles = StyleSheet.create({
-                    // Main screen background
-                    screen: { flex: 1, backgroundColor: "#F5F0E8" },
-                  
-                    // Navy header at top
-                    header: {
-                      backgroundColor: "#1E3A5F",
-                      padding: 20,
-                      paddingBottom: 20,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    },
-                    // Back arrow button
-                    backBtn: {
-                      backgroundColor: "rgba(255,255,255,0.2)",
-                      borderRadius: 20,
-                      padding: 8,
-                    },
-                    // "Profile" title in header
-                    headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-                    // "Edit" / "Save" button text
-                    headerAction: { color: "#C9A84C", fontSize: 15, fontWeight: "600" },
-                  
-                    // Section containing the avatar circle and name
-                    avatarSection: {
-                      alignItems: "center",
-                      padding: 24,
-                      backgroundColor: "#1E3A5F",
-                      paddingBottom: 32,
-                    },
-                    // The circle itself
-                    avatar: {
-                      width: 80,
-                      height: 80,
-                      borderRadius: 40,
-                      backgroundColor: "#C9A84C",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 12,
-                    },
-                    // The initial letter inside the circle
-                    avatarText: { fontSize: 32, fontWeight: "bold", color: "#1E3A5F" },
-                    // Name below circle
-                    userName: { fontSize: 20, fontWeight: "bold", color: "#fff", marginBottom: 4 },
-                    // Email below name
-                    userEmail: { fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 4 },
-                    // Member since text
-                    memberSince: { fontSize: 12, color: "#C9A84C", marginTop: 4 },
-                  
-                    // White card section
-                    section: {
-                      backgroundColor: "#fff",
-                      marginHorizontal: 16,
-                      marginTop: 16,
-                      borderRadius: 14,
-                      padding: 16,
-                      borderWidth: 0.5,
-                      borderColor: "#E0D9CE",
-                    },
-                    // Section title like "Personal Info"
-                    sectionTitle: {
-                      fontSize: 13,
-                      fontWeight: "600",
-                      color: "#888",
-                      marginBottom: 14,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    },
-                    // Each row in the section
-                    field: {
-                      paddingVertical: 12,
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: "#E0D9CE",
-                    },
-                    // Label above the value like "Full Name"
-                    fieldLabel: { fontSize: 12, color: "#888", marginBottom: 4 },
-                    // The actual value text when not editing
-                    fieldValue: { fontSize: 15, color: "#1E3A5F", fontWeight: "500" },
-                    // The text input when editing
-                    fieldInput: {
-                      fontSize: 15,
-                      color: "#1E3A5F",
-                      borderWidth: 0.5,
-                      borderColor: "#C9A84C",
-                      borderRadius: 8,
-                      padding: 8,
-                    },
-                  
-                    // Each button in account section
-                    accountBtn: {
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 12,
-                      paddingVertical: 14,
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: "#E0D9CE",
-                    },
-                    // Button text
-                    accountBtnText: { flex: 1, fontSize: 15, color: "#1E3A5F" },
-
-                    genderBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: "#E0D9CE", alignItems: "center" },
-                    genderBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
-                    genderBtnText: { fontSize: 13, color: "#888" },
-                    genderBtnTextActive: { color: "#fff" },
-                  })
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  header: { padding: 20, paddingBottom: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8 },
+  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  headerAction: { color: "#C9A84C", fontSize: 15, fontWeight: "600" },
+  avatarSection: { alignItems: "center", padding: 24, paddingBottom: 32 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#C9A84C", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarText: { fontSize: 32, fontWeight: "bold", color: "#1E3A5F" },
+  userName: { fontSize: 20, fontWeight: "bold", color: "#fff", marginBottom: 4 },
+  userEmail: { fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 4 },
+  memberSince: { fontSize: 12, color: "#C9A84C", marginTop: 4 },
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16, borderWidth: 0.5 },
+  sectionTitle: { fontSize: 13, fontWeight: "600", marginBottom: 14, textTransform: "uppercase", letterSpacing: 0.5 },
+  field: { paddingVertical: 12, borderBottomWidth: 0.5 },
+  fieldLabel: { fontSize: 12, marginBottom: 4 },
+  fieldValue: { fontSize: 15, fontWeight: "500" },
+  fieldInput: { fontSize: 15, borderWidth: 0.5, borderRadius: 8, padding: 8 },
+  accountBtn: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderBottomWidth: 0.5 },
+  accountBtnText: { flex: 1, fontSize: 15 },
+  genderBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, alignItems: "center" },
+  genderBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
+  genderBtnText: { fontSize: 13 },
+  genderBtnTextActive: { color: "#fff" },
+})

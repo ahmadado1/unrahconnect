@@ -1,36 +1,20 @@
-// Gets hotel info passed from hotel detail screen and lets us navigate
-import { useLocalSearchParams, useRouter } from "expo-router";
-// Controls status bar style
-import { StatusBar } from "expo-status-bar";
-// useState stores data that changes
-import { useState } from "react";
-// UI components we need
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-// Gets dynamic island height
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-// Icons
+import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
-// Supabase to save booking to database
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 
-// EmailJS credentials — these connect our app to your EmailJS account
 const EMAILJS_SERVICE_ID = "service_1n51wzk"
 const EMAILJS_TEMPLATE_ID = "hyzjzza"
 const EMAILJS_PUBLIC_KEY = "FHzLPzlS0xVz4wFoD"
-// EMAIL-FIX-1: Private key required when EmailJS "strict mode" + non-browser (Expo/React Native) is enabled
-// Copy from EmailJS dashboard → Account → API keys → Private Key, then set in .env (see .env.example)
 const EMAILJS_PRIVATE_KEY = process.env.EXPO_PUBLIC_EMAILJS_PRIVATE_KEY ?? ""
 
-// Sends booking notification email via EmailJS REST API (works in React Native)
 async function sendBookingEmail(templateParams: Record<string, string | number>) {
-  // EMAIL-FIX-2: Fail fast with a clear message instead of EmailJS's cryptic "no Private Key" error
-  if (!EMAILJS_PRIVATE_KEY) {
-    throw new Error(
-      "Missing EXPO_PUBLIC_EMAILJS_PRIVATE_KEY in .env — add your EmailJS private key and restart Expo (bun expo start -c)."
-    )
-  }
-
+  if (!EMAILJS_PRIVATE_KEY) throw new Error("Missing EXPO_PUBLIC_EMAILJS_PRIVATE_KEY")
   const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -38,47 +22,30 @@ async function sendBookingEmail(templateParams: Record<string, string | number>)
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
-      // EMAIL-FIX-3: accessToken is the private key — required for API calls from React Native in strict mode
       accessToken: EMAILJS_PRIVATE_KEY,
       template_params: templateParams,
     }),
   })
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Email failed (${response.status})`)
-  }
+  if (!response.ok) throw new Error(await response.text())
 }
 
 export default function BookingScreen() {
-  // For navigating back or to home screen
   const router = useRouter()
-  // For dynamic island padding
   const insets = useSafeAreaInsets()
-  // Gets all params passed from hotel detail screen
+  const { theme, isDark } = useTheme()
   const params = useLocalSearchParams()
 
-  // Unpack the three hotel details from params
-  // "as string" tells TypeScript these are text values
   const hotelName = params.hotelName as string
   const hotelCity = params.hotelCity as string
   const hotelPrice = params.hotelPrice as string
 
-  // Check in date — starts empty, user picks from calendar
   const [checkIn, setCheckIn] = useState("")
-  // Check out date — starts empty, user picks from calendar
   const [checkOut, setCheckOut] = useState("")
-  // Number of guests — starts at 1
   const [guests, setGuests] = useState("1")
-  // User's phone number for contact
   const [phone, setPhone] = useState("")
-  // Optional special requests from user
   const [specialRequests, setSpecialRequests] = useState("")
-  // True while sending email and saving to database
   const [loading, setLoading] = useState(false)
-  // Controls which date picker is open — null means none are open
-  // Can only be "checkIn", "checkOut" or null
   const [showPicker, setShowPicker] = useState<"checkIn" | "checkOut" | null>(null)
-  // Date shown in the iOS picker while user is selecting
   const [pickerDate, setPickerDate] = useState(new Date())
 
   const openDatePicker = (type: "checkIn" | "checkOut") => {
@@ -87,7 +54,6 @@ export default function BookingScreen() {
     setShowPicker(type)
   }
 
-  // Avoid timezone bugs from toISOString() shifting the calendar day
   const toDateKey = (date: Date) => {
     const y = date.getFullYear()
     const m = String(date.getMonth() + 1).padStart(2, "0")
@@ -97,221 +63,133 @@ export default function BookingScreen() {
 
   const pricePerNight = parseInt(hotelPrice) || 0
   const guestCount = parseInt(guests) || 1
-  const nights =
-    checkIn && checkOut
-      ? Math.ceil(
-          (new Date(`${checkOut}T12:00:00`).getTime() - new Date(`${checkIn}T12:00:00`).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      : 0
+  const nights = checkIn && checkOut
+    ? Math.ceil((new Date(`${checkOut}T12:00:00`).getTime() - new Date(`${checkIn}T12:00:00`).getTime()) / (1000 * 60 * 60 * 24))
+    : 0
   const totalPrice = nights > 0 ? pricePerNight * nights : 0
+  const pickerMinimumDate = showPicker === "checkOut" && checkIn
+    ? new Date(new Date(`${checkIn}T12:00:00`).getTime() + 86400000)
+    : new Date()
 
-  const pickerMinimumDate =
-    showPicker === "checkOut" && checkIn
-      ? new Date(new Date(`${checkIn}T12:00:00`).getTime() + 86400000)
-      : new Date()
-
-  // Converts "2026-06-15" to readable "Mon, Jun 15 2026"
   const formatDate = (dateString: string) => {
-    // If no date selected yet return placeholder text
     if (!dateString) return "Select date"
-    // Create a Date object from the string
-    const date = new Date(dateString)
-    // Format it in a readable way
-    return date.toLocaleDateString("en-US", { 
-      weekday: "short", // e.g. Mon
-      month: "short",   // e.g. Jun
-      day: "numeric",   // e.g. 15
-      year: "numeric"   // e.g. 2026
-    })
+    return new Date(dateString).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
   }
 
-  // Called when user picks a date from the calendar
   const handleDateConfirm = (date: Date) => {
     const formatted = toDateKey(date)
-    
-    // Update the correct date based on which picker was open
-    if (showPicker === "checkIn") {
-      setCheckIn(formatted)
-    } else if (showPicker === "checkOut") {
-      setCheckOut(formatted)
-    }
-    
-    // Close the calendar after user picks a date
+    if (showPicker === "checkIn") setCheckIn(formatted)
+    else if (showPicker === "checkOut") setCheckOut(formatted)
     setShowPicker(null)
   }
 
-  // Called when user taps cancel on the calendar
-  const handleDateCancel = () => {
-    // Just close the calendar without changing anything
-    setShowPicker(null)
-  }
-  
-  // Main booking function — runs when user taps "Confirm Booking"
+  const handleDateCancel = () => setShowPicker(null)
+
   const handleBooking = async () => {
-
-    // Validate required fields before doing anything
     if (!checkIn || !checkOut || !phone) {
-      // Show popup if any required field is empty
       Alert.alert("Missing Info", "Please fill in check in, check out and phone number")
-      return // Stop here if validation fails
-    }
-
-    // Calculate number of nights
-    // getTime() converts dates to milliseconds
-    // Subtract check in from check out to get difference
-    // Divide by milliseconds in a day to get days
-    // Math.ceil rounds up — hotels charge full nights
-    const bookingNights = Math.ceil(
-      (new Date(`${checkOut}T12:00:00`).getTime() - new Date(`${checkIn}T12:00:00`).getTime()) 
-      / (1000 * 60 * 60 * 24)
-    )
-
-    // Make sure check out is after check in
-    if (bookingNights <= 0) {
-      Alert.alert("Invalid Dates", "Check out must be after check in")
       return
     }
+    const bookingNights = Math.ceil(
+      (new Date(`${checkOut}T12:00:00`).getTime() - new Date(`${checkIn}T12:00:00`).getTime()) / (1000 * 60 * 60 * 24)
+    )
+    if (bookingNights <= 0) { Alert.alert("Invalid Dates", "Check out must be after check in"); return }
 
     setShowPicker(null)
     setLoading(true)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        Alert.alert("Sign in required", "Please log in to complete your booking.")
-        return
-      }
+      if (!user) { Alert.alert("Sign in required", "Please log in to complete your booking."); return }
 
-      // Save booking first — this is the source of truth
       const { error: dbError } = await supabase.from("bookings").insert({
-        user_id: user?.id,
-        hotel_name: hotelName,
-        hotel_city: hotelCity,
-        check_in: checkIn,
-        check_out: checkOut,
-        guests: parseInt(guests),
-        nights: bookingNights,
-        total_price: pricePerNight * bookingNights,
-        phone: phone,
-        special_requests: specialRequests,
-        status: "pending",
+        user_id: user?.id, hotel_name: hotelName, hotel_city: hotelCity,
+        check_in: checkIn, check_out: checkOut, guests: parseInt(guests),
+        nights: bookingNights, total_price: pricePerNight * bookingNights,
+        phone, special_requests: specialRequests, status: "pending",
       })
-
       if (dbError) throw dbError
 
-      // Email is optional — booking still succeeds if EmailJS is blocked
       let emailSent = false
       try {
         await sendBookingEmail({
-          hotel_name: hotelName,
-          hotel_city: hotelCity,
+          hotel_name: hotelName, hotel_city: hotelCity,
           guest_name: user?.user_metadata?.full_name || "Guest",
-          guest_email: user?.email || "No email",
-          guest_phone: phone,
-          check_in: checkIn,
-          check_out: checkOut,
-          guests: guests,
-          nights: bookingNights,
+          guest_email: user?.email || "No email", guest_phone: phone,
+          check_in: checkIn, check_out: checkOut, guests, nights: bookingNights,
           special_requests: specialRequests || "None",
         })
         emailSent = true
       } catch (emailError) {
-        // EMAIL-FIX-4: Log a readable hint when the private key env var is missing
-        const emailMessage =
-          emailError instanceof Error ? emailError.message : String(emailError)
-        console.warn("Booking email failed:", emailMessage)
+        console.warn("Booking email failed:", emailError instanceof Error ? emailError.message : emailError)
       }
 
       Alert.alert(
         "Booking Confirmed! 🎉",
-        emailSent
-          ? "Your booking request has been sent. We will contact you shortly."
-          : "Your booking was saved. We will contact you shortly.",
+        emailSent ? "Your booking request has been sent. We will contact you shortly." : "Your booking was saved. We will contact you shortly.",
         [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
       )
-
     } catch (error: unknown) {
       console.error("Booking failed:", error)
-      let message = "Something went wrong. Please try again."
-      if (error && typeof error === "object" && "message" in error) {
-        const raw = String((error as { message: string }).message)
-        if (raw.includes("bookings")) {
-          message = "Bookings are not set up in the database yet. Run supabase/bookings.sql in your Supabase SQL Editor."
-        } else {
-          message = raw
-        }
-      }
-      Alert.alert("Booking failed", message)
+      Alert.alert("Booking failed", "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    // Main screen with cream background
-    <View style={styles.screen}>
-      <StatusBar style="light" />
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Navy header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        {/* Back button */}
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Book Hotel</Text>
-        {/* Empty view keeps title centered */}
         <View style={{ width: 38 }} />
       </View>
 
-      {/* Hotel summary — shows what hotel user is booking */}
-      <View style={styles.hotelSummary}>
+      {/* Hotel summary — always navy */}
+      <View style={[styles.hotelSummary, { backgroundColor: theme.header }]}>
         <Text style={styles.hotelSummaryName}>{hotelName}</Text>
-        <Text style={styles.hotelSummaryCity}>
-          {hotelCity} · ${hotelPrice} per night
-        </Text>
+        <Text style={styles.hotelSummaryCity}>{hotelCity} · ${hotelPrice} per night</Text>
       </View>
 
-      {/* Scrollable form */}
       <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
 
-        {/* Dates section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📅 Dates</Text>
+        {/* Dates */}
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>📅 Dates</Text>
 
-          {/* Check in date button */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Check In Date</Text>
-            {/* Tapping opens check in calendar */}
-            <TouchableOpacity 
-              style={styles.dateBtn}
+            <Text style={[styles.label, { color: theme.text }]}>Check In Date</Text>
+            <TouchableOpacity
+              style={[styles.dateBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
               onPress={() => openDatePicker("checkIn")}
             >
-              <Ionicons name="calendar-outline" size={20} color="#1E3A5F" />
-              {/* Shows formatted date or placeholder if not selected */}
-              <Text style={[styles.dateBtnText, !checkIn && styles.datePlaceholder]}>
+              <Ionicons name="calendar-outline" size={20} color={theme.text} />
+              <Text style={[styles.dateBtnText, { color: checkIn ? theme.text : theme.textSecondary }]}>
                 {checkIn ? formatDate(checkIn) : "Select check in date"}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Check out date button — same as check in */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Check Out Date</Text>
-            <TouchableOpacity 
-              style={styles.dateBtn}
+            <Text style={[styles.label, { color: theme.text }]}>Check Out Date</Text>
+            <TouchableOpacity
+              style={[styles.dateBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
               onPress={() => openDatePicker("checkOut")}
             >
-              <Ionicons name="calendar-outline" size={20} color="#1E3A5F" />
-              <Text style={[styles.dateBtnText, !checkOut && styles.datePlaceholder]}>
+              <Ionicons name="calendar-outline" size={20} color={theme.text} />
+              <Text style={[styles.dateBtnText, { color: checkOut ? theme.text : theme.textSecondary }]}>
                 {checkOut ? formatDate(checkOut) : "Select check out date"}
               </Text>
             </TouchableOpacity>
           </View>
-
         </View>
 
-        {/* Android: native date dialog */}
+        {/* Android date picker */}
         {showPicker !== null && Platform.OS === "android" && (
           <DateTimePicker
             value={pickerDate}
@@ -324,49 +202,37 @@ export default function BookingScreen() {
           />
         )}
 
-        {/* Guests and contact section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👥 Guests & Contact</Text>
+        {/* Guests & Contact */}
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>👥 Guests & Contact</Text>
 
-          {/* Guest counter — minus, number, plus */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Number of Guests</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Number of Guests</Text>
             <View style={styles.guestsRow}>
-              {/* Minus button — minimum 1 guest */}
-              <TouchableOpacity 
-                style={styles.guestBtn}
-                onPress={() => setGuests(prev => String(Math.max(1, parseInt(prev) - 1)))}
-              >
+              <TouchableOpacity style={styles.guestBtn} onPress={() => setGuests(prev => String(Math.max(1, parseInt(prev) - 1)))}>
                 <Text style={styles.guestBtnText}>−</Text>
               </TouchableOpacity>
-              {/* Current guest count */}
-              <Text style={styles.guestCount}>{guests}</Text>
-              {/* Plus button — maximum 10 guests */}
-              <TouchableOpacity 
-                style={styles.guestBtn}
-                onPress={() => setGuests(prev => String(Math.min(10, parseInt(prev) + 1)))}
-              >
+              <Text style={[styles.guestCount, { color: theme.text }]}>{guests}</Text>
+              <TouchableOpacity style={styles.guestBtn} onPress={() => setGuests(prev => String(Math.min(10, parseInt(prev) + 1)))}>
                 <Text style={styles.guestBtnText}>+</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Phone number input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Phone Number</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }]}
               placeholder="Enter your phone number"
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.textSecondary}
               value={phone}
               onChangeText={setPhone}
-              keyboardType="phone-pad" // Shows number keyboard
+              keyboardType="phone-pad"
             />
           </View>
-
         </View>
 
-        {/* Price summary — updates when dates and guests are set */}
+        {/* Price summary — always navy */}
         <View style={styles.priceSummary}>
           <Text style={styles.priceSummaryTitle}>💰 Price Summary</Text>
           <View style={styles.priceRow}>
@@ -382,15 +248,11 @@ export default function BookingScreen() {
               <>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Stay</Text>
-                  <Text style={styles.priceValue}>
-                    {formatDate(checkIn)} → {formatDate(checkOut)} ({nights} {nights === 1 ? "night" : "nights"})
-                  </Text>
+                  <Text style={styles.priceValue}>{formatDate(checkIn)} → {formatDate(checkOut)} ({nights} {nights === 1 ? "night" : "nights"})</Text>
                 </View>
                 <View style={styles.priceDivider} />
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>
-                    ${pricePerNight} × {nights} nights
-                  </Text>
+                  <Text style={styles.priceLabel}>${pricePerNight} × {nights} nights</Text>
                   <Text style={styles.priceValue}>${totalPrice}</Text>
                 </View>
                 <View style={styles.priceRow}>
@@ -399,49 +261,45 @@ export default function BookingScreen() {
                 </View>
               </>
             ) : (
-              <Text style={styles.priceHint}>
-                Check-out must be after check-in to calculate your total.
-              </Text>
+              <Text style={styles.priceHint}>Check-out must be after check-in.</Text>
             )
           ) : (
             <Text style={styles.priceHint}>Select check-in and check-out dates to see your total.</Text>
           )}
         </View>
 
-        {/* Special requests — optional multiline input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Special Requests</Text>
+        {/* Special Requests */}
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>📝 Special Requests</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Any special requests? (optional)</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Any special requests? (optional)</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }]}
               placeholder="e.g. High floor, extra pillows, early check in..."
-              placeholderTextColor="#888"
+              placeholderTextColor={theme.textSecondary}
               value={specialRequests}
               onChangeText={setSpecialRequests}
-              multiline // Allows multiple lines
-              numberOfLines={4} // Shows 4 lines tall
+              multiline
+              numberOfLines={4}
             />
           </View>
         </View>
 
-        {/* Confirm booking button — disabled and faded while loading */}
+        {/* Confirm button */}
         <TouchableOpacity
           style={[styles.confirmBtn, loading && styles.confirmBtnDisabled]}
           onPress={handleBooking}
           disabled={loading}
         >
           <Text style={styles.confirmBtnText}>
-            {/* Button text changes while loading */}
             {loading ? "Sending booking..." : "Confirm Booking 🕋"}
           </Text>
         </TouchableOpacity>
 
-        {/* Bottom spacing */}
         <View style={{ height: 60 }} />
       </ScrollView>
 
-      {/* iOS date picker — outside ScrollView so spinner text renders correctly */}
+      {/* iOS date picker modal */}
       {showPicker !== null && Platform.OS === "ios" && (
         <Modal transparent animationType="slide" visible>
           <View style={styles.pickerOverlay}>
@@ -450,20 +308,13 @@ export default function BookingScreen() {
                 <TouchableOpacity onPress={handleDateCancel}>
                   <Text style={styles.pickerCancel}>Cancel</Text>
                 </TouchableOpacity>
-                <Text style={styles.pickerTitle}>
-                  {showPicker === "checkIn" ? "Check in" : "Check out"}
-                </Text>
+                <Text style={styles.pickerTitle}>{showPicker === "checkIn" ? "Check in" : "Check out"}</Text>
                 <TouchableOpacity onPress={() => handleDateConfirm(pickerDate)}>
                   <Text style={styles.pickerDone}>Done</Text>
                 </TouchableOpacity>
               </View>
               <Text style={styles.pickerPreview}>
-                {pickerDate.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {pickerDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </Text>
               <DateTimePicker
                 value={pickerDate}
@@ -483,72 +334,38 @@ export default function BookingScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Full screen cream background
-  screen: { flex: 1, backgroundColor: "#F5F0E8" },
-  // Navy header
-  header: { backgroundColor: "#1E3A5F", padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  // Circular back button
+  screen: { flex: 1 },
+  header: { padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8 },
-  // Header title text
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  // Hotel name and price below header — still navy
-  hotelSummary: { backgroundColor: "#1E3A5F", paddingHorizontal: 20, paddingBottom: 20 },
-  // Hotel name in white
+  hotelSummary: { paddingHorizontal: 20, paddingBottom: 20 },
   hotelSummaryName: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  // City and price in gold
   hotelSummaryCity: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
-  // Scrollable form area
   form: { flex: 1 },
-  // White card sections
-  section: { backgroundColor: "#fff", marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16, borderWidth: 0.5, borderColor: "#E0D9CE" },
-  // Section title
-  sectionTitle: { fontSize: 15, fontWeight: "bold", color: "#1E3A5F", marginBottom: 14 },
-  // Space between input fields
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16, borderWidth: 0.5 },
+  sectionTitle: { fontSize: 15, fontWeight: "bold", marginBottom: 14 },
   inputGroup: { marginBottom: 14 },
-  // Label above each input
-  label: { fontSize: 13, fontWeight: "600", color: "#1E3A5F", marginBottom: 8 },
-  // Text input styling
-  input: { backgroundColor: "#F5F0E8", borderRadius: 10, padding: 12, fontSize: 14, borderWidth: 0.5, borderColor: "#E0D9CE", color: "#1E3A5F" },
-  // Makes special requests input taller
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
+  input: { borderRadius: 10, padding: 12, fontSize: 14, borderWidth: 0.5 },
   textArea: { height: 100, textAlignVertical: "top" },
-  // Date picker button styling
-  dateBtn: { backgroundColor: "#F5F0E8", borderRadius: 10, padding: 12, borderWidth: 0.5, borderColor: "#E0D9CE", flexDirection: "row", alignItems: "center", gap: 10 },
-  // Date text inside button
-  dateBtnText: { fontSize: 14, color: "#1E3A5F", flex: 1 },
-  // Grey placeholder when no date selected
-  datePlaceholder: { color: "#888" },
-  // Row containing minus number plus
+  dateBtn: { borderRadius: 10, padding: 12, borderWidth: 0.5, flexDirection: "row", alignItems: "center", gap: 10 },
+  dateBtnText: { fontSize: 14, flex: 1 },
   guestsRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  // Circular minus and plus buttons
   guestBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" },
-  // The − and + symbols
   guestBtnText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-  // The number between minus and plus
-  guestCount: { fontSize: 20, fontWeight: "bold", color: "#1E3A5F", minWidth: 30, textAlign: "center" },
-  // Dark navy price summary box
+  guestCount: { fontSize: 20, fontWeight: "bold", minWidth: 30, textAlign: "center" },
   priceSummary: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16 },
-  // Gold price summary title
   priceSummaryTitle: { color: "#C9A84C", fontSize: 15, fontWeight: "bold", marginBottom: 12 },
-  // Each price row — label on left, value on right
   priceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  // Price breakdown label
   priceLabel: { color: "rgba(255,255,255,0.7)", fontSize: 14 },
-  // Price breakdown value
   priceValue: { color: "#fff", fontSize: 14, fontWeight: "500" },
-  // Thin divider between breakdown and total
   priceDivider: { height: 0.5, backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 8 },
-  // Total label in white bold
   priceTotalLabel: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  // Total amount in gold
   priceTotalValue: { color: "#C9A84C", fontSize: 18, fontWeight: "bold" },
   priceHint: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 4, lineHeight: 20 },
-  // Gold confirm button
   confirmBtn: { backgroundColor: "#C9A84C", marginHorizontal: 16, marginTop: 16, borderRadius: 25, padding: 16, alignItems: "center" },
-  // Faded when loading
   confirmBtnDisabled: { opacity: 0.6 },
-  // Button text in navy
   confirmBtnText: { color: "#1E3A5F", fontSize: 16, fontWeight: "bold" },
-
   pickerOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
   pickerSheet: { backgroundColor: "#1E3A5F", borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 34 },
   pickerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.15)" },

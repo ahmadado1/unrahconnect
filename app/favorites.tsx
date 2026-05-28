@@ -1,31 +1,20 @@
-// Lets us navigate back
-import { useRouter } from "expo-router";
-// Controls status bar style
-import { StatusBar } from "expo-status-bar";
-// useState stores data, useEffect runs code after screen loads, useCallback re-runs when needed
-import { useState, useEffect, useCallback } from "react";
-// UI components
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "react-native";
-// Gets dynamic island height
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-// Supabase connection and our helper functions
-import { supabase } from "../lib/supabase";
-// Icon library
+import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "../lib/supabase";
 
 export default function FavoritesScreen() {
-  // For navigation
   const router = useRouter()
-  // For dynamic island padding
   const insets = useSafeAreaInsets()
-  // Stores the list of favorited hotels
+  const { theme, isDark } = useTheme()
   const [hotels, setHotels] = useState<any[]>([])
-  // Stores the list of favorited restaurants
   const [restaurants, setRestaurants] = useState<any[]>([])
-  // True while loading data from Supabase
   const [loading, setLoading] = useState(true)
 
-  // All hotel data — same as hotel detail screen
   const allHotels = [
     { id: "1", name: "Hilton Suites Makkah", distance: "500m from Haram", price: 180, rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600" },
     { id: "2", name: "Swissotel Makkah", distance: "100m from Haram", price: 320, rating: 4.9, city: "Makkah", image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600" },
@@ -48,7 +37,6 @@ export default function FavoritesScreen() {
     { id: "19", name: "Transcontinental Makkah", distance: "300m from Haram", price: 350, rating: 4.6, city: "Makkah", image: "https://images.unsplash.com/photo-1470219556762-1771e7f9427d?w=600" },
   ]
 
-  // All restaurant data — same as restaurant detail screen
   const allRestaurants = [
     { id: "r1", name: "Al Baik", distance: "300m from Haram", cuisine: "Fast Food", rating: 4.8, city: "Makkah", image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600" },
     { id: "r2", name: "Zamzam Restaurant", distance: "150m from Haram", cuisine: "Arabic", rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600" },
@@ -70,54 +58,35 @@ export default function FavoritesScreen() {
     { id: "r18", name: "Pizza Hut Makkah", distance: "800m from Haram", cuisine: "Pizza", rating: 4.1, city: "Makkah", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600" },
   ]
 
-  // Fetches all favorites from Supabase and matches them to local data
   const loadFavorites = useCallback(async () => {
-    // Show loading while fetching
     setLoading(true)
-    // Get logged in user
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setHotels([])
-      setRestaurants([])
-      setLoading(false)
-      return
-    }
+    if (!user) { setHotels([]); setRestaurants([]); setLoading(false); return }
 
-    // Get all favorites for this user from Supabase
     const { data, error } = await supabase
       .from("favorites")
       .select("item_id, item_type")
       .eq("user_id", user.id)
 
-    if (error) {
-      console.error("loadFavorites error:", error.message)
-    }
-
     if (data && !error) {
-      // Filter hotels — find hotel objects that match saved hotel ids
       const savedHotelIds = data.filter(f => f.item_type === "hotel").map(f => String(f.item_id))
-      const savedHotels = allHotels.filter(h => savedHotelIds.includes(h.id))
-      setHotels(savedHotels)
-
-      // Filter restaurants — find restaurant objects that match saved restaurant ids
+      setHotels(allHotels.filter(h => savedHotelIds.includes(h.id)))
       const savedRestaurantIds = data.filter(f => f.item_type === "restaurant").map(f => String(f.item_id))
-      const savedRestaurants = allRestaurants.filter(r => savedRestaurantIds.includes(r.id))
-      setRestaurants(savedRestaurants)
+      setRestaurants(allRestaurants.filter(r => savedRestaurantIds.includes(r.id)))
     }
     setLoading(false)
   }, [])
 
-  // Load favorites when screen opens
   useEffect(() => {
     loadFavorites()
   }, [loadFavorites])
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Navy header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
@@ -127,69 +96,59 @@ export default function FavoritesScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Loading state */}
+        {/* Loading */}
         {loading && (
-          <Text style={styles.loadingText}>Loading favorites...</Text>
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading favorites...</Text>
         )}
 
-        {/* Empty state — nothing saved yet */}
+        {/* Empty state */}
         {!loading && hotels.length === 0 && restaurants.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>❤️</Text>
-            <Text style={styles.emptyTitle}>No favorites yet</Text>
-            <Text style={styles.emptySub}>Tap the heart on any hotel or restaurant to save it here</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No favorites yet</Text>
+            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>Tap the heart on any hotel or restaurant to save it here</Text>
           </View>
         )}
 
-        {/* Saved Hotels section */}
+        {/* Hotels */}
         {hotels.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏨 Hotels</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏨 Hotels</Text>
             {hotels.map(hotel => (
               <TouchableOpacity
                 key={hotel.id}
-                style={styles.card}
-                onPress={() =>
-                  router.push({
-                    pathname: "/hotel-detail/[id]",
-                    params: { id: String(hotel.id) },
-                  })
-                }
+                style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+                onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: String(hotel.id) } })}
               >
                 <Image source={{ uri: hotel.image }} style={styles.cardImage} />
                 <View style={styles.cardInfo}>
-                  <Text style={styles.cardName}>{hotel.name}</Text>
-                  <Text style={styles.cardMeta}>{hotel.city} · {hotel.distance}</Text>
-                  <Text style={styles.cardPrice}>${hotel.price} / night · ★ {hotel.rating}</Text>
+                  <Text style={[styles.cardName, { color: theme.text }]}>{hotel.name}</Text>
+                  <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{hotel.city} · {hotel.distance}</Text>
+                  <Text style={[styles.cardPrice, { color: theme.gold }]}>${hotel.price} / night · ★ {hotel.rating}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
+                <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* Saved Restaurants section */}
+        {/* Restaurants */}
         {restaurants.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍽️ Restaurants</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Restaurants</Text>
             {restaurants.map(restaurant => (
               <TouchableOpacity
                 key={restaurant.id}
-                style={styles.card}
-                onPress={() =>
-                  router.push({
-                    pathname: "/restaurant-detail/[id]",
-                    params: { id: String(restaurant.id) },
-                  })
-                }
+                style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+                onPress={() => router.push({ pathname: "/restaurant-detail/[id]", params: { id: String(restaurant.id) } })}
               >
                 <Image source={{ uri: restaurant.image }} style={styles.cardImage} />
                 <View style={styles.cardInfo}>
-                  <Text style={styles.cardName}>{restaurant.name}</Text>
-                  <Text style={styles.cardMeta}>{restaurant.city} · {restaurant.distance}</Text>
-                  <Text style={styles.cardPrice}>{restaurant.cuisine} · ★ {restaurant.rating}</Text>
+                  <Text style={[styles.cardName, { color: theme.text }]}>{restaurant.name}</Text>
+                  <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{restaurant.city} · {restaurant.distance}</Text>
+                  <Text style={[styles.cardPrice, { color: theme.gold }]}>{restaurant.cuisine} · ★ {restaurant.rating}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
+                <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>
             ))}
           </View>
@@ -202,38 +161,21 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Full screen cream background
-  screen: { flex: 1, backgroundColor: "#F5F0E8" },
-  // Navy header
-  header: { backgroundColor: "#1E3A5F", padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  // Back button
+  screen: { flex: 1 },
+  header: { padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8 },
-  // Header title
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  // Loading text
-  loadingText: { textAlign: "center", color: "#888", marginTop: 40 },
-  // Empty state container
+  loadingText: { textAlign: "center", marginTop: 40 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 40 },
-  // Big heart emoji
   emptyIcon: { fontSize: 60, marginBottom: 16 },
-  // Empty state title
-  emptyTitle: { fontSize: 20, fontWeight: "bold", color: "#1E3A5F", marginBottom: 8 },
-  // Empty state subtitle
-  emptySub: { fontSize: 14, color: "#888", textAlign: "center", lineHeight: 22 },
-  // Section container
+  emptyTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+  emptySub: { fontSize: 14, textAlign: "center", lineHeight: 22 },
   section: { marginTop: 24, paddingHorizontal: 16 },
-  // Section title
-  sectionTitle: { fontSize: 17, fontWeight: "bold", color: "#1E3A5F", marginBottom: 12 },
-  // Each favorite card
-  card: { backgroundColor: "#fff", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 0.5, borderColor: "#E0D9CE" },
-  // Small thumbnail image
+  sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12 },
+  card: { borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 0.5 },
   cardImage: { width: 60, height: 60, borderRadius: 10 },
-  // Text info next to image
   cardInfo: { flex: 1 },
-  // Hotel/restaurant name
-  cardName: { fontSize: 14, fontWeight: "bold", color: "#1E3A5F" },
-  // City and distance
-  cardMeta: { fontSize: 12, color: "#888", marginTop: 2 },
-  // Price or cuisine info
-  cardPrice: { fontSize: 12, color: "#C9A84C", marginTop: 4 },
+  cardName: { fontSize: 14, fontWeight: "bold" },
+  cardMeta: { fontSize: 12, marginTop: 2 },
+  cardPrice: { fontSize: 12, marginTop: 4 },
 })

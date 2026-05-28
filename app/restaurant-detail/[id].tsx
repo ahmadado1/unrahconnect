@@ -1,29 +1,12 @@
-// Icon library for back button, heart, checkmark icons
+import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
-// Controls the status bar style (light/dark text)
-import { StatusBar } from "expo-status-bar";
-// useLocalSearchParams gets the id passed from the restaurant card, useRouter for navigation
 import { useLocalSearchParams, useRouter } from "expo-router";
-// Linking opens external apps like Google Maps
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { isFavorite, toggleFavorite } from "../../lib/supabase";
 
-// All restaurant data — same pattern as hotels, one array holds all restaurant info
 const allRestaurants = [
-  // Each object is one restaurant with all its details
-  // id — unique identifier that matches the id in restaurants.tsx cards
-  // name — restaurant name displayed on screen
-  // distance — how far from Haram or Nabawi
-  // cuisine — type of food
-  // priceRange — $ cheap, $$ medium, $$$ expensive
-  // rating — star rating out of 5
-  // isOpen — true means open now, false means closed
-  // type — "ours" means we manage it, "external" means we link to another service
-  // city — Makkah or Madinah
-  // image — Unsplash URL for the hero photo
-  // description — paragraph about the restaurant
-  // features — list of highlights shown with checkmarks
   { id: "r1", name: "Al Baik", distance: "300m from Haram", cuisine: "Fast Food", priceRange: "$", rating: 4.8, isOpen: true, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600", description: "A famous and reliable option for quick halal meals near Haram.", features: ["Fast service", "Family seating", "Takeaway"] },
   { id: "r2", name: "Zamzam Restaurant", distance: "150m from Haram", cuisine: "Arabic", priceRange: "$$", rating: 4.7, isOpen: true, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600", description: "Traditional Arabic dishes with a clean and welcoming atmosphere.", features: ["Arabic platters", "Prayer break friendly", "Family sections"] },
   { id: "r3", name: "Layali Al Sham", distance: "500m from Nabawi", cuisine: "Syrian", priceRange: "$$", rating: 4.6, isOpen: false, type: "external", city: "Madinah", image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600", description: "Authentic Levantine meals with grilled specialties.", features: ["Grills", "Mixed platters", "Desserts"] },
@@ -42,18 +25,13 @@ const allRestaurants = [
   { id: "r16", name: "Al Baik Express", distance: "250m from Haram", cuisine: "Fast Food", priceRange: "$", rating: 4.8, isOpen: true, type: "ours", city: "Makkah", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600", description: "Fast and convenient meals during busy pilgrimage hours.", features: ["Express counter", "Takeaway"] },
   { id: "r17", name: "Kudu Burgers", distance: "500m from Nabawi", cuisine: "Burgers", priceRange: "$", rating: 4.3, isOpen: true, type: "external", city: "Madinah", image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600", description: "Quick burger meals and drinks at good value.", features: ["Combos", "Late hours"] },
   { id: "r18", name: "Pizza Hut Makkah", distance: "800m from Haram", cuisine: "Pizza", priceRange: "$", rating: 4.1, isOpen: true, type: "external", city: "Makkah", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600", description: "Familiar pizza options for families and groups.", features: ["Family meals", "Delivery"] },
-];
+]
 
 export default function RestaurantDetailScreen() {
-  // Gets the restaurant id that was passed when user tapped a card e.g. "r1"
-  const { id } = useLocalSearchParams<{ id: string }>();
-  // Lets us navigate back to the restaurants list
-  const router = useRouter();
-
-  // Searches through allRestaurants to find the one whose id matches what was passed
-  const restaurant = allRestaurants.find(r => r.id === id);
-
-  // Hooks must come BEFORE any return statement
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const router = useRouter()
+  const { theme } = useTheme()
+  const restaurant = allRestaurants.find(r => r.id === id)
   const [favorited, setFavorited] = useState(false)
 
   useEffect(() => {
@@ -71,164 +49,113 @@ export default function RestaurantDetailScreen() {
     setFavorited(newState ?? false)
   }
 
-  
-  // Safety check — if no restaurant found show a simple error screen
   if (!restaurant) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>Restaurant not found</Text>
-        {/* Go back button if restaurant not found */}
+      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
+        <Text style={[styles.notFoundText, { color: theme.text }]}>Restaurant not found</Text>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backLink}>Go back</Text>
         </TouchableOpacity>
       </View>
-    );
+    )
   }
 
-         
   return (
-    // Main screen container with cream background
-    <View style={styles.screen}>
-      {/* Makes status bar text white so it's visible on dark hero image */}
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      {/* Scrollable content so nothing gets cut off */}
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Hero image at the top using the restaurant's image URL */}
+        {/* Hero image — always full color */}
         <ImageBackground source={{ uri: restaurant.image }} style={styles.hero}>
-          {/* Back arrow — goes back to restaurants list */}
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          {/* Heart icon — for saving to favorites later */}
           <TouchableOpacity style={styles.heartBtn} onPress={handleFavorite}>
-            <Ionicons
-              name={favorited ? "heart" : "heart-outline"}
-              size={22}
-              color={favorited ? "#C9A84C" : "#fff"}
-            />
+            <Ionicons name={favorited ? "heart" : "heart-outline"} size={22} color={favorited ? "#C9A84C" : "#fff"} />
           </TouchableOpacity>
-          {/* Gold badge showing "Featured" for our restaurants or "External" for others */}
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>{restaurant.type === "ours" ? "Featured" : "External"}</Text>
           </View>
         </ImageBackground>
 
-        {/* White content area below the hero image */}
         <View style={styles.content}>
-          {/* Restaurant name in large navy text */}
-          <Text style={styles.name}>{restaurant.name}</Text>
-          {/* City, distance and cuisine type in grey */}
-          <Text style={styles.meta}>
+
+          {/* Name */}
+          <Text style={[styles.name, { color: theme.text }]}>{restaurant.name}</Text>
+          <Text style={[styles.meta, { color: theme.textSecondary }]}>
             {restaurant.city} · {restaurant.distance} · {restaurant.cuisine}
           </Text>
-          {/* Star rating, price range and open/closed status in gold */}
           <Text style={styles.rating}>
             ★ {restaurant.rating} · {restaurant.priceRange} · {restaurant.isOpen ? "Open" : "Closed"}
           </Text>
 
-          {/* Thin horizontal line separator */}
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          {/* About section title */}
-          <Text style={styles.sectionTitle}>About</Text>
-          {/* Restaurant description paragraph */}
-          <Text style={styles.description}>{restaurant.description}</Text>
+          {/* About */}
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>{restaurant.description}</Text>
 
-          {/* Another divider */}
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          {/* Highlights section title */}
-          <Text style={styles.sectionTitle}>Highlights</Text>
-          {/* Loops through features array and shows each one with a gold checkmark */}
+          {/* Highlights */}
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Highlights</Text>
           <View style={styles.features}>
             {restaurant.features.map(feature => (
               <View key={feature} style={styles.featureRow}>
-                {/* Gold checkmark circle icon */}
                 <Ionicons name="checkmark-circle" size={16} color="#C9A84C" />
-                {/* Feature text like "Family seating" */}
-                <Text style={styles.featureText}>{feature}</Text>
+                <Text style={[styles.featureText, { color: theme.textSecondary }]}>{feature}</Text>
               </View>
             ))}
           </View>
 
-          {/* Another divider before location */}
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          {/* Location section title */}
-          <Text style={styles.sectionTitle}>Location</Text>
-          {/* White box showing city and distance with a location pin icon */}
-          <View style={styles.locationBox}>
+          {/* Location */}
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
+          <View style={[styles.locationBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Ionicons name="location" size={18} color="#C9A84C" />
-            <Text style={styles.locationText}>{restaurant.city}, Saudi Arabia · {restaurant.distance}</Text>
+            <Text style={[styles.locationText, { color: theme.textSecondary }]}>{restaurant.city}, Saudi Arabia · {restaurant.distance}</Text>
           </View>
 
-          {/* Blue button that opens Google Maps when tapped */}
+          {/* Directions */}
           <TouchableOpacity
             style={styles.directionsBtn}
-            // Opens Google Maps with the restaurant name and city as the search query
             onPress={() => Linking.openURL(`https://maps.google.com/?q=${restaurant.name}, ${restaurant.city}, Saudi Arabia`)}
           >
-            {/* Navigation arrow icon */}
             <Ionicons name="navigate" size={18} color="#fff" />
             <Text style={styles.directionsBtnText}>Get Directions</Text>
           </TouchableOpacity>
 
         </View>
 
-        {/* Extra space at bottom so content isn't hidden behind anything */}
         <View style={{ height: 100 }} />
-
       </ScrollView>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  // Full screen cream background
-  screen: { flex: 1, backgroundColor: "#F5F0E8" },
-  // Centered layout for the not found error screen
+  screen: { flex: 1 },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
-  // Error message text style
-  notFoundText: { fontSize: 18, color: "#1E3A5F" },
-  // Gold go back link
+  notFoundText: { fontSize: 18 },
   backLink: { color: "#C9A84C", marginTop: 10 },
-  // Hero image height and alignment
   hero: { height: 260, justifyContent: "flex-end", padding: 16 },
-  // Back button — absolute positioned top left over the image
   backBtn: { position: "absolute", top: 55, left: 16, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, padding: 8 },
-  // Heart button — absolute positioned top right over the image
   heartBtn: { position: "absolute", top: 55, right: 16, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, padding: 8 },
-  // Gold badge at bottom of hero image
   heroBadge: { backgroundColor: "rgba(201,168,76,0.9)", alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  // Badge text style
   heroBadgeText: { color: "#1E3A5F", fontSize: 12, fontWeight: "bold" },
-  // White content area padding
   content: { padding: 20 },
-  // Restaurant name — large and bold
-  name: { fontSize: 24, fontWeight: "700", color: "#1E3A5F" },
-  // City, distance, cuisine — smaller grey text
-  meta: { color: "#64748B", marginTop: 6 },
-  // Rating and price — gold text
+  name: { fontSize: 24, fontWeight: "700" },
+  meta: { marginTop: 6 },
   rating: { color: "#C9A84C", marginTop: 8, fontWeight: "600" },
-  // Thin horizontal line between sections
-  divider: { height: 1, backgroundColor: "#E0D9CE", marginVertical: 20 },
-  // Section titles like "About", "Highlights", "Location"
-  sectionTitle: { fontSize: 17, fontWeight: "700", color: "#1E3A5F", marginBottom: 10 },
-  // Description paragraph text
-  description: { fontSize: 14, lineHeight: 22, color: "#475569" },
-  // Container for the features list
+  divider: { height: 1, marginVertical: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 10 },
+  description: { fontSize: 14, lineHeight: 22 },
   features: { gap: 10 },
-  // Each feature row — icon and text side by side
   featureRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  // Feature text style
-  featureText: { color: "#334155", fontSize: 14 },
-  // White box for location info with border
-  locationBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", padding: 14, borderRadius: 12, borderWidth: 0.5, borderColor: "#E0D9CE" },
-  // Location text inside the box
-  locationText: { fontSize: 14, color: "#444" },
-  // Blue directions button
+  featureText: { fontSize: 14 },
+  locationBox: { flexDirection: "row", alignItems: "center", gap: 8, padding: 14, borderRadius: 12, borderWidth: 0.5 },
+  locationText: { fontSize: 14 },
   directionsBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#2C5F8A", borderRadius: 12, padding: 14, marginTop: 12 },
-  // White text on the directions button
   directionsBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
-});
+})
