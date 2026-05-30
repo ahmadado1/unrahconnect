@@ -3,8 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import DrawerMenu from "../component/DrawerMenu";
 
@@ -15,6 +16,8 @@ export default function HomeScreen() {
   const [ayah, setAyah] = useState("Loading verse...");
   const [ayahRef, setAyahRef] = useState("");
   const [userName, setUserName] = useState("")
+  const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
 
   // Fetches logged in user's first name
   useEffect(() => {
@@ -47,12 +50,12 @@ export default function HomeScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
       {/* Dynamic island area — always navy */}
-      <SafeAreaView edges={["top"]} style={styles.safeTop} />
+      
 
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
 
         {/* Navy header — always navy regardless of theme */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             {/* Logo and greeting */}
             <View style={styles.headerLeft}>
@@ -60,7 +63,7 @@ export default function HomeScreen() {
                 <Text style={styles.logoEmoji}>🌙</Text>
               </View>
               <View>
-                <Text style={styles.greeting}>Assalamu Alaikum 👋</Text>
+                <Text style={styles.greeting}>{t("greeting")}</Text>
                 <Text style={styles.appName}>UmrahConnect</Text>
               </View>
             </View>
@@ -82,13 +85,13 @@ export default function HomeScreen() {
 
         {/* Hero banner — always blue */}
         <View style={styles.heroBanner}>
-          <Text style={styles.heroWelcome}>Welcome back, {userName || "Pilgrim"} 🌙</Text>
-          <Text style={styles.heroText}>Your complete Umrah companion</Text>
-          <Text style={styles.heroSub}>Hotels · Restaurants · Guide</Text>
+        <Text style={styles.heroWelcome}>{t("welcomeBack")}, {userName || t("pilgrim")} 🌙</Text>
+        <Text style={styles.heroText}>{t("completeCompanion")}</Text>
+        <Text style={styles.heroSub}>{t("hotelsTitle")} · {t("restaurantsTitle")} · {t("guide")}</Text>
         </View>
 
         {/* Explore section title — changes with theme */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Explore</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("exploreTitle")}</Text>
 
         {/* Umrah Guide wide card */}
         <TouchableOpacity
@@ -97,8 +100,8 @@ export default function HomeScreen() {
         >
           <Text style={styles.cardIcon}>📖</Text>
           <View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Umrah Guide</Text>
-            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>Step by step for beginners</Text>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>{t("umrahGuide")}</Text>
+          <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("umrahGuideSub")}</Text>
           </View>
         </TouchableOpacity>
 
@@ -109,8 +112,8 @@ export default function HomeScreen() {
             onPress={() => router.push("/hotels")}
           >
             <Text style={styles.cardIcon}>🏨</Text>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Hotels</Text>
-            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>Find your stay</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("hotelsTitle")}</Text>
+            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("hotelsSub")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -118,14 +121,14 @@ export default function HomeScreen() {
             onPress={() => router.push("/restaurants")}
           >
             <Text style={styles.cardIcon}>🍽️</Text>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Restaurants</Text>
-            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>Near the Haram</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
+            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("restaurantsSub")}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Verse of the day — always navy */}
         <View style={styles.tipBox}>
-          <Text style={styles.tipLabel}>✨ Verse of the day</Text>
+          <Text style={styles.tipLabel}>{t("verseOfDay")}</Text>
           <Text style={styles.tipText}>{ayah}</Text>
           <Text style={styles.tipRef}>{ayahRef}</Text>
         </View>

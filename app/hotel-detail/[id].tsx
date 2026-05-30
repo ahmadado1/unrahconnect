@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { isFavorite, toggleFavorite } from "../../lib/supabase";
 
@@ -35,6 +36,7 @@ export default function HotelDetailScreen() {
   const hotelId = Array.isArray(id) ? id[0] : id
   const hotel = allHotels.find((h) => h.id === hotelId)
   const [favorited, setFavorited] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!hotel) return
@@ -76,7 +78,7 @@ export default function HotelDetailScreen() {
             <Ionicons name={favorited ? "heart" : "heart-outline"} size={22} color={favorited ? "#C9A84C" : "#fff"} />
           </TouchableOpacity>
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>{hotel.type === "ours" ? "Our pick" : "External"}</Text>
+           <Text style={styles.heroBadgeText}>{hotel.type === "ours" ? t("ourPick") : t("external")}</Text>
           </View>
         </ImageBackground>
 
@@ -100,19 +102,19 @@ export default function HotelDetailScreen() {
           {/* Price */}
           <View style={styles.priceRow}>
             <Text style={[styles.price, { color: theme.text }]}>${hotel.price}</Text>
-            <Text style={[styles.perNight, { color: theme.textSecondary }]}> / night</Text>
+            <Text style={[styles.perNight, { color: theme.textSecondary }]}> {t("nightPrice")}</Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Description */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("about")}</Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>{hotel.description}</Text>
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Amenities */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Amenities</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("amenities")}</Text>
           <View style={styles.amenitiesGrid}>
             {hotel.amenities.map((item, index) => (
               <View key={index} style={styles.amenityItem}>
@@ -125,7 +127,7 @@ export default function HotelDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Location */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("location")}</Text>
           <View style={[styles.locationBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Ionicons name="location" size={18} color="#C9A84C" />
             <Text style={[styles.locationText, { color: theme.textSecondary }]}>{hotel.city}, Saudi Arabia · {hotel.distance}</Text>
@@ -137,7 +139,7 @@ export default function HotelDetailScreen() {
             onPress={() => Linking.openURL(`https://maps.google.com/?q=${hotel.name}, ${hotel.city}, Saudi Arabia`)}
           >
             <Ionicons name="navigate" size={18} color="#fff" />
-            <Text style={styles.directionsBtnText}>Get Directions</Text>
+            <Text style={styles.directionsBtnText}>{t("getDirections")}</Text>
           </TouchableOpacity>
 
         </View>
@@ -146,15 +148,15 @@ export default function HotelDetailScreen() {
       {/* Bottom booking bar — always white/navy */}
       <View style={[styles.bookingBar, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
         <View>
-          <Text style={[styles.bookingPrice, { color: theme.text }]}>${hotel.price}<Text style={[styles.bookingNight, { color: theme.textSecondary }]}> / night</Text></Text>
-          <Text style={styles.bookingRating}>★ {hotel.rating} · {hotel.stars} star</Text>
+          <Text style={[styles.bookingPrice, { color: theme.text }]}>${hotel.price}<Text style={[styles.bookingNight, { color: theme.textSecondary }]}> {t("nightPrice")}</Text></Text>
+          <Text style={styles.bookingRating}>★ {hotel.rating} · {hotel.stars} {t("star")}</Text>
         </View>
         {hotel.type === "ours" ? (
           <TouchableOpacity
             style={styles.bookBtn}
             onPress={() => router.push({ pathname: "/booking", params: { hotelName: hotel.name, hotelCity: hotel.city, hotelPrice: String(hotel.price) } })}
           >
-            <Text style={styles.bookBtnText}>Book now</Text>
+            <Text style={styles.bookBtnText}>{t("bookNow")}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.viewBtn}>

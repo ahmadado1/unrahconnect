@@ -2,6 +2,7 @@ import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,6 +10,7 @@ export default function ContactScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
 
   const phone = "+201222151335"
   const whatsapp = "+201222151335"
@@ -23,7 +25,7 @@ export default function ContactScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Contact Us</Text>
+        <Text style={styles.headerTitle}>{t("contactUs")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -32,13 +34,13 @@ export default function ContactScreen() {
         {/* Top section — always navy */}
         <View style={[styles.topSection, { backgroundColor: theme.header }]}>
           <Text style={styles.topEmoji}>📞</Text>
-          <Text style={styles.topTitle}>Get in touch</Text>
-          <Text style={styles.topSub}>We are here to help you with your Umrah journey</Text>
+          <Text style={styles.topTitle}>{t("getInTouch")}</Text>
+          <Text style={styles.topSub}>{t("getInTouchSub")}</Text>
         </View>
 
         {/* Contact buttons */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Reach us directly</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("reachUs")}</Text>
 
           {/* WhatsApp */}
           <TouchableOpacity
@@ -92,24 +94,24 @@ export default function ContactScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Response time</Text>
           <View style={styles.responseItem}>
             <Ionicons name="time-outline" size={18} color={theme.gold} />
-            <Text style={[styles.responseText, { color: theme.textSecondary }]}>WhatsApp — Usually within 1 hour</Text>
+            <Text style={[styles.responseText, { color: theme.textSecondary }]}>{t("whatsappResponse")}</Text>
           </View>
           <View style={styles.responseItem}>
             <Ionicons name="time-outline" size={18} color={theme.gold} />
-            <Text style={[styles.responseText, { color: theme.textSecondary }]}>Email — Within 24 hours</Text>
+            <Text style={[styles.responseText, { color: theme.textSecondary }]}>{t("whatsappResponse")}</Text>
           </View>
           <View style={styles.responseItem}>
             <Ionicons name="time-outline" size={18} color={theme.gold} />
-            <Text style={[styles.responseText, { color: theme.textSecondary }]}>Phone — Available 9am to 9pm Egypt time</Text>
+            <Text style={[styles.responseText, { color: theme.textSecondary }]}>{t("phoneResponse")}</Text>
           </View>
         </View>
 
         {/* Location */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Based in</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("basedIn")}</Text>
           <View style={styles.responseItem}>
             <Ionicons name="location" size={18} color={theme.gold} />
-            <Text style={[styles.responseText, { color: theme.textSecondary }]}>Egypt 🇪🇬 — Serving pilgrims worldwide</Text>
+            <Text style={[styles.responseText, { color: theme.textSecondary }]}>{t("egyptServing")}</Text>
           </View>
         </View>
 

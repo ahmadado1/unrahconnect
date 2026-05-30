@@ -4,8 +4,10 @@ import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+
 
 const phasesData = [
   {
@@ -84,6 +86,7 @@ export default function PhaseDetailScreen() {
   const nextPhase = phaseOrder[currentIndex + 1]
   const [isCompleted, setIsCompleted] = useState(false)
   const [gender, setGender] = useState<"male" | "female">("male")
+  const { t } = useTranslation()
 
   useEffect(() => {
     const checkProgress = async () => {
@@ -145,7 +148,7 @@ export default function PhaseDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Steps */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>📋 What to do</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("whatToDo")}</Text>
           {data.steps.map((step, index) => (
             <View key={index} style={styles.stepRow}>
               <View style={styles.stepNum}>
@@ -158,7 +161,7 @@ export default function PhaseDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Duas */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>🤲 Duas</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("duas")}</Text>
           {data.duas.map((dua, index) => (
             <View key={index} style={[styles.duaCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={[styles.duaTitle, { color: theme.textSecondary }]}>{dua.title}</Text>
@@ -172,7 +175,7 @@ export default function PhaseDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Tips */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>💡 Tips</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tips")}</Text>
           {data.tips.map((tip, index) => (
             <View key={index} style={styles.tipRow}>
               <Ionicons name="checkmark-circle" size={18} color="#C9A84C" />
@@ -190,7 +193,7 @@ export default function PhaseDetailScreen() {
             <TouchableOpacity style={styles.nextBtn} onPress={() => router.push(`/umrah/${nextPhase.id}`)}>
               <View style={styles.nextBtnContent}>
                 <View>
-                  <Text style={styles.nextBtnLabel}>Next Step</Text>
+                  <Text style={styles.nextBtnLabel}>{t("nextStep")}</Text>
                   <Text style={styles.nextBtnTitle}>{nextPhase.title}</Text>
                 </View>
                 <Ionicons name="arrow-forward-circle" size={32} color="#C9A84C" />
@@ -199,8 +202,8 @@ export default function PhaseDetailScreen() {
           ) : (
             <View style={styles.completionBox}>
               <Text style={styles.completionEmoji}>🎉</Text>
-              <Text style={styles.completionTitle}>Umrah Complete!</Text>
-              <Text style={styles.completionText}>May Allah accept your Umrah and grant you the highest reward. Ameen.</Text>
+              <Text style={styles.completionTitle}>{t("umrahComplete")}</Text>
+              <Text style={styles.completionText}>{t("umrahCompleteMsg")}</Text>
             </View>
           )}
         </View>
@@ -212,7 +215,7 @@ export default function PhaseDetailScreen() {
         >
           <Ionicons name={isCompleted ? "checkmark-circle" : "checkmark-circle-outline"} size={22} color={isCompleted ? "#1E3A5F" : "#fff"} />
           <Text style={[styles.completeBtnText, isCompleted && styles.completeBtnTextDone]}>
-            {isCompleted ? "Completed ✓" : "Mark as Complete"}
+            {isCompleted ? t("completed") : t("markComplete")}
           </Text>
         </TouchableOpacity>
 

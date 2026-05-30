@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
 import React, { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -17,6 +18,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
   const slideAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current
   const router = useRouter()
   const { theme } = useTheme()
+  const { t } = useTranslation()
 
   React.useEffect(() => {
     if (isOpen) {
@@ -50,7 +52,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
             <Text style={styles.drawerLogoText}>🌙</Text>
           </View>
           <Text style={styles.drawerTitle}>UmrahConnect</Text>
-          <Text style={styles.drawerSubtitle}>Your Umrah companion</Text>
+          <Text style={styles.drawerSubtitle}>{t("drawerTagline")}</Text>
         </View>
 
         {/* Menu items */}
@@ -59,25 +61,25 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
           {/* Profile */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/profile"); onClose(); }}>
             <Ionicons name="person-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>Profile</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("profile")}</Text>
           </TouchableOpacity>
 
           {/* Favorites */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/favorites" as Href); onClose(); }}>
             <Ionicons name="heart-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>Favorites</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("favorites")}</Text>
           </TouchableOpacity>
 
           {/* Notifications */}
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="notifications-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>Notifications</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("notifications")}</Text>
           </TouchableOpacity>
 
           {/* Settings */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/settings"); onClose(); }}>
             <Ionicons name="settings-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>Settings</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("settings")}</Text>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -86,13 +88,13 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
           {/* About Us */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/about"); onClose(); }}>
             <Ionicons name="information-circle-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>About Us</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("aboutUs")}</Text>
           </TouchableOpacity>
 
           {/* Contact Us */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/contact"); onClose(); }}>
             <Ionicons name="call-outline" size={22} color={theme.text} />
-            <Text style={[styles.menuText, { color: theme.text }]}>Contact Us</Text>
+            <Text style={[styles.menuText, { color: theme.text }]}>{t("contactUs")}</Text>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -107,7 +109,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
             }}
           >
             <Ionicons name="log-out-outline" size={22} color="#E24B4A" />
-            <Text style={[styles.menuText, { color: "#E24B4A" }]}>Logout</Text>
+            <Text style={[styles.menuText, { color: "#E24B4A" }]}>{t("logout")}</Text>
           </TouchableOpacity>
 
         </View>

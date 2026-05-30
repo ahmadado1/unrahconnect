@@ -4,8 +4,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase, toggleFavorite } from "../../lib/supabase";
 
 type Hotel = {
@@ -23,9 +24,12 @@ type Hotel = {
 export default function HotelsScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
-  const filters = ["All", "Makkah", "Madinah"];
   const [searchQuery, setSearchQuery] = useState("")
   const { theme, isDark } = useTheme()
+  const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
+
+  const filters = ["All", "Makkah", "Madinah"]
 
   const loadFavoriteHotels = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -102,7 +106,7 @@ export default function HotelsScreen() {
       >
         <ImageBackground source={{ uri: hotel.image }} style={cardStyles.image} imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
           <View style={cardStyles.badge}>
-            <Text style={cardStyles.badgeText}>{hotel.type === "ours" ? "Our pick" : "External"}</Text>
+            <Text style={cardStyles.badgeText}>{hotel.type === "ours" ? t("ourPick") : t("external")}</Text>
           </View>
           <TouchableOpacity style={cardStyles.heart} onPress={(e) => { e.stopPropagation(); handleFavoritePress() }}>
             <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#C9A84C" : "#fff"} />
@@ -114,12 +118,12 @@ export default function HotelsScreen() {
           <Text style={[cardStyles.meta, { color: theme.textSecondary }]}>{"★".repeat(hotel.stars)} · {hotel.distance}</Text>
           <View style={cardStyles.footer}>
             <View>
-              <Text style={[cardStyles.price, { color: theme.text }]}>${hotel.price} / night</Text>
+              <Text style={[cardStyles.price, { color: theme.text }]}>${hotel.price} {t("perNight")}</Text>
               <Text style={cardStyles.rating}>★ {hotel.rating}</Text>
             </View>
             <TouchableOpacity style={[cardStyles.btn, hotel.type === "external" && cardStyles.btnExternal]}>
               <Text style={[cardStyles.btnText, hotel.type === "external" && cardStyles.btnTextExternal]}>
-                {hotel.type === "ours" ? "Book now" : "View →"}
+                {hotel.type === "ours" ? t("bookNow") : t("viewExternal")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -136,7 +140,7 @@ export default function HotelsScreen() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
           <TouchableOpacity>
-            <Text style={styles.seeAll}>See all →</Text>
+          <Text style={styles.seeAll}>{t("seeAll")}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
@@ -152,16 +156,16 @@ export default function HotelsScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
       {/* Dynamic island — always navy */}
-      <SafeAreaView edges={["top"]} style={styles.safeTop} />
+      
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
 
         {/* Header — always navy */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.title}>Hotels</Text>
-              <Text style={styles.subtitle}>Find your perfect stay</Text>
+              <Text style={styles.title}>{t("hotels")}</Text>
+              <Text style={styles.subtitle}>{t("findPerfectStay")}</Text>
             </View>
             <TouchableOpacity style={styles.iconBtn}>
               <Ionicons name="options-outline" size={22} color="#fff" />
@@ -172,7 +176,7 @@ export default function HotelsScreen() {
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
             <TextInput
-              placeholder="Search hotels..."
+              placeholder={t("searchHotels")}
               placeholderTextColor="rgba(255,255,255,0.45)"
               style={styles.searchInput}
               value={searchQuery}
@@ -182,26 +186,31 @@ export default function HotelsScreen() {
 
           {/* Filter pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsRow} contentContainerStyle={{ gap: 8 }}>
-            {filters.map(filter => (
-              <TouchableOpacity
-                key={filter}
-                style={[styles.pill, activeFilter === filter && styles.pillActive]}
-                onPress={() => setActiveFilter(filter)}
-              >
-                <Text style={[styles.pillText, activeFilter === filter && styles.pillTextActive]}>{filter}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            {filters.map((filter, index) => {
+              const labels = [t("all"), t("makkah"), t("madinah")]
+              return (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.pill, activeFilter === filter && styles.pillActive]}
+                  onPress={() => setActiveFilter(filter)}
+                >
+                  <Text style={[styles.pillText, activeFilter === filter && styles.pillTextActive]}>
+                    {labels[index]}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+         </ScrollView>
         </View>
 
-        {renderSection("⭐ Recommended", recommended)}
-        {renderSection("🕋 Makkah Top Picks", makkahHotels)}
-        {renderSection("⭐ 5 Star Hotels", fiveStarHotels)}
-        {renderSection("🕋 Kaaba View", kaabaViewHotels)}
-        {renderSection("🚶 Closest to Haram", closestHotels)}
-        {renderSection("💰 Budget Friendly", budgetHotels)}
-        {renderSection("🛏️ Family Rooms", familyHotels)}
-        {renderSection("🌙 Madinah Picks", madinahHotels)}
+        {renderSection(t("recommended"), recommended)}
+        {renderSection(t("makkahTopPicks"), makkahHotels)}
+        {renderSection(t("fiveStarHotels"), fiveStarHotels)}
+        {renderSection(t("kaabaView"), kaabaViewHotels)}
+        {renderSection(t("closestHaram"), closestHotels)}
+        {renderSection(t("budgetFriendly"), budgetHotels)}
+        {renderSection(t("familyRooms"), familyHotels)}
+        {renderSection(t("madinahPicks"), madinahHotels)}
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>

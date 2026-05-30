@@ -10,13 +10,16 @@ import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } f
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
 import { Ionicons } from "@expo/vector-icons";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
+import { Alert } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { isDark, toggleTheme, theme } = useTheme()
   const [notifications, setNotifications] = useState(true)
+  const { t, i18n: i18nInstance } = useTranslation()
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -27,7 +30,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t("settings")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -35,21 +38,74 @@ export default function SettingsScreen() {
 
         {/* Preferences section */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Preferences</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("preferences")}</Text>
 
           {/* Language */}
-          <TouchableOpacity style={[styles.settingRow, { borderBottomColor: theme.border }]}>
-            <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
-              <Ionicons name="language" size={18} color="#fff" />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Language</Text>
-              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>English</Text>
-            </View>
-            <View style={[styles.comingSoonBadge, { backgroundColor: theme.inputBg }]}>
-              <Text style={styles.comingSoonText}>Soon</Text>
-            </View>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: theme.border }]}
+              onPress={() => {
+                Alert.alert(
+                  "Select Language",
+                  "Choose your preferred language",
+                  [
+                    {
+                      text: "🇬🇧 English",
+                      onPress: () => {
+                        i18nInstance.changeLanguage("en")
+                        AsyncStorage.setItem("language", "en")
+                      }
+                    },
+                    {
+                      text: "🇸🇦 العربية",
+                      onPress: () => {
+                        i18nInstance.changeLanguage("ar")
+                        AsyncStorage.setItem("language", "ar")
+                      }
+                    },
+                    {
+                      text: "🇫🇷 Français",
+                      onPress: () => {
+                        i18nInstance.changeLanguage("fr")
+                        AsyncStorage.setItem("language", "fr")
+                      }
+                    },
+                    {
+                      text: "🇵🇰 اردو",
+                      onPress: () => {
+                        i18nInstance.changeLanguage("ur")
+                        AsyncStorage.setItem("language", "ur")
+                      }
+                    },
+                    {
+                      text: "🇹🇷 Türkçe",
+                      onPress: () => {
+                        i18nInstance.changeLanguage("tr")
+                        AsyncStorage.setItem("language", "tr")
+                      }
+                    },
+                    {
+                      text: "Cancel",
+                      style: "cancel"
+                    }
+                  ]
+                )
+              }}
+              >
+                <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
+                  <Ionicons name="language" size={18} color="#fff" />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={[styles.settingLabel, { color: theme.text }]}>{t("language")}</Text>
+                  <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                    {i18nInstance.language === "ar" ? "العربية" : 
+                     i18nInstance.language === "fr" ? "Français" : 
+                     i18nInstance.language === "ur" ? "اردو" :
+                     i18nInstance.language === "tr" ? "Türkçe" :
+                     "English"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+              </TouchableOpacity>
 
           {/* Notifications toggle */}
           <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
@@ -57,8 +113,8 @@ export default function SettingsScreen() {
               <Ionicons name="notifications" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Notifications</Text>
-              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>Receive app updates</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("notifications")}</Text>
+              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>{t("receiveUpdates")}</Text>
             </View>
             <Switch
               value={notifications}
@@ -74,10 +130,10 @@ export default function SettingsScreen() {
               <Ionicons name="moon" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Dark Mode</Text>
-              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                {isDark ? "Dark theme on" : "Light theme on"}
-              </Text>
+            <Text style={[styles.settingLabel, { color: theme.text }]}>{t("darkMode")}</Text>
+            <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+              {isDark ? t("darkThemeOn") : t("lightThemeOn")}
+            </Text>
             </View>
             <Switch
               value={isDark}
@@ -91,7 +147,7 @@ export default function SettingsScreen() {
 
         {/* Legal section */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Legal</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("legal")}</Text>
 
           {/* Privacy Policy */}
           <TouchableOpacity style={[styles.settingRow, { borderBottomColor: theme.border }]} onPress={() => router.push("/privacy")}>
@@ -99,7 +155,7 @@ export default function SettingsScreen() {
               <Ionicons name="shield-checkmark" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Privacy Policy</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("privacyPolicy")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
@@ -110,7 +166,7 @@ export default function SettingsScreen() {
               <Ionicons name="document-text" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Terms of Service</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("termsOfService")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
@@ -119,7 +175,7 @@ export default function SettingsScreen() {
 
         {/* App section */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>App</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("app")}</Text>
 
           {/* Rate the app */}
           <TouchableOpacity style={[styles.settingRow, { borderBottomColor: theme.border }]}>
@@ -127,8 +183,8 @@ export default function SettingsScreen() {
               <Ionicons name="star" size={18} color="#1E3A5F" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Rate UmrahConnect</Text>
-              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>Share your feedback</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("rateApp")}</Text>
+              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>{t("shareFeedback")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
@@ -139,8 +195,8 @@ export default function SettingsScreen() {
               <Ionicons name="share-social" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Share App</Text>
-              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>Tell friends about UmrahConnect</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("shareApp")}</Text>
+              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>{t("tellFriends")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
@@ -150,7 +206,8 @@ export default function SettingsScreen() {
         {/* Version */}
         <View style={styles.versionBox}>
           <Text style={[styles.versionText, { color: theme.textSecondary }]}>UmrahConnect v1.0</Text>
-          <Text style={styles.versionSub}>Made with ❤️ in Egypt</Text>
+          <Text style={[styles.versionText, { color: theme.textSecondary }]}>{t("version")}</Text>
+          <Text style={styles.versionSub}>{t("madeInEgypt")}</Text>
         </View>
 
         <View style={{ height: 60 }} />

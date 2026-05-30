@@ -2,12 +2,14 @@ import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GuideScreen() {
   const router = useRouter()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -19,8 +21,8 @@ export default function GuideScreen() {
 
         {/* Header — always navy */}
         <View style={styles.header}>
-          <Text style={styles.title}>Guide</Text>
-          <Text style={styles.subtitle}>Choose your pilgrimage</Text>
+          <Text style={styles.title}>{t("guide")}</Text>
+          <Text style={styles.subtitle}>{t("chooseJourney")}</Text>
         </View>
 
         <View style={styles.content}>
@@ -34,9 +36,9 @@ export default function GuideScreen() {
               <Text style={styles.cardEmoji}>🕋</Text>
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Umrah Guide</Text>
-              <Text style={styles.cardSub}>7 phases · Complete step by step guide</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>For those performing Umrah — includes duas, tips and progress tracking</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
+              <Text style={styles.cardSub}>{t("umrahGuidePhaseSub")}</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("umrahGuideDesc")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
@@ -50,27 +52,27 @@ export default function GuideScreen() {
               <Text style={styles.cardEmoji}>☪️</Text>
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Hajj Guide</Text>
-              <Text style={styles.cardSub}>9 phases · Complete Hajj journey</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>For those performing Hajj — covers all days from 8th to 13th Dhul Hijjah</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
+              <Text style={styles.cardSub}>{t("hajjGuideSub")}</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("hajjGuideDesc")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
 
           {/* Coming soon */}
           <View style={[styles.comingSoon, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.comingSoonTitle, { color: theme.textSecondary }]}>Coming Soon</Text>
+            <Text style={[styles.comingSoonTitle, { color: theme.textSecondary }]}>{t("comingSoon")}</Text>
             <View style={styles.comingSoonItem}>
               <Ionicons name="book-outline" size={20} color={theme.gold} />
-              <Text style={[styles.comingSoonText, { color: theme.text }]}>Full Quran Reader</Text>
+              <Text style={[styles.comingSoonText, { color: theme.text }]}>{t("quranReader")}</Text>
             </View>
             <View style={styles.comingSoonItem}>
               <Ionicons name="time-outline" size={20} color={theme.gold} />
-              <Text style={[styles.comingSoonText, { color: theme.text }]}>Prayer Times</Text>
+              <Text style={[styles.comingSoonText, { color: theme.text }]}>{t("prayerTimes")}</Text>
             </View>
             <View style={styles.comingSoonItem}>
               <Ionicons name="compass-outline" size={20} color={theme.gold} />
-              <Text style={[styles.comingSoonText, { color: theme.text }]}>Qibla Direction</Text>
+              <Text style={[styles.comingSoonText, { color: theme.text }]}>{t("qiblaDirection")}</Text>
             </View>
           </View>
 

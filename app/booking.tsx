@@ -4,6 +4,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
@@ -33,6 +34,7 @@ export default function BookingScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
   const params = useLocalSearchParams()
 
   const hotelName = params.hotelName as string
@@ -72,7 +74,7 @@ export default function BookingScreen() {
     : new Date()
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return "Select date"
+    if (!dateString) return t("selectCheckIn")
     return new Date(dateString).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
   }
 
@@ -146,44 +148,44 @@ export default function BookingScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Book Hotel</Text>
+        <Text style={styles.headerTitle}>{t("bookHotel")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
-      {/* Hotel summary — always navy */}
+      {/* Hotel summary */}
       <View style={[styles.hotelSummary, { backgroundColor: theme.header }]}>
         <Text style={styles.hotelSummaryName}>{hotelName}</Text>
-        <Text style={styles.hotelSummaryCity}>{hotelCity} · ${hotelPrice} per night</Text>
+        <Text style={styles.hotelSummaryCity}>{hotelCity} · ${hotelPrice} {t("perNight")}</Text>
       </View>
 
       <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
 
         {/* Dates */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>📅 Dates</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("dates")}</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Check In Date</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{t("checkIn")}</Text>
             <TouchableOpacity
               style={[styles.dateBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
               onPress={() => openDatePicker("checkIn")}
             >
               <Ionicons name="calendar-outline" size={20} color={theme.text} />
               <Text style={[styles.dateBtnText, { color: checkIn ? theme.text : theme.textSecondary }]}>
-                {checkIn ? formatDate(checkIn) : "Select check in date"}
+                {checkIn ? formatDate(checkIn) : t("selectCheckIn")}
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Check Out Date</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{t("checkOut")}</Text>
             <TouchableOpacity
               style={[styles.dateBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
               onPress={() => openDatePicker("checkOut")}
             >
               <Ionicons name="calendar-outline" size={20} color={theme.text} />
               <Text style={[styles.dateBtnText, { color: checkOut ? theme.text : theme.textSecondary }]}>
-                {checkOut ? formatDate(checkOut) : "Select check out date"}
+                {checkOut ? formatDate(checkOut) : t("selectCheckOut")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -204,10 +206,10 @@ export default function BookingScreen() {
 
         {/* Guests & Contact */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>👥 Guests & Contact</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("guestsContact")}</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Number of Guests</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{t("numberOfGuests")}</Text>
             <View style={styles.guestsRow}>
               <TouchableOpacity style={styles.guestBtn} onPress={() => setGuests(prev => String(Math.max(1, parseInt(prev) - 1)))}>
                 <Text style={styles.guestBtnText}>−</Text>
@@ -220,10 +222,10 @@ export default function BookingScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Phone Number</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{t("phoneNumber")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }]}
-              placeholder="Enter your phone number"
+              placeholder={t("enterPhone")}
               placeholderTextColor={theme.textSecondary}
               value={phone}
               onChangeText={setPhone}
@@ -232,31 +234,31 @@ export default function BookingScreen() {
           </View>
         </View>
 
-        {/* Price summary — always navy */}
+        {/* Price summary */}
         <View style={styles.priceSummary}>
-          <Text style={styles.priceSummaryTitle}>💰 Price Summary</Text>
+          <Text style={styles.priceSummaryTitle}>{t("priceSummary")}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Room rate</Text>
-            <Text style={styles.priceValue}>${pricePerNight} / night</Text>
+            <Text style={styles.priceLabel}>{t("roomRate")}</Text>
+            <Text style={styles.priceValue}>${pricePerNight} {t("perNight")}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Guests</Text>
-            <Text style={styles.priceValue}>{guestCount} {guestCount === 1 ? "guest" : "guests"}</Text>
+            <Text style={styles.priceLabel}>{t("guests")}</Text>
+            <Text style={styles.priceValue}>{guestCount} {guestCount === 1 ? t("guest") : t("guests")}</Text>
           </View>
           {checkIn && checkOut ? (
             nights > 0 ? (
               <>
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Stay</Text>
-                  <Text style={styles.priceValue}>{formatDate(checkIn)} → {formatDate(checkOut)} ({nights} {nights === 1 ? "night" : "nights"})</Text>
+                  <Text style={styles.priceLabel}>{t("stay")}</Text>
+                  <Text style={styles.priceValue}>{formatDate(checkIn)} → {formatDate(checkOut)} ({nights} {nights === 1 ? t("night") : t("nights")})</Text>
                 </View>
                 <View style={styles.priceDivider} />
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>${pricePerNight} × {nights} nights</Text>
+                  <Text style={styles.priceLabel}>${pricePerNight} × {nights} {t("nights")}</Text>
                   <Text style={styles.priceValue}>${totalPrice}</Text>
                 </View>
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceTotalLabel}>Total</Text>
+                  <Text style={styles.priceTotalLabel}>{t("total")}</Text>
                   <Text style={styles.priceTotalValue}>${totalPrice}</Text>
                 </View>
               </>
@@ -270,12 +272,12 @@ export default function BookingScreen() {
 
         {/* Special Requests */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>📝 Special Requests</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("specialRequests")}</Text>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>Any special requests? (optional)</Text>
+            <Text style={[styles.label, { color: theme.text }]}>{t("specialRequestsLabel")}</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }]}
-              placeholder="e.g. High floor, extra pillows, early check in..."
+              placeholder={t("specialRequestsPlaceholder")}
               placeholderTextColor={theme.textSecondary}
               value={specialRequests}
               onChangeText={setSpecialRequests}
@@ -292,7 +294,7 @@ export default function BookingScreen() {
           disabled={loading}
         >
           <Text style={styles.confirmBtnText}>
-            {loading ? "Sending booking..." : "Confirm Booking 🕋"}
+            {loading ? t("sendingBooking") : t("confirmBooking")}
           </Text>
         </TouchableOpacity>
 
@@ -308,7 +310,7 @@ export default function BookingScreen() {
                 <TouchableOpacity onPress={handleDateCancel}>
                   <Text style={styles.pickerCancel}>Cancel</Text>
                 </TouchableOpacity>
-                <Text style={styles.pickerTitle}>{showPicker === "checkIn" ? "Check in" : "Check out"}</Text>
+                <Text style={styles.pickerTitle}>{showPicker === "checkIn" ? t("checkIn") : t("checkOut")}</Text>
                 <TouchableOpacity onPress={() => handleDateConfirm(pickerDate)}>
                   <Text style={styles.pickerDone}>Done</Text>
                 </TouchableOpacity>

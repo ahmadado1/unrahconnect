@@ -2,13 +2,16 @@ import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 export default function AboutScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -19,7 +22,7 @@ export default function AboutScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>About Us</Text>
+          <Text style={styles.headerTitle}>{t("aboutUs")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -29,16 +32,16 @@ export default function AboutScreen() {
         <View style={[styles.logoSection, { backgroundColor: theme.header }]}>
           <Text style={styles.logoEmoji}>🌙</Text>
           <Text style={styles.appName}>UmrahConnect</Text>
-          <Text style={styles.tagline}>Your complete Umrah & Hajj companion</Text>
+          <Text style={styles.tagline}>{t("tagline")}</Text>
           <View style={styles.locationRow}>
             <Ionicons name="location" size={14} color="#C9A84C" />
-            <Text style={styles.location}>Based in Egypt</Text>
+            <Text style={styles.location}>{t("basedInEgypt")}</Text>
           </View>
         </View>
 
         {/* Mission */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Our Mission</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("ourMission")}</Text>
           <Text style={[styles.sectionText, { color: theme.textSecondary }]}>
             UmrahConnect was created to be the most complete digital companion for pilgrims performing Umrah and Hajj. We believe every pilgrim deserves easy access to the best hotels, restaurants, and guidance — all in one place.
           </Text>
@@ -46,12 +49,12 @@ export default function AboutScreen() {
 
         {/* What we offer */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>What We Offer</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("whatWeOffer")}</Text>
 
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🏨</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Hotels</Text>
+              <Text style={[styles.featureName, { color: theme.text }]}>{t("hotelsTitle")}</Text>
               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Curated hotels in Makkah and Madinah — from budget to luxury</Text>
             </View>
           </View>
@@ -59,7 +62,7 @@ export default function AboutScreen() {
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🍽️</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Restaurants</Text>
+               <Text style={[styles.featureName, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>The best halal restaurants near Masjid Al-Haram and Masjid Nabawi</Text>
             </View>
           </View>
@@ -67,7 +70,7 @@ export default function AboutScreen() {
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🕋</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Umrah Guide</Text>
+              <Text style={[styles.featureName, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Complete step by step Umrah guide with duas in Arabic and English</Text>
             </View>
           </View>
@@ -75,7 +78,7 @@ export default function AboutScreen() {
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>☪️</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Hajj Guide</Text>
+              <Text style={[styles.featureName, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Full Hajj guide covering every step of the pilgrimage</Text>
             </View>
           </View>
@@ -100,14 +103,14 @@ export default function AboutScreen() {
 
         {/* Social media */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Follow Us</Text>
-          <Text style={[styles.comingSoon, { color: theme.textSecondary }]}>🚀 Social media coming soon — stay tuned!</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("followUs")}</Text>
+        <Text style={[styles.comingSoon, { color: theme.textSecondary }]}>{t("socialComingSoon")}</Text>
         </View>
 
         {/* Version */}
         <View style={styles.versionBox}>
-          <Text style={[styles.versionText, { color: theme.textSecondary }]}>UmrahConnect v1.0</Text>
-          <Text style={styles.versionSub}>Made with ❤️ in Egypt</Text>
+          <Text style={[styles.versionText, { color: theme.textSecondary }]}>{t("version")}</Text>
+          <Text style={styles.versionSub}>{t("madeInEgypt")}</Text>
         </View>
 
         <View style={{ height: 60 }} />

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
@@ -14,6 +15,7 @@ export default function FavoritesScreen() {
   const [hotels, setHotels] = useState<any[]>([])
   const [restaurants, setRestaurants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { t } = useTranslation()
 
   const allHotels = [
     { id: "1", name: "Hilton Suites Makkah", distance: "500m from Haram", price: 180, rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600" },
@@ -90,7 +92,7 @@ export default function FavoritesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Favorites</Text>
+        <Text style={styles.headerTitle}>{t("favorites")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -98,15 +100,15 @@ export default function FavoritesScreen() {
 
         {/* Loading */}
         {loading && (
-          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading favorites...</Text>
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t("loadingFavorites")}</Text>
         )}
 
         {/* Empty state */}
         {!loading && hotels.length === 0 && restaurants.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>❤️</Text>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No favorites yet</Text>
-            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>Tap the heart on any hotel or restaurant to save it here</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noFavorites")}</Text>
+            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>{t("noFavoritesSub")}</Text>
           </View>
         )}
 
@@ -124,7 +126,7 @@ export default function FavoritesScreen() {
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{hotel.name}</Text>
                   <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{hotel.city} · {hotel.distance}</Text>
-                  <Text style={[styles.cardPrice, { color: theme.gold }]}>${hotel.price} / night · ★ {hotel.rating}</Text>
+                  <Text style={[styles.cardPrice, { color: theme.gold }]}>${hotel.price} {t("perNight")} · ★ {hotel.rating}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>

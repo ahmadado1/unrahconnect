@@ -4,6 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase, toggleFavorite } from "../../lib/supabase";
@@ -63,6 +64,7 @@ export default function RestaurantsScreen() {
   const filters: CityFilter[] = ["All", "Makkah", "Madinah"];
   const [searchQuery, setSearchQuery] = useState("")
   const { theme } = useTheme()
+  const { t } = useTranslation()
 
   const loadFavoriteRestaurants = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -85,18 +87,18 @@ export default function RestaurantsScreen() {
 
   const visibleSections = useMemo(() =>
     [
-      { title: "⭐ Recommended", restaurants: recommended },
-      { title: "🕋 Makkah Top Picks", restaurants: makkahRestaurants },
-      { title: "🕋 Near Haram", restaurants: nearHaram },
-      { title: "🍖 Arabic & Grills", restaurants: arabicGrills },
-      { title: "🌍 International", restaurants: international },
-      { title: "☕ Cafes & Desserts", restaurants: cafesAndDesserts },
-      { title: "🥡 Fast Food", restaurants: fastFood },
-      { title: "🌙 Madinah Picks", restaurants: madinahRestaurants },
+      { title: t("recommended"), restaurants: recommended },
+      { title: t("makkahTopPicks"), restaurants: makkahRestaurants },
+      { title: t("nearHaram"), restaurants: nearHaram },
+      { title: t("arabicGrills"), restaurants: arabicGrills },
+      { title: t("international"), restaurants: international },
+      { title: t("cafesAndDesserts"), restaurants: cafesAndDesserts },
+      { title: t("fastFood"), restaurants: fastFood },
+      { title: t("madinahPicks"), restaurants: madinahRestaurants },
     ]
       .map((section) => ({ title: section.title, restaurants: filterRestaurants(section.restaurants) }))
       .filter((section) => section.restaurants.length > 0),
-    [filterRestaurants]
+    [filterRestaurants, t]
   );
 
   function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
@@ -120,7 +122,7 @@ export default function RestaurantsScreen() {
       >
         <ImageBackground source={{ uri: restaurant.image }} style={cardStyles.image} imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
           <View style={cardStyles.badge}>
-            <Text style={cardStyles.badgeText}>{restaurant.type === "ours" ? "⭐ Featured" : "External"}</Text>
+            <Text style={cardStyles.badgeText}>{restaurant.type === "ours" ? t("featured") : t("external")}</Text>
           </View>
           <TouchableOpacity style={cardStyles.heart} onPress={(e) => { e.stopPropagation(); handleFavoritePress() }}>
             <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={18} color={isFavorited ? "#C9A84C" : "#fff"} />
@@ -133,13 +135,13 @@ export default function RestaurantsScreen() {
           <View style={cardStyles.footer}>
             <View>
               <Text style={[cardStyles.price, { color: theme.text }]}>
-                {restaurant.priceRange} · <Text style={{ color: restaurant.isOpen ? "#2D6A4F" : "#E24B4A" }}>● {restaurant.isOpen ? "Open" : "Closed"}</Text>
+                {restaurant.priceRange} · <Text style={{ color: restaurant.isOpen ? "#2D6A4F" : "#E24B4A" }}>● {restaurant.isOpen ? t("open") : t("closed")}</Text>
               </Text>
               <Text style={cardStyles.rating}>★ {restaurant.rating}</Text>
             </View>
             <TouchableOpacity style={[cardStyles.btn, restaurant.type === "external" && cardStyles.btnExternal]}>
               <Text style={[cardStyles.btnText, restaurant.type === "external" && cardStyles.btnTextExternal]}>
-                {restaurant.type === "ours" ? "Reserve" : "Directions →"}
+              {restaurant.type === "ours" ? t("reserve") : t("directions")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -160,8 +162,8 @@ export default function RestaurantsScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.title}>Restaurants</Text>
-              <Text style={styles.subtitle}>Discover food near you</Text>
+              <Text style={styles.title}>{t("restaurantsTitle")}</Text>
+              <Text style={styles.subtitle}>{t("discoverFood")}</Text>
             </View>
             <TouchableOpacity style={styles.iconBtn}>
               <Ionicons name="options-outline" size={22} color="#fff" />
@@ -172,7 +174,7 @@ export default function RestaurantsScreen() {
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
             <TextInput
-              placeholder="Search restaurants..."
+              placeholder={t("searchRestaurants")}
               placeholderTextColor="rgba(255,255,255,0.45)"
               style={styles.searchInput}
               value={searchQuery}

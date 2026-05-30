@@ -2,6 +2,7 @@ import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [gender, setGender] = useState<"male" | "female">("male")
+  const { t } = useTranslation()
 
   useEffect(() => {
     getUser()
@@ -51,10 +53,10 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t("profile")}</Text>
         <TouchableOpacity onPress={editing ? saveProfile : () => setEditing(true)}>
           <Text style={styles.headerAction}>
-            {editing ? (loading ? "Saving..." : "Save") : "Edit"}
+            {editing ? (loading ? t("saving") : t("save")) : t("edit")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -69,100 +71,100 @@ export default function ProfileScreen() {
         <Text style={styles.userName}>{fullName || "Your Name"}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
         <Text style={styles.memberSince}>
-          Member since {user ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : ""}
+          {t("memberSince")} {user ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : ""}
         </Text>
       </View>
 
       {/* Personal Info */}
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Personal Info</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("personalInfo")}</Text>
 
         {/* Full Name */}
         <View style={[styles.field, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Full Name</Text>
+         <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("fullName")}</Text>
           {editing ? (
             <TextInput
               style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Enter your full name"
+                placeholder={t("enterFullName")}
               placeholderTextColor={theme.textSecondary}
             />
           ) : (
-            <Text style={[styles.fieldValue, { color: theme.text }]}>{fullName || "Not set"}</Text>
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{fullName || t("notSet")}</Text>
           )}
         </View>
 
         {/* Phone */}
         <View style={[styles.field, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Phone</Text>
+        <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("phone")}</Text>
           {editing ? (
             <TextInput
               style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone number"
+              placeholder={t("enterPhone")}
               placeholderTextColor={theme.textSecondary}
               keyboardType="phone-pad"
             />
           ) : (
-            <Text style={[styles.fieldValue, { color: theme.text }]}>{phone || "Not set"}</Text>
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{phone || t("notSet")}</Text>
           )}
         </View>
 
         {/* Nationality */}
         <View style={[styles.field, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Nationality</Text>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("nationality")}</Text>
           {editing ? (
             <TextInput
               style={[styles.fieldInput, { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg }]}
               value={nationality}
               onChangeText={setNationality}
-              placeholder="Enter your nationality"
+              placeholder={t("enterNationality")}
               placeholderTextColor={theme.textSecondary}
             />
           ) : (
-            <Text style={[styles.fieldValue, { color: theme.text }]}>{nationality || "Not set"}</Text>
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{nationality || t("notSet")}</Text>
           )}
         </View>
 
         {/* Gender */}
         <View style={[styles.field, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Gender</Text>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("gender")}</Text>
           {editing ? (
             <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
               <TouchableOpacity
                 style={[styles.genderBtn, { borderColor: theme.border }, gender === "male" && styles.genderBtnActive]}
                 onPress={() => setGender("male")}
               >
-                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>👨 Male</Text>
+                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>{t("male")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.genderBtn, { borderColor: theme.border }, gender === "female" && styles.genderBtnActive]}
                 onPress={() => setGender("female")}
               >
-                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>👩 Female</Text>
+                <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>{t("female")}</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <Text style={[styles.fieldValue, { color: theme.text }]}>{gender === "male" ? "👨 Male" : "👩 Female"}</Text>
+            <Text style={[styles.fieldValue, { color: theme.text }]}>{gender === "male" ? t("male") : t("female")}</Text>
           )}
         </View>
       </View>
 
       {/* Account section */}
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("account")}</Text>
 
         <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]}>
           <Ionicons name="lock-closed-outline" size={20} color={theme.text} />
-          <Text style={[styles.accountBtnText, { color: theme.text }]}>Change Password</Text>
+          <Text style={[styles.accountBtnText, { color: theme.text }]}>{t("changePassword")}</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]}>
           <Ionicons name="trash-outline" size={20} color="#E24B4A" />
-          <Text style={[styles.accountBtnText, { color: "#E24B4A" }]}>Delete Account</Text>
+          <Text style={[styles.accountBtnText, { color: "#E24B4A" }]}>{t("deleteAccount")}</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
       </View>

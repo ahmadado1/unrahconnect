@@ -1,8 +1,11 @@
 import { ThemeProvider } from "@/context/themeContext";
+import "@/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
+import { View } from "react-native";
 import { supabase } from "../lib/supabase";
+
 
 export default function RootLayout() {
   const router = useRouter()
@@ -44,28 +47,31 @@ export default function RootLayout() {
   }
 
   
-    return (
-      <ThemeProvider>
-        {/* your existing stack/tabs here */}
+  return (
+    <ThemeProvider>
+      <View style={{ flex: 1, backgroundColor: "#1E3A5F" }}>
         <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="auth/login" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="profile" />
-      <Stack.Screen name="favorites" />
-      <Stack.Screen name="about" />
-      <Stack.Screen name="contact" />
-      <Stack.Screen name="settings" />
-      <Stack.Screen name="privacy" />
-      <Stack.Screen name="terms" />
-      <Stack.Screen name="booking" />
-      <Stack.Screen name="search" />
-      <Stack.Screen name="hajj" />
-      <Stack.Screen name="hajj/[hajj]" />
-      <Stack.Screen name="umrah-guide" />
-    </Stack>
-      </ThemeProvider>
-    );
+              <Stack.Screen name="onboarding" />
+            <Stack.Screen name="auth/login" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen name="favorites" />
+            <Stack.Screen name="about" />
+            <Stack.Screen name="contact" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="privacy" />
+            <Stack.Screen name="terms" />
+            <Stack.Screen name="booking" />
+            <Stack.Screen name="search" />
+            <Stack.Screen name="hajj" />
+            <Stack.Screen name="hajj/[hajj]" />
+            <Stack.Screen name="umrah-guide" />
+        </Stack>
+      </View>
+    </ThemeProvider>
+  )
+    
   }
 
+ 
  

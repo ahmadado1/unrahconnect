@@ -1,6 +1,7 @@
 import { useTheme } from "@/context/themeContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
@@ -16,6 +17,7 @@ export default function LoginScreen() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
+  const { t } = useTranslation()
 
   const handleResetPassword = async () => {
     if (!email) { setError("Please enter your email first"); return }
@@ -60,7 +62,7 @@ export default function LoginScreen() {
             <Text style={styles.logo}>🌙</Text>
             <Text style={[styles.title, { color: theme.text }]}>UmrahConnect</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? t("createAccount") : t("welcomeBackAuth")}
             </Text>
           </View>
 
@@ -70,10 +72,10 @@ export default function LoginScreen() {
             {/* Full Name */}
             {isSignUp && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>Full Name</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("fullName")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Enter your full name"
+                  placeholder={t("enterFullName")}
                   placeholderTextColor={theme.textSecondary}
                   value={fullName}
                   onChangeText={setFullName}
@@ -85,19 +87,19 @@ export default function LoginScreen() {
             {/* Gender */}
             {isSignUp && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>I am</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("iAm")}</Text>
                 <View style={styles.genderRow}>
                   <TouchableOpacity
                     style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "male" && styles.genderBtnActive]}
                     onPress={() => setGender("male")}
                   >
-                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>👨 Male</Text>
+                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>{t("male")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "female" && styles.genderBtnActive]}
                     onPress={() => setGender("female")}
                   >
-                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>👩 Female</Text>
+                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>{t("female")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -105,10 +107,10 @@ export default function LoginScreen() {
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.text }]}>Email</Text>
+              <Text style={[styles.label, { color: theme.text }]}>{t("emailLabel")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                placeholder="Enter your email"
+                placeholder={t("enterEmail")}
                 placeholderTextColor={theme.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -119,10 +121,10 @@ export default function LoginScreen() {
 
             {/* Password */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.text }]}>Password</Text>
+              <Text style={[styles.label, { color: theme.text }]}>{t("passwordLabel")}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                placeholder="Enter your password"
+                placeholder={t("enterPassword")}
                 placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -133,7 +135,7 @@ export default function LoginScreen() {
             {/* Forgot password */}
             {!isSignUp && (
               <TouchableOpacity onPress={handleResetPassword} style={styles.forgotBtn}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
+                <Text style={styles.forgotText}>{t("forgotPassword")}</Text>
               </TouchableOpacity>
             )}
 
@@ -147,14 +149,14 @@ export default function LoginScreen() {
               disabled={loading}
             >
               <Text style={styles.btnText}>
-                {loading ? "Please wait..." : isSignUp ? "Create Account" : "Login"}
+                {loading ? t("pleaseWait") : isSignUp ? t("signUp") : t("login")}
               </Text>
             </TouchableOpacity>
 
             {/* Toggle */}
             <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
               <Text style={styles.toggle}>
-                {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign up"}
+                {isSignUp ? t("haveAccount") : t("noAccount")}
               </Text>
             </TouchableOpacity>
 

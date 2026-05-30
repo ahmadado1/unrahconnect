@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.umrahconnect.app"
+      "bundleIdentifier": "com.umrahconnect.app",
+      "backgroundColor": "#1E3A5F"
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +37,8 @@
           "backgroundColor": "#1E3A5F"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -3,6 +3,7 @@ import { getUmrahProgress } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -21,6 +22,7 @@ export default function UmrahGuideScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const [completedPhases, setCompletedPhases] = useState<string[]>([])
+  const { t } = useTranslation()
 
   const loadProgress = async () => {
     const progress = await getUmrahProgress()
@@ -37,16 +39,16 @@ export default function UmrahGuideScreen() {
 
         {/* Header — always navy */}
         <View style={[styles.header, { paddingTop: 16 }]}>
-          <Text style={styles.title}>Umrah Guide</Text>
-          <Text style={styles.subtitle}>Your complete step by step journey</Text>
+          <Text style={styles.title}>{t("umrahGuideTitle")}</Text>
+          <Text style={styles.subtitle}>{t("completeUmrah")}</Text>
         </View>
 
         {/* Progress bar */}
         {completedPhases.length > 0 && (
           <View style={[styles.progressCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.progressHeader}>
-              <Text style={[styles.progressTitle, { color: theme.text }]}>Your Progress</Text>
-              <Text style={styles.progressCount}>{completedPhases.length} of {phases.length} phases</Text>
+              <Text style={[styles.progressTitle, { color: theme.text }]}>{t("yourProgress")}</Text>
+              <Text style={styles.progressCount}>{completedPhases.length} {t("of")} {phases.length} {t("phases")}</Text>
             </View>
             <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
               <View style={[styles.progressFill, { width: `${(completedPhases.length / phases.length) * 100}%` }]} />
@@ -55,7 +57,7 @@ export default function UmrahGuideScreen() {
         )}
 
         {/* Section label */}
-        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>YOUR JOURNEY</Text>
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t("yourJourney")}</Text>
 
         {/* Phases list */}
         {phases.map((phase) => {

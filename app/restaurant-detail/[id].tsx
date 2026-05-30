@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { isFavorite, toggleFavorite } from "../../lib/supabase";
 
@@ -33,6 +34,7 @@ export default function RestaurantDetailScreen() {
   const { theme } = useTheme()
   const restaurant = allRestaurants.find(r => r.id === id)
   const [favorited, setFavorited] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!restaurant) return
@@ -74,7 +76,7 @@ export default function RestaurantDetailScreen() {
             <Ionicons name={favorited ? "heart" : "heart-outline"} size={22} color={favorited ? "#C9A84C" : "#fff"} />
           </TouchableOpacity>
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>{restaurant.type === "ours" ? "Featured" : "External"}</Text>
+            <Text style={styles.heroBadgeText}>{restaurant.type === "ours" ? t("featured") : t("external")}</Text>
           </View>
         </ImageBackground>
 
@@ -86,7 +88,7 @@ export default function RestaurantDetailScreen() {
             {restaurant.city} · {restaurant.distance} · {restaurant.cuisine}
           </Text>
           <Text style={styles.rating}>
-            ★ {restaurant.rating} · {restaurant.priceRange} · {restaurant.isOpen ? "Open" : "Closed"}
+            ★ {restaurant.rating} · {restaurant.priceRange} · {restaurant.isOpen ? t("open") : t("closed")}
           </Text>
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -98,7 +100,7 @@ export default function RestaurantDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Highlights */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Highlights</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("highlights")}</Text>
           <View style={styles.features}>
             {restaurant.features.map(feature => (
               <View key={feature} style={styles.featureRow}>
@@ -111,7 +113,7 @@ export default function RestaurantDetailScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Location */}
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("location")}</Text>
           <View style={[styles.locationBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Ionicons name="location" size={18} color="#C9A84C" />
             <Text style={[styles.locationText, { color: theme.textSecondary }]}>{restaurant.city}, Saudi Arabia · {restaurant.distance}</Text>
@@ -123,7 +125,7 @@ export default function RestaurantDetailScreen() {
             onPress={() => Linking.openURL(`https://maps.google.com/?q=${restaurant.name}, ${restaurant.city}, Saudi Arabia`)}
           >
             <Ionicons name="navigate" size={18} color="#fff" />
-            <Text style={styles.directionsBtnText}>Get Directions</Text>
+            <Text style={styles.directionsBtnText}>{t("getDirections")}</Text>
           </TouchableOpacity>
 
         </View>
