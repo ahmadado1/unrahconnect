@@ -18,7 +18,7 @@ export default function AboutScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
+      <View style={[styles.header, {  paddingTop: insets.top , backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>

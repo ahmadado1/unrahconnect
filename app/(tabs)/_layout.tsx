@@ -1,4 +1,3 @@
-
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
@@ -18,8 +17,8 @@ export default function TabsLayout() {
           <Icon sf={{ default: "house", selected: "house.fill" }} drawable="ic_menu_view" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="umrah">
-          <Label>Umrah Guide</Label>
-          <Icon sf={{ default: "moon", selected: "moon.fill" }} drawable="ic_menu_today" />
+          <Label>Guide</Label>
+          <Icon sf={{ default: "book", selected: "book.fill" }} drawable="ic_menu_today" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="hotels">
           <Label>Hotels</Label>
@@ -54,7 +53,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} /> }} />
-      <Tabs.Screen name="umrah" options={{ title: "Umrah Guide", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "moon" : "moon-outline"} size={26} color={color} /> }} />
+      <Tabs.Screen name="umrah" options={{ title: "Guide", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "book" : "book-outline"} size={26} color={color} /> }} />
       <Tabs.Screen name="hotels" options={{ title: "Hotels", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "bed" : "bed-outline"} size={26} color={color} /> }} />
       <Tabs.Screen name="restaurants" options={{ title: "Restaurants", tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "restaurant" : "restaurant-outline"} size={26} color={color} /> }} />
       <Tabs.Screen name="favorite" options={{ href: null }} />

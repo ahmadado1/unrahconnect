@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 
 const EMAILJS_SERVICE_ID = "service_1n51wzk"
-const EMAILJS_TEMPLATE_ID = "hyzjzza"
+const EMAILJS_TEMPLATE_ID = "template_c56h1h1"
 const EMAILJS_PUBLIC_KEY = "FHzLPzlS0xVz4wFoD"
 const EMAILJS_PRIVATE_KEY = process.env.EXPO_PUBLIC_EMAILJS_PRIVATE_KEY ?? ""
 

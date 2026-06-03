@@ -9,28 +9,28 @@ const { width } = Dimensions.get("window");
 
 
 const slides = [
-    {
-      id: "1",
-      emoji: "🌙",
-      title: "Welcome to UmrahConnect",
-      subtitle: "Your complete Umrah companion",
-      bg: "#1E3A5F",
-    },
-    {
-      id: "2",
-      emoji: "🕋",
-      title: "Hotels, Restaurants & Guide",
-      subtitle: "Everything you need for your blessed journey in one place",
-      bg: "#2C5F8A",
-    },
-    {
-      id: "3",
-      emoji: "✨",
-      title: "Your journey starts here",
-      subtitle: "Find hotels, discover restaurants and learn Umrah step by step",
-      bg: "#1B4332",
-    },
-  ]
+  {
+    id: "1",
+    emoji: "🌙",
+    title: "Welcome to UmrahConnect",
+    subtitle: "Your complete Umrah companion",
+    bg: "#1E3A5F",
+  },
+  {
+    id: "2",
+    emoji: "🕋",
+    title: "Hotels, Restaurants & Guide",
+    subtitle: "Everything you need for your blessed journey in one place",
+    bg: "#162D47",
+  },
+  {
+    id: "3",
+    emoji: "✨",
+    title: "Your journey starts here",
+    subtitle: "Find hotels, discover restaurants and learn Umrah step by step",
+    bg: "#0F1F30",
+  },
+]
 
 
   export default function OnboardingScreen() {
@@ -45,7 +45,7 @@ const slides = [
           setCurrentIndex(currentIndex + 1)
         } else {
           await AsyncStorage.setItem("onboardingSeen", "true")
-          router.replace("/(tabs)")
+          router.replace("/auth/login")
         }
       }
     

@@ -36,11 +36,10 @@ export default function HajjGuideScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       {/* Dynamic island — always navy */}
-      <View style={[styles.safeTop, { height: insets.top }]} />
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Header — always navy */}
-        <View style={[styles.header, { paddingTop: 16 }]}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={styles.title}>{t("hajjGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeHajj")}</Text>
         </View>
@@ -106,9 +105,9 @@ export default function HajjGuideScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeTop: { backgroundColor: "#1E3A5F" },
-  header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 24 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "bold" },
-  subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
+  header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 34 },
+  title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 40 },
+  subtitle: { color: "#C9A84C", fontSize: 13, },
   phaseCardCompleted: { borderColor: "#C9A84C", borderWidth: 1 },
   progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 35, borderWidth: 0.5 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },

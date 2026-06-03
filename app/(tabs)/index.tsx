@@ -1,5 +1,4 @@
 import { useTheme } from "@/context/themeContext";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -8,6 +7,70 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import DrawerMenu from "../component/DrawerMenu";
+
+// This component displays one booking as a card
+// It receives a single booking object as a prop
+function BookingCard({ booking, theme }: { booking: any, theme: any }) {
+  
+  // Today's date for status comparison
+  const today = new Date().toISOString().split("T")[0]
+
+  // Format date helper
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+
+  // Get status label and color
+  const getStatus = () => {
+    if (booking.check_in > today) return { label: "Upcoming", color: "#2D6A4F" }
+    if (booking.check_out >= today) return { label: "Active", color: "#C9A84C" }
+    return { label: "Past", color: "#888" }
+  }
+
+  const status = getStatus()
+
+  return (
+    // Card container — uses theme colors for dark/light mode
+    <View style={[bookingStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      
+      {/* Top row — hotel name + status badge */}
+      <View style={bookingStyles.cardTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={[bookingStyles.hotelName, { color: theme.text }]}>{booking.hotel_name}</Text>
+          <Text style={[bookingStyles.city, { color: theme.textSecondary }]}>{booking.hotel_city}</Text>
+        </View>
+        {/* Colored badge showing Upcoming / Active / Past */}
+        <View style={[bookingStyles.statusBadge, { backgroundColor: status.color + "22" }]}>
+          <Text style={[bookingStyles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
+      </View>
+
+      {/* Thin divider line */}
+      <View style={[bookingStyles.divider, { backgroundColor: theme.border }]} />
+
+      {/* 3 columns — check in, check out, total price */}
+      <View style={bookingStyles.details}>
+        <View style={bookingStyles.detailItem}>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Check in</Text>
+          <Text style={[bookingStyles.detailValue, { color: theme.text }]}>{formatDate(booking.check_in)}</Text>
+        </View>
+        <View style={bookingStyles.detailItem}>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Check out</Text>
+          <Text style={[bookingStyles.detailValue, { color: theme.text }]}>{formatDate(booking.check_out)}</Text>
+        </View>
+        <View style={bookingStyles.detailItem}>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Total</Text>
+          <Text style={[bookingStyles.detailValue, { color: "#C9A84C" }]}>${booking.total_price}</Text>
+        </View>
+      </View>
+
+      {/* Bottom — nights and guests summary */}
+      <Text style={[bookingStyles.nights, { color: theme.textSecondary }]}>
+        {booking.nights} {booking.nights === 1 ? "night" : "nights"} · {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
+      </Text>
+
+    </View>
+  )
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -45,6 +108,57 @@ export default function HomeScreen() {
       })
   }, [])
 
+  // State to store the bookings we fetch from Supabase
+    const [bookings, setBookings] = useState<any[]>([])
+
+    useEffect(() => {
+      // This function runs once when the home screen loads
+      const fetchBookings = async () => {
+        // Get the currently logged in user
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        // If no user is logged in, stop here
+        if (!user) return
+
+        // Query the bookings table — only get rows where user_id matches
+        // Order by check_in date so upcoming ones appear first
+        const { data } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("check_in", { ascending: true })
+
+        // If we got data back, save it to state so the screen can display it
+        if (data) setBookings(data)
+      }
+
+      fetchBookings()
+    }, []) // Empty array means "only run this once on mount"
+
+          // Today's date as a string like "2026-05-31"
+      // We use this to compare against check_in dates
+      const today = new Date().toISOString().split("T")[0]
+
+      // Upcoming = check_in date is today or in the future
+      const upcoming = bookings.filter(b => b.check_in >= today)
+
+      // Past = check_in date was before today
+      const past = bookings.filter(b => b.check_in < today)
+
+      // Converts "2026-06-15" → "Jun 15, 2026"
+      const formatDate = (d: string) =>
+        new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+
+        // Returns a label and color based on when the booking is
+      const getStatus = (b: any) => {
+        if (b.check_in > today) return { label: "Upcoming", color: "#2D6A4F" } // green
+        if (b.check_out >= today) return { label: "Active", color: "#C9A84C" } // gold
+        return { label: "Past", color: "#888" } // grey
+        
+        
+}
+    
+      
   return (
     // Main screen — background changes with theme
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -69,9 +183,7 @@ export default function HomeScreen() {
             </View>
             {/* Search and hamburger */}
             <View style={styles.iconRow}>
-              <TouchableOpacity style={styles.iconBtn}>
-                <Ionicons name="search" size={24} color="#fff" />
-              </TouchableOpacity>
+              
               <TouchableOpacity style={styles.iconBtn} onPress={() => setDrawerOpen(true)}>
                 <View style={styles.hamburger}>
                   <View style={styles.bar} />
@@ -133,6 +245,36 @@ export default function HomeScreen() {
           <Text style={styles.tipRef}>{ayahRef}</Text>
         </View>
 
+          {/* Only show if user has bookings */}
+        {bookings.length > 0 && (
+          <View style={{ marginHorizontal: 16, marginBottom: 80 }}>
+            
+            <Text style={[styles.sectionTitle, { color: theme.text, marginHorizontal: 0, marginTop: 8 }]}>
+              🗓️ My Bookings
+            </Text>
+
+            {/* Upcoming bookings group */}
+            {upcoming.length > 0 && (
+              <>
+                <Text style={[bookingStyles.groupLabel, { color: theme.textSecondary }]}>UPCOMING</Text>
+                {upcoming.map(b => (
+                  <BookingCard key={b.id} booking={b} theme={theme} />
+                ))}
+              </>
+            )}
+
+            {/* Past bookings group */}
+            {past.length > 0 && (
+              <>
+                <Text style={[bookingStyles.groupLabel, { color: theme.textSecondary }]}>PAST</Text>
+                {past.map(b => (
+                  <BookingCard key={b.id} booking={b} theme={theme} />
+                ))}
+              </>
+            )}
+
+          </View>
+        )}
       </ScrollView>
 
       {/* Drawer */}
@@ -174,4 +316,39 @@ const styles = StyleSheet.create({
   tipLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "bold", margin: 8 },
   tipText: { color: "#fff", fontSize: 14, lineHeight: 22, fontStyle: "italic" },
   tipRef: { color: "#C9A84C", fontSize: 11, marginTop: 8, textAlign: "right" },
+})
+
+// Styles specifically for the booking cards
+const bookingStyles = StyleSheet.create({
+  
+  // The card container itself
+  card: { borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5 },
+  
+  // Top row with hotel name and status badge
+  cardTop: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
+  
+  // Hotel name text
+  hotelName: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
+  
+  // City text below hotel name
+  city: { fontSize: 13 },
+  
+  // The colored pill badge (Upcoming / Active / Past)
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  
+  // Thin horizontal line
+  divider: { height: 0.5, marginBottom: 12 },
+  
+  // Row of 3 detail columns
+  details: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  detailItem: { alignItems: "center" },
+  detailLabel: { fontSize: 11, marginBottom: 2 },
+  detailValue: { fontSize: 13, fontWeight: "600" },
+  
+  // Nights and guests summary at bottom
+  nights: { fontSize: 12, textAlign: "center", marginTop: 4 },
+  
+  // "UPCOMING" / "PAST" group label
+  groupLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
 })

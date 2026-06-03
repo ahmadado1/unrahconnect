@@ -34,11 +34,10 @@ export default function UmrahGuideScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       {/* Dynamic island — always navy */}
-      <View style={[styles.safeTop, { height: insets.top }]} />
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Header — always navy */}
-        <View style={[styles.header, { paddingTop: 16 }]}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={styles.title}>{t("umrahGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeUmrah")}</Text>
         </View>
@@ -105,11 +104,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeTop: { backgroundColor: "#1E3A5F" },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 24 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "bold" },
-  subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
-  progressCard: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16, borderWidth: 0.5 },
-  progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  progressTitle: { fontSize: 14, fontWeight: "bold" },
+  title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 30 },
+  subtitle: { color: "#C9A84C", fontSize: 13,  },
+  progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 35, borderWidth: 0.5 },
+  progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
+  progressTitle: { fontSize: 18, fontWeight: "bold" },
   progressCount: { fontSize: 13, color: "#C9A84C", fontWeight: "600" },
   progressTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
   progressFill: { height: 8, backgroundColor: "#C9A84C", borderRadius: 4 },

@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 
@@ -34,14 +34,52 @@ export default function ProfileScreen() {
       setGender(user.user_metadata?.gender || "male")
     }
   }
+  const handleDeleteAccount = async () => {
+
+    // Step 2 — actually delete everything
+    const confirmDelete = async () => {
+      setLoading(true)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        await supabase.from("bookings").delete().eq("user_id", user.id)
+        await supabase.from("favorites").delete().eq("user_id", user.id)
+        await supabase.from("umrah_progress").delete().eq("user_id", user.id)
+        await supabase.from("hajj_progress").delete().eq("user_id", user.id)
+        await supabase.rpc("delete_user")
+        await supabase.auth.signOut()
+        router.replace("/auth/login")
+      } catch (e) {
+        Alert.alert("Error", "Could not delete account. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+  
+    // Step 1 — ask for reason first
+    Alert.alert(
+      "Delete Account",
+      "We're sorry to see you go. Why are you leaving?",
+      [
+        { text: "Not using it anymore", onPress: confirmDelete },
+        { text: "Privacy concerns", onPress: confirmDelete },
+        { text: "Found a better app", onPress: confirmDelete },
+        { text: "Cancel", style: "cancel" },
+      ]
+    )
+  }
 
   const saveProfile = async () => {
     setLoading(true)
     const { error } = await supabase.auth.updateUser({
       data: { full_name: fullName, phone, nationality, gender }
     })
-    if (error) console.log(error)
-    else setEditing(false)
+    if (error) {
+      console.log(error)
+    } else {
+      setEditing(false)
+      await getUser() // ← refresh user data after save
+    }
     setLoading(false)
   }
 
@@ -162,7 +200,7 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]}>
+        <TouchableOpacity style={[styles.accountBtn, { borderBottomColor: theme.border }]} onPress={handleDeleteAccount}>
           <Ionicons name="trash-outline" size={20} color="#E24B4A" />
           <Text style={[styles.accountBtnText, { color: "#E24B4A" }]}>{t("deleteAccount")}</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />

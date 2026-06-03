@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase, toggleFavorite } from "../../lib/supabase";
 
 type Restaurant = {
@@ -65,6 +65,7 @@ export default function RestaurantsScreen() {
   const [searchQuery, setSearchQuery] = useState("")
   const { theme } = useTheme()
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
 
   const loadFavoriteRestaurants = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -154,20 +155,18 @@ export default function RestaurantsScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
       {/* Dynamic island — always navy */}
-      <SafeAreaView edges={["top"]} style={styles.safeTop} />
+      
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
 
         {/* Header — always navy */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.title}>{t("restaurantsTitle")}</Text>
               <Text style={styles.subtitle}>{t("discoverFood")}</Text>
             </View>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="options-outline" size={22} color="#fff" />
-            </TouchableOpacity>
+            
           </View>
 
           {/* Search bar */}

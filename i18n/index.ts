@@ -449,13 +449,10 @@ const resources = {
 
   fr: {
     translation: {
-      // Navigation
       home: "Accueil",
       hotels: "Hôtels",
       restaurants: "Restaurants",
       guide: "Guide",
-
-      // Home screen
       greeting: "Assalamu Alaikum 👋",
       appName: "UmrahConnect",
       welcomeBack: "Bon retour",
@@ -469,8 +466,6 @@ const resources = {
       restaurantsTitle: "Restaurants",
       restaurantsSub: "Près du Haram",
       verseOfDay: "✨ Verset du jour",
-
-      // Hotels
       findPerfectStay: "Trouvez votre séjour idéal",
       searchHotels: "Rechercher des hôtels...",
       all: "Tous",
@@ -490,16 +485,12 @@ const resources = {
       budgetFriendly: "💰 Économique",
       familyRooms: "🛏️ Chambres familiales",
       madinahPicks: "🌙 Meilleurs hôtels Médine",
-
-      // Hotel detail
       about: "À propos",
       amenities: "Équipements",
       location: "Emplacement",
       getDirections: "Obtenir l'itinéraire",
       nightPrice: "/ nuit",
       starRating: "étoiles",
-
-      // Restaurants
       discoverFood: "Découvrez la cuisine près de vous",
       searchRestaurants: "Rechercher des restaurants...",
       reserve: "Réserver",
@@ -510,11 +501,9 @@ const resources = {
       highlights: "Points forts",
       nearHaram: "🕋 Près du Haram",
       arabicGrills: "🍖 Grillades arabes",
-      international: "🌍 International",
+      international: "international",
       cafesAndDesserts: "☕ Cafés et desserts",
       fastFood: "🥡 Restauration rapide",
-
-      // Guide
       chooseJourney: "Choisissez votre pèlerinage",
       umrahGuideTitle: "Guide Omra",
       umrahGuidePhaseSub: "7 étapes · Guide complet pas à pas",
@@ -526,16 +515,12 @@ const resources = {
       quranReader: "Lecteur du Coran",
       prayerTimes: "Heures de prière",
       qiblaDirection: "Direction de la Qibla",
-
-      // Umrah Guide screen
       yourJourney: "VOTRE VOYAGE",
       yourProgress: "Votre progression",
       of: "sur",
       phases: "étapes",
       completeUmrah: "Votre voyage complet étape par étape",
       completeHajj: "Votre voyage du Hajj complet",
-
-      // Phase detail
       whatToDo: "📋 Que faire",
       duas: "🤲 Duas",
       tips: "💡 Conseils",
@@ -546,10 +531,8 @@ const resources = {
       umrahCompleteMsg: "Qu'Allah accepte votre Omra et vous accorde la plus haute récompense. Ameen.",
       hajjComplete: "Hajj terminé!",
       hajjCompleteMsg: "Qu'Allah accepte votre Hajj et en fasse un Hajj Mabrour. Ameen.",
-
-      // Booking
       bookHotel: "Réserver un hôtel",
-      dates: "📅 Dates",
+      dates: "Dates",
       checkIn: "Date d'arrivée",
       checkOut: "Date de départ",
       selectCheckIn: "Sélectionner la date d'arrivée",
@@ -571,8 +554,6 @@ const resources = {
       specialRequestsPlaceholder: "ex. Étage élevé, oreillers supplémentaires...",
       confirmBooking: "Confirmer la réservation 🕋",
       sendingBooking: "Envoi de la réservation...",
-
-      // Profile
       profile: "Profil",
       edit: "Modifier",
       save: "Enregistrer",
@@ -591,14 +572,10 @@ const resources = {
       deleteAccount: "Supprimer le compte",
       memberSince: "Membre depuis",
       notSet: "Non défini",
-
-      // Favorites
       favorites: "Favoris",
       loadingFavorites: "Chargement des favoris...",
       noFavorites: "Pas encore de favoris",
       noFavoritesSub: "Appuyez sur le cœur d'un hôtel ou restaurant pour le sauvegarder",
-
-      // Settings
       settings: "Paramètres",
       preferences: "Préférences",
       language: "Langue",
@@ -618,8 +595,6 @@ const resources = {
       version: "UmrahConnect v1.0",
       madeInEgypt: "Fait avec ❤️ en Égypte",
       soon: "Bientôt",
-
-      // About
       aboutUs: "À propos",
       ourMission: "Notre mission",
       whatWeOffer: "Ce que nous offrons",
@@ -627,8 +602,6 @@ const resources = {
       socialComingSoon: "🚀 Réseaux sociaux bientôt disponibles!",
       basedInEgypt: "Basé en Égypte",
       tagline: "Votre guide complet pour la Omra et le Hajj",
-
-      // Contact
       contactUs: "Contactez-nous",
       getInTouch: "Prenez contact",
       getInTouchSub: "Nous sommes là pour vous aider dans votre voyage",
@@ -639,11 +612,9 @@ const resources = {
       phoneResponse: "Téléphone — Disponible de 9h à 21h heure égyptienne",
       basedIn: "Basé à",
       egyptServing: "Égypte 🇪🇬 — Au service des pèlerins du monde entier",
-
-      // Auth
       welcomeBackAuth: "Bon retour",
       createAccount: "Créer un compte",
-      emailLabel: "Email",
+      emailLabel: "E-mail",
       enterEmail: "Entrez votre email",
       passwordLabel: "Mot de passe",
       enterPassword: "Entrez votre mot de passe",
@@ -654,12 +625,8 @@ const resources = {
       haveAccount: "Vous avez déjà un compte? Se connecter",
       noAccount: "Pas de compte? S'inscrire",
       iAm: "Je suis",
-
-      // Drawer
       drawerTagline: "Votre compagnon Omra",
       logout: "Se déconnecter",
-
-      // Privacy & Terms
       privacyPolicyTitle: "Politique de confidentialité",
       termsOfServiceTitle: "Conditions d'utilisation",
       lastUpdated: "Dernière mise à jour: Mai 2026",
@@ -669,13 +636,10 @@ const resources = {
 
   ur: {
     translation: {
-      // Navigation
       home: "ہوم",
       hotels: "ہوٹل",
       restaurants: "ریستوران",
       guide: "رہنما",
-
-      // Home screen
       greeting: "السلام علیکم 👋",
       appName: "UmrahConnect",
       welcomeBack: "خوش آمدید",
@@ -689,8 +653,6 @@ const resources = {
       restaurantsTitle: "ریستوران",
       restaurantsSub: "حرم کے قریب",
       verseOfDay: "✨ آج کی آیت",
-
-      // Hotels
       findPerfectStay: "اپنا بہترین قیام تلاش کریں",
       searchHotels: "ہوٹل تلاش کریں...",
       all: "سب",
@@ -710,16 +672,12 @@ const resources = {
       budgetFriendly: "💰 کم بجٹ",
       familyRooms: "🛏️ فیملی کمرے",
       madinahPicks: "🌙 مدینہ کے بہترین ہوٹل",
-
-      // Hotel detail
       about: "تعارف",
       amenities: "سہولیات",
       location: "مقام",
       getDirections: "راستہ دیکھیں",
       nightPrice: "/ رات",
       starRating: "ستارہ",
-
-      // Restaurants
       discoverFood: "قریبی کھانا دریافت کریں",
       searchRestaurants: "ریستوران تلاش کریں...",
       reserve: "بک کریں",
@@ -733,8 +691,6 @@ const resources = {
       international: "🌍 بین الاقوامی",
       cafesAndDesserts: "☕ کیفے اور مٹھائیاں",
       fastFood: "🥡 فاسٹ فوڈ",
-
-      // Guide
       chooseJourney: "اپنا سفر منتخب کریں",
       umrahGuideTitle: "عمرہ گائیڈ",
       umrahGuidePhaseSub: "٧ مراحل · مکمل مرحلہ وار گائیڈ",
@@ -746,16 +702,12 @@ const resources = {
       quranReader: "قرآن ریڈر",
       prayerTimes: "نماز کے اوقات",
       qiblaDirection: "قبلہ کی سمت",
-
-      // Umrah Guide screen
       yourJourney: "آپ کا سفر",
       yourProgress: "آپ کی پیشرفت",
       of: "میں سے",
       phases: "مراحل",
       completeUmrah: "آپ کا مکمل مرحلہ وار سفر",
       completeHajj: "آپ کا مکمل حج سفر",
-
-      // Phase detail
       whatToDo: "📋 کیا کریں",
       duas: "🤲 دعائیں",
       tips: "💡 نکات",
@@ -766,8 +718,6 @@ const resources = {
       umrahCompleteMsg: "اللہ آپ کا عمرہ قبول فرمائے۔ آمین۔",
       hajjComplete: "حج مکمل!",
       hajjCompleteMsg: "اللہ آپ کا حج مقبول فرمائے۔ آمین۔",
-
-      // Booking
       bookHotel: "ہوٹل بک کریں",
       dates: "📅 تاریخیں",
       checkIn: "آمد کی تاریخ",
@@ -791,8 +741,6 @@ const resources = {
       specialRequestsPlaceholder: "مثلاً اونچی منزل، اضافی تکیے...",
       confirmBooking: "بکنگ کی تصدیق کریں 🕋",
       sendingBooking: "بکنگ بھیجی جا رہی ہے...",
-
-      // Profile
       profile: "پروفائل",
       edit: "ترمیم",
       save: "محفوظ کریں",
@@ -811,14 +759,10 @@ const resources = {
       deleteAccount: "اکاؤنٹ حذف کریں",
       memberSince: "رکن از",
       notSet: "غیر مقرر",
-
-      // Favorites
       favorites: "پسندیدہ",
       loadingFavorites: "پسندیدہ لوڈ ہو رہے ہیں...",
       noFavorites: "ابھی کوئی پسندیدہ نہیں",
       noFavoritesSub: "کسی بھی ہوٹل یا ریستوران پر دل دبائیں",
-
-      // Settings
       settings: "ترتیبات",
       preferences: "ترجیحات",
       language: "زبان",
@@ -838,8 +782,6 @@ const resources = {
       version: "UmrahConnect v1.0",
       madeInEgypt: "❤️ مصر میں بنایا گیا",
       soon: "جلد",
-
-      // About
       aboutUs: "ہمارے بارے میں",
       ourMission: "ہمارا مشن",
       whatWeOffer: "ہم کیا پیش کرتے ہیں",
@@ -847,8 +789,6 @@ const resources = {
       socialComingSoon: "🚀 سوشل میڈیا جلد آ رہا ہے!",
       basedInEgypt: "مصر میں قائم",
       tagline: "عمرہ اور حج کا آپ کا مکمل ساتھی",
-
-      // Contact
       contactUs: "ہم سے رابطہ کریں",
       getInTouch: "رابطہ کریں",
       getInTouchSub: "ہم آپ کے عمرہ سفر میں مدد کے لیے حاضر ہیں",
@@ -859,8 +799,6 @@ const resources = {
       phoneResponse: "فون — صبح 9 سے رات 9 بجے تک مصر کے وقت کے مطابق",
       basedIn: "ہمارا مقام",
       egyptServing: "مصر 🇪🇬 — دنیا بھر کے حاجیوں کی خدمت میں",
-
-      // Auth
       welcomeBackAuth: "خوش آمدید",
       createAccount: "اکاؤنٹ بنائیں",
       emailLabel: "ای میل",
@@ -874,12 +812,8 @@ const resources = {
       haveAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
       noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
       iAm: "میں ہوں",
-
-      // Drawer
       drawerTagline: "عمرہ کا آپ کا ساتھی",
       logout: "لاگ آؤٹ",
-
-      // Privacy & Terms
       privacyPolicyTitle: "رازداری کی پالیسی",
       termsOfServiceTitle: "سروس کی شرائط",
       lastUpdated: "آخری تازہ کاری: مئی 2026",
@@ -888,13 +822,10 @@ const resources = {
 
   tr: {
     translation: {
-      // Navigation
       home: "Ana Sayfa",
       hotels: "Oteller",
       restaurants: "Restoranlar",
       guide: "Rehber",
-
-      // Home screen
       greeting: "Selamün Aleyküm 👋",
       appName: "UmrahConnect",
       welcomeBack: "Tekrar hoş geldiniz",
@@ -908,8 +839,6 @@ const resources = {
       restaurantsTitle: "Restoranlar",
       restaurantsSub: "Harem yakınında",
       verseOfDay: "✨ Günün ayeti",
-
-      // Hotels
       findPerfectStay: "Mükemmel konaklamanızı bulun",
       searchHotels: "Otel ara...",
       all: "Tümü",
@@ -929,16 +858,12 @@ const resources = {
       budgetFriendly: "💰 Bütçe Dostu",
       familyRooms: "🛏️ Aile Odaları",
       madinahPicks: "🌙 Medine En İyi Oteller",
-
-      // Hotel detail
       about: "Hakkında",
       amenities: "Olanaklar",
       location: "Konum",
       getDirections: "Yol Tarifi Al",
       nightPrice: "/ gece",
       starRating: "yıldız",
-
-      // Restaurants
       discoverFood: "Yakınınızdaki yemekleri keşfedin",
       searchRestaurants: "Restoran ara...",
       reserve: "Rezervasyon",
@@ -951,9 +876,7 @@ const resources = {
       arabicGrills: "🍖 Arap Izgara",
       international: "🌍 Uluslararası",
       cafesAndDesserts: "☕ Kafeler ve Tatlılar",
-      fastFood: "🥡 Fast Food",
-
-      // Guide
+      fastFood: "<g id=\"1\"></g>fast food",
       chooseJourney: "Haccınızı seçin",
       umrahGuideTitle: "Umre Rehberi",
       umrahGuidePhaseSub: "7 aşama · Eksiksiz adım adım rehber",
@@ -965,16 +888,12 @@ const resources = {
       quranReader: "Kuran Okuyucu",
       prayerTimes: "Namaz Vakitleri",
       qiblaDirection: "Kıble Yönü",
-
-      // Umrah Guide screen
       yourJourney: "YOLCULUĞUNUZ",
       yourProgress: "İlerlemeniz",
       of: "/",
       phases: "aşama",
       completeUmrah: "Adım adım eksiksiz yolculuğunuz",
       completeHajj: "Eksiksiz Hac yolculuğunuz",
-
-      // Phase detail
       whatToDo: "📋 Ne yapmalı",
       duas: "🤲 Dualar",
       tips: "💡 İpuçları",
@@ -985,8 +904,6 @@ const resources = {
       umrahCompleteMsg: "Allah umrenizi kabul etsin ve en yüce ödülü versin. Amin.",
       hajjComplete: "Hac Tamamlandı!",
       hajjCompleteMsg: "Allah haccınızı kabul etsin ve Hac Mebrur nasip etsin. Amin.",
-
-      // Booking
       bookHotel: "Otel Rezervasyonu",
       dates: "📅 Tarihler",
       checkIn: "Giriş Tarihi",
@@ -1010,8 +927,6 @@ const resources = {
       specialRequestsPlaceholder: "örn. Üst kat, ekstra yastık, erken check-in...",
       confirmBooking: "Rezervasyonu Onayla 🕋",
       sendingBooking: "Rezervasyon gönderiliyor...",
-
-      // Profile
       profile: "Profil",
       edit: "Düzenle",
       save: "Kaydet",
@@ -1030,14 +945,10 @@ const resources = {
       deleteAccount: "Hesabı Sil",
       memberSince: "Üyelik tarihi",
       notSet: "Belirtilmemiş",
-
-      // Favorites
       favorites: "Favoriler",
       loadingFavorites: "Favoriler yükleniyor...",
       noFavorites: "Henüz favori yok",
       noFavoritesSub: "Kaydetmek için otel veya restoranda kalbe dokunun",
-
-      // Settings
       settings: "Ayarlar",
       preferences: "Tercihler",
       language: "Dil",
@@ -1057,8 +968,6 @@ const resources = {
       version: "UmrahConnect v1.0",
       madeInEgypt: "Mısır'da ❤️ ile yapıldı",
       soon: "Yakında",
-
-      // About
       aboutUs: "Hakkımızda",
       ourMission: "Misyonumuz",
       whatWeOffer: "Ne Sunuyoruz",
@@ -1066,8 +975,6 @@ const resources = {
       socialComingSoon: "🚀 Sosyal medya yakında!",
       basedInEgypt: "Mısır'da kurulu",
       tagline: "Umre ve Hac için tam rehberiniz",
-
-      // Contact
       contactUs: "Bize Ulaşın",
       getInTouch: "İletişime geçin",
       getInTouchSub: "Umre yolculuğunuzda size yardımcı olmak için buradayız",
@@ -1078,8 +985,6 @@ const resources = {
       phoneResponse: "Telefon — Mısır saatiyle 09:00-21:00 arası",
       basedIn: "Merkez",
       egyptServing: "Mısır 🇪🇬 — Dünya genelinde hacılara hizmet",
-
-      // Auth
       welcomeBackAuth: "Tekrar hoş geldiniz",
       createAccount: "Hesap Oluştur",
       emailLabel: "E-posta",
@@ -1093,12 +998,8 @@ const resources = {
       haveAccount: "Hesabınız var mı? Giriş yapın",
       noAccount: "Hesabınız yok mu? Kayıt olun",
       iAm: "Ben",
-
-      // Drawer
       drawerTagline: "Umre yol arkadaşınız",
       logout: "Çıkış Yap",
-
-      // Privacy & Terms
       privacyPolicyTitle: "Gizlilik Politikası",
       termsOfServiceTitle: "Kullanım Şartları",
       lastUpdated: "Son güncelleme: Mayıs 2026",

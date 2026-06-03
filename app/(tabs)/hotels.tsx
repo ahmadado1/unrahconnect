@@ -121,7 +121,18 @@ export default function HotelsScreen() {
               <Text style={[cardStyles.price, { color: theme.text }]}>${hotel.price} {t("perNight")}</Text>
               <Text style={cardStyles.rating}>★ {hotel.rating}</Text>
             </View>
-            <TouchableOpacity style={[cardStyles.btn, hotel.type === "external" && cardStyles.btnExternal]}>
+            <TouchableOpacity style={[cardStyles.btn, hotel.type === "external" && cardStyles.btnExternal]}
+            onPress={(e) => {
+              e.stopPropagation()
+              router.push({
+                pathname: "/booking",
+                params: {
+                  hotelName: hotel.name,
+                  hotelCity: hotel.city,
+                  hotelPrice: String(hotel.price)
+                }
+              })
+            }}>
               <Text style={[cardStyles.btnText, hotel.type === "external" && cardStyles.btnTextExternal]}>
                 {hotel.type === "ours" ? t("bookNow") : t("viewExternal")}
               </Text>
@@ -167,9 +178,7 @@ export default function HotelsScreen() {
               <Text style={styles.title}>{t("hotels")}</Text>
               <Text style={styles.subtitle}>{t("findPerfectStay")}</Text>
             </View>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="options-outline" size={22} color="#fff" />
-            </TouchableOpacity>
+            
           </View>
 
           {/* Search bar */}

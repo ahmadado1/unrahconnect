@@ -1,15 +1,34 @@
 import { useTheme } from "@/context/themeContext";
+import i18n from "@/i18n";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
+
+// ─── GOOGLE SIGN IN ───────────────────────────────────────────────────────────
+// Uses native library in real builds, expo-auth-session in Expo Go
+// This prevents the crash when running in Expo Go
+
+let GoogleSignin: any = null
+let statusCodes: any = null
+
+// Only import native Google Sign In in real builds — not Expo Go
+if (!__DEV__ || Platform.OS === "android") {
+  try {
+    const googleSignIn = require("@react-native-google-signin/google-signin")
+    GoogleSignin = googleSignIn.GoogleSignin
+    statusCodes = googleSignIn.statusCodes
+  } catch (e) {
+    // Not available — will fall back to expo-auth-session
+  }
+}
 
 export default function LoginScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { theme, isDark } = useTheme()
+  const { theme } = useTheme()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -18,15 +37,44 @@ export default function LoginScreen() {
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
   const { t } = useTranslation()
+  const [selectedLang, setSelectedLang] = useState("en")
+
+  // Configure Google Sign In on mount
+  useEffect(() => {
+    if (GoogleSignin) {
+      GoogleSignin.configure({
+        webClientId: "960037449593-q9he07c18iunb1id0hfrmiab2tou45eq.apps.googleusercontent.com",
+        iosClientId: "960037449593-nsmd655ofr73ln844jap3171d0s92o17.apps.googleusercontent.com",
+      })
+    }
+  }, [])
+
+  // ─── RESET PASSWORD ────────────────────────────────────────────────────────
 
   const handleResetPassword = async () => {
-    if (!email) { setError("Please enter your email first"); return }
+    setError("")
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) { setError("Please enter your email first"); return }
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setError("Please enter a valid email address.")
+      return
+    }
     setLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    if (error) setError(error.message)
-    else setError("✅ Password reset email sent! Check your inbox.")
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail)
+    if (error) {
+      if (error.message.includes("validate") || error.message.includes("invalid")) {
+        setError("Please enter a valid email address.")
+      } else {
+        setError(error.message)
+      }
+    } else {
+      setError("")
+      router.push({ pathname: "/auth/reset-password", params: { email: cleanEmail } })
+    }
     setLoading(false)
   }
+
+  // ─── EMAIL AUTH ────────────────────────────────────────────────────────────
 
   const handleAuth = async () => {
     if (!email || !password) { setError("Please fill in all fields"); return }
@@ -34,35 +82,96 @@ export default function LoginScreen() {
     if (password.length < 6) { setError("Password must be at least 6 characters"); return }
     setLoading(true)
     setError("")
+
     if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName, gender } }
+        options: { data: { full_name: fullName, gender, language: selectedLang } }
       })
-      if (error) setError(error.message)
-      else router.replace("/(tabs)")
+      if (signUpError) {
+        if (signUpError.message.includes("already registered") || signUpError.message.includes("already exists")) {
+          setError("This email is already registered. Please login instead.")
+        } else {
+          setError("Something went wrong. Please try again.")
+        }
+      } else {
+        router.replace("/(tabs)")
+      }
+
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
-      else router.replace("/(tabs)")
+      if (error) {
+        if (error.message.includes("Invalid login")) {
+          setError("Wrong email or password. Please try again.")
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Please confirm your email before logging in.")
+        } else {
+          setError(error.message)
+        }
+      } else {
+        router.replace("/(tabs)")
+      }
     }
+
     setLoading(false)
   }
+
+  // ─── GOOGLE SIGN IN ────────────────────────────────────────────────────────
+
+  const handleGoogleSignIn = async () => {
+    // Native Google Sign In — works in real APK/IPA builds
+    if (GoogleSignin) {
+      try {
+        await GoogleSignin.hasPlayServices()
+        const userInfo = await GoogleSignin.signIn()
+        const idToken = userInfo.data?.idToken ?? (userInfo as any).idToken
+
+        if (idToken) {
+          console.log("Got idToken, exchanging with Supabase...")
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: idToken,
+          })
+          console.log("Supabase error:", error)
+          if (error) setError(error.message)
+          else router.replace("/(tabs)")
+        }
+      } catch (err: any) {
+        console.log("Google error full:", JSON.stringify(err))
+        console.log("Google error code:", err.code)
+        if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
+          // User cancelled — do nothing
+        } else {
+          setError("Google sign in failed. Please try again.")
+        }
+      }
+    } else {
+      // Fallback message in Expo Go
+      setError("Google Sign In only works in the installed app. Please use email/password.")
+    }
+  }
+
+  // ─── RENDER ────────────────────────────────────────────────────────────────
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={[styles.screen, { backgroundColor: theme.background }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+        <ScrollView
+          style={[styles.container, { paddingTop: insets.top + 20 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.logo}>🌙</Text>
             <Text style={[styles.title, { color: theme.text }]}>UmrahConnect</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            {isSignUp ? t("createAccount") : t("welcomeBackAuth")}
+              {isSignUp ? t("createAccount") : t("welcomeBackAuth")}
             </Text>
           </View>
 
@@ -105,6 +214,43 @@ export default function LoginScreen() {
               </View>
             )}
 
+            {/* Language */}
+            {isSignUp && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.text }]}>Language</Text>
+                <View style={styles.langRow}>
+                  {[
+                    { code: "en", label: "🇬🇧 English" },
+                    { code: "ar", label: "🇸🇦 العربية" },
+                    { code: "fr", label: "🇫🇷 Français" },
+                    { code: "ur", label: "🇵🇰 اردو" },
+                    { code: "tr", label: "🇹🇷 Türkçe" },
+                  ].map(lang => (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[
+                        styles.langBtn,
+                        { borderColor: theme.border, backgroundColor: theme.card },
+                        selectedLang === lang.code && styles.langBtnActive
+                      ]}
+                      onPress={() => {
+                        setSelectedLang(lang.code)
+                        i18n.changeLanguage(lang.code)
+                      }}
+                    >
+                      <Text style={[
+                        styles.langBtnText,
+                        { color: theme.textSecondary },
+                        selectedLang === lang.code && styles.langBtnTextActive
+                      ]}>
+                        {lang.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {/* Email */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.text }]}>{t("emailLabel")}</Text>
@@ -142,7 +288,7 @@ export default function LoginScreen() {
             {/* Error */}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* Button */}
+            {/* Main button */}
             <TouchableOpacity
               style={[styles.btn, loading && styles.btnDisabled]}
               onPress={handleAuth}
@@ -153,19 +299,39 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Toggle */}
-            <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              <Text style={[styles.dividerText, { color: theme.textSecondary }]}>or</Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+            </View>
+
+            {/* Google Sign In */}
+            <TouchableOpacity
+              style={[styles.googleBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={handleGoogleSignIn}
+            >
+              <Text style={styles.googleIcon}>G</Text>
+              <Text style={[styles.googleBtnText, { color: theme.text }]}>
+                Continue with Google
+              </Text>
+            </TouchableOpacity>
+
+            {/* Toggle sign up / login */}
+            <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError("") }}>
               <Text style={styles.toggle}>
                 {isSignUp ? t("haveAccount") : t("noAccount")}
               </Text>
             </TouchableOpacity>
 
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   )
 }
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
@@ -189,5 +355,16 @@ const styles = StyleSheet.create({
   btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 16 },
   forgotText: { color: "#C9A84C", fontSize: 13 },
-  toggle: { color: "#C9A84C", fontSize: 14, textAlign: "center", marginTop: 8 },
+  toggle: { color: "#C9A84C", fontSize: 14, textAlign: "center", marginTop: 8, marginBottom: 40 },
+  divider: { flexDirection: "row", alignItems: "center", marginVertical: 20, gap: 12 },
+  dividerLine: { flex: 1, height: 0.5 },
+  dividerText: { fontSize: 13 },
+  googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, borderRadius: 25, padding: 14, borderWidth: 0.5, marginBottom: 16 },
+  googleIcon: { fontSize: 16, fontWeight: "bold", color: "#4285F4" },
+  googleBtnText: { fontSize: 15, fontWeight: "500" },
+  langRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  langBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  langBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
+  langBtnText: { fontSize: 12 },
+  langBtnTextActive: { color: "#fff" },
 })
