@@ -1,4 +1,7 @@
 import { useTheme } from "@/context/themeContext";
+import i18n from "@/i18n";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -8,46 +11,34 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import DrawerMenu from "../component/DrawerMenu";
 
-// This component displays one booking as a card
-// It receives a single booking object as a prop
-function BookingCard({ booking, theme }: { booking: any, theme: any }) {
-  
-  // Today's date for status comparison
-  const today = new Date().toISOString().split("T")[0]
 
-  // Format date helper
+
+
+// ─── BOOKING CARD ────────────────────────────────────────────────────────────
+
+function BookingCard({ booking, theme }: { booking: any; theme: any }) {
+  const today = new Date().toISOString().split("T")[0]
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-
-  // Get status label and color
   const getStatus = () => {
     if (booking.check_in > today) return { label: "Upcoming", color: "#2D6A4F" }
     if (booking.check_out >= today) return { label: "Active", color: "#C9A84C" }
     return { label: "Past", color: "#888" }
   }
-
   const status = getStatus()
 
   return (
-    // Card container — uses theme colors for dark/light mode
     <View style={[bookingStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      
-      {/* Top row — hotel name + status badge */}
       <View style={bookingStyles.cardTop}>
         <View style={{ flex: 1 }}>
           <Text style={[bookingStyles.hotelName, { color: theme.text }]}>{booking.hotel_name}</Text>
           <Text style={[bookingStyles.city, { color: theme.textSecondary }]}>{booking.hotel_city}</Text>
         </View>
-        {/* Colored badge showing Upcoming / Active / Past */}
         <View style={[bookingStyles.statusBadge, { backgroundColor: status.color + "22" }]}>
           <Text style={[bookingStyles.statusText, { color: status.color }]}>{status.label}</Text>
         </View>
       </View>
-
-      {/* Thin divider line */}
       <View style={[bookingStyles.divider, { backgroundColor: theme.border }]} />
-
-      {/* 3 columns — check in, check out, total price */}
       <View style={bookingStyles.details}>
         <View style={bookingStyles.detailItem}>
           <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Check in</Text>
@@ -62,27 +53,78 @@ function BookingCard({ booking, theme }: { booking: any, theme: any }) {
           <Text style={[bookingStyles.detailValue, { color: "#C9A84C" }]}>${booking.total_price}</Text>
         </View>
       </View>
-
-      {/* Bottom — nights and guests summary */}
       <Text style={[bookingStyles.nights, { color: theme.textSecondary }]}>
         {booking.nights} {booking.nights === 1 ? "night" : "nights"} · {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
       </Text>
-
     </View>
   )
 }
 
+// ─── GLANCE CARD ─────────────────────────────────────────────────────────────
+
+function GlanceCard({ icon, label, value, sub }: { icon: string; label: string; value: string; sub: string }) {
+  return (
+    <View style={glanceStyles.card}>
+      <View style={glanceStyles.iconBox}>
+        <Ionicons name={icon as any} size={18} color="#C9A84C" />
+      </View>
+      <Text style={glanceStyles.label}>{label}</Text>
+      <Text style={glanceStyles.value}>{value}</Text>
+      <Text style={glanceStyles.sub}>{sub}</Text>
+    </View>
+  )
+}
+
+// ─── JOURNEY CARD ────────────────────────────────────────────────────────────
+
+function JourneyCard({ emoji, title, sub, onPress }: { emoji: string; title: string; sub: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={journeyStyles.card} onPress={onPress}>
+      <Text style={journeyStyles.emoji}>{emoji}</Text>
+      <Text style={journeyStyles.title}>{title}</Text>
+      <Text style={journeyStyles.sub}>{sub}</Text>
+    </TouchableOpacity>
+  )
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+const PRAYER_NAMES = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+
+const timeToMinutes = (time: string) => {
+  const [h, m] = time.split(":").map(Number)
+  return h * 60 + m
+}
+
+const getWeatherCondition = (code: number) => {
+  if (code === 0) return "Sunny"
+  if (code <= 3) return "Partly cloudy"
+  if (code <= 48) return "Foggy"
+  if (code <= 67) return "Rainy"
+  if (code <= 77) return "Snowy"
+  if (code <= 82) return "Showers"
+  return "Stormy"
+}
+
+// ─── HOME SCREEN ─────────────────────────────────────────────────────────────
+
 export default function HomeScreen() {
-  const router = useRouter();
-  const { theme, isDark } = useTheme()
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [ayah, setAyah] = useState("Loading verse...");
-  const [ayahRef, setAyahRef] = useState("");
+  const router = useRouter()
+  const { theme } = useTheme()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [ayah, setAyah] = useState("Loading verse...")
+  const [ayahRef, setAyahRef] = useState("")
   const [userName, setUserName] = useState("")
+  const [bookings, setBookings] = useState<any[]>([])
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
 
-  // Fetches logged in user's first name
+  // Location-based data
+  const [hijriDate, setHijriDate] = useState({ day: "--", month: "---", year: "----" })
+  const [weather, setWeather] = useState({ temp: "--°C", condition: "Loading" })
+  const [nextPrayer, setNextPrayer] = useState({ name: "---", time: "--:--" })
+
+  // Fetch user name
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -91,10 +133,20 @@ export default function HomeScreen() {
     getUser()
   }, [])
 
-  // Fetches random Quran verse
+  // Fetch verse of the day
   useEffect(() => {
+    const getVerseEdition = () => {
+      switch(i18n.language) {
+        case "fr": return "fr.hamidullah"
+        case "ur": return "ur.jalandhry"
+        case "tr": return "tr.diyanet"
+        case "ar": return "ar.muyassar"
+        default: return "en.asad"
+      }
+    }
+    
     const randomVerse = Math.floor(Math.random() * 6236) + 1
-    fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/en.asad`)
+    fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
       .then(res => res.json())
       .then(data => {
         if (data.code === 200) {
@@ -108,70 +160,95 @@ export default function HomeScreen() {
       })
   }, [])
 
-  // State to store the bookings we fetch from Supabase
-    const [bookings, setBookings] = useState<any[]>([])
+  // Fetch location-based data: prayer times, hijri date, weather
+  useEffect(() => {
+    const fetchLocationData = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        let lat = 21.3891
+        let lng = 39.8579
 
-    useEffect(() => {
-      // This function runs once when the home screen loads
-      const fetchBookings = async () => {
-        // Get the currently logged in user
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        // If no user is logged in, stop here
-        if (!user) return
+        if (status === "granted") {
+          const location = await Location.getCurrentPositionAsync({})
+          lat = location.coords.latitude
+          lng = location.coords.longitude
+        }
 
-        // Query the bookings table — only get rows where user_id matches
-        // Order by check_in date so upcoming ones appear first
-        const { data } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("check_in", { ascending: true })
+        // Prayer times + Hijri date from aladhan
+        const today = new Date()
+        const pRes = await fetch(
+          `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
+        )
+        const pData = await pRes.json()
 
-        // If we got data back, save it to state so the screen can display it
-        if (data) setBookings(data)
+        if (pData.code === 200) {
+          // Hijri date
+          const h = pData.data.date.hijri
+          setHijriDate({ day: h.day, month: h.month.en, year: h.year })
+
+          // Next prayer
+          const timings = pData.data.timings
+          const nowMinutes = today.getHours() * 60 + today.getMinutes()
+          let found = false
+          for (const name of PRAYER_NAMES) {
+            const prayerMin = timeToMinutes(timings[name])
+            if (prayerMin > nowMinutes) {
+              setNextPrayer({ name, time: timings[name] })
+              found = true
+              break
+            }
+          }
+          if (!found) setNextPrayer({ name: "Fajr", time: timings.Fajr })
+        }
+
+        // Weather from Open-Meteo (no API key needed)
+        const wRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode`
+        )
+        const wData = await wRes.json()
+        const temp = Math.round(wData.current.temperature_2m)
+        const condition = getWeatherCondition(wData.current.weathercode)
+        setWeather({ temp: `${temp}°C`, condition })
+
+      } catch (e) {
+        console.log("Location data error:", e)
       }
+    }
 
-      fetchBookings()
-    }, []) // Empty array means "only run this once on mount"
+    fetchLocationData()
+  }, [])
 
-          // Today's date as a string like "2026-05-31"
-      // We use this to compare against check_in dates
-      const today = new Date().toISOString().split("T")[0]
+  // Fetch bookings
+  useEffect(() => {
+    const fetchBookings = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("check_in", { ascending: true })
+      if (data) setBookings(data)
+    }
+    fetchBookings()
+  }, [])
 
-      // Upcoming = check_in date is today or in the future
-      const upcoming = bookings.filter(b => b.check_in >= today)
+  const today = new Date().toISOString().split("T")[0]
+  const upcoming = bookings.filter(b => b.check_in >= today)
+  const past = bookings.filter(b => b.check_in < today)
 
-      // Past = check_in date was before today
-      const past = bookings.filter(b => b.check_in < today)
+  const hour = new Date().getHours()
+  const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
-      // Converts "2026-06-15" → "Jun 15, 2026"
-      const formatDate = (d: string) =>
-        new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-
-        // Returns a label and color based on when the booking is
-      const getStatus = (b: any) => {
-        if (b.check_in > today) return { label: "Upcoming", color: "#2D6A4F" } // green
-        if (b.check_out >= today) return { label: "Active", color: "#C9A84C" } // gold
-        return { label: "Past", color: "#888" } // grey
-        
-        
-}
-    
-      
   return (
-    // Main screen — background changes with theme
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      {/* Dynamic island area — always navy */}
+
       
 
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
-
-        {/* Navy header — always navy regardless of theme */}
+        {/* ── HEADER ── */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
-            {/* Logo and greeting */}
             <View style={styles.headerLeft}>
               <View style={styles.logoCircle}>
                 <Text style={styles.logoEmoji}>🌙</Text>
@@ -181,174 +258,198 @@ export default function HomeScreen() {
                 <Text style={styles.appName}>UmrahConnect</Text>
               </View>
             </View>
-            {/* Search and hamburger */}
-            <View style={styles.iconRow}>
-              
-              <TouchableOpacity style={styles.iconBtn} onPress={() => setDrawerOpen(true)}>
-                <View style={styles.hamburger}>
-                  <View style={styles.bar} />
-                  <View style={styles.bar} />
-                  <View style={styles.bar} />
-                </View>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
+              <View style={styles.bar} />
+              <View style={styles.bar} />
+              <View style={styles.bar} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Hero banner — always blue */}
+        <ScrollView showsVerticalScrollIndicator={false}  bounces={false}>
+
+        {/* ── HERO BANNER ── */}
         <View style={styles.heroBanner}>
-        <Text style={styles.heroWelcome}>{t("welcomeBack")}, {userName || t("pilgrim")} 🌙</Text>
-        <Text style={styles.heroText}>{t("completeCompanion")}</Text>
-        <Text style={styles.heroSub}>{t("hotelsTitle")} · {t("restaurantsTitle")} · {t("guide")}</Text>
+          <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
+          <Text style={styles.heroTitle}>{t("completeCompanion")}</Text>
+          <Text style={styles.heroSub}>Spiritual · Practical · Peace of mind</Text>
         </View>
 
-        {/* Explore section title — changes with theme */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("exploreTitle")}</Text>
+        {/* ── TODAY AT A GLANCE ── */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Today at a Glance</Text>
+        <View style={styles.glanceGrid}>
+          <GlanceCard
+            icon="time-outline"
+            label="Next Prayer"
+            value={nextPrayer.name}
+            sub={nextPrayer.time}
+          />
+          <GlanceCard
+            icon="partly-sunny-outline"
+            label="Weather"
+            value={weather.temp}
+            sub={weather.condition}
+          />
+          <GlanceCard
+            icon="calendar-outline"
+            label="Hijri Date"
+            value={`${hijriDate.day} ${hijriDate.month}`}
+            sub={`${hijriDate.year} AH`}
+          />
+          <GlanceCard
+            icon="bookmark-outline"
+            label="Quran"
+            value="Reading"
+            sub="Al-Baqarah"
+          />
+        </View>
 
-        {/* Umrah Guide wide card */}
-        <TouchableOpacity
-          style={[styles.cardWide, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => router.push("/umrah")}
-        >
-          <Text style={styles.cardIcon}>📖</Text>
-          <View>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{t("umrahGuide")}</Text>
-          <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("umrahGuideSub")}</Text>
-          </View>
-        </TouchableOpacity>
 
-        {/* Hotels and Restaurants cards */}
-        <View style={styles.cardsRow}>
+        {/* ── MY JOURNEY ── */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>My Journey</Text>
+        <View style={styles.journeyGrid}>
+          <JourneyCard emoji="🕋" title="Umrah Guide" sub="7 phases" onPress={() => router.push("/umrah-guide")} />
+          <JourneyCard emoji="☪️" title="Hajj Guide" sub="9 phases" onPress={() => router.push("/hajj")} />
+          <JourneyCard emoji="📖" title="Quran" sub="114 surahs" onPress={() => router.push("/quran")} />
+          <JourneyCard emoji="🤲" title="Duas & Zikr" sub="Supplications"
+           onPress={() => router.push("/duas")} 
+            />
+        </View>
+
+        {/* ── VERSE OF THE DAY ── */}
+        <View style={styles.verseCard}>
+          <Text style={styles.verseLabel}>✦ {t("verseOfDay")}</Text>
+          <Text style={styles.verseText}>{ayah}</Text>
+          <Text style={styles.verseRef}>{ayahRef}</Text>
+        </View>
+
+        {/* ── QUICK ACCESS ── */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Access</Text>
+        <View style={styles.quickRow}>
           <TouchableOpacity
-            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+            style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => router.push("/hotels")}
           >
-            <Text style={styles.cardIcon}>🏨</Text>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("hotelsTitle")}</Text>
-            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("hotelsSub")}</Text>
+            <Text style={styles.quickEmoji}>🏨</Text>
+            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("hotelsTitle")}</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>Near Haram</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+            style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => router.push("/restaurants")}
           >
-            <Text style={styles.cardIcon}>🍽️</Text>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
-            <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t("restaurantsSub")}</Text>
+            <Text style={styles.quickEmoji}>🍽️</Text>
+            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>Halal food</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Verse of the day — always navy */}
-        <View style={styles.tipBox}>
-          <Text style={styles.tipLabel}>{t("verseOfDay")}</Text>
-          <Text style={styles.tipText}>{ayah}</Text>
-          <Text style={styles.tipRef}>{ayahRef}</Text>
+        
+
+        {/* ── DAILY REMINDER ── */}
+        <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={styles.reminderIcon}>
+            <Ionicons name="notifications-outline" size={20} color="#C9A84C" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.reminderTitle, { color: theme.text }]}>Remember to make plenty of dua</Text>
+            <Text style={[styles.reminderSub, { color: theme.textSecondary }]}>Every step in this journey brings you closer to Allah</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </View>
 
-          {/* Only show if user has bookings */}
+        {/* ── BOOKINGS ── */}
         {bookings.length > 0 && (
-          <View style={{ marginHorizontal: 16, marginBottom: 80 }}>
-            
-            <Text style={[styles.sectionTitle, { color: theme.text, marginHorizontal: 0, marginTop: 8 }]}>
+          <View style={styles.bookingsSection}>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginHorizontal: 0, marginTop: 0 }]}>
               🗓️ My Bookings
             </Text>
-
-            {/* Upcoming bookings group */}
             {upcoming.length > 0 && (
               <>
-                <Text style={[bookingStyles.groupLabel, { color: theme.textSecondary }]}>UPCOMING</Text>
-                {upcoming.map(b => (
-                  <BookingCard key={b.id} booking={b} theme={theme} />
-                ))}
+                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>UPCOMING</Text>
+                {upcoming.map(b => <BookingCard key={b.id} booking={b} theme={theme} />)}
               </>
             )}
-
-            {/* Past bookings group */}
             {past.length > 0 && (
               <>
-                <Text style={[bookingStyles.groupLabel, { color: theme.textSecondary }]}>PAST</Text>
-                {past.map(b => (
-                  <BookingCard key={b.id} booking={b} theme={theme} />
-                ))}
+                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>PAST</Text>
+                {past.map(b => <BookingCard key={b.id} booking={b} theme={theme} />)}
               </>
             )}
-
           </View>
         )}
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Drawer */}
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </View>
-  );
+  )
 }
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: "#1E3A5F" },
-  container: { flex: 1 },
-  // Header always navy
   header: { backgroundColor: "#1E3A5F", paddingBottom: 20 },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10 },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logoCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(201,168,76,0.2)", borderWidth: 1.5, borderColor: "#C9A84C", alignItems: "center", justifyContent: "center" },
-  logoEmoji: { fontSize: 26 },
-  greeting: { color: "#C9A84C", fontSize: 13 },
-  appName: { color: "#fff", fontSize: 24, fontWeight: "bold" },
-  iconRow: { flexDirection: "row", gap: 10 },
-  iconBtn: { width: 44, height: 44, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },
-  hamburger: { gap: 5, alignItems: "center", justifyContent: "center" },
-  bar: { width: 22, height: 2, backgroundColor: "#fff", borderRadius: 2 },
-  // Hero banner always blue
-  heroBanner: { backgroundColor: "#2C5F8A", margin: 16, borderRadius: 16, padding: 24, alignItems: "center" },
-  heroWelcome: { color: "#C9A84C", fontSize: 13, marginBottom: 6 },
-  heroText: { color: "#fff", fontSize: 20, fontWeight: "bold", textAlign: "center" },
-  heroSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 6 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", marginHorizontal: 16, marginBottom: 10 },
-  cardsRow: { flexDirection: "row", marginHorizontal: 16, gap: 12, marginBottom: 12 },
-  card: { flex: 1, borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 1 },
-  cardWide: { borderRadius: 16, padding: 16, marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 16, borderWidth: 1, marginBottom: 12 },
-  cardIcon: { fontSize: 28, marginBottom: 8 },
-  cardTitle: { fontSize: 15, fontWeight: "bold" },
-  cardSub: { fontSize: 12, textAlign: "center", marginTop: 4 },
-  // Verse box always navy
-  tipBox: { backgroundColor: "#1E3A5F", margin: 16, borderRadius: 16, padding: 20, marginBottom: 80 },
-  tipLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "bold", margin: 8 },
-  tipText: { color: "#fff", fontSize: 14, lineHeight: 22, fontStyle: "italic" },
-  tipRef: { color: "#C9A84C", fontSize: 11, marginTop: 8, textAlign: "right" },
+  logoCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(201,168,76,0.2)", borderWidth: 1.5, borderColor: "#C9A84C", alignItems: "center", justifyContent: "center" },
+  logoEmoji: { fontSize: 24 },
+  greeting: { color: "#C9A84C", fontSize: 12 },
+  appName: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+  menuBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
+  bar: { width: 20, height: 2, backgroundColor: "#fff", borderRadius: 2 },
+  heroBanner: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 18, padding: 20, alignItems: "center", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.3)" },
+  heroWelcome: { color: "#C9A84C", fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginBottom: 6 },
+  heroTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 4 },
+  heroSub: { color: "rgba(255,255,255,0.5)", fontSize: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "bold", marginHorizontal: 16, marginTop: 20, marginBottom: 12 },
+  glanceGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: 16, gap: 8 },
+  journeyGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: 16, gap: 8 },
+  quickRow: { flexDirection: "row", marginHorizontal: 16, gap: 10 },
+  quickCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 0.5, marginBottom: 20 },
+  quickEmoji: { fontSize: 28, marginBottom: 8 },
+  quickTitle: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
+  quickSub: { fontSize: 11 },
+  verseCard: { backgroundColor: "#1E3A5F", margin: 16, borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: "rgba(201,168,76,0.25)" },
+  verseLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "600", letterSpacing: 0.6, marginBottom: 10 },
+  verseText: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 22, fontStyle: "italic", marginBottom: 10 },
+  verseRef: { color: "#C9A84C", fontSize: 11, textAlign: "right" },
+  reminderCard: { marginHorizontal: 16, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 0.5 },
+  reminderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" },
+  reminderTitle: { fontSize: 13, fontWeight: "600", marginBottom: 2 },
+  reminderSub: { fontSize: 11, lineHeight: 16 },
+  bookingsSection: { marginHorizontal: 16, marginTop: 20 },
+  groupLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
 })
 
-// Styles specifically for the booking cards
+const glanceStyles = StyleSheet.create({
+  card: { width: "48%", backgroundColor: "#fff", borderRadius: 14, padding: 12, borderWidth: 0.5, borderColor: "rgba(0,0,0,0.07)", alignItems: "flex-start", gap: 4 },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  label: { fontSize: 11, color: "#999" },
+  value: { fontSize: 15, fontWeight: "700", color: "#1E3A5F" },
+  sub: { fontSize: 11, color: "#C9A84C" },
+})
+
+const journeyStyles = StyleSheet.create({
+  card: { width: "48%", backgroundColor: "#fff", borderRadius: 14, padding: 14, borderWidth: 0.5, borderColor: "rgba(0,0,0,0.07)", alignItems: "center" },
+  emoji: { fontSize: 26, marginBottom: 8 },
+  title: { fontSize: 13, fontWeight: "600", color: "#1E3A5F", marginBottom: 2, textAlign: "center" },
+  sub: { fontSize: 10, color: "#C9A84C", textAlign: "center" },
+})
+
 const bookingStyles = StyleSheet.create({
-  
-  // The card container itself
   card: { borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5 },
-  
-  // Top row with hotel name and status badge
   cardTop: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
-  
-  // Hotel name text
   hotelName: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
-  
-  // City text below hotel name
   city: { fontSize: 13 },
-  
-  // The colored pill badge (Upcoming / Active / Past)
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusText: { fontSize: 12, fontWeight: "600" },
-  
-  // Thin horizontal line
   divider: { height: 0.5, marginBottom: 12 },
-  
-  // Row of 3 detail columns
   details: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   detailItem: { alignItems: "center" },
   detailLabel: { fontSize: 11, marginBottom: 2 },
   detailValue: { fontSize: 13, fontWeight: "600" },
-  
-  // Nights and guests summary at bottom
   nights: { fontSize: 12, textAlign: "center", marginTop: 4 },
-  
-  // "UPCOMING" / "PAST" group label
-  groupLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
 })

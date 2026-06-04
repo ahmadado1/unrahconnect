@@ -69,6 +69,8 @@ export default function RootLayout() {
           <Stack.Screen name="quran" />
           <Stack.Screen name="quran/[surah]" />
           <Stack.Screen name="quran/bookmark" />
+          <Stack.Screen name="duas" />
+          <Stack.Screen name="islamic-calendar" />
         </Stack>
 
         {status === "onboarding" && <Redirect href="/onboarding" />}

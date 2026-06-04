@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useAudioPlayer } from "expo-audio"
 import * as Location from "expo-location"
 import { useEffect, useState } from "react"
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import Svg, { Circle, Defs, Ellipse, G, Pattern, Polygon, Rect } from "react-native-svg"
+
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -126,7 +128,21 @@ export default function PrayerWidget() {
   const [loading, setLoading] = useState(true)
   const [prayerPopup, setPrayerPopup] = useState<string | null>(null)
   const [shownPopups, setShownPopups] = useState<Set<string>>(new Set())
-  const player = useAudioPlayer({ uri: "https://www.islamcan.com/audio/adhan/azan1.mp3" })
+  const [adhanFile, setAdhanFile] = useState(require("../../assets/audio/azan1.mp3"))
+const player = useAudioPlayer(adhanFile)
+
+useEffect(() => {
+  AsyncStorage.getItem("selected_adhan").then(id => {
+    const files: Record<string, any> = {
+      "1": require("../../assets/audio/azan1.mp3"),
+      "2": require("../../assets/audio/azan2.mp3"),
+      "3": require("../../assets/audio/azan3.mp3"),
+      "4": require("../../assets/audio/azan4.mp3"),
+      "5": require("../../assets/audio/azan5.mp3"),
+    }
+    if (id && files[id]) setAdhanFile(files[id])
+  })
+}, [])
 
   useEffect(() => { fetchPrayerTimes() }, [])
 
@@ -327,13 +343,7 @@ export default function PrayerWidget() {
         )}
 
         {/* Test button — remove before launch */}
-        <TouchableOpacity
-          onPress={() => { setPrayerPopup("Asr"); playAdhan() }}
-          style={styles.testBtn}
-        >
-          <Ionicons name="musical-note-outline" size={12} color="rgba(201,168,76,0.4)" />
-          <Text style={styles.testBtnText}>Test prayer popup</Text>
-        </TouchableOpacity>
+        
 
       </View>
 
@@ -417,8 +427,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.2)" },
   dotNext: { backgroundColor: "#C9A84C" },
 
-  testBtn: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 14 },
-  testBtnText: { color: "rgba(201,168,76,0.4)", fontSize: 11 },
+
 
   popupOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "flex-end" },
   popupCard: { backgroundColor: "#1E3A5F", borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 36, paddingBottom: 52, paddingTop: 48, width: "100%", alignItems: "center", borderWidth: 1, borderColor: "rgba(201,168,76,0.3)", borderBottomWidth: 0, overflow: "hidden", minHeight: "85%" },

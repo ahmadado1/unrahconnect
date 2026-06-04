@@ -1,6 +1,7 @@
 import { useTheme } from "@/context/themeContext"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useState } from "react"
@@ -98,12 +99,18 @@ export default function QuranScreen() {
 
   const fetchSurahs = async () => {
     try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => {
-        controller.abort()
-        setError(true)
+      // Try loading from cache first
+      const cached = await AsyncStorage.getItem("quran_surahs")
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        setSurahs(parsed)
+        setFiltered(parsed)
         setLoading(false)
-      }, 8000)
+      }
+  
+      // Then fetch fresh from API
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 8000)
   
       const res = await fetch("https://api.alquran.cloud/v1/surah", {
         signal: controller.signal
@@ -114,12 +121,16 @@ export default function QuranScreen() {
       if (data.code === 200) {
         setSurahs(data.data)
         setFiltered(data.data)
-      } else {
+        // Save to cache for offline use
+        await AsyncStorage.setItem("quran_surahs", JSON.stringify(data.data))
+      } else if (!cached) {
         setError(true)
       }
     } catch (e) {
       console.log("Quran API error:", e)
-      setError(true)
+      // Only show error if no cache available
+      const cached = await AsyncStorage.getItem("quran_surahs")
+      if (!cached) setError(true)
     } finally {
       setLoading(false)
     }

@@ -58,14 +58,13 @@ export default function BookmarksScreen() {
   
       console.log("User ID:", user.id)
   
-      const { data, error } = await supabase
-        .from("quran_bookmarks")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-  
-      console.log("Bookmarks data:", JSON.stringify(data))
-      console.log("Bookmarks error:", JSON.stringify(error))
+       const { data, error } = await supabase
+      .from("quran_bookmarks")
+      .select("*")
+      .eq("user_id", "c4d2a682-95c9-4dbe-8beb-7a8e1f34d85e")  // hardcode temporarily
+      .order("created_at", { ascending: false })
+
+    console.log("data:", data, "error:", error)
   
       if (data) setBookmarks(data)
     } catch (e) {

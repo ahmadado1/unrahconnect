@@ -82,7 +82,7 @@ export default function LoginScreen() {
     if (password.length < 6) { setError("Password must be at least 6 characters"); return }
     setLoading(true)
     setError("")
-
+  
     if (isSignUp) {
       const { error: signUpError } = await supabase.auth.signUp({
         email, password,
@@ -95,9 +95,23 @@ export default function LoginScreen() {
           setError("Something went wrong. Please try again.")
         }
       } else {
+        fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id: "service_1n51wzk",
+            template_id: "template_8mcdsab",
+            user_id: "FHzLPzlS0xVz4wFoD",
+            accessToken: process.env.EXPO_PUBLIC_EMAILJS_PRIVATE_KEY,
+            template_params: {
+              email: email,
+              to_name: fullName,
+            }
+          })
+        }).catch(e => console.log("Welcome email error:", e))
         router.replace("/(tabs)")
       }
-
+  
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
@@ -112,7 +126,7 @@ export default function LoginScreen() {
         router.replace("/(tabs)")
       }
     }
-
+  
     setLoading(false)
   }
 
