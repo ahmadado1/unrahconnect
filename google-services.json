@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "655574174670",
+    "project_id": "umrahconnect-ac28e",
+    "storage_bucket": "umrahconnect-ac28e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655574174670:android:13b7a819b2bc486d8bf99f",
+        "android_client_info": {
+          "package_name": "com.umrahconnect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArWUEO9yqtvv9OSOnC6guH4RC8ffaVkLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
