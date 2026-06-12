@@ -1,12 +1,14 @@
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
+import { schedulePrayerNotifications } from "@/lib/notifications";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import DrawerMenu from "../component/DrawerMenu";
@@ -17,6 +19,7 @@ import DrawerMenu from "../component/DrawerMenu";
 // ─── BOOKING CARD ────────────────────────────────────────────────────────────
 
 function BookingCard({ booking, theme }: { booking: any; theme: any }) {
+  const { t } = useTranslation()
   const today = new Date().toISOString().split("T")[0]
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -41,15 +44,15 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
       <View style={[bookingStyles.divider, { backgroundColor: theme.border }]} />
       <View style={bookingStyles.details}>
         <View style={bookingStyles.detailItem}>
-          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Check in</Text>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>{t("checkIn")}</Text>
           <Text style={[bookingStyles.detailValue, { color: theme.text }]}>{formatDate(booking.check_in)}</Text>
         </View>
         <View style={bookingStyles.detailItem}>
-          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Check out</Text>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>{t("checkOut")}</Text>
           <Text style={[bookingStyles.detailValue, { color: theme.text }]}>{formatDate(booking.check_out)}</Text>
         </View>
         <View style={bookingStyles.detailItem}>
-          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>Total</Text>
+          <Text style={[bookingStyles.detailLabel, { color: theme.textSecondary }]}>{t("total")}</Text>
           <Text style={[bookingStyles.detailValue, { color: "#C9A84C" }]}>${booking.total_price}</Text>
         </View>
       </View>
@@ -62,14 +65,14 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
 
 // ─── GLANCE CARD ─────────────────────────────────────────────────────────────
 
-function GlanceCard({ icon, label, value, sub }: { icon: string; label: string; value: string; sub: string }) {
+function GlanceCard({ icon, label, value, sub, theme }: { icon: string; label: string; value: string; sub: string; theme: any }) {
   return (
-    <View style={glanceStyles.card}>
+    <View style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={glanceStyles.iconBox}>
         <Ionicons name={icon as any} size={18} color="#C9A84C" />
       </View>
-      <Text style={glanceStyles.label}>{label}</Text>
-      <Text style={glanceStyles.value}>{value}</Text>
+      <Text style={[glanceStyles.label, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[glanceStyles.value, { color: theme.text }]}>{value}</Text>
       <Text style={glanceStyles.sub}>{sub}</Text>
     </View>
   )
@@ -77,11 +80,11 @@ function GlanceCard({ icon, label, value, sub }: { icon: string; label: string; 
 
 // ─── JOURNEY CARD ────────────────────────────────────────────────────────────
 
-function JourneyCard({ emoji, title, sub, onPress }: { emoji: string; title: string; sub: string; onPress: () => void }) {
+function JourneyCard({ emoji, title, sub, onPress, theme }: { emoji: string; title: string; sub: string; onPress: () => void; theme: any }) {
   return (
-    <TouchableOpacity style={journeyStyles.card} onPress={onPress}>
+    <TouchableOpacity style={[journeyStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress}>
       <Text style={journeyStyles.emoji}>{emoji}</Text>
-      <Text style={journeyStyles.title}>{title}</Text>
+      <Text style={[journeyStyles.title, { color: theme.text }]}>{title}</Text>
       <Text style={journeyStyles.sub}>{sub}</Text>
     </TouchableOpacity>
   )
@@ -199,7 +202,20 @@ export default function HomeScreen() {
             }
           }
           if (!found) setNextPrayer({ name: "Fajr", time: timings.Fajr })
+
+            // Schedule prayer notifications with real times
+        const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+        if (notifEnabled !== "false") {
+          schedulePrayerNotifications({
+            fajr: timings.Fajr,
+            dhuhr: timings.Dhuhr,
+            asr: timings.Asr,
+            maghrib: timings.Maghrib,
+            isha: timings.Isha,
+          }).catch(e => console.log("Prayer notification error:", e))
         }
+        }
+      
 
         // Weather from Open-Meteo (no API key needed)
         const wRes = await fetch(
@@ -272,48 +288,24 @@ export default function HomeScreen() {
         <View style={styles.heroBanner}>
           <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
           <Text style={styles.heroTitle}>{t("completeCompanion")}</Text>
-          <Text style={styles.heroSub}>Spiritual · Practical · Peace of mind</Text>
+          <Text style={styles.heroSub}>{t("spiritualSub")}</Text>
         </View>
 
         {/* ── TODAY AT A GLANCE ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Today at a Glance</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("todayAtAGlance")}</Text>
         <View style={styles.glanceGrid}>
-          <GlanceCard
-            icon="time-outline"
-            label="Next Prayer"
-            value={nextPrayer.name}
-            sub={nextPrayer.time}
-          />
-          <GlanceCard
-            icon="partly-sunny-outline"
-            label="Weather"
-            value={weather.temp}
-            sub={weather.condition}
-          />
-          <GlanceCard
-            icon="calendar-outline"
-            label="Hijri Date"
-            value={`${hijriDate.day} ${hijriDate.month}`}
-            sub={`${hijriDate.year} AH`}
-          />
-          <GlanceCard
-            icon="bookmark-outline"
-            label="Quran"
-            value="Reading"
-            sub="Al-Baqarah"
-          />
+          <GlanceCard icon="time-outline" label={t("nextPrayer")} value={nextPrayer.name} sub={nextPrayer.time} theme={theme} />
+<GlanceCard icon="partly-sunny-outline" label={t("weather")} value={weather.temp} sub={weather.condition} theme={theme} />
+<GlanceCard icon="calendar-outline" label={t("hijriDate")} value={`${hijriDate.day} ${hijriDate.month}`} sub={`${hijriDate.year} AH`} theme={theme} />
+<GlanceCard icon="bookmark-outline" label={t("quran")} value="Reading" sub="Al-Baqarah" theme={theme} />
         </View>
 
 
         {/* ── MY JOURNEY ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>My Journey</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("myJourney")}</Text>
         <View style={styles.journeyGrid}>
-          <JourneyCard emoji="🕋" title="Umrah Guide" sub="7 phases" onPress={() => router.push("/umrah-guide")} />
-          <JourneyCard emoji="☪️" title="Hajj Guide" sub="9 phases" onPress={() => router.push("/hajj")} />
-          <JourneyCard emoji="📖" title="Quran" sub="114 surahs" onPress={() => router.push("/quran")} />
-          <JourneyCard emoji="🤲" title="Duas & Zikr" sub="Supplications"
-           onPress={() => router.push("/duas")} 
-            />
+          <JourneyCard emoji="📖" title={t("quran")} sub="114 surahs" onPress={() => router.push("/quran")} theme={theme} />
+          <JourneyCard emoji="🤲" title={t("duasZikr")} sub={t("supplications")} onPress={() => router.push("/duas")} theme={theme} />
         </View>
 
         {/* ── VERSE OF THE DAY ── */}
@@ -324,7 +316,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── QUICK ACCESS ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Access</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("quickAccess")}</Text>
         <View style={styles.quickRow}>
           <TouchableOpacity
             style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
@@ -332,7 +324,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.quickEmoji}>🏨</Text>
             <Text style={[styles.quickTitle, { color: theme.text }]}>{t("hotelsTitle")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>Near Haram</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("nearHaram")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
@@ -340,7 +332,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.quickEmoji}>🍽️</Text>
             <Text style={[styles.quickTitle, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>Halal food</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("halalFood")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -352,27 +344,60 @@ export default function HomeScreen() {
             <Ionicons name="notifications-outline" size={20} color="#C9A84C" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.reminderTitle, { color: theme.text }]}>Remember to make plenty of dua</Text>
-            <Text style={[styles.reminderSub, { color: theme.textSecondary }]}>Every step in this journey brings you closer to Allah</Text>
+            <Text style={[styles.reminderTitle, { color: theme.text }]}>{t("rememberDua")}</Text>
+            <Text style={[styles.reminderSub, { color: theme.textSecondary }]}>{t("rememberDuaSub")}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </View>
+
+        {/* ── DONATE ── */}
+        {/* ── DONATE ── */}
+          <TouchableOpacity
+            style={styles.donateCard}
+            onPress={() => Linking.openURL("https://maidabo.com")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.donateTopRow}>
+              <Image
+                source={require("../../assets/images/project.png")}
+                style={styles.donateLogo}
+                resizeMode="contain"
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.donateTitle}>{t("supportMaidabo")}</Text>
+                <Text style={styles.donateSub}>{t("maidaboSub")}</Text>
+              </View>
+            </View>
+            <View style={styles.donateDivider} />
+            <Text style={styles.donateDesc}>
+              {t("maidaboDesc")}
+            </Text>
+            <View style={styles.donateBtnRow}>
+              <TouchableOpacity
+                style={styles.donateBtn}
+                onPress={() => Linking.openURL("https://maidabo.com")}
+              >
+                <Ionicons name="heart" size={16} color="#fff" />
+                <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
         {/* ── BOOKINGS ── */}
         {bookings.length > 0 && (
           <View style={styles.bookingsSection}>
             <Text style={[styles.sectionTitle, { color: theme.text, marginHorizontal: 0, marginTop: 0 }]}>
-              🗓️ My Bookings
+              {t("myBookings")}
             </Text>
             {upcoming.length > 0 && (
               <>
-                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>UPCOMING</Text>
+                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>{t("upcoming")}</Text>
                 {upcoming.map(b => <BookingCard key={b.id} booking={b} theme={theme} />)}
               </>
             )}
             {past.length > 0 && (
               <>
-                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>PAST</Text>
+                <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>{t("past")}</Text>
                 {past.map(b => <BookingCard key={b.id} booking={b} theme={theme} />)}
               </>
             )}
@@ -422,6 +447,17 @@ const styles = StyleSheet.create({
   reminderSub: { fontSize: 11, lineHeight: 16 },
   bookingsSection: { marginHorizontal: 16, marginTop: 20 },
   groupLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
+
+  donateCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 20, padding: 20, backgroundColor: "#1E3A5F", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)" },
+  donateTopRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  donateLogo: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff" },
+  donateTitle: { color: "#C9A84C", fontSize: 16, fontWeight: "bold", marginBottom: 3 },
+  donateSub: { color: "rgba(255,255,255,0.6)", fontSize: 12, lineHeight: 17 },
+  donateDivider: { height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", marginBottom: 14 },
+  donateDesc: { color: "rgba(255,255,255,0.8)", fontSize: 13, lineHeight: 20, textAlign: "center", marginBottom: 18 },
+  donateBtnRow: { alignItems: "center" },
+  donateBtn: { backgroundColor: "#C9A84C", borderRadius: 25, paddingVertical: 12, paddingHorizontal: 36, flexDirection: "row", alignItems: "center", gap: 8 },
+  donateBtnText: { color: "#1E3A5F", fontSize: 15, fontWeight: "bold" },
 })
 
 const glanceStyles = StyleSheet.create({
@@ -452,4 +488,6 @@ const bookingStyles = StyleSheet.create({
   detailLabel: { fontSize: 11, marginBottom: 2 },
   detailValue: { fontSize: 13, fontWeight: "600" },
   nights: { fontSize: 12, textAlign: "center", marginTop: 4 },
+
+  
 })

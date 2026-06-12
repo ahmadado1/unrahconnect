@@ -1,6 +1,7 @@
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
@@ -11,29 +12,56 @@ export default function RootLayout() {
   const router = useRouter()
 
   useEffect(() => {
-    checkAuth()
+  checkAuth()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        router.replace("/auth/login")
-      }
-    })
-
-    return () => authListener.subscription.unsubscribe()
-  }, [])
-
-  const checkAuth = async () => {
-    try {
-      const seen = await AsyncStorage.getItem("onboardingSeen")
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!seen) setStatus("onboarding")
-      else if (!session) setStatus("login")
-      else setStatus("home")
-    } catch (e) {
-      setStatus("login")
+  const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      router.replace("/auth/login")
     }
+    if (event === "TOKEN_REFRESHED" && !session) {
+      router.replace("/auth/login")
+    }
+  })
+
+  const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+  const identifier = response.notification.request.identifier
+  const data = response.notification.request.content.data
+
+  if (identifier === "journey-reminder") {
+    if (data?.type === "hajj") {
+      router.push("/hajj")
+    } else {
+      router.push("/umrah-guide")
+    }
+  } else if (identifier === "daily-verse") {
+    router.push("/quran")
+  } else if (identifier.startsWith("prayer-")) {
+    router.push("/(tabs)/umrah")   // or wherever your prayer times tab is
+  } else if (identifier === "dhikr-reminder") {
+    router.push("/duas")
+  } else if (identifier.startsWith("islamic-")) {
+    router.push("/islamic-calendar")
   }
+})
+
+  return () => {
+    authListener.subscription.unsubscribe()
+    responseListener.remove()
+  }
+}, [])
+
+const checkAuth = async () => {
+  try {
+    const seen = await AsyncStorage.getItem("onboardingSeen")
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!seen) setStatus("onboarding")
+    else if (!session) setStatus("login")
+    else setStatus("home")
+  } catch (e) {
+    setStatus("login")
+  }
+}
 
   if (status === "loading") {
     return (

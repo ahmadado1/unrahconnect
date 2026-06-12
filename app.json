@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.umrahconnect.app",
-      "backgroundColor": "#1E3A5F"
+      "backgroundColor": "#1E3A5F",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,11 +23,21 @@
       },
       "package": "com.umrahconnect.app",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
-    },
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+  },
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo.jpg"
+    },
+    "notification": {
+      "icon": "./assets/images/logo.jpg",
+      "color": "#1E3A5F",
+      "sounds": ["./assets/audio/azan1.mp3"]
     },
     "plugins": [
       "expo-router",
@@ -43,10 +56,19 @@
           "backgroundColor": "#1E3A5F"
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo.jpg",
+          "color": "#1E3A5F",
+          "sounds": []
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser",
-      "expo-audio"
+      "expo-audio",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

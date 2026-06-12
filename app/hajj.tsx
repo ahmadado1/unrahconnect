@@ -1,23 +1,18 @@
 import { useTheme } from "@/context/themeContext";
+import { scheduleJourneyReminder } from '@/lib/notifications';
 import { getHajjProgress } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from 'expo-notifications';
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useState, } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const phases = [
-  { id: "1", title: "Preparation & Ihram", subtitle: "Intention · Ghusl · Ihram garments · Talbiyah", color: "#E6F1FB", textColor: "#0C447C", duration: "1 day" },
-  { id: "2", title: "Arriving in Makkah", subtitle: "Tawaf Al-Qudum · Sa'i · Settling in Makkah", color: "#E1F5EE", textColor: "#085041", duration: "1 day" },
-  { id: "3", title: "Day of Tarwiyah — Mina", subtitle: "8th Dhul Hijjah · Travel to Mina · Night in Mina", color: "#FAEEDA", textColor: "#633806", duration: "1 day" },
-  { id: "4", title: "Day of Arafah", subtitle: "9th Dhul Hijjah · The most important day of Hajj", color: "#FAECE7", textColor: "#712B13", duration: "1 day" },
-  { id: "5", title: "Muzdalifah", subtitle: "Night under the sky · Collecting pebbles · Fajr prayer", color: "#EEEDFE", textColor: "#3C3489", duration: "1 night" },
-  { id: "6", title: "Day of Eid — Jamarat", subtitle: "10th Dhul Hijjah · Stoning · Sacrifice · Halq · Tawaf Ifadah", color: "#FBEAF0", textColor: "#72243E", duration: "1 day" },
-  { id: "7", title: "Days of Tashreeq", subtitle: "11th-13th Dhul Hijjah · Staying in Mina · Stoning Jamarat", color: "#FAECE7", textColor: "#712B13", duration: "2-3 days" },
-  { id: "8", title: "Tawaf Al-Wadaa", subtitle: "Farewell Tawaf · Leaving Makkah", color: "#E1F5EE", textColor: "#085041", duration: "Few hours" },
-  { id: "9", title: "Hajj Complete", subtitle: "Congratulations · You are now a Hajji 🎉", color: "#E6F1FB", textColor: "#0C447C", duration: "Done!" },
-]
+
+
+
+
 
 export default function HajjGuideScreen() {
   const insets = useSafeAreaInsets()
@@ -26,11 +21,32 @@ export default function HajjGuideScreen() {
   const [completedPhases, setCompletedPhases] = useState<string[]>([])
   const { t } = useTranslation()
 
-  const loadProgress = async () => {
+  const phases = [
+  { id: "1", title: t("phase_hajj_1_title"), subtitle: t("phase_hajj_1_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "1 day" },
+  { id: "2", title: t("phase_hajj_2_title"), subtitle: t("phase_hajj_2_sub"), color: "#E1F5EE", textColor: "#085041", duration: "1 day" },
+  { id: "3", title: t("phase_hajj_3_title"), subtitle: t("phase_hajj_3_sub"), color: "#FAEEDA", textColor: "#633806", duration: "1 day" },
+  { id: "4", title: t("phase_hajj_4_title"), subtitle: t("phase_hajj_4_sub"), color: "#FAECE7", textColor: "#712B13", duration: "1 day" },
+  { id: "5", title: t("phase_hajj_5_title"), subtitle: t("phase_hajj_5_sub"), color: "#EEEDFE", textColor: "#3C3489", duration: "1 night" },
+  { id: "6", title: t("phase_hajj_6_title"), subtitle: t("phase_hajj_6_sub"), color: "#FBEAF0", textColor: "#72243E", duration: "1 day" },
+  { id: "7", title: t("phase_hajj_7_title"), subtitle: t("phase_hajj_7_sub"), color: "#FAECE7", textColor: "#712B13", duration: "2-3 days" },
+  { id: "8", title: t("phase_hajj_8_title"), subtitle: t("phase_hajj_8_sub"), color: "#E1F5EE", textColor: "#085041", duration: "Few hours" },
+  { id: "9", title: t("phase_hajj_9_title"), subtitle: t("phase_hajj_9_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "Done!" },
+]
+
+    const loadProgress = async () => {
     const progress = await getHajjProgress()
     setCompletedPhases(progress)
-  }
 
+    const completedCount = progress.length
+    const total = 9
+
+    if (completedCount < total) {
+      const nextPhaseTitle = phases[completedCount]?.title ?? 'your next phase'
+      await scheduleJourneyReminder(nextPhaseTitle, 'hajj')
+    } else {
+      await Notifications.cancelScheduledNotificationAsync('journey-reminder')
+    }
+  }
   useFocusEffect(useCallback(() => { loadProgress() }, []))
 
   return (

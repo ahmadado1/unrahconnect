@@ -1,5 +1,6 @@
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -102,7 +103,7 @@ export default function LoginScreen() {
             service_id: "service_1n51wzk",
             template_id: "template_8mcdsab",
             user_id: "FHzLPzlS0xVz4wFoD",
-            accessToken: process.env.EXPO_PUBLIC_EMAILJS_PRIVATE_KEY,
+            accessToken: "pkey:m5RGUO5UsvlPUpqd53l2B",
             template_params: {
               email: email,
               to_name: fullName,
@@ -165,7 +166,36 @@ export default function LoginScreen() {
     }
   }
 
-  // ─── RENDER ────────────────────────────────────────────────────────────────
+  // ─── Apple Sign In ────────────────────────────────────────────────────────────────
+  const handleAppleSignIn = async () => {
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    })
+
+    const { identityToken } = credential
+
+    if (identityToken) {
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: identityToken,
+      })
+      if (error) setError(error.message)
+      else router.replace("/(tabs)")
+    }
+  } catch (e: any) {
+    if (e.code === "ERR_REQUEST_CANCELED") {
+      // User cancelled — do nothing
+    } else {
+      setError("Apple sign in failed. Please try again.")
+    }
+  }
+}
+
+
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -330,6 +360,17 @@ export default function LoginScreen() {
                 Continue with Google
               </Text>
             </TouchableOpacity>
+
+            {/* Apple Sign In — only show on iOS */}
+              {Platform.OS === "ios" && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={25}
+                  style={{ height: 50, marginBottom: 16 }}
+                  onPress={handleAppleSignIn}
+                />
+              )}
 
             {/* Toggle sign up / login */}
             <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError("") }}>

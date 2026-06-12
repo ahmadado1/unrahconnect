@@ -182,47 +182,62 @@ useEffect(() => {
 
   // ─── FETCH ───────────────────────────────────────────────────────────────
 
-  const fetchPrayerTimes = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      let lat = 21.3891
-      let lng = 39.8579
-      let city = "Makkah"
+  const CACHE_KEY = "cached_prayer_times"
 
-      if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({})
-        lat = location.coords.latitude
-        lng = location.coords.longitude
-        const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
-        city = geocode[0]?.city || geocode[0]?.region || "Your location"
-      }
+const fetchPrayerTimes = async () => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync()
+    let lat = 21.3891
+    let lng = 39.8579
+    let city = "Makkah"
 
-      const today = new Date()
-      const res = await fetch(
-        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
-      )
-      const data = await res.json()
-
-      if (data.code === 200) {
-        const timings = data.data.timings
-        const hijriDate = data.data.date.hijri
-        setPrayerTimes({
-          Fajr: timings.Fajr,
-          Dhuhr: timings.Dhuhr,
-          Asr: timings.Asr,
-          Maghrib: timings.Maghrib,
-          Isha: timings.Isha,
-          date: `${hijriDate.day} ${hijriDate.month.en} ${hijriDate.year} AH`,
-          hijri: hijriDate.month.en,
-          city,
-        })
-      }
-    } catch (e) {
-      console.log("Prayer times error:", e)
-    } finally {
-      setLoading(false)
+    if (status === "granted") {
+      const location = await Location.getCurrentPositionAsync({})
+      lat = location.coords.latitude
+      lng = location.coords.longitude
+      const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
+      city = geocode[0]?.city || geocode[0]?.region || "Your location"
     }
+
+    const today = new Date()
+    const res = await fetch(
+      `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
+    )
+    const data = await res.json()
+
+    if (data.code === 200) {
+      const timings = data.data.timings
+      const hijriDate = data.data.date.hijri
+      const times: PrayerTimes = {
+        Fajr: timings.Fajr,
+        Dhuhr: timings.Dhuhr,
+        Asr: timings.Asr,
+        Maghrib: timings.Maghrib,
+        Isha: timings.Isha,
+        date: `${hijriDate.day} ${hijriDate.month.en} ${hijriDate.year} AH`,
+        hijri: hijriDate.month.en,
+        city,
+      }
+      setPrayerTimes(times)
+      // ✅ Save to cache
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(times))
+    }
+  } catch (e) {
+    console.log("Prayer times error — trying cache:", e)
+    // ✅ Load from cache if fetch fails
+    try {
+      const cached = await AsyncStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        setPrayerTimes({ ...parsed, city: parsed.city + " (cached)" })
+      }
+    } catch (cacheError) {
+      console.log("Cache read error:", cacheError)
+    }
+  } finally {
+    setLoading(false)
   }
+}
 
   // ─── PRAYER LOGIC ────────────────────────────────────────────────────────
 
@@ -242,12 +257,15 @@ useEffect(() => {
   const nextPrayer = getNextPrayer()
 
   const getPrayerStatus = (name: string) => {
-    if (!prayerTimes) return "upcoming"
-    const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
-    if (nextPrayer?.name === name) return "next"
-    if (prayerMin < nowMinutes) return "past"
-    return "upcoming"
-  }
+  if (!prayerTimes) return "upcoming"
+  const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+  
+  // Stay as "next" for 5 minutes after prayer time
+  if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) return "next"
+  if (nextPrayer?.name === name) return "next"
+  if (prayerMin < nowMinutes) return "past"
+  return "upcoming"
+}
 
   // ─── RENDER ──────────────────────────────────────────────────────────────
 
@@ -365,7 +383,7 @@ useEffect(() => {
               player.pause()
               setPrayerPopup(null)
             }}>
-              <Text style={styles.popupBtnText}>I'm going to pray</Text>
+              <Text style={styles.popupBtnText}>Pray Now</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.popupBtnSecondary} onPress={() => {
@@ -400,17 +418,24 @@ const styles = StyleSheet.create({
 
   loadingText: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", paddingVertical: 20 },
 
-  nextPrayerBox: { backgroundColor: "rgba(10,20,40,0.5)", borderWidth: 1, borderColor: "rgba(201,168,76,0.35)", borderRadius: 16, padding: 16, marginBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  nextPrayerBox: { 
+    backgroundColor: "rgba(0,0,0,0.7)", 
+    borderWidth: 1, 
+    borderColor: "rgba(201,168,76,0.5)", 
+    borderRadius: 16, padding: 16, marginBottom: 16, 
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center" 
+  },
   nextLabel: { color: "#C9A84C", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 4 },
   nextTime: { color: "#fff", fontSize: 32, fontWeight: "300", letterSpacing: 2 },
   countdownLabel: { color: "rgba(255,255,255,0.4)", fontSize: 10, marginBottom: 4, textAlign: "right" },
   countdown: { color: "#C9A84C", fontSize: 18, fontWeight: "600" },
 
   prayersList: { gap: 2 },
-  prayerRow: { 
+  
+   prayerRow: { 
     flexDirection: "row", justifyContent: "space-between", alignItems: "center", 
     paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12,
-    backgroundColor: "rgba(10,20,40,0.5)",  // add this — dark backing behind each row
+    backgroundColor: "rgba(0,0,0,0.6)",  // stronger dark background
     marginBottom: 2,
   },
   prayerRowNext: { backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.4)" },

@@ -5,8 +5,10 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useTranslatedPhase } from "../hooks/useTranslatedPhase"
+
 
 const phasesData = [
   {
@@ -682,7 +684,13 @@ export default function PhaseDetailScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
-  const data = phasesData.find(p => p.id === phaseId)
+
+  // REPLACE with these 3 lines
+
+
+const rawData = phasesData.find(p => p.id === phaseId)
+const { translated: data, loading: translating } = useTranslatedPhase(rawData)
+
   const currentIndex = phaseOrder.findIndex(p => p.id === phaseId)
   const nextPhase = phaseOrder[currentIndex + 1]
   const [isCompleted, setIsCompleted] = useState(false)
@@ -711,7 +719,16 @@ export default function PhaseDetailScreen() {
       </View>
     )
   }
-
+if (translating) {
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#1E3A5F" }}>
+      <ActivityIndicator color="#C9A84C" size="large" />
+      <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>
+        Translating...
+      </Text>
+    </View>
+  )
+}
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" backgroundColor={data.textColor} />
@@ -739,7 +756,7 @@ export default function PhaseDetailScreen() {
 
           {/* Steps */}
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("whatToDo")}</Text>
-          {data.steps.map((step, index) => (
+          {data.steps.map((step: string, index: number) => (
             <View key={index} style={styles.stepRow}>
               <View style={styles.stepNum}>
                 <Text style={styles.stepNumText}>{index + 1}</Text>
@@ -752,7 +769,7 @@ export default function PhaseDetailScreen() {
 
           {/* Duas */}
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("duas")}</Text>
-          {data.duas.map((dua, index) => (
+          {data.duas.map((dua: any, index: number) => (
             <View key={index} style={[styles.duaCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={[styles.duaTitle, { color: theme.textSecondary }]}>{dua.title}</Text>
               <Text style={[styles.duaArabic, { color: theme.text }]}>{dua.arabic}</Text>
@@ -766,7 +783,7 @@ export default function PhaseDetailScreen() {
 
           {/* Tips */}
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tips")}</Text>
-          {data.tips.map((tip, index) => (
+          {data.tips.map((tip: string, index: number) => (
             <View key={index} style={styles.tipRow}>
               <Ionicons name="checkmark-circle" size={18} color="#C9A84C" />
               <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip}</Text>

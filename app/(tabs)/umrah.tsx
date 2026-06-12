@@ -63,7 +63,7 @@ export default function GuideScreen() {
             <View style={styles.headerRow}>
               <View>
                 <Text style={styles.title}>{t("guide")}</Text>
-                <Text style={styles.subtitle}>Prayer times & pilgrimage guide</Text>
+                <Text style={styles.subtitle}>{t("prayerTimesGuide")}</Text>
               </View>
               {/* Adhan picker button */}
               <TouchableOpacity
@@ -118,9 +118,9 @@ export default function GuideScreen() {
               <Text style={styles.cardEmoji}>📖</Text>
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Quran Reader</Text>
-              <Text style={styles.cardSub}>114 surahs · Arabic & translation</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>Full Quran with audio recitation</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("quranReader")}</Text>
+              <Text style={styles.cardSub}>{t("quranReaderSub")}</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("quranReaderDesc")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
@@ -133,8 +133,8 @@ export default function GuideScreen() {
               <Text style={styles.cardEmoji}>📆</Text>
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Islamic Dates</Text>
-              <Text style={styles.cardSub}>Know all the important Islamic Dates</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("islamicDates")}</Text>
+              <Text style={styles.cardSub}>{t("islamicDatesSub")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
@@ -164,9 +164,9 @@ export default function GuideScreen() {
             {/* Handle */}
             <View style={styles.modalHandle} />
             
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Choose Adhan</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t("chooseAdhan")}</Text>
             <Text style={[styles.modalSub, { color: theme.textSecondary }]}>
-              Tap preview to listen · Tap select to save
+              {t("adhanPickerSub")}
             </Text>
 
             {ADHANS.map(adhan => (
@@ -217,7 +217,7 @@ export default function GuideScreen() {
                     styles.selectBtnText,
                     selectedAdhan === adhan.id && styles.selectBtnTextActive
                   ]}>
-                    {selectedAdhan === adhan.id ? "Selected" : "Select"}
+                    {selectedAdhan === adhan.id ? t("selected") : t("select")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -231,7 +231,7 @@ export default function GuideScreen() {
                 setAdhanPickerOpen(false)
               }}
             >
-              <Text style={styles.doneBtnText}>Done</Text>
+              <Text style={styles.doneBtnText}>{t("done")}</Text>
             </TouchableOpacity>
           </View>
         </View>

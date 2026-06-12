@@ -48,31 +48,36 @@ export default function BookmarksScreen() {
   // ─── FETCH ─────────────────────────────────────────────────────────────────
 
   const fetchBookmarks = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { 
-        console.log("No user found")
-        setLoading(false)
-        return 
-      }
-  
-      console.log("User ID:", user.id)
-  
-       const { data, error } = await supabase
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log("User:", user?.id)
+    
+    if (!user) { 
+      setLoading(false)
+      return 
+    }
+
+    // Test RLS by checking session
+    const { data: { session } } = await supabase.auth.getSession()
+    console.log("Session exists:", !!session)
+    console.log("Session user:", session?.user?.id)
+
+    const { data, error } = await supabase
       .from("quran_bookmarks")
       .select("*")
-      .eq("user_id", "c4d2a682-95c9-4dbe-8beb-7a8e1f34d85e")  // hardcode temporarily
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
 
-    console.log("data:", data, "error:", error)
-  
-      if (data) setBookmarks(data)
-    } catch (e) {
-      console.log("Bookmarks fetch error:", e)
-    } finally {
-      setLoading(false)
-    }
+    console.log("Data count:", data?.length)
+    console.log("Error:", JSON.stringify(error))
+
+    if (data) setBookmarks(data)
+  } catch (e) {
+    console.log("Bookmarks fetch error:", e)
+  } finally {
+    setLoading(false)
   }
+}
 
   // ─── DELETE BOOKMARK ───────────────────────────────────────────────────────
 

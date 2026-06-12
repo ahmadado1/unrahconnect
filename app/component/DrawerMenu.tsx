@@ -71,7 +71,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
           </TouchableOpacity>
 
           {/* Notifications */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} >
             <Ionicons name="notifications-outline" size={22} color={theme.text} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("notifications")}</Text>
           </TouchableOpacity>

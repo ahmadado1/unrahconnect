@@ -123,6 +123,8 @@ export const markPhaseComplete = async (phaseId: string) => {
   }
 }
 
+
+
 // Gets all completed Hajj phase ids for the current user
 export const getHajjProgress = async () => {
   const { data: { user } } = await supabase.auth.getUser()

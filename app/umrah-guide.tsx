@@ -1,21 +1,15 @@
 import { useTheme } from "@/context/themeContext";
+import { scheduleJourneyReminder } from '@/lib/notifications';
 import { getUmrahProgress } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from 'expo-notifications';
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const phases = [
-  { id: "1", title: "Madinah Visit", subtitle: "Masjid Nabawi · Ziyarat · Riyad Al Jannah", color: "#E6F1FB", textColor: "#0C447C", duration: "1-3 days" },
-  { id: "2", title: "Entering Ihram", subtitle: "Miqat · Ghusl · Niyyah · Talbiyah", color: "#E1F5EE", textColor: "#085041", duration: "1-2 hours" },
-  { id: "3", title: "Arriving in Makkah", subtitle: "Entering Masjid Al-Haram · First Kaaba dua", color: "#FAEEDA", textColor: "#633806", duration: "30 mins" },
-  { id: "4", title: "Tawaf", subtitle: "7 rounds around the Kaaba", color: "#FAECE7", textColor: "#712B13", duration: "1-2 hours" },
-  { id: "5", title: "Sa'i", subtitle: "Safa to Marwa · 7 trips", color: "#EEEDFE", textColor: "#3C3489", duration: "1-2 hours" },
-  { id: "6", title: "Halq / Taqsir", subtitle: "Men shave · Women trim · Exit Ihram", color: "#FBEAF0", textColor: "#72243E", duration: "15 mins" },
-  { id: "7", title: "Umrah Complete", subtitle: "Congratulations · What comes next", color: "#E1F5EE", textColor: "#085041", duration: "Done!" },
-]
+
 
 export default function UmrahGuideScreen() {
   const insets = useSafeAreaInsets()
@@ -24,13 +18,32 @@ export default function UmrahGuideScreen() {
   const [completedPhases, setCompletedPhases] = useState<string[]>([])
   const { t } = useTranslation()
 
-  const loadProgress = async () => {
-    const progress = await getUmrahProgress()
-    setCompletedPhases(progress)
-  }
+const phases = [
+  { id: "1", title: t("phase_umrah_1_title"), subtitle: t("phase_umrah_1_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "1-3 days" },
+  { id: "2", title: t("phase_umrah_2_title"), subtitle: t("phase_umrah_2_sub"), color: "#E1F5EE", textColor: "#085041", duration: "1-2 hours" },
+  { id: "3", title: t("phase_umrah_3_title"), subtitle: t("phase_umrah_3_sub"), color: "#FAEEDA", textColor: "#633806", duration: "30 mins" },
+  { id: "4", title: t("phase_umrah_4_title"), subtitle: t("phase_umrah_4_sub"), color: "#FAECE7", textColor: "#712B13", duration: "1-2 hours" },
+  { id: "5", title: t("phase_umrah_5_title"), subtitle: t("phase_umrah_5_sub"), color: "#EEEDFE", textColor: "#3C3489", duration: "1-2 hours" },
+  { id: "6", title: t("phase_umrah_6_title"), subtitle: t("phase_umrah_6_sub"), color: "#FBEAF0", textColor: "#72243E", duration: "15 mins" },
+  { id: "7", title: t("phase_umrah_7_title"), subtitle: t("phase_umrah_7_sub"), color: "#E1F5EE", textColor: "#085041", duration: "Done!" },
+]
 
-  useFocusEffect(useCallback(() => { loadProgress() }, []))
+      const loadProgress = async () => {
+      const progress = await getUmrahProgress()
+      setCompletedPhases(progress)
 
+      const completedCount = progress.length
+      const total = 7
+
+      if (completedCount < total) {
+        const nextPhaseTitle = phases[completedCount]?.title ?? 'your next phase'
+        await scheduleJourneyReminder(nextPhaseTitle, 'umrah')  
+      } else {
+        // All done — cancel just the journey reminder
+        await Notifications.cancelScheduledNotificationAsync('journey-reminder')
+      }
+    }
+    useFocusEffect(useCallback(() => { loadProgress() }, []))
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       {/* Dynamic island — always navy */}

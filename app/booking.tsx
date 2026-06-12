@@ -12,7 +12,7 @@ import { supabase } from "../lib/supabase";
 const EMAILJS_SERVICE_ID = "service_1n51wzk"
 const EMAILJS_TEMPLATE_ID = "template_c56h1h1"
 const EMAILJS_PUBLIC_KEY = "FHzLPzlS0xVz4wFoD"
-const EMAILJS_PRIVATE_KEY = process.env.EXPO_PUBLIC_EMAILJS_PRIVATE_KEY ?? ""
+const EMAILJS_PRIVATE_KEY = "pkey:m5RGUO5UsvlPUpqd53l2B"
 
 async function sendBookingEmail(templateParams: Record<string, string | number>) {
   if (!EMAILJS_PRIVATE_KEY) throw new Error("Missing EXPO_PUBLIC_EMAILJS_PRIVATE_KEY")
@@ -49,6 +49,8 @@ export default function BookingScreen() {
   const [loading, setLoading] = useState(false)
   const [showPicker, setShowPicker] = useState<"checkIn" | "checkOut" | null>(null)
   const [pickerDate, setPickerDate] = useState(new Date())
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const openDatePicker = (type: "checkIn" | "checkOut") => {
     const existing = type === "checkIn" ? checkIn : checkOut
@@ -128,7 +130,7 @@ export default function BookingScreen() {
 
       Alert.alert(
         "Booking Confirmed! 🎉",
-        emailSent ? "Your booking request has been sent. We will contact you shortly." : "Your booking was saved. We will contact you shortly.",
+        emailSent ? "Your booking request has been sent..." : "Your booking was saved...",
         [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
       )
     } catch (error: unknown) {
@@ -331,6 +333,29 @@ export default function BookingScreen() {
           </View>
         </Modal>
       )}
+
+      {/* Success Modal */}
+      <Modal transparent animationType="fade" visible={showSuccess}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <View style={{ backgroundColor: "#1E3A5F", borderRadius: 24, padding: 28, alignItems: "center", width: "100%" }}>
+            <Text style={{ fontSize: 56, marginBottom: 16 }}>🎉</Text>
+            <Text style={{ color: "#C9A84C", fontSize: 22, fontWeight: "bold", marginBottom: 8 }}>Booking Confirmed!</Text>
+            <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 8 }}>
+              Your booking at {hotelName} has been received.
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
+              {emailSent ? "A confirmation email has been sent to you." : "We will contact you shortly to confirm."}
+            </Text>
+            <View style={{ height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", width: "100%", marginBottom: 24 }} />
+            <TouchableOpacity
+              style={{ backgroundColor: "#C9A84C", borderRadius: 25, paddingVertical: 14, paddingHorizontal: 40, width: "100%", alignItems: "center" }}
+              onPress={() => { setShowSuccess(false); router.replace("/(tabs)") }}
+            >
+              <Text style={{ color: "#1E3A5F", fontSize: 16, fontWeight: "bold" }}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }

@@ -3,12 +3,13 @@ import { useRouter } from "expo-router";
 // Status bar
 import { useTheme } from "@/context/themeContext";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // Opens external links
 import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
+import { cancelAllNotifications, requestNotificationPermission, scheduleDailyVerseNotification } from "@/lib/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
@@ -18,8 +19,17 @@ export default function SettingsScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { isDark, toggleTheme, theme } = useTheme()
-  const [notifications, setNotifications] = useState(true)
+
   const { t, i18n: i18nInstance } = useTranslation()
+
+  const [notifications, setNotifications] = useState(true)
+
+// Load saved notification preference
+useEffect(() => {
+  AsyncStorage.getItem("notifications_enabled").then(val => {
+    setNotifications(val !== "false")
+  })
+}, [])
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -118,7 +128,18 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={notifications}
-              onValueChange={setNotifications}
+              onValueChange={async (val) => {
+                setNotifications(val)
+                await AsyncStorage.setItem("notifications_enabled", val.toString())
+                if (val) {
+                  const granted = await requestNotificationPermission()
+                  if (granted) {
+                    await scheduleDailyVerseNotification()
+                  }
+                } else {
+                  await cancelAllNotifications()
+                }
+              }}
               trackColor={{ false: "#E0D9CE", true: "#1E3A5F" }}
               thumbColor={notifications ? "#C9A84C" : "#fff"}
             />

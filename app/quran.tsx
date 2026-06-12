@@ -220,7 +220,7 @@ export default function QuranScreen() {
         </View>
         <TouchableOpacity
             style={styles.bookmarkBtn}
-            onPress={() => router.push("/quran/bookmarks")}
+            onPress={() => router.push("/quran/bookmark")}
         >
             <Ionicons name="bookmark" size={20} color="#C9A84C" />
         </TouchableOpacity>
@@ -312,7 +312,7 @@ export default function QuranScreen() {
               {/* Bookmarks card */}
                 <TouchableOpacity
                   style={[styles.bookmarkCard, { borderColor: theme.gold }]}
-                  onPress={() => router.push("/quran/bookmarks")}
+                  onPress={() => router.push("/quran/bookmark")}
                 >
                   <Ionicons name="bookmark" size={28} color="#C9A84C" />
                   <View style={styles.bookmarkInfo}>
