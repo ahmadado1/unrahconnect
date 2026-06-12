@@ -29,7 +29,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
-  },
+    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo.jpg"
@@ -37,7 +37,9 @@
     "notification": {
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
-      "sounds": ["./assets/audio/azan1.mp3"]
+      "sounds": [
+        "./assets/audio/azan1.mp3"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -68,8 +70,18 @@
       "expo-font",
       "expo-web-browser",
       "expo-audio",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-apple-authentication",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
+    
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
