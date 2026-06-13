@@ -267,6 +267,19 @@ const fetchPrayerTimes = async () => {
   return "upcoming"
 }
 
+    const getCurrentPrayer = () => {
+      if (!prayerTimes) return null
+      for (const name of PRAYER_NAMES) {
+        const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+        if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) {
+          return { name, time: prayerTimes[name as keyof PrayerTimes] as string }
+        }
+      }
+      return null
+    }
+
+    const currentPrayer = getCurrentPrayer()
+
   // ─── RENDER ──────────────────────────────────────────────────────────────
 
   return (
@@ -302,8 +315,12 @@ const fetchPrayerTimes = async () => {
             {nextPrayer && (
               <View style={styles.nextPrayerBox}>
                 <View>
-                  <Text style={styles.nextLabel}>NEXT — {nextPrayer.name.toUpperCase()}</Text>
-                  <Text style={styles.nextTime}>{nextPrayer.time}</Text>
+                  <Text style={styles.nextLabel}>
+                    {currentPrayer ? `CURRENT — ${currentPrayer.name.toUpperCase()}` : `NEXT — ${nextPrayer.name.toUpperCase()}`}
+                  </Text>
+                  <Text style={styles.nextTime}>
+                    {currentPrayer ? currentPrayer.time : nextPrayer.time}
+                  </Text>
                 </View>
                 <GeometricFlower />
                 <View style={{ alignItems: "flex-end" }}>

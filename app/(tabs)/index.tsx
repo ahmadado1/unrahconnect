@@ -138,101 +138,142 @@ export default function HomeScreen() {
 
   // Fetch verse of the day
   useEffect(() => {
-    const getVerseEdition = () => {
-      switch(i18n.language) {
-        case "fr": return "fr.hamidullah"
-        case "ur": return "ur.jalandhry"
-        case "tr": return "tr.diyanet"
-        case "ar": return "ar.muyassar"
-        default: return "en.asad"
-      }
+  const VERSE_KEY = "cached_verse"
+  const VERSE_DATE_KEY = "cached_verse_date"
+
+  const getVerseEdition = () => {
+    switch(i18n.language) {
+      case "fr": return "fr.hamidullah"
+      case "ur": return "ur.jalandhry"
+      case "tr": return "tr.diyanet"
+      case "ar": return "ar.muyassar"
+      default: return "en.asad"
     }
-    
-    const randomVerse = Math.floor(Math.random() * 6236) + 1
-    fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === 200) {
-          setAyah(`"${data.data.text}"`)
-          setAyahRef(`Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`)
-        }
-      })
-      .catch(() => {
-        setAyah("In the name of Allah, the Most Gracious, the Most Merciful.")
-        setAyahRef("Quran — 1:1")
-      })
-  }, [])
+  }
+
+  const fetchVerse = async () => {
+    // Show cached verse immediately
+    try {
+      const cachedVerse = await AsyncStorage.getItem(VERSE_KEY)
+      const cachedDate = await AsyncStorage.getItem(VERSE_DATE_KEY)
+      const today = new Date().toISOString().split("T")[0]
+
+      if (cachedVerse && cachedDate === today) {
+        const v = JSON.parse(cachedVerse)
+        setAyah(v.text)
+        setAyahRef(v.ref)
+        return // Don't fetch if we already have today's verse
+      }
+    } catch (e) {}
+
+    // Fetch new verse
+    try {
+      const randomVerse = Math.floor(Math.random() * 6236) + 1
+      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
+      const data = await res.json()
+      if (data.code === 200) {
+        const text = `"${data.data.text}"`
+        const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
+        setAyah(text)
+        setAyahRef(ref)
+        const today = new Date().toISOString().split("T")[0]
+        await AsyncStorage.setItem(VERSE_KEY, JSON.stringify({ text, ref }))
+        await AsyncStorage.setItem(VERSE_DATE_KEY, today)
+      }
+    } catch (e) {
+      setAyah("In the name of Allah, the Most Gracious, the Most Merciful.")
+      setAyahRef("Quran — 1:1")
+    }
+  }
+
+  fetchVerse()
+}, [])
 
   // Fetch location-based data: prayer times, hijri date, weather
   useEffect(() => {
-    const fetchLocationData = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync()
-        let lat = 21.3891
-        let lng = 39.8579
+  const CACHE_KEY = "home_location_data"
 
-        if (status === "granted") {
-          const location = await Location.getCurrentPositionAsync({})
-          lat = location.coords.latitude
-          lng = location.coords.longitude
-        }
+  const fetchLocationData = async () => {
+    // ── Load cache immediately ──
+    try {
+      const cached = await AsyncStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const c = JSON.parse(cached)
+        setHijriDate(c.hijriDate)
+        setWeather(c.weather)
+        setNextPrayer(c.nextPrayer)
+      }
+    } catch (e) {}
 
-        // Prayer times + Hijri date from aladhan
-        const today = new Date()
-        const pRes = await fetch(
-          `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
-        )
-        const pData = await pRes.json()
+    // ── Fetch fresh in background ──
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      let lat = 21.3891
+      let lng = 39.8579
 
-        if (pData.code === 200) {
-          // Hijri date
-          const h = pData.data.date.hijri
-          setHijriDate({ day: h.day, month: h.month.en, year: h.year })
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({})
+        lat = location.coords.latitude
+        lng = location.coords.longitude
+      }
 
-          // Next prayer
-          const timings = pData.data.timings
-          const nowMinutes = today.getHours() * 60 + today.getMinutes()
-          let found = false
-          for (const name of PRAYER_NAMES) {
-            const prayerMin = timeToMinutes(timings[name])
-            if (prayerMin > nowMinutes) {
-              setNextPrayer({ name, time: timings[name] })
-              found = true
-              break
-            }
+      const today = new Date()
+      const pRes = await fetch(
+        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
+      )
+      const pData = await pRes.json()
+
+      if (pData.code === 200) {
+        const h = pData.data.date.hijri
+        const newHijri = { day: h.day, month: h.month.en, year: h.year }
+        setHijriDate(newHijri)
+
+        const timings = pData.data.timings
+        const nowMinutes = today.getHours() * 60 + today.getMinutes()
+        let newNextPrayer = { name: "Fajr", time: timings.Fajr }
+        for (const name of PRAYER_NAMES) {
+          const prayerMin = timeToMinutes(timings[name])
+          if (prayerMin > nowMinutes) {
+            newNextPrayer = { name, time: timings[name] }
+            break
           }
-          if (!found) setNextPrayer({ name: "Fajr", time: timings.Fajr })
+        }
+        setNextPrayer(newNextPrayer)
 
-            // Schedule prayer notifications with real times
         const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
         if (notifEnabled !== "false") {
           schedulePrayerNotifications({
-            fajr: timings.Fajr,
-            dhuhr: timings.Dhuhr,
-            asr: timings.Asr,
-            maghrib: timings.Maghrib,
-            isha: timings.Isha,
+            fajr: timings.Fajr, dhuhr: timings.Dhuhr,
+            asr: timings.Asr, maghrib: timings.Maghrib, isha: timings.Isha,
           }).catch(e => console.log("Prayer notification error:", e))
         }
-        }
-      
 
-        // Weather from Open-Meteo (no API key needed)
-        const wRes = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode`
-        )
-        const wData = await wRes.json()
-        const temp = Math.round(wData.current.temperature_2m)
-        const condition = getWeatherCondition(wData.current.weathercode)
-        setWeather({ temp: `${temp}°C`, condition })
+        // ── Weather ──
+        try {
+          const wRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode`
+          )
+          const wData = await wRes.json()
+          const temp = Math.round(wData.current.temperature_2m)
+          const condition = getWeatherCondition(wData.current.weathercode)
+          const newWeather = { temp: `${temp}°C`, condition }
+          setWeather(newWeather)
 
-      } catch (e) {
-        console.log("Location data error:", e)
+          // ── Save to cache ──
+          await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
+            hijriDate: newHijri,
+            weather: newWeather,
+            nextPrayer: newNextPrayer,
+          }))
+        } catch (e) {}
       }
+    } catch (e) {
+      console.log("Location data error:", e)
     }
+  }
 
-    fetchLocationData()
-  }, [])
+  fetchLocationData()
+}, [])
 
   // Fetch bookings
   useEffect(() => {
