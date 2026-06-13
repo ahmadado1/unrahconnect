@@ -53,7 +53,22 @@ export default function RootLayout() {
 const checkAuth = async () => {
   try {
     const seen = await AsyncStorage.getItem("onboardingSeen")
-    const { data: { session } } = await supabase.auth.getSession()
+    
+    // Timeout so it doesn't hang forever with no internet
+    const sessionPromise = supabase.auth.getSession()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("timeout")), 5000)
+    )
+    
+    let session = null
+    try {
+      const result = await Promise.race([sessionPromise, timeoutPromise]) as any
+      session = result.data?.session
+    } catch {
+      // No internet or timeout — check cached session
+      const cachedUser = await AsyncStorage.getItem("cached_user")
+      session = cachedUser ? JSON.parse(cachedUser) : null
+    }
 
     if (!seen) setStatus("onboarding")
     else if (!session) setStatus("login")

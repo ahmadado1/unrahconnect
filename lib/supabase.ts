@@ -157,3 +157,10 @@ export const markHajjPhaseComplete = async (phaseId: string) => {
     return true
   }
 }
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    AsyncStorage.setItem("cached_user", JSON.stringify(session.user))
+  } else {
+    AsyncStorage.removeItem("cached_user")
+  }
+})

@@ -9,24 +9,20 @@ import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, Toucha
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 
-const EMAILJS_SERVICE_ID = "service_1n51wzk"
-const EMAILJS_TEMPLATE_ID = "template_c56h1h1"
-const EMAILJS_PUBLIC_KEY = "FHzLPzlS0xVz4wFoD"
-const EMAILJS_PRIVATE_KEY = "pkey:m5RGUO5UsvlPUpqd53l2B"
 
-async function sendBookingEmail(templateParams: Record<string, string | number>) {
-  if (!EMAILJS_PRIVATE_KEY) throw new Error("Missing EXPO_PUBLIC_EMAILJS_PRIVATE_KEY")
-  const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      service_id: EMAILJS_SERVICE_ID,
-      template_id: EMAILJS_TEMPLATE_ID,
-      user_id: EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PRIVATE_KEY,
-      template_params: templateParams,
-    }),
-  })
+
+async function sendBookingEmail(params: Record<string, string | number>) {
+  const response = await fetch(
+    "https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-booking-email",
+    {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+      },
+      body: JSON.stringify(params),
+    }
+  )
   if (!response.ok) throw new Error(await response.text())
 }
 
