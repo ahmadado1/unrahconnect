@@ -152,22 +152,32 @@ useEffect(() => {
   }, [])
 
   useEffect(() => {
-    if (!prayerTimes) return
-    const interval = setInterval(() => {
-      const now = new Date()
-      const nowStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
-      for (const name of PRAYER_NAMES) {
-        const prayerTime = prayerTimes[name as keyof PrayerTimes] as string
-        if (prayerTime === nowStr && !shownPopups.has(name)) {
-          setPrayerPopup(name)
-          setShownPopups(prev => new Set([...prev, name]))
-          playAdhan()
-          break
-        }
+  if (!prayerTimes) return
+  const interval = setInterval(() => {
+    const now = new Date()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    for (const name of PRAYER_NAMES) {
+      const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+      // Fire if within 2 minutes of prayer time
+      if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 2 && !shownPopups.has(name)) {
+        setPrayerPopup(name)
+        setShownPopups(prev => new Set([...prev, name]))
+        playAdhan()
+        break
       }
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [prayerTimes, shownPopups])
+    }
+  }, 10000)
+  return () => clearInterval(interval)
+}, [prayerTimes, shownPopups])
+
+useEffect(() => {
+  const now = new Date()
+  const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+  const timer = setTimeout(() => {
+    setShownPopups(new Set())
+  }, msUntilMidnight)
+  return () => clearTimeout(timer)
+}, [])
 
   // ─── PLAY ADHAN ──────────────────────────────────────────────────────────
 

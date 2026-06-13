@@ -127,39 +127,54 @@ export default function LoginScreen() {
   }
 
   // ─── GOOGLE SIGN IN ────────────────────────────────────────────────────────
+const handleGoogleSignIn = async () => {
+  if (GoogleSignin) {
+    try {
+      await GoogleSignin.hasPlayServices()
+      const userInfo = await GoogleSignin.signIn()
+      const idToken = userInfo.data?.idToken ?? (userInfo as any).idToken
 
-  const handleGoogleSignIn = async () => {
-    // Native Google Sign In — works in real APK/IPA builds
-    if (GoogleSignin) {
-      try {
-        await GoogleSignin.hasPlayServices()
-        const userInfo = await GoogleSignin.signIn()
-        const idToken = userInfo.data?.idToken ?? (userInfo as any).idToken
-
-        if (idToken) {
-          console.log("Got idToken, exchanging with Supabase...")
-          const { error } = await supabase.auth.signInWithIdToken({
-            provider: "google",
-            token: idToken,
-          })
-          console.log("Supabase error:", error)
-          if (error) setError(error.message)
-          else router.replace("/(tabs)")
-        }
-      } catch (err: any) {
-        console.log("Google error full:", JSON.stringify(err))
-        console.log("Google error code:", err.code)
-        if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
-          // User cancelled — do nothing
+      if (idToken) {
+        console.log("Got idToken, exchanging with Supabase...")
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+        })
+        console.log("Supabase error:", error)
+        if (error) {
+          setError(error.message)
         } else {
-          setError("Google sign in failed. Please try again.")
+          const { data: { user } } = await supabase.auth.getUser()
+          const isNewUser = user && (Date.now() - new Date(user.created_at).getTime()) < 10000
+          if (isNewUser) {
+            fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+              },
+              body: JSON.stringify({
+                guest_name: user?.user_metadata?.full_name || "Pilgrim",
+                guest_email: user?.email || "",
+              })
+            }).catch(e => console.log("Welcome email error:", e))
+          }
+          router.replace("/(tabs)")
         }
       }
-    } else {
-      // Fallback message in Expo Go
-      setError("Google Sign In only works in the installed app. Please use email/password.")
+    } catch (err: any) {
+      console.log("Google error full:", JSON.stringify(err))
+      console.log("Google error code:", err.code)
+      if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled — do nothing
+      } else {
+        setError("Google sign in failed. Please try again.")
+      }
     }
+  } else {
+    setError("Google Sign In only works in the installed app. Please use email/password.")
   }
+}
 
   // ─── Apple Sign In ────────────────────────────────────────────────────────────────
   const handleAppleSignIn = async () => {
@@ -179,8 +194,24 @@ export default function LoginScreen() {
         token: identityToken,
       })
       if (error) setError(error.message)
-      else router.replace("/(tabs)")
+    else {
+       const { data: { user } } = await supabase.auth.getUser()
+      const isNewUser = user && (Date.now() - new Date(user.created_at).getTime()) < 10000
+      if (isNewUser) {
+      fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+        },
+        body: JSON.stringify({
+          guest_name: user?.user_metadata?.full_name || "Pilgrim",
+          guest_email: user?.email || "",
+        })
+      }).catch(e => console.log("Welcome email error:", e))
+      router.replace("/(tabs)")
     }
+    }}
   } catch (e: any) {
     if (e.code === "ERR_REQUEST_CANCELED") {
       // User cancelled — do nothing
