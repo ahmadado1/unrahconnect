@@ -109,7 +109,7 @@ export default function LoginScreen() {
         })
       }).then(r => r.text()).then(t => console.log("Welcome email response:", t))
         .catch(e => console.log("Welcome email error:", e))
-        router.replace("/(tabs)")
+        router.replace("/auth/setup" as any)
 }
   
     } else {

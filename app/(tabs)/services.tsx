@@ -13,7 +13,6 @@ const APP_SERVICES = [
   { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
   { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
   { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub", route: "/booking", icon: "calendar-outline" },
-  { id: "search", emoji: "🔍", titleKey: "search", subKey: "searchSub", route: "/search", icon: "search-outline" },
 ] as const
 
 const TRANSPORT = [
@@ -33,6 +32,8 @@ const COMING_SOON = [
   { id: "flights", emoji: "✈️", titleKey: "flights", subKey: "flightsSub" },
   { id: "pharmacy", emoji: "💊", titleKey: "pharmacy", subKey: "pharmacySub" },
   { id: "sim", emoji: "📱", titleKey: "simCards", subKey: "simCardsSub" },
+  { id: "search", emoji: "🔍", titleKey: "search", subKey: "searchSub", route: "/search", icon: "search-outline" },
+
 ] as const
 
 export default function ServicesScreen() {

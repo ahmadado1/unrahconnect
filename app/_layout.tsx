@@ -130,6 +130,8 @@ const checkAuth = async () => {
           <Stack.Screen name="duas" />
           <Stack.Screen name="islamic-calendar" />
           <Stack.Screen name="maps/[site]" />
+          <Stack.Screen name="auth/setup" />
+          <Stack.Screen name="auth/plans" />
         </Stack>
 
         {status === "onboarding" && <Redirect href="/onboarding" />}
