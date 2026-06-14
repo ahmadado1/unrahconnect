@@ -1,9 +1,11 @@
+import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform } from "react-native";
 
 export default function TabsLayout() {
+  const { theme } = useTheme()
   if (Platform.OS === "ios") {
     return (
       <NativeTabs
@@ -37,15 +39,15 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#fff",
+          backgroundColor: theme.card,
           borderTopWidth: 0.5,
-          borderTopColor: "#E0D9CE",
+          borderTopColor: theme.border,
           height: 90,
           paddingBottom: 22,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: "#1E3A5F",
-        tabBarInactiveTintColor: "#C9A84C",
+        tabBarActiveTintColor: "#C9A84C",
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",

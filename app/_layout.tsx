@@ -1,10 +1,11 @@
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
+import { requestNotificationPermission } from "@/lib/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { supabase } from "../lib/supabase";
 
 export default function RootLayout() {
@@ -13,6 +14,12 @@ export default function RootLayout() {
 
   useEffect(() => {
   checkAuth()
+
+  // Request notification permissions
+  requestNotificationPermission()
+  if (Platform.OS === "android") {
+    Notifications.requestPermissionsAsync()
+  }
 
   const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT") {

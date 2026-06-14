@@ -54,53 +54,29 @@ useEffect(() => {
             <TouchableOpacity
               style={[styles.settingRow, { borderBottomColor: theme.border }]}
               onPress={() => {
+                const languages = [
+                  { code: "en", label: "🇬🇧 English" },
+                  { code: "ar", label: "🇸🇦 العربية" },
+                  { code: "fr", label: "🇫🇷 Français" },
+                  { code: "ur", label: "🇵🇰 اردو" },
+                  { code: "tr", label: "🇹🇷 Türkçe" },
+                ]
                 Alert.alert(
                   "Select Language",
                   "Choose your preferred language",
                   [
-                    {
-                      text: "🇬🇧 English",
+                    ...languages.map(lang => ({
+                      text: lang.label,
                       onPress: () => {
-                        i18nInstance.changeLanguage("en")
-                        AsyncStorage.setItem("language", "en")
+                        i18nInstance.changeLanguage(lang.code)
+                        AsyncStorage.setItem("language", lang.code)
                       }
-                    },
-                    {
-                      text: "🇸🇦 العربية",
-                      onPress: () => {
-                        i18nInstance.changeLanguage("ar")
-                        AsyncStorage.setItem("language", "ar")
-                      }
-                    },
-                    {
-                      text: "🇫🇷 Français",
-                      onPress: () => {
-                        i18nInstance.changeLanguage("fr")
-                        AsyncStorage.setItem("language", "fr")
-                      }
-                    },
-                    {
-                      text: "🇵🇰 اردو",
-                      onPress: () => {
-                        i18nInstance.changeLanguage("ur")
-                        AsyncStorage.setItem("language", "ur")
-                      }
-                    },
-                    {
-                      text: "🇹🇷 Türkçe",
-                      onPress: () => {
-                        i18nInstance.changeLanguage("tr")
-                        AsyncStorage.setItem("language", "tr")
-                      }
-                    },
-                    {
-                      text: "Cancel",
-                      style: "cancel"
-                    }
-                  ]
+                    })),
+                    { text: "Cancel", style: "cancel" as const }
+                  ],
+                  { cancelable: true }
                 )
-              }}
-              >
+              }}>
                 <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
                   <Ionicons name="language" size={18} color="#fff" />
                 </View>

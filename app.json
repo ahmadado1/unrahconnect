@@ -27,7 +27,10 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -70,7 +73,6 @@
       "expo-font",
       "expo-web-browser",
       "expo-audio",
-      "expo-apple-authentication",
       "expo-apple-authentication",
       [
         "expo-build-properties",
