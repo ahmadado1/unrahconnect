@@ -361,19 +361,19 @@ export default function HomeScreen() {
         <View style={styles.quickRow}>
           <TouchableOpacity
             style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/hotels")}
+            onPress={() => router.push("/(tabs)/services")}
           >
             <Text style={styles.quickEmoji}>🏨</Text>
-            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("hotelsTitle")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("nearHaram")}</Text>
+            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("services")}</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("servicesSub")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/restaurants")}
+            onPress={() => router.push("/(tabs)/maps")}
           >
-            <Text style={styles.quickEmoji}>🍽️</Text>
-            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("halalFood")}</Text>
+            <Text style={styles.quickEmoji}>🗺️</Text>
+            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("maps")}</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("mapsSub")}</Text>
           </TouchableOpacity>
         </View>
 

@@ -7,7 +7,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase, toggleFavorite } from "../../lib/supabase";
+import { supabase, toggleFavorite } from "@/lib/supabase";
 
 type Hotel = {
   id: string;
@@ -22,10 +22,11 @@ type Hotel = {
 };
 
 export default function HotelsScreen() {
+  const router = useRouter()
   const [activeFilter, setActiveFilter] = useState("All");
   const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
-  const { theme, isDark } = useTheme()
+  const { theme } = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
 
@@ -86,7 +87,6 @@ export default function HotelsScreen() {
   ].filter((hotel, index, list) => hotel.stars === 5 && list.findIndex((h) => h.id === hotel.id) === index);
 
   function HotelCard({ hotel }: { hotel: Hotel }) {
-    const router = useRouter();
     const isFavorited = favoriteHotelIds.has(hotel.id)
 
     const handleFavoritePress = async () => {
@@ -166,22 +166,19 @@ export default function HotelsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      {/* Dynamic island — always navy */}
-      
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-
-        {/* Header — always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
-            <View>
+            <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("hotels")}</Text>
               <Text style={styles.subtitle}>{t("findPerfectStay")}</Text>
             </View>
-            
           </View>
 
-          {/* Search bar */}
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
             <TextInput
@@ -193,7 +190,6 @@ export default function HotelsScreen() {
             />
           </View>
 
-          {/* Filter pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsRow} contentContainerStyle={{ gap: 8 }}>
             {filters.map((filter, index) => {
               const labels = [t("all"), t("makkah"), t("madinah")]
@@ -220,7 +216,7 @@ export default function HotelsScreen() {
         {renderSection(t("budgetFriendly"), budgetHotels)}
         {renderSection(t("familyRooms"), familyHotels)}
         {renderSection(t("madinahPicks"), madinahHotels)}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -247,9 +243,8 @@ const cardStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: "#1E3A5F" },
   header: { backgroundColor: "#1E3A5F", paddingBottom: 16 },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  headerTop: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold" },
   subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 2 },
   iconBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },

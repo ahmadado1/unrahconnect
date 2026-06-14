@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase, toggleFavorite } from "../../lib/supabase";
+import { supabase, toggleFavorite } from "@/lib/supabase";
 
 type Restaurant = {
   id: string;
@@ -59,6 +59,7 @@ const recommended: Restaurant[] = [topPicks[0]!, nearHaram[0]!, topPicks[2]!];
 type CityFilter = "All" | "Makkah" | "Madinah";
 
 export default function RestaurantsScreen() {
+  const router = useRouter()
   const [activeFilter, setActiveFilter] = useState<CityFilter>("All");
   const [favoriteRestaurantIds, setFavoriteRestaurantIds] = useState<Set<string>>(new Set())
   const filters: CityFilter[] = ["All", "Makkah", "Madinah"];
@@ -103,7 +104,6 @@ export default function RestaurantsScreen() {
   );
 
   function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
-    const router = useRouter();
     const isFavorited = favoriteRestaurantIds.has(restaurant.id)
 
     const handleFavoritePress = async () => {
@@ -154,22 +154,19 @@ export default function RestaurantsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      {/* Dynamic island — always navy */}
-      
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-
-        {/* Header — always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
-            <View>
+            <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("restaurantsTitle")}</Text>
               <Text style={styles.subtitle}>{t("discoverFood")}</Text>
             </View>
-            
           </View>
 
-          {/* Search bar */}
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
             <TextInput
@@ -181,7 +178,6 @@ export default function RestaurantsScreen() {
             />
           </View>
 
-          {/* Filter pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsRow} contentContainerStyle={{ gap: 8 }}>
             {filters.map((filter) => (
               <TouchableOpacity
@@ -195,14 +191,13 @@ export default function RestaurantsScreen() {
           </ScrollView>
         </View>
 
-        {/* Restaurant sections */}
         <View key={activeFilter}>
           {visibleSections.map((section) => (
             <View key={section.title} style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
                 <TouchableOpacity>
-                  <Text style={styles.seeAll}>See all →</Text>
+                  <Text style={styles.seeAll}>{t("seeAll")}</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
@@ -214,7 +209,7 @@ export default function RestaurantsScreen() {
           ))}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -241,9 +236,8 @@ const cardStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: "#1E3A5F" },
   header: { backgroundColor: "#1E3A5F", paddingBottom: 16 },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  headerTop: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold" },
   subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 2 },
   iconBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },

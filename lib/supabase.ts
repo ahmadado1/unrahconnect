@@ -14,6 +14,36 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
+const isInvalidSessionError = (message: string) =>
+  message.includes("Refresh Token") ||
+  message.includes("Invalid Refresh Token") ||
+  message.includes("JWT")
+
+export async function clearLocalAuth() {
+  await AsyncStorage.removeItem("cached_user")
+  await supabase.auth.signOut({ scope: "local" })
+}
+
+export async function getValidSession() {
+  const { data: { session }, error } = await supabase.auth.getSession()
+
+  if (error) {
+    if (isInvalidSessionError(error.message)) {
+      await clearLocalAuth()
+    }
+    return null
+  }
+
+  return session
+}
+
+// Clear stale tokens on startup before auto-refresh throws
+supabase.auth.getSession().then(({ error }) => {
+  if (error && isInvalidSessionError(error.message)) {
+    clearLocalAuth()
+  }
+}).catch(() => {})
+
 // Checks if a specific item is already in the user's favorites
 export const isFavorite = async (itemId: string, itemType: string) => {
   // Get the currently logged in user

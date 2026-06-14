@@ -6,7 +6,7 @@ import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, Text, View } from "react-native";
-import { supabase } from "../lib/supabase";
+import { clearLocalAuth, getValidSession, supabase } from "../lib/supabase";
 
 export default function RootLayout() {
   const [status, setStatus] = useState<"loading" | "onboarding" | "login" | "home">("loading")
@@ -23,9 +23,12 @@ export default function RootLayout() {
 
   const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT") {
+      setStatus("login")
       router.replace("/auth/login")
     }
     if (event === "TOKEN_REFRESHED" && !session) {
+      clearLocalAuth()
+      setStatus("login")
       router.replace("/auth/login")
     }
   })
@@ -60,27 +63,30 @@ export default function RootLayout() {
 const checkAuth = async () => {
   try {
     const seen = await AsyncStorage.getItem("onboardingSeen")
-    
-    // Timeout so it doesn't hang forever with no internet
-    const sessionPromise = supabase.auth.getSession()
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("timeout")), 5000)
-    )
-    
+
     let session = null
     try {
-      const result = await Promise.race([sessionPromise, timeoutPromise]) as any
-      session = result.data?.session
+      const timeoutPromise = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), 5000)
+      )
+      session = await Promise.race([getValidSession(), timeoutPromise])
     } catch {
-      // No internet or timeout — check cached session
+      session = null
+    }
+
+    // Offline fallback — use cached user only when network timed out
+    if (!session) {
       const cachedUser = await AsyncStorage.getItem("cached_user")
-      session = cachedUser ? JSON.parse(cachedUser) : null
+      if (cachedUser) {
+        session = { user: JSON.parse(cachedUser) } as any
+      }
     }
 
     if (!seen) setStatus("onboarding")
     else if (!session) setStatus("login")
     else setStatus("home")
-  } catch (e) {
+  } catch {
+    await clearLocalAuth()
     setStatus("login")
   }
 }
@@ -104,6 +110,8 @@ const checkAuth = async () => {
           <Stack.Screen name="auth/login" />
           <Stack.Screen name="auth/reset-password" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="hotels" />
+          <Stack.Screen name="restaurants" />
           <Stack.Screen name="profile" />
           <Stack.Screen name="favorites" />
           <Stack.Screen name="about" />
@@ -121,6 +129,7 @@ const checkAuth = async () => {
           <Stack.Screen name="quran/bookmark" />
           <Stack.Screen name="duas" />
           <Stack.Screen name="islamic-calendar" />
+          <Stack.Screen name="maps/[site]" />
         </Stack>
 
         {status === "onboarding" && <Redirect href="/onboarding" />}
