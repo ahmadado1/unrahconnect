@@ -32,6 +32,7 @@ export default function MeScreen() {
   const menuItems: MenuItem[] = [
     { icon: "person-outline", labelKey: "profile", route: "/profile" },
     { icon: "heart-outline", labelKey: "favorites", route: "/favorites" },
+    { icon: "briefcase-outline", labelKey: "Agent Dashboard", route: "/agent/dashboard" },
     { icon: "settings-outline", labelKey: "settings", route: "/settings" },
     { icon: "information-circle-outline", labelKey: "aboutUs", route: "/about" },
     { icon: "call-outline", labelKey: "contactUs", route: "/contact" },

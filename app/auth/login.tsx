@@ -149,8 +149,8 @@ const handleGoogleSignIn = async () => {
           setError(error.message)
         } else {
           const { data: { user } } = await supabase.auth.getUser()
-          const isNewUser = user && (Date.now() - new Date(user.created_at).getTime()) < 10000
-          if (isNewUser) {
+          const profileComplete = user?.user_metadata?.profile_complete
+          if (!profileComplete) {
             fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
               method: "POST",
               headers: {
@@ -162,9 +162,10 @@ const handleGoogleSignIn = async () => {
                 guest_email: user?.email || "",
               })
             }).catch(e => console.log("Welcome email error:", e))
-          }
-          router.replace("/(tabs)")
-        }
+            router.replace("/auth/setup" as any)
+          } else {
+            router.replace("/(tabs)")
+          }}
       }
     } catch (err: any) {
       console.log("Google error full:", JSON.stringify(err))
@@ -200,22 +201,24 @@ const handleGoogleSignIn = async () => {
       if (error) setError(error.message)
     else {
        const { data: { user } } = await supabase.auth.getUser()
-      const isNewUser = user && (Date.now() - new Date(user.created_at).getTime()) < 10000
-      if (isNewUser) {
-      fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
-        },
-        body: JSON.stringify({
-          guest_name: user?.user_metadata?.full_name || "Pilgrim",
-          guest_email: user?.email || "",
-        })
-      }).catch(e => console.log("Welcome email error:", e))
-      router.replace("/(tabs)")
-    }
-    }}
+       const profileComplete = user?.user_metadata?.profile_complete
+       if (!profileComplete) {
+         fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+           method: "POST",
+           headers: { 
+             "Content-Type": "application/json",
+             "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+           },
+           body: JSON.stringify({
+             guest_name: user?.user_metadata?.full_name || "Pilgrim",
+             guest_email: user?.email || "",
+           })
+         }).catch(e => console.log("Welcome email error:", e))
+         router.replace("/auth/setup" as any)
+       } else {
+         router.replace("/(tabs)")
+       }
+       }}
   } catch (e: any) {
     if (e.code === "ERR_REQUEST_CANCELED") {
       // User cancelled — do nothing
