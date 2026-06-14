@@ -97,15 +97,19 @@ export default function LoginScreen() {
           setError("Something went wrong. Please try again.")
         }
       } else {
-  fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      guest_name: fullName,
-      guest_email: email,
-    })
-  }).catch(e => console.log("Welcome email error:", e))
-  router.replace("/(tabs)")
+        fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+        },
+        body: JSON.stringify({
+          guest_name: fullName,
+          guest_email: email,
+        })
+      }).then(r => r.text()).then(t => console.log("Welcome email response:", t))
+        .catch(e => console.log("Welcome email error:", e))
+        router.replace("/(tabs)")
 }
   
     } else {
