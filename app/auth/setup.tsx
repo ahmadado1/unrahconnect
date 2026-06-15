@@ -61,13 +61,24 @@ export default function SetupScreen() {
               profile_complete: true,
             }
           })
-    
+          
+          // If agent — insert into agents table
           if (userType === "agent") {
-            // Go to subscription plans
+            const { data: { user } } = await supabase.auth.getUser()
+            await supabase.from("agents").insert({
+              user_id: user?.id,
+              agency_name: agencyName,
+              owner_name: fullName,
+              phone,
+              email: user?.email,
+              nationality,
+              country: agencyCountry,
+              plan: "trial",
+            })
             router.replace("/auth/plans" as any)
           } else {
-            // Go straight to home
             router.replace("/(tabs)")
+          
           }
         } catch (e) {
           setError("Something went wrong. Please try again.")

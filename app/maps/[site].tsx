@@ -82,6 +82,53 @@ const HARAM_GATES = [
       special: true,
     },
   ]
+
+  const HOSPITALS = [
+    {
+      id: "abdulaziz",
+      name: "King Abdulaziz Hospital",
+      arabic: "مستشفى الملك عبدالعزيز",
+      location: "Al Zahir · Makkah",
+      erGate: "Emergency gate on Hujoon Street — look for red طوارئ sign",
+      mainGate: "Main gate on Al-Masjid Al-Haram Road",
+      lat: 21.4308,
+      lng: 39.8436,
+      city: "makkah",
+    },
+    {
+      id: "noor",
+      name: "Al-Noor Specialist Hospital",
+      arabic: "مستشفى النور التخصصي",
+      location: "Al Hijrah · Makkah",
+      erGate: "Emergency gate on 3rd Ring Road — trauma gate for holy sites ambulances",
+      mainGate: "Main gate on Al-Noor Hospital Street via Al Hijrah district",
+      lat: 21.3892,
+      lng: 39.8579,
+      city: "makkah",
+    },
+    {
+      id: "faisal",
+      name: "King Faisal Hospital",
+      arabic: "مستشفى الملك فيصل",
+      location: "Al Maabdah · Makkah",
+      erGate: "Emergency via dedicated access ramp on south side facing Al Maabdah",
+      mainGate: "Main gate on Prince Majed Ibn Abd Al Aziz Road",
+      lat: 21.4156,
+      lng: 39.8234,
+      city: "makkah",
+    },
+    {
+      id: "fahd-madinah",
+      name: "King Fahd Hospital",
+      arabic: "مستشفى الملك فهد",
+      location: "Al Jamiah · Madinah",
+      erGate: "Emergency gate on eastern campus via Umm Kulthum Bint As-Siddiq Street",
+      mainGate: "Main entrance via Khalid Bin Al Walid Branch Road",
+      lat: 24.4889,
+      lng: 39.6289,
+      city: "madinah",
+    },
+  ]
   
   const SITE_INFO: Record<string, {
     name: string
@@ -189,6 +236,22 @@ const HARAM_GATES = [
         "Required for both Umrah and Hajj",
       ]
     },
+    "hospital-makkah": {
+        name: "Hospitals — Makkah & Madinah",
+        arabic: "مستشفيات مكة والمدينة",
+        emoji: "🏥",
+        description: "Free government hospitals are available for pilgrims. Show your passport and Hajj/Umrah visa for free treatment. Emergency services are available 24 hours.",
+        lat: 21.4225,
+        lng: 39.8262,
+        hasGates: false,
+        details: [
+          "Show passport + Hajj/Umrah visa for FREE treatment",
+          "Emergency services available 24 hours",
+          "Call 911 for ambulance in Saudi Arabia",
+          "First aid stations inside Masjid Al-Haram",
+          "Staff speak Arabic, Urdu and English",
+        ]
+      },
   }
 
 
@@ -325,6 +388,82 @@ const HARAM_GATES = [
                 ))}
               </>
             )}
+
+                  {/* Hospitals — only for hospital-makkah site */}
+              {site === "hospital-makkah" && (
+                <>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>🇸🇦 Makkah Hospitals</Text>
+                  <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
+                    Tap navigate to get directions to the hospital
+                  </Text>
+                  {HOSPITALS.filter(h => h.city === "makkah").map(hospital => (
+                    <View
+                      key={hospital.id}
+                      style={[styles.gateCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                    >
+                      <View style={styles.gateLeft}>
+                        <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
+                          <Text style={{ fontSize: 16 }}>🏥</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.gateName, { color: theme.text }]}>{hospital.name}</Text>
+                          <Text style={styles.gateArabic}>{hospital.arabic}</Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary }]}>{hospital.location}</Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 4 }]}>
+                            🚨 ER: {hospital.erGate}
+                          </Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 2 }]}>
+                            🚪 Main: {hospital.mainGate}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => navigateTo(hospital.lat, hospital.lng, hospital.name)}
+                      >
+                        <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>🕌 Madinah Hospital</Text>
+                  {HOSPITALS.filter(h => h.city === "madinah").map(hospital => (
+                    <View
+                      key={hospital.id}
+                      style={[styles.gateCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                    >
+                      <View style={styles.gateLeft}>
+                        <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
+                          <Text style={{ fontSize: 16 }}>🏥</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.gateName, { color: theme.text }]}>{hospital.name}</Text>
+                          <Text style={styles.gateArabic}>{hospital.arabic}</Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary }]}>{hospital.location}</Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 4 }]}>
+                            🚨 ER: {hospital.erGate}
+                          </Text>
+                          <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 2 }]}>
+                            🚪 Main: {hospital.mainGate}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => navigateTo(hospital.lat, hospital.lng, hospital.name)}
+                      >
+                        <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  {/* Emergency numbers */}
+                  <View style={[styles.card, { backgroundColor: "#1E3A5F", borderColor: "rgba(201,168,76,0.3)", marginTop: 16 }]}>
+                    <Text style={{ color: "#C9A84C", fontWeight: "bold", marginBottom: 8 }}>📞 Emergency Numbers</Text>
+                    <Text style={{ color: "#fff", fontSize: 13, marginBottom: 4 }}>🚑 Ambulance: 911</Text>
+                    <Text style={{ color: "#fff", fontSize: 13, marginBottom: 4 }}>👮 Police: 999</Text>
+                    <Text style={{ color: "#fff", fontSize: 13 }}>🚒 Civil Defense: 998</Text>
+                  </View>
+                </>
+              )}
       
             <View style={{ height: 100 }} />
           </ScrollView>

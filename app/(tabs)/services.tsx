@@ -13,6 +13,7 @@ const APP_SERVICES = [
   { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
   { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
   { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub", route: "/booking", icon: "calendar-outline" },
+  { id: "agents", emoji: "🏢", titleKey: "findAgent", subKey: "findAgentSub", route: "/agent", icon: "people-outline" },
 ] as const
 
 const TRANSPORT = [
