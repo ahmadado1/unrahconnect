@@ -51,7 +51,7 @@ export default function ContactScreen() {
               <Ionicons name="logo-whatsapp" size={22} color="#fff" />
             </View>
             <View style={styles.contactInfo}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>WhatsApp</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{t("whatsapp")}</Text>
               <Text style={[styles.contactValue, { color: theme.text }]}>{whatsapp}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
@@ -66,7 +66,7 @@ export default function ContactScreen() {
               <Ionicons name="call" size={22} color="#fff" />
             </View>
             <View style={styles.contactInfo}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>Phone</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{t("phone")}</Text>
               <Text style={[styles.contactValue, { color: theme.text }]}>{phone}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
@@ -81,7 +81,7 @@ export default function ContactScreen() {
               <Ionicons name="mail" size={22} color="#1E3A5F" />
             </View>
             <View style={styles.contactInfo}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>Email</Text>
+              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{t("email")}</Text>
               <Text style={[styles.contactValue, { color: theme.text }]}>{email}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
@@ -91,7 +91,7 @@ export default function ContactScreen() {
 
         {/* Response time */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Response time</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("responseTime")}</Text>
           <View style={styles.responseItem}>
             <Ionicons name="time-outline" size={18} color={theme.gold} />
             <Text style={[styles.responseText, { color: theme.textSecondary }]}>{t("whatsappResponse")}</Text>

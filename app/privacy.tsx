@@ -2,6 +2,7 @@ import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,57 +10,43 @@ export default function PrivacyScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy Policy</Text>
+        <Text style={styles.headerTitle}>{t("privacyPolicyTitle")}</Text>
         <View style={{ width: 38 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
-        <Text style={[styles.lastUpdated, { color: theme.textSecondary }]}>Last updated: May 2026</Text>
+        <Text style={[styles.lastUpdated, { color: theme.textSecondary }]}>{t("lastUpdated")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Introduction</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          Welcome to UmrahConnect. We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use and protect your information when you use our app.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacyIntroTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyIntroBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Information We Collect</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          We collect information you provide directly to us when you create an account, such as your name, email address, phone number and nationality. We also collect information about how you use our app including hotels and restaurants you view and save to favorites.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacyCollectTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyCollectBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>How We Use Your Information</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          We use the information we collect to provide and improve our services, personalize your experience, process bookings and reservations, send you updates and notifications, and respond to your inquiries.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacyUseTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyUseBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Data Storage</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          Your data is stored securely using Supabase, a trusted cloud database provider. We use industry standard security measures to protect your personal information from unauthorized access.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacyStorageTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyStorageBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Sharing Your Information</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          We do not sell, trade or rent your personal information to third parties. We may share your information with hotel and restaurant partners only when necessary to complete a booking you have requested.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacySharingTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacySharingBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Rights</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          You have the right to access, update or delete your personal information at any time through your Profile screen. You may also contact us directly to request changes to your data.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("privacyRightsTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyRightsBody")}</Text>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Contact Us</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>
-          If you have any questions about this Privacy Policy please contact us at ahmadado6002@gmail.com or via WhatsApp at +201222151335.
-        </Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("contactUs")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("privacyContactBody")}</Text>
 
         <View style={{ height: 60 }} />
       </ScrollView>

@@ -19,9 +19,11 @@ async function translateText(text: string, targetLang: string): Promise<string> 
   try {
     const res = await fetch("https://api-free.deepl.com/v2/translate", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `DeepL-Auth-Key ${DEEPL_KEY}`,
+      },
       body: new URLSearchParams({
-        auth_key: DEEPL_KEY,
         text,
         source_lang: "EN",
         target_lang: targetLang,

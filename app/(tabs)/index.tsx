@@ -65,15 +65,29 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
 
 // ─── GLANCE CARD ─────────────────────────────────────────────────────────────
 
-function GlanceCard({ icon, label, value, sub, theme }: { icon: string; label: string; value: string; sub: string; theme: any }) {
-  return (
-    <View style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+function GlanceCard({ icon, label, value, sub, theme, onPress }: { icon: string; label: string; value: string; sub: string; theme: any; onPress?: () => void }) {
+  const content = (
+    <>
       <View style={glanceStyles.iconBox}>
         <Ionicons name={icon as any} size={18} color="#C9A84C" />
       </View>
       <Text style={[glanceStyles.label, { color: theme.textSecondary }]}>{label}</Text>
       <Text style={[glanceStyles.value, { color: theme.text }]}>{value}</Text>
       <Text style={glanceStyles.sub}>{sub}</Text>
+    </>
+  )
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    )
+  }
+
+  return (
+    <View style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      {content}
     </View>
   )
 }
@@ -295,7 +309,7 @@ export default function HomeScreen() {
   const past = bookings.filter(b => b.check_in < today)
 
   const hour = new Date().getHours()
-  const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  const timeGreeting = hour < 12 ? t("homeGoodMorning") : hour < 17 ? t("homeGoodAfternoon") : t("homeGoodEvening")
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -313,6 +327,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.greeting}>{t("greeting")}</Text>
                 <Text style={styles.appName}>UmrahConnect</Text>
+                <Text style={styles.appTagline}>{t("completeCompanion")}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
@@ -328,7 +343,7 @@ export default function HomeScreen() {
         {/* ── HERO BANNER ── */}
         <View style={styles.heroBanner}>
           <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
-          <Text style={styles.heroTitle}>{t("completeCompanion")}</Text>
+          <Text style={styles.heroTitle}>{t("whereGlobalizationMatters")}</Text>
           <Text style={styles.heroSub}>{t("spiritualSub")}</Text>
         </View>
 
@@ -336,17 +351,17 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("todayAtAGlance")}</Text>
         <View style={styles.glanceGrid}>
           <GlanceCard icon="time-outline" label={t("nextPrayer")} value={nextPrayer.name} sub={nextPrayer.time} theme={theme} />
-<GlanceCard icon="partly-sunny-outline" label={t("weather")} value={weather.temp} sub={weather.condition} theme={theme} />
-<GlanceCard icon="calendar-outline" label={t("hijriDate")} value={`${hijriDate.day} ${hijriDate.month}`} sub={`${hijriDate.year} AH`} theme={theme} />
-<GlanceCard icon="bookmark-outline" label={t("quran")} value="Reading" sub="Al-Baqarah" theme={theme} />
+          <GlanceCard icon="partly-sunny-outline" label={t("weather")} value={weather.temp} sub={weather.condition} theme={theme} />
+          <GlanceCard icon="calendar-outline" label={t("hijriDate")} value={`${hijriDate.day} ${hijriDate.month}`} sub={`${hijriDate.year} AH`} theme={theme} />
+          <GlanceCard icon="book-outline" label={t("quran")} value="114" sub="surahs" theme={theme} onPress={() => router.push("/quran")} />
         </View>
 
 
         {/* ── MY JOURNEY ── */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("myJourney")}</Text>
         <View style={styles.journeyGrid}>
-          <JourneyCard emoji="📖" title={t("quran")} sub="114 surahs" onPress={() => router.push("/quran")} theme={theme} />
-          <JourneyCard emoji="🤲" title={t("duasZikr")} sub={t("supplications")} onPress={() => router.push("/duas")} theme={theme} />
+          <JourneyCard emoji="🕋" title={t("umrahGuideTitle")} sub={t("umrahGuidePhaseSub")} onPress={() => router.push("/umrah-guide")} theme={theme} />
+          <JourneyCard emoji="☪️" title={t("hajjGuideTitle")} sub={t("hajjGuideSub")} onPress={() => router.push("/hajj")} theme={theme} />
         </View>
 
         {/* ── VERSE OF THE DAY ── */}
@@ -393,10 +408,9 @@ export default function HomeScreen() {
 
         {/* ── DONATE ── */}
         {/* ── DONATE ── */}
-          <TouchableOpacity
+          <View
             style={styles.donateCard}
-            onPress={() => Linking.openURL("https://maidabo.com")}
-            activeOpacity={0.85}
+            
           >
             <View style={styles.donateTopRow}>
               <Image
@@ -422,7 +436,7 @@ export default function HomeScreen() {
                 <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
 
         {/* ── BOOKINGS ── */}
         {bookings.length > 0 && (
@@ -464,6 +478,7 @@ const styles = StyleSheet.create({
   logoEmoji: { fontSize: 24 },
   greeting: { color: "#C9A84C", fontSize: 12 },
   appName: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+  appTagline: { color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 },
   menuBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
   bar: { width: 20, height: 2, backgroundColor: "#fff", borderRadius: 2 },
   heroBanner: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 18, padding: 20, alignItems: "center", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.3)" },

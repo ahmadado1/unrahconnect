@@ -261,10 +261,10 @@ export default function BookingScreen() {
                 </View>
               </>
             ) : (
-              <Text style={styles.priceHint}>Check-out must be after check-in.</Text>
+              <Text style={styles.priceHint}>{t("checkOutAfterCheckIn")}</Text>
             )
           ) : (
-            <Text style={styles.priceHint}>Select check-in and check-out dates to see your total.</Text>
+            <Text style={styles.priceHint}>{t("selectDatesForTotal")}</Text>
           )}
         </View>
 
@@ -306,11 +306,11 @@ export default function BookingScreen() {
             <View style={styles.pickerSheet}>
               <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={handleDateCancel}>
-                  <Text style={styles.pickerCancel}>Cancel</Text>
+                  <Text style={styles.pickerCancel}>{t("cancel")}</Text>
                 </TouchableOpacity>
                 <Text style={styles.pickerTitle}>{showPicker === "checkIn" ? t("checkIn") : t("checkOut")}</Text>
                 <TouchableOpacity onPress={() => handleDateConfirm(pickerDate)}>
-                  <Text style={styles.pickerDone}>Done</Text>
+                  <Text style={styles.pickerDone}>{t("done")}</Text>
                 </TouchableOpacity>
               </View>
               <Text style={styles.pickerPreview}>
@@ -335,19 +335,19 @@ export default function BookingScreen() {
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <View style={{ backgroundColor: "#1E3A5F", borderRadius: 24, padding: 28, alignItems: "center", width: "100%" }}>
             <Text style={{ fontSize: 56, marginBottom: 16 }}>🎉</Text>
-            <Text style={{ color: "#C9A84C", fontSize: 22, fontWeight: "bold", marginBottom: 8 }}>Booking Confirmed!</Text>
+            <Text style={{ color: "#C9A84C", fontSize: 22, fontWeight: "bold", marginBottom: 8 }}>{t("bookingConfirmed")}</Text>
             <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 8 }}>
-              Your booking at {hotelName} has been received.
+              {t("bookingReceivedAt", { hotel: hotelName })}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
-              {emailSent ? "A confirmation email has been sent to you." : "We will contact you shortly to confirm."}
+              {emailSent ? t("bookingEmailSent") : t("bookingWillContact")}
             </Text>
             <View style={{ height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", width: "100%", marginBottom: 24 }} />
             <TouchableOpacity
               style={{ backgroundColor: "#C9A84C", borderRadius: 25, paddingVertical: 14, paddingHorizontal: 40, width: "100%", alignItems: "center" }}
               onPress={() => { setShowSuccess(false); router.replace("/(tabs)") }}
             >
-              <Text style={{ color: "#1E3A5F", fontSize: 16, fontWeight: "bold" }}>Back to Home</Text>
+              <Text style={{ color: "#1E3A5F", fontSize: 16, fontWeight: "bold" }}>{t("backToHome")}</Text>
             </TouchableOpacity>
           </View>
         </View>

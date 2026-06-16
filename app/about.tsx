@@ -43,7 +43,7 @@ export default function AboutScreen() {
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("ourMission")}</Text>
           <Text style={[styles.sectionText, { color: theme.textSecondary }]}>
-            UmrahConnect was created to be the most complete digital companion for pilgrims performing Umrah and Hajj. We believe every pilgrim deserves easy access to the best hotels, restaurants, and guidance — all in one place.
+            {t("ourMissionText")}
           </Text>
         </View>
 
@@ -55,7 +55,7 @@ export default function AboutScreen() {
             <Text style={styles.featureIcon}>🏨</Text>
             <View style={styles.featureInfo}>
               <Text style={[styles.featureName, { color: theme.text }]}>{t("hotelsTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Curated hotels in Makkah and Madinah — from budget to luxury</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutHotelsDesc")}</Text>
             </View>
           </View>
 
@@ -63,7 +63,7 @@ export default function AboutScreen() {
             <Text style={styles.featureIcon}>🍽️</Text>
             <View style={styles.featureInfo}>
                <Text style={[styles.featureName, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>The best halal restaurants near Masjid Al-Haram and Masjid Nabawi</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutRestaurantsDesc")}</Text>
             </View>
           </View>
 
@@ -71,7 +71,7 @@ export default function AboutScreen() {
             <Text style={styles.featureIcon}>🕋</Text>
             <View style={styles.featureInfo}>
               <Text style={[styles.featureName, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Complete step by step Umrah guide with duas in Arabic and English</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutUmrahDesc")}</Text>
             </View>
           </View>
 
@@ -79,23 +79,23 @@ export default function AboutScreen() {
             <Text style={styles.featureIcon}>☪️</Text>
             <View style={styles.featureInfo}>
               <Text style={[styles.featureName, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Full Hajj guide covering every step of the pilgrimage</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutHajjDesc")}</Text>
             </View>
           </View>
 
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🛍️</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Malls & Shopping</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Best shopping destinations near the Haram — coming soon</Text>
+              <Text style={[styles.featureName, { color: theme.text }]}>{t("mallsShopping")}</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutShoppingDesc")}</Text>
             </View>
           </View>
 
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🕌</Text>
             <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>Mosques & Ziyarat</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Historical mosques and sites to visit during your stay — coming soon</Text>
+              <Text style={[styles.featureName, { color: theme.text }]}>{t("mosquesZiyarat")}</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutZiyaratDesc")}</Text>
             </View>
           </View>
 

@@ -56,9 +56,9 @@ export default function HotelDetailScreen() {
   if (!hotel) {
     return (
       <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>Hotel not found</Text>
+        <Text style={[styles.notFoundText, { color: theme.text }]}>{t("hotelNotFound")}</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go back</Text>
+          <Text style={styles.backLink}>{t("goBack")}</Text>
         </TouchableOpacity>
       </View>
     )
@@ -160,7 +160,7 @@ export default function HotelDetailScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.viewBtn}>
-            <Text style={styles.viewBtnText}>View on Booking.com →</Text>
+            <Text style={styles.viewBtnText}>{t("viewOnBooking")}</Text>
           </TouchableOpacity>
         )}
       </View>

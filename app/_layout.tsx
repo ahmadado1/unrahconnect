@@ -1,7 +1,9 @@
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
 import { requestNotificationPermission } from "@/lib/notifications";
+import { saveReferralCode } from "@/lib/referral";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -13,52 +15,73 @@ export default function RootLayout() {
   const router = useRouter()
 
   useEffect(() => {
-  checkAuth()
-
-  // Request notification permissions
-  requestNotificationPermission()
-  if (Platform.OS === "android") {
-    Notifications.requestPermissionsAsync()
-  }
-
-  const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") {
-      setStatus("login")
-      router.replace("/auth/login")
+    checkAuth()
+  
+    // Request notification permissions
+    requestNotificationPermission()
+    if (Platform.OS === "android") {
+      Notifications.requestPermissionsAsync()
     }
-    if (event === "TOKEN_REFRESHED" && !session) {
-      clearLocalAuth()
-      setStatus("login")
-      router.replace("/auth/login")
+  
+    // Handle deep links for referral codes
+    const handleDeepLink = async (url: string) => {
+      const parsed = ExpoLinking.parse(url)
+      const ref = parsed.queryParams?.ref as string
+      if (ref) {
+        await saveReferralCode(ref)
+        console.log("Referral code saved:", ref)
+      }
     }
-  })
-
-  const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-  const identifier = response.notification.request.identifier
-  const data = response.notification.request.content.data
-
-  if (identifier === "journey-reminder") {
-    if (data?.type === "hajj") {
-      router.push("/hajj")
-    } else {
-      router.push("/umrah-guide")
+  
+    // Check for initial URL (app opened via link)
+    ExpoLinking.getInitialURL().then(url => {
+      if (url) handleDeepLink(url)
+    })
+  
+    // Listen for deep links while app is open
+    const linkingSub = ExpoLinking.addEventListener("url", ({ url }) => {
+      handleDeepLink(url)
+    })
+  
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setStatus("login")
+        router.replace("/auth/login")
+      }
+      if (event === "TOKEN_REFRESHED" && !session) {
+        clearLocalAuth()
+        setStatus("login")
+        router.replace("/auth/login")
+      }
+    })
+  
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const identifier = response.notification.request.identifier
+      const data = response.notification.request.content.data
+  
+      if (identifier === "journey-reminder") {
+        if (data?.type === "hajj") {
+          router.push("/hajj")
+        } else {
+          router.push("/umrah-guide")
+        }
+      } else if (identifier === "daily-verse") {
+        router.push("/quran")
+      } else if (identifier.startsWith("prayer-")) {
+        router.push("/(tabs)/umrah")
+      } else if (identifier === "dhikr-reminder") {
+        router.push("/duas")
+      } else if (identifier.startsWith("islamic-")) {
+        router.push("/islamic-calendar")
+      }
+    })
+  
+    return () => {
+      authListener.subscription.unsubscribe()
+      responseListener.remove()
+      linkingSub.remove()
     }
-  } else if (identifier === "daily-verse") {
-    router.push("/quran")
-  } else if (identifier.startsWith("prayer-")) {
-    router.push("/(tabs)/umrah")   // or wherever your prayer times tab is
-  } else if (identifier === "dhikr-reminder") {
-    router.push("/duas")
-  } else if (identifier.startsWith("islamic-")) {
-    router.push("/islamic-calendar")
-  }
-})
-
-  return () => {
-    authListener.subscription.unsubscribe()
-    responseListener.remove()
-  }
-}, [])
+  }, [])
 
 const checkAuth = async () => {
   try {
@@ -90,6 +113,9 @@ const checkAuth = async () => {
     setStatus("login")
   }
 }
+
+
+
 
   if (status === "loading") {
     return (

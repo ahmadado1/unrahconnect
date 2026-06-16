@@ -1,41 +1,23 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useRouter } from "expo-router"
+import { useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-const { width } = Dimensions.get("window");
-
-
+const { width } = Dimensions.get("window")
 
 const slides = [
-  {
-    id: "1",
-    emoji: "🌙",
-    title: "Welcome to UmrahConnect",
-    subtitle: "Your complete Umrah companion",
-    bg: "#1E3A5F",
-  },
-  {
-    id: "2",
-    emoji: "🕋",
-    title: "Hotels, Restaurants & Guide",
-    subtitle: "Everything you need for your blessed journey in one place",
-    bg: "#162D47",
-  },
-  {
-    id: "3",
-    emoji: "✨",
-    title: "Your journey starts here",
-    subtitle: "Find hotels, discover restaurants and learn Umrah step by step",
-    bg: "#0F1F30",
-  },
-]
+  { id: "1", emoji: "🌙", titleKey: "onboardingWelcomeTitle", subKey: "onboardingWelcomeSub" },
+  { id: "2", emoji: "🕋", titleKey: "onboardingFeaturesTitle", subKey: "onboardingFeaturesSub" },
+  { id: "3", emoji: "✨", titleKey: "onboardingJourneyTitle", subKey: "onboardingJourneySub" },
+] as const
 
 
   export default function OnboardingScreen() {
     const router = useRouter()
     const insets = useSafeAreaInsets()
+    const { t } = useTranslation()
     const [currentIndex, setCurrentIndex] = useState(0)
     const flatListRef = useRef<FlatList>(null)
 
@@ -65,11 +47,11 @@ const slides = [
             onScroll={handleScroll}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={[styles.slide, { backgroundColor: item.bg, width }]}>
+              <View style={[styles.slide, { width }]}>
                 <View style={[styles.slideContent, { paddingTop: insets.top + 40 }]}>
                   <Text style={styles.emoji}>{item.emoji}</Text>
-                  <Text style={styles.title}>{item.title}</Text>
-                  <Text style={styles.subtitle}>{item.subtitle}</Text>
+                  <Text style={styles.title}>{t(item.titleKey)}</Text>
+                  <Text style={styles.subtitle}>{t(item.subKey)}</Text>
                 </View>
               </View>
             )}
@@ -94,7 +76,7 @@ const slides = [
                 onPress={handleNext}
             >
                 <Text style={styles.btnText}>
-                {currentIndex === slides.length - 1 ? "Get Started" : "Next →"}
+                {currentIndex === slides.length - 1 ? t("getStarted") : t("nextArrow")}
                 </Text>
             </TouchableOpacity>
 
@@ -106,7 +88,7 @@ const slides = [
 const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: "#1E3A5F" },
   
-    slide: { flex: 1, alignItems: "center", justifyContent: "center" },
+    slide: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#1E3A5F" },
     slideContent: { alignItems: "center", paddingHorizontal: 40 },
     emoji: { fontSize: 80, marginBottom: 32 },
     title: { fontSize: 28, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 16 },

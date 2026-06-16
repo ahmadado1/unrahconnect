@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import { getPendingReferral, linkPilgrimToAgent } from "@/lib/referral"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -73,6 +74,11 @@ export default function SetupScreen() {
         })
         router.replace("/auth/plans" as any)
       } else {
+        // Pilgrim — check for pending referral code
+        const pendingRef = await getPendingReferral()
+        if (pendingRef) {
+          await linkPilgrimToAgent(pendingRef)
+        }
         router.replace("/(tabs)")
       }
     } catch {
