@@ -161,6 +161,7 @@ const checkAuth = async () => {
           <Stack.Screen name="agent/dashboard" />
           <Stack.Screen name="agent/index" />
           <Stack.Screen name="agent/[id]" />
+          <Stack.Screen name="join" />
         </Stack>
 
         {status === "onboarding" && <Redirect href="/onboarding" />}
