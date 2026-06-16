@@ -210,9 +210,14 @@ const fetchPrayerTimes = async () => {
     }
 
     const today = new Date()
-    const res = await fetch(
-      `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
-    )
+
+    // Detect if user is in Saudi Arabia by coordinates
+      const inSaudiArabia = lat >= 16.0 && lat <= 32.0 && lng >= 36.0 && lng <= 56.0
+      const method = inSaudiArabia ? 4 : 5 // 4=Umm Al-Qura (Saudi), 5=Egyptian Authority
+
+      const res = await fetch(
+        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=${method}`
+      )
     const data = await res.json()
 
     if (data.code === 200) {

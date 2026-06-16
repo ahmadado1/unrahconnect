@@ -161,6 +161,23 @@ type Agent = {
                     </View>
                     </View>
 
+                    {/* Services */}
+                    <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>Services Offered</Text>
+                    {[
+                        { icon: "airplane-outline", label: "Flight Packages" },
+                        { icon: "bed-outline", label: "Hotel Bookings" },
+                        { icon: "document-text-outline", label: "Visa Assistance" },
+                        { icon: "people-outline", label: "Group Tours" },
+                        { icon: "shield-checkmark-outline", label: "Full Umrah Package" },
+                    ].map((service, i) => (
+                        <View key={i} style={styles.detailRow}>
+                        <Ionicons name={service.icon as any} size={16} color="#C9A84C" />
+                        <Text style={[styles.detailText, { color: theme.text }]}>{service.label}</Text>
+                        </View>
+                    ))}
+                    </View>
+
                     {/* Contact buttons */}
                     <View style={styles.contactSection}>
                     <Text style={[styles.cardTitle, { color: theme.text, marginHorizontal: 16, marginBottom: 12 }]}>

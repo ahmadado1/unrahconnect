@@ -2,100 +2,80 @@ import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const PLANS = [
   {
     id: "basic",
-    name: "Basic",
+    nameKey: "planBasicName",
     price: "$49",
-    period: "/ month",
-    description: "Perfect for small agencies",
-    features: [
-      "Listed in UmrahConnect app",
-      "Up to 20 active clients",
-      "Hotel booking commissions",
-      "Verified agency badge",
-      "Email support",
-    ],
+    periodKey: "perMonth",
+    descriptionKey: "planBasicDesc",
+    featureKeys: ["planBasicFeature1", "planBasicFeature2", "planBasicFeature3", "planBasicFeature4", "planBasicFeature5"],
     popular: false,
     color: "#1E3A5F",
   },
   {
     id: "pro",
-    name: "Pro",
+    nameKey: "planProName",
     price: "$99",
-    period: "/ month",
-    description: "For growing agencies",
-    features: [
-      "Everything in Basic",
-      "Up to 100 active clients",
-      "Flight redirect commissions",
-      "Priority listing in app",
-      "Analytics dashboard",
-      "Priority support",
-    ],
+    periodKey: "perMonth",
+    descriptionKey: "planProDesc",
+    featureKeys: ["planProFeature1", "planProFeature2", "planProFeature3", "planProFeature4", "planProFeature5", "planProFeature6"],
     popular: true,
     color: "#C9A84C",
   },
   {
     id: "enterprise",
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For large agencies",
-    features: [
-      "Everything in Pro",
-      "Unlimited clients",
-      "White-label option",
-      "Dedicated account manager",
-      "Custom integrations",
-    ],
+    nameKey: "planEnterpriseName",
+    priceKey: "planCustomPrice",
+    periodKey: "",
+    descriptionKey: "planEnterpriseDesc",
+    featureKeys: ["planEnterpriseFeature1", "planEnterpriseFeature2", "planEnterpriseFeature3", "planEnterpriseFeature4", "planEnterpriseFeature5"],
     popular: false,
     color: "#1E3A5F",
   },
-]
+] as const
 
 export default function PlansScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Text style={styles.headerTitle}>Choose Your Plan</Text>
-        <Text style={styles.headerSub}>Start with a 14-day free trial — no card needed</Text>
+        <Text style={styles.headerTitle}>{t("chooseYourPlan")}</Text>
+        <Text style={styles.headerSub}>{t("freeTrialSub")}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
-        {/* Why join section */}
         <View style={[styles.whyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.whyTitle, { color: theme.text }]}>Why list your agency?</Text>
+          <Text style={[styles.whyTitle, { color: theme.text }]}>{t("whyListAgency")}</Text>
           <View style={styles.whyRow}>
             <Ionicons name="people-outline" size={18} color="#C9A84C" />
-            <Text style={[styles.whyText, { color: theme.textSecondary }]}>Reach thousands of pilgrims searching for agents</Text>
+            <Text style={[styles.whyText, { color: theme.textSecondary }]}>{t("reachPilgrims")}</Text>
           </View>
           <View style={styles.whyRow}>
             <Ionicons name="cash-outline" size={18} color="#C9A84C" />
-            <Text style={[styles.whyText, { color: theme.textSecondary }]}>Earn commission on hotel and flight bookings</Text>
+            <Text style={[styles.whyText, { color: theme.textSecondary }]}>{t("earnCommission")}</Text>
           </View>
           <View style={styles.whyRow}>
             <Ionicons name="shield-checkmark-outline" size={18} color="#C9A84C" />
-            <Text style={[styles.whyText, { color: theme.textSecondary }]}>Get a verified badge that builds trust</Text>
+            <Text style={[styles.whyText, { color: theme.textSecondary }]}>{t("getVerified")}</Text>
           </View>
           <View style={styles.whyRow}>
             <Ionicons name="trending-up-outline" size={18} color="#C9A84C" />
-            <Text style={[styles.whyText, { color: theme.textSecondary }]}>Grow your client base with zero marketing cost</Text>
+            <Text style={[styles.whyText, { color: theme.textSecondary }]}>{t("growClients")}</Text>
           </View>
         </View>
 
-        {/* Plans */}
         {PLANS.map(plan => (
           <View
             key={plan.id}
@@ -105,28 +85,31 @@ export default function PlansScreen() {
               plan.popular && styles.planCardPopular,
             ]}
           >
-            {/* Popular badge */}
             {plan.popular && (
               <View style={styles.popularBadge}>
-                <Text style={styles.popularText}>Most Popular</Text>
+                <Text style={styles.popularText}>{t("mostPopular")}</Text>
               </View>
             )}
 
             <View style={styles.planHeader}>
-              <Text style={[styles.planName, { color: theme.text }]}>{plan.name}</Text>
+              <Text style={[styles.planName, { color: theme.text }]}>{t(plan.nameKey)}</Text>
               <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, { color: plan.popular ? "#C9A84C" : theme.text }]}>{plan.price}</Text>
-                <Text style={[styles.planPeriod, { color: theme.textSecondary }]}>{plan.period}</Text>
+                <Text style={[styles.planPrice, { color: plan.popular ? "#C9A84C" : theme.text }]}>
+                  {"priceKey" in plan ? t(plan.priceKey) : plan.price}
+                </Text>
+                {plan.periodKey ? (
+                  <Text style={[styles.planPeriod, { color: theme.textSecondary }]}>{t(plan.periodKey)}</Text>
+                ) : null}
               </View>
-              <Text style={[styles.planDesc, { color: theme.textSecondary }]}>{plan.description}</Text>
+              <Text style={[styles.planDesc, { color: theme.textSecondary }]}>{t(plan.descriptionKey)}</Text>
             </View>
 
             <View style={styles.planDivider} />
 
-            {plan.features.map((feature, i) => (
-              <View key={i} style={styles.featureRow}>
+            {plan.featureKeys.map((featureKey) => (
+              <View key={featureKey} style={styles.featureRow}>
                 <Ionicons name="checkmark-circle" size={16} color="#C9A84C" />
-                <Text style={[styles.featureText, { color: theme.text }]}>{feature}</Text>
+                <Text style={[styles.featureText, { color: theme.text }]}>{t(featureKey)}</Text>
               </View>
             ))}
 
@@ -138,18 +121,17 @@ export default function PlansScreen() {
               onPress={() => router.replace("/(tabs)" as any)}
             >
               <Text style={[styles.planBtnText, plan.popular && { color: "#1E3A5F" }]}>
-                {plan.id === "enterprise" ? "Contact Us" : "Start Free Trial"}
+                {plan.id === "enterprise" ? t("contactUs2") : t("startFreeTrial")}
               </Text>
             </TouchableOpacity>
           </View>
         ))}
 
-        {/* Skip for now */}
         <TouchableOpacity
           style={styles.skipBtn}
           onPress={() => router.replace("/(tabs)")}
         >
-          <Text style={[styles.skipText, { color: theme.textSecondary }]}>Skip for now — decide later</Text>
+          <Text style={[styles.skipText, { color: theme.textSecondary }]}>{t("skipForNow")}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 60 }} />
