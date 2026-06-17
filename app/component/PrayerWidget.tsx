@@ -152,23 +152,31 @@ useEffect(() => {
   }, [])
 
   useEffect(() => {
-  if (!prayerTimes) return
-  const interval = setInterval(() => {
-    const now = new Date()
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
-    for (const name of PRAYER_NAMES) {
-      const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
-      // Fire if within 2 minutes of prayer time
-      if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 2 && !shownPopups.has(name)) {
-        setPrayerPopup(name)
-        setShownPopups(prev => new Set([...prev, name]))
-        playAdhan()
-        break
+    if (!prayerTimes) return
+  
+    const checkPrayer = () => {
+      const now = new Date()
+      const nowMinutes = now.getHours() * 60 + now.getMinutes()
+      const nowSeconds = now.getSeconds()
+  
+      for (const name of PRAYER_NAMES) {
+        const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+        // Fire exactly at prayer time — window extended to 10 minutes
+        if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 10 && !shownPopups.has(name)) {
+          setPrayerPopup(name)
+          setShownPopups(prev => new Set([...prev, name]))
+          break
+        }
       }
     }
-  }, 10000)
-  return () => clearInterval(interval)
-}, [prayerTimes, shownPopups])
+  
+    // Check immediately when prayer times load
+    checkPrayer()
+  
+    // Then check every 30 seconds — much more responsive
+    const interval = setInterval(checkPrayer, 30000)
+    return () => clearInterval(interval)
+  }, [prayerTimes, shownPopups])
 
 useEffect(() => {
   const now = new Date()
@@ -412,14 +420,12 @@ const fetchPrayerTimes = async () => {
             <Text style={styles.popupDuaTranslation}>{prayerPopup ? PRAYER_INFO[prayerPopup]?.duaTranslation : ""}</Text>
 
             <TouchableOpacity style={styles.popupBtn} onPress={() => {
-              player.pause()
               setPrayerPopup(null)
             }}>
               <Text style={styles.popupBtnText}>Pray Now</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.popupBtnSecondary} onPress={() => {
-              player.pause()
               const snoozed = prayerPopup
               setPrayerPopup(null)
               setTimeout(() => setPrayerPopup(snoozed), 5 * 60 * 1000)

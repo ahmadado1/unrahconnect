@@ -1,11 +1,13 @@
 import { useTheme } from "@/context/themeContext"
+import i18n from "@/i18n"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import LanguageDropdown from "../components/LanguageDropdown"
 import { supabase } from "../../lib/supabase"
 
 
@@ -28,6 +30,18 @@ export default function SetupScreen() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [selectedLang, setSelectedLang] = useState(i18n.language || "en")
+  const [langOpen, setLangOpen] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const saved = user?.user_metadata?.language
+      if (saved && typeof saved === "string") {
+        setSelectedLang(saved)
+        i18n.changeLanguage(saved)
+      }
+    })
+  }, [])
 
   const handleContinue = async () => {
     if (!fullName || !phone || !nationality) {
@@ -52,6 +66,7 @@ export default function SetupScreen() {
           phone,
           nationality,
           gender,
+          language: selectedLang,
           user_type: userType,
           agency_name: userType === "agent" ? agencyName : null,
           agency_country: userType === "agent" ? agencyCountry : null,
@@ -112,6 +127,13 @@ export default function SetupScreen() {
 
         {step === 1 && (
           <>
+            <LanguageDropdown
+              value={selectedLang}
+              onChange={setSelectedLang}
+              open={langOpen}
+              onToggle={() => setLangOpen(open => !open)}
+            />
+
             <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t("iAmA")}</Text>
 
             <TouchableOpacity
@@ -156,7 +178,10 @@ export default function SetupScreen() {
 
             <TouchableOpacity
               style={[styles.btn, !userType && { opacity: 0.5 }]}
-              onPress={() => userType && setStep(2)}
+              onPress={() => {
+                setLangOpen(false)
+                if (userType) setStep(2)
+              }}
               disabled={!userType}
             >
               <Text style={styles.btnText}>{t("continueBtn")}</Text>

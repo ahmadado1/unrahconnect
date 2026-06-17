@@ -1,6 +1,12 @@
 import i18n from "@/i18n"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Notifications from "expo-notifications"
+
+async function getAdhanSound(): Promise<string> {
+  const selectedAdhan = (await AsyncStorage.getItem("selected_adhan")) || "1"
+  return `azan${selectedAdhan}.mp3`
+}
 
 // How notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -35,6 +41,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 export async function scheduleDailyVerseNotification() {
   await Notifications.cancelScheduledNotificationAsync("daily-verse")
+  const adhanSound = await getAdhanSound()
 
   await Notifications.scheduleNotificationAsync({
     identifier: "daily-verse",
@@ -49,7 +56,7 @@ export async function scheduleDailyVerseNotification() {
         : i18n.language === "tr" ? "Günlük Kuran ayetiniz hazır. Okumak için UmrahConnect'i açın."
         : i18n.language === "ur" ? "آپ کی روزانہ کی قرآنی آیت تیار ہے۔ پڑھنے کے لیے UmrahConnect کھولیں۔"
         : "Your daily Quran verse is ready. Open UmrahConnect to read it.",
-      sound: true,
+      sound: adhanSound,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -67,7 +74,9 @@ export async function schedulePrayerNotifications(prayerTimes: {
   asr: string
   maghrib: string
   isha: string
-}) {
+}, selectedAdhan?: string) {
+  const adhanSound = selectedAdhan ? `azan${selectedAdhan}.mp3` : await getAdhanSound()
+
   const scheduled = await Notifications.getAllScheduledNotificationsAsync()
   for (const notif of scheduled) {
     if (notif.identifier.startsWith("prayer-")) {
@@ -101,7 +110,7 @@ export async function schedulePrayerNotifications(prayerTimes: {
         : i18n.language === "ur"
         ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر 🕌`
         : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
-        sound: true,
+        sound: adhanSound,
         data: { screen: "prayer", prayerName: prayer.name },
       },
       trigger: {

@@ -135,6 +135,9 @@ export default function HomeScreen() {
   const [bookings, setBookings] = useState<any[]>([])
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const [user, setUser] = useState<any>(null)
+  const [isAgent, setIsAgent] = useState(false)
+  const [agentStats, setAgentStats] = useState({ bookings: 0, clients: 0, revenue: 0 })
 
   // Location-based data
   const [hijriDate, setHijriDate] = useState({ day: "--", month: "---", year: "----" })
@@ -145,7 +148,28 @@ export default function HomeScreen() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) setUserName(user.user_metadata?.full_name?.split(" ")[0] || "")
+      if (user) {
+        setUser(user)
+        setUserName(user.user_metadata?.full_name?.split(" ")[0] || "")
+        setIsAgent(user.user_metadata?.user_type === "agent")
+        if (user.user_metadata?.user_type === "agent") {
+          const { data: agentRow, error } = await supabase
+            .from("agents")
+            .select("bookings, pilgrims_managed")
+            .eq("user_id", user.id)
+            .single()
+          
+          
+          
+            if (agentRow) {
+              setAgentStats({
+                bookings: agentRow.bookings || 0,
+                clients: agentRow.pilgrims_managed || 0,
+                revenue: 0,
+              })
+            }
+        }
+      }
     }
     getUser()
   }, [])
@@ -341,11 +365,34 @@ export default function HomeScreen() {
         <ScrollView showsVerticalScrollIndicator={false}  bounces={false}>
 
         {/* ── HERO BANNER ── */}
-        <View style={styles.heroBanner}>
-          <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
-          <Text style={styles.heroTitle}>{t("whereGlobalizationMatters")}</Text>
-          <Text style={styles.heroSub}>{t("spiritualSub")}</Text>
-        </View>
+        {isAgent ? (
+            <TouchableOpacity
+              style={styles.heroBanner}
+              onPress={() => router.push("/agent/dashboard" as any)}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#C9A84C", alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: "#1E3A5F" }}>
+                    {user?.user_metadata?.agency_name?.[0]?.toUpperCase() || "A"}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.heroWelcome}>TRAVEL AGENT</Text>
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
+                    {user?.user_metadata?.agency_name || "My Agency"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#C9A84C" style={{ marginLeft: "auto" }} />
+              </View>
+              <Text style={styles.heroSub}>Tap to open your agency dashboard →</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.heroBanner}>
+              <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
+              <Text style={styles.heroTitle}>{t("whereGlobalizationMatters")}</Text>
+              <Text style={styles.heroSub}>{t("spiritualSub")}</Text>
+            </View>
+          )}
 
         {/* ── TODAY AT A GLANCE ── */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("todayAtAGlance")}</Text>

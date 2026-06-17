@@ -1,5 +1,4 @@
 import { useTheme } from "@/context/themeContext";
-import i18n from "@/i18n";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -38,7 +37,6 @@ export default function LoginScreen() {
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
   const { t } = useTranslation()
-  const [selectedLang, setSelectedLang] = useState("en")
 
   // Configure Google Sign In on mount
   useEffect(() => {
@@ -87,7 +85,7 @@ export default function LoginScreen() {
     if (isSignUp) {
       const { error: signUpError } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName, gender, language: selectedLang } }
+        options: { data: { full_name: fullName, gender } }
       })
       if (signUpError) {
         if (signUpError.message.includes("already registered") || signUpError.message.includes("already exists")) {
@@ -291,43 +289,6 @@ const handleGoogleSignIn = async () => {
               </View>
             )}
 
-            {/* Language */}
-            {isSignUp && (
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>Language</Text>
-                <View style={styles.langRow}>
-                  {[
-                    { code: "en", label: "🇬🇧 English" },
-                    { code: "ar", label: "🇸🇦 العربية" },
-                    { code: "fr", label: "🇫🇷 Français" },
-                    { code: "ur", label: "🇵🇰 اردو" },
-                    { code: "tr", label: "🇹🇷 Türkçe" },
-                  ].map(lang => (
-                    <TouchableOpacity
-                      key={lang.code}
-                      style={[
-                        styles.langBtn,
-                        { borderColor: theme.border, backgroundColor: theme.card },
-                        selectedLang === lang.code && styles.langBtnActive
-                      ]}
-                      onPress={() => {
-                        setSelectedLang(lang.code)
-                        i18n.changeLanguage(lang.code)
-                      }}
-                    >
-                      <Text style={[
-                        styles.langBtnText,
-                        { color: theme.textSecondary },
-                        selectedLang === lang.code && styles.langBtnTextActive
-                      ]}>
-                        {lang.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
             {/* Email */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.text }]}>{t("emailLabel")}</Text>
@@ -450,9 +411,4 @@ const styles = StyleSheet.create({
   googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, borderRadius: 25, padding: 14, borderWidth: 0.5, marginBottom: 16 },
   googleIcon: { fontSize: 16, fontWeight: "bold", color: "#4285F4" },
   googleBtnText: { fontSize: 15, fontWeight: "500" },
-  langRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  langBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  langBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
-  langBtnText: { fontSize: 12 },
-  langBtnTextActive: { color: "#fff" },
 })
