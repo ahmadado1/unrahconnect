@@ -2,14 +2,14 @@ import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
-import { mushafPages } from "../components/mushafPages"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -21,11 +21,249 @@ type Verse = {
   page: number
 }
 
-// ─── MUSHAF VIEW ─────────────────────────────────────────────────────────────
+type MushafWord = {
+  text_uthmani: string
+  line_number: number
+  page_number: number
+  char_type_name: string
+  position: number
+}
 
-// ─── MUSHAF VIEW ─────────────────────────────────────────────────────────────
+type MushafVerse = {
+  verse_number: number
+  verse_key: string
+  juz_number: number
+  words: MushafWord[]
+}
 
-// ─── MUSHAF VIEW ─────────────────────────────────────────────────────────────
+type MushafPageData = {
+  verses: MushafVerse[]
+  juzNumber: number
+  startingSurahs: number[]
+}
+
+type LineItem =
+  | { type: "word"; text: string; key: string }
+  | { type: "end"; verseNumber: number; key: string }
+
+type PageLine = {
+  lineNumber: number
+  items: LineItem[]
+}
+
+const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
+const MUSHAF_PAGE_COUNT = 604
+const { width: SCREEN_WIDTH } = Dimensions.get("window")
+
+// ─── MUSHAF HELPERS ──────────────────────────────────────────────────────────
+
+async function fetchMushafPage(page: number): Promise<MushafPageData> {
+  const cacheKey = `quran_page_${page}`
+
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey)
+    if (cached) return JSON.parse(cached)
+  } catch {}
+
+  const url =
+    `https://api.quran.com/api/v4/verses/by_page/${page}?words=true&word_fields=text_uthmani,line_number,page_number`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+
+  const json = await res.json()
+  const verses: MushafVerse[] = json.verses ?? []
+  const data: MushafPageData = {
+    verses,
+    juzNumber: verses[0]?.juz_number ?? 1,
+    startingSurahs: verses
+      .filter(v => v.verse_number === 1)
+      .map(v => parseInt(v.verse_key.split(":")[0], 10)),
+  }
+
+  try {
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(data))
+  } catch {}
+
+  return data
+}
+
+function buildPageLines(verses: MushafVerse[]): PageLine[] {
+  const map = new Map<number, LineItem[]>()
+
+  for (const verse of verses) {
+    for (const word of verse.words) {
+      const lineNumber = word.line_number
+      if (!map.has(lineNumber)) map.set(lineNumber, [])
+
+      const items = map.get(lineNumber)!
+      if (word.char_type_name === "end") {
+        items.push({
+          type: "end",
+          verseNumber: verse.verse_number,
+          key: `${verse.verse_key}-end`,
+        })
+      } else {
+        items.push({
+          type: "word",
+          text: word.text_uthmani,
+          key: `${verse.verse_key}-${word.position}`,
+        })
+      }
+    }
+  }
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([lineNumber, items]) => ({ lineNumber, items }))
+}
+
+function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean }) {
+  if (!name) return null
+
+  return (
+    <View style={mStyles.surahBanner}>
+      <View style={mStyles.surahBannerInner}>
+        <View style={mStyles.surahBannerDiamond} />
+        <Text
+          style={[
+            mStyles.surahBannerText,
+            fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+          ]}
+        >
+          {name}
+        </Text>
+        <View style={mStyles.surahBannerDiamond} />
+      </View>
+    </View>
+  )
+}
+
+function MushafPageContent({
+  pageNumber,
+  fontsLoaded,
+  surahNames,
+}: {
+  pageNumber: number
+  fontsLoaded: boolean
+  surahNames: Record<number, string>
+}) {
+  const [pageData, setPageData] = useState<MushafPageData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+
+    fetchMushafPage(pageNumber)
+      .then(data => {
+        if (!cancelled) {
+          setPageData(data)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(true)
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [pageNumber])
+
+  if (loading) {
+    return (
+      <View style={mStyles.pageLoading}>
+        <ActivityIndicator color="#8B6914" size="large" />
+      </View>
+    )
+  }
+
+  if (error || !pageData) {
+    return (
+      <View style={mStyles.pageLoading}>
+        <Text style={mStyles.pageError}>Unable to load page {pageNumber}</Text>
+      </View>
+    )
+  }
+
+  const primarySurah = parseInt(pageData.verses[0]?.verse_key.split(":")[0] ?? "1", 10)
+  const primarySurahName = surahNames[primarySurah] ?? ""
+  const lines = buildPageLines(pageData.verses)
+
+  return (
+    <ScrollView
+      style={mStyles.pageScroll}
+      contentContainerStyle={mStyles.pageScrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={mStyles.pageFrame}>
+        <View style={mStyles.ornamentTop}>
+          <View style={mStyles.borderLineOuter} />
+          <View style={mStyles.borderLineInner} />
+        </View>
+
+        <View style={mStyles.metaRow}>
+          <Text style={mStyles.metaText}>Juz {pageData.juzNumber}</Text>
+          <Text style={mStyles.metaText}>{pageNumber}</Text>
+          <Text style={[mStyles.metaText, mStyles.metaSurah]}>{primarySurahName}</Text>
+        </View>
+
+        {pageData.startingSurahs.map(surahNum => (
+          <View key={`surah-start-${surahNum}`}>
+            <SurahBanner name={surahNames[surahNum] ?? ""} fontsLoaded={fontsLoaded} />
+            {surahNum !== 9 && surahNum !== 1 && (
+              <View style={mStyles.bismillahRow}>
+                <Text
+                  style={[
+                    mStyles.bismillahText,
+                    fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+                  ]}
+                >
+                  {BISMILLAH}
+                </Text>
+              </View>
+            )}
+          </View>
+        ))}
+
+        {lines.map((line, idx) => (
+          <View
+            key={line.lineNumber}
+            style={[mStyles.lineRow, idx === lines.length - 1 && mStyles.lineRowLast]}
+          >
+            {line.items.map(item =>
+              item.type === "word" ? (
+                <Text
+                  key={item.key}
+                  style={[
+                    mStyles.word,
+                    fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+                  ]}
+                >
+                  {item.text}
+                </Text>
+              ) : (
+                <View key={item.key} style={mStyles.verseEndBadge}>
+                  <Text style={mStyles.verseEndText}>{item.verseNumber}</Text>
+                </View>
+              )
+            )}
+          </View>
+        ))}
+
+        <View style={mStyles.ornamentBottom}>
+          <View style={mStyles.borderLineInner} />
+          <View style={mStyles.borderLineOuter} />
+        </View>
+      </View>
+    </ScrollView>
+  )
+}
 
 function MushafView({
   currentPage,
@@ -33,18 +271,47 @@ function MushafView({
   insets,
   router,
   setViewMode,
+  fontsLoaded,
 }: {
   currentPage: number
   setCurrentPage: (p: number) => void
   insets: any
   router: any
   setViewMode: (v: "text" | "mushaf") => void
+  fontsLoaded: boolean
 }) {
   const flatListRef = useRef<FlatList>(null)
-  const pages = Array.from({ length: 604 }, (_, i) => i + 1)
-  const { width } = require("react-native").Dimensions.get("window")
+  const pages = useRef(Array.from({ length: MUSHAF_PAGE_COUNT }, (_, i) => i + 1)).current
+  const [surahNames, setSurahNames] = useState<Record<number, string>>({})
 
-  // Scroll to page when currentPage changes externally (e.g. Prev/Next buttons)
+  useEffect(() => {
+    const loadSurahNames = async () => {
+      try {
+        const cached = await AsyncStorage.getItem("quran_surahs")
+        if (cached) {
+          const map: Record<number, string> = {}
+          JSON.parse(cached).forEach((s: { number: number; name: string }) => {
+            map[s.number] = s.name
+          })
+          setSurahNames(map)
+          return
+        }
+      } catch {}
+
+      try {
+        const res = await fetch("https://api.quran.com/api/v4/chapters?language=ar")
+        const json = await res.json()
+        const map: Record<number, string> = {}
+        json.chapters?.forEach((c: { id: number; name_arabic: string }) => {
+          map[c.id] = c.name_arabic
+        })
+        setSurahNames(map)
+      } catch {}
+    }
+
+    loadSurahNames()
+  }, [])
+
   useEffect(() => {
     flatListRef.current?.scrollToIndex({
       index: currentPage - 1,
@@ -53,117 +320,80 @@ function MushafView({
   }, [currentPage])
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#F5F0E6" }}>
-
-      {/* Top bar */}
-      <View style={{
-        paddingTop: insets.top,
-        paddingHorizontal: 16,
-        paddingBottom: 8,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: "#1E3A5F",
-      }}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-        >
+    <GestureHandlerRootView style={mStyles.mushafRoot}>
+      <View style={[mStyles.mushafHeader, { paddingTop: insets.top }]}>
+        <TouchableOpacity onPress={() => router.back()} style={mStyles.mushafHeaderBtn}>
           <Ionicons name="chevron-back" size={20} color="#fff" />
-          <Text style={{ color: "#fff", fontSize: 14 }}>Quran</Text>
+          <Text style={mStyles.mushafHeaderBackText}>Quran</Text>
         </TouchableOpacity>
 
-        <View style={{ alignItems: "center" }}>
-          <Text style={{ color: "#C9A84C", fontSize: 13, fontWeight: "600" }}>
-            Page {currentPage}
-          </Text>
-          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>of 604</Text>
+        <TouchableOpacity onPress={() => setViewMode("text")} style={mStyles.mushafToggleBtn}>
+          <Ionicons name="list-outline" size={16} color="#C9A84C" />
+          <Text style={mStyles.mushafToggleText}>Verses</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        ref={flatListRef}
+        data={pages}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        initialScrollIndex={currentPage - 1}
+        keyExtractor={item => item.toString()}
+        style={mStyles.mushafPager}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
+        onMomentumScrollEnd={e => {
+          const newPage = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH) + 1
+          setCurrentPage(newPage)
+        }}
+        renderItem={({ item }) => (
+          <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
+            <MushafPageContent
+              pageNumber={item}
+              fontsLoaded={fontsLoaded}
+              surahNames={surahNames}
+            />
+          </View>
+        )}
+        onScrollToIndexFailed={info => {
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: false,
+            })
+          }, 300)
+        }}
+      />
+
+      <View style={[mStyles.navBar, { paddingBottom: insets.bottom + 6 }]}>
+        <TouchableOpacity
+          onPress={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          style={mStyles.navBtnRow}
+          disabled={currentPage <= 1}
+        >
+          <Ionicons name="chevron-back" size={18} color="#C9A84C" />
+          <Text style={mStyles.navLabel}>Prev</Text>
+        </TouchableOpacity>
+
+        <View style={mStyles.navCenter}>
+          <Text style={mStyles.navPage}>{currentPage}</Text>
+          <Text style={mStyles.navTotal}>of {MUSHAF_PAGE_COUNT}</Text>
         </View>
 
         <TouchableOpacity
-          onPress={() => setViewMode("text")}
-          style={{
-            backgroundColor: "rgba(201,168,76,0.15)",
-            borderWidth: 1,
-            borderColor: "#C9A84C",
-            borderRadius: 8,
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 4,
-          }}
+          onPress={() => setCurrentPage(Math.min(MUSHAF_PAGE_COUNT, currentPage + 1))}
+          style={mStyles.navBtnRow}
+          disabled={currentPage >= MUSHAF_PAGE_COUNT}
         >
-          <Ionicons name="list-outline" size={16} color="#C9A84C" />
-          <Text style={{ color: "#C9A84C", fontSize: 12 }}>Verses</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Horizontal paging FlatList */}
-      <FlatList
-  ref={flatListRef}
-  data={pages}
-  horizontal
-  pagingEnabled
-  showsHorizontalScrollIndicator={false}
-  initialScrollIndex={currentPage - 1}
-  keyExtractor={(item) => item.toString()}
-  style={{ flex: 1 }}           // 👈 add this
-  getItemLayout={(_, index) => ({
-    length: width,
-    offset: width * index,
-    index,
-  })}
-  onMomentumScrollEnd={(e) => {
-    const newPage = Math.round(e.nativeEvent.contentOffset.x / width) + 1
-    setCurrentPage(newPage)
-  }}
-  renderItem={({ item }) => (
-    <View style={{ width, flex: 1 }}>
-      <Image
-        source={mushafPages[item]}
-        style={{ width, flex: 1 }}
-        resizeMode="contain"
-      />
-    </View>
-  )}
-  onScrollToIndexFailed={(info) => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToIndex({
-        index: info.index,
-        animated: false,
-      })
-    }, 300)
-  }}
-/>
-
-      {/* Bottom bar */}
-      <View style={{
-        paddingBottom: insets.bottom + 6,
-        paddingTop: 10,
-        paddingHorizontal: 24,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: "#1E3A5F",
-      }}>
-        <TouchableOpacity
-          onPress={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-        >
-          <Ionicons name="chevron-back" size={18} color="#C9A84C" />
-          <Text style={{ color: "#C9A84C", fontSize: 13, fontWeight: "600" }}>Prev</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setCurrentPage(Math.min(604, currentPage + 1))}
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-        >
-          <Text style={{ color: "#C9A84C", fontSize: 13, fontWeight: "600" }}>Next</Text>
+          <Text style={mStyles.navLabel}>Next</Text>
           <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </TouchableOpacity>
       </View>
-
     </GestureHandlerRootView>
   )
 }
@@ -247,9 +477,22 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
   // ─── FETCH VERSES ──────────────────────────────────────────────────────────
 
   const fetchVerses = async () => {
-  if (!surah || Number(surah) < 1 || Number(surah) > 114) return
-  try {
-    setLoading(true)
+    if (!surah || Number(surah) < 1 || Number(surah) > 114) return
+    try {
+      setLoading(true)
+  
+      // ── Check cache first ──
+      const cacheKey = `quran_surah_${surah}_${i18n.language}`
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          setVerseList(parsed)
+          if (parsed.length > 0) setCurrentPage(parsed[0].page || 1)
+          setLoading(false)
+          // Still fetch fresh in background
+        }
+      } catch (e) {}
 
     // Try multiple APIs in order
     let combined: Verse[] = []
@@ -301,6 +544,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
 
     setVerseList(combined)
     if (combined.length > 0) setCurrentPage(combined[0].page || 1)
+
+      // ── Cache the verses ──
+        try {
+          const cacheKey = `quran_surah_${surah}_${i18n.language}`
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(combined))
+        } catch (e) {}
 
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
@@ -439,6 +688,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         insets={insets}
         router={router}
         setViewMode={setViewMode}
+        fontsLoaded={fontsLoaded}
       />
     ) : (
       <>
@@ -567,30 +817,93 @@ const styles = StyleSheet.create({
 })
 
 const mStyles = StyleSheet.create({
+  mushafRoot: {
+    flex: 1,
+    backgroundColor: "#FAF6EE",
+  },
+  mushafHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#1E3A5F",
+  },
+  mushafHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  mushafHeaderBackText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+  mushafToggleBtn: {
+    backgroundColor: "rgba(201,168,76,0.15)",
+    borderWidth: 1,
+    borderColor: "#C9A84C",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  mushafToggleText: {
+    color: "#C9A84C",
+    fontSize: 12,
+  },
+  mushafPager: {
+    flex: 1,
+  },
+  pageScroll: {
+    flex: 1,
+    backgroundColor: "#FAF6EE",
+  },
+  pageScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+  pageLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FAF6EE",
+  },
+  pageError: {
+    color: "#8B6914",
+    fontSize: 14,
+  },
   pageFrame: {
     flex: 1,
     margin: 12,
     backgroundColor: "#FAF6EE",
-    borderWidth: 1.5,
+    borderWidth: 3,
     borderColor: "#8B6914",
     borderRadius: 2,
-    paddingHorizontal: 14,   // was 10
-    paddingVertical: 10,     // was 8
-    elevation: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   metaRow: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 6,         // was 4
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+    paddingHorizontal: 4,
   },
   metaText: {
     color: "#8B6914",
-    fontSize: 12,            // was 11
+    fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.5,
   },
-  ornamentTop: { marginBottom: 8 },    // was 6
-  ornamentBottom: { marginTop: 8 },    // was 6
+  metaSurah: {
+    color: "#C9A84C",
+    maxWidth: "40%",
+    textAlign: "right",
+  },
+  ornamentTop: { marginBottom: 8 },
+  ornamentBottom: { marginTop: 8 },
   borderLineOuter: {
     height: 2,
     backgroundColor: "#8B6914",
@@ -662,21 +975,20 @@ const mStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingTop: 10,
     backgroundColor: "#1E3A5F",
-    paddingBottom: 32,
   },
-  navBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(201,168,76,0.2)",
+  navBtnRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
   },
-  navLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "600", letterSpacing: 0.8 },
-  navPage: { color: "#fff", fontSize: 24, fontWeight: "300" },
-  navTotal: { color: "rgba(255,255,255,0.4)", fontSize: 11 },
+  navCenter: {
+    alignItems: "center",
+  },
+  navLabel: { color: "#C9A84C", fontSize: 13, fontWeight: "600" },
+  navPage: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  navTotal: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
   verseEndBadge: {
     width: 32,               // was 28
     height: 32,              // was 28
