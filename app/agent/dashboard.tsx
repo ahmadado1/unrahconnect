@@ -16,6 +16,7 @@ export default function AgentDashboard() {
   const { t } = useTranslation()
   const [agent, setAgent] = useState<any>(null)
   const [agentData, setAgentData] = useState<any>(null)
+  const [pilgrims, setPilgrims] = useState<any[]>([])
 
   useEffect(() => {
     const loadAgent = async () => {
@@ -33,6 +34,28 @@ export default function AgentDashboard() {
       if (agentData) setAgentData(agentData)
     }
     loadAgent()
+
+    const loadPilgrims = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+    
+      const { data: agentRow } = await supabase
+        .from("agents")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+    
+      if (!agentRow) return
+    
+      const { data: linkedPilgrims } = await supabase
+        .from("agent_pilgrims_view")
+        .select("*")
+        .eq("agent_id", agentRow.id)
+        .order("created_at", { ascending: false })
+    
+      if (linkedPilgrims) setPilgrims(linkedPilgrims)
+    }
+    loadPilgrims()
   }, [])
 
   const shareProfile = () => {
@@ -68,7 +91,7 @@ export default function AgentDashboard() {
             <Text style={styles.statLabel}>{t("bookings")}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#1E3A5F" }]}>
-            <Text style={styles.statNum}>{agentData?.pilgrims_managed || 0}</Text>
+            <Text style={styles.statNum}>{pilgrims.length}</Text>
             <Text style={styles.statLabel}>{t("clients")}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#1E3A5F" }]}>
@@ -180,6 +203,44 @@ export default function AgentDashboard() {
           </View>
         </View>
 
+        {/* Pilgrims List */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>
+              My Pilgrims ({pilgrims.length})
+            </Text>
+
+            {pilgrims.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 20 }}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>🕋</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center" }}>
+                  No pilgrims yet. Share your referral link to get started.
+                </Text>
+              </View>
+            ) : (
+              pilgrims.map((p, i) => (
+                <View
+                  key={p.pilgrim_id}
+                  style={[styles.pilgrimRow, { borderBottomColor: theme.border, borderBottomWidth: i < pilgrims.length - 1 ? 0.5 : 0 }]}
+                >
+                  <View style={styles.pilgrimAvatar}>
+                    <Text style={styles.pilgrimAvatarText}>{i + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pilgrimId, { color: theme.text }]}>
+                      {p.pilgrim_name || "Pilgrim " + p.pilgrim_id.slice(0, 8)}
+                    </Text>
+                    <Text style={[styles.pilgrimDate, { color: theme.textSecondary }]}>
+                      {p.pilgrim_email} · Joined {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </Text>
+                  </View>
+                  <View style={styles.pilgrimBadge}>
+                    <Text style={styles.pilgrimBadgeText}>Active</Text>
+                  </View>
+                </View>
+              ))
+            )}
+        </View>
+
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
@@ -216,4 +277,11 @@ const styles = StyleSheet.create({
   codeText: { fontSize: 22, fontWeight: "bold", color: "#fff", letterSpacing: 2 },
   copyBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C9A84C", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   copyBtnText: { fontSize: 13, fontWeight: "bold", color: "#1E3A5F" },
+  pilgrimRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+  pilgrimAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" },
+  pilgrimAvatarText: { color: "#C9A84C", fontWeight: "bold", fontSize: 14 },
+  pilgrimId: { fontSize: 13, fontWeight: "600" },
+  pilgrimDate: { fontSize: 11, marginTop: 2 },
+  pilgrimBadge: { backgroundColor: "rgba(201,168,76,0.15)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  pilgrimBadgeText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
 })

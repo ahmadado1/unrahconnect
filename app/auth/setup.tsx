@@ -1,5 +1,4 @@
 import { useTheme } from "@/context/themeContext"
-import { getPendingReferral, linkPilgrimToAgent } from "@/lib/referral"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -61,25 +60,24 @@ export default function SetupScreen() {
       })
 
       if (userType === "agent") {
-        const { data: { user } } = await supabase.auth.getUser()
-        await supabase.from("agents").insert({
-          user_id: user?.id,
+        const { data: { user: freshUser } } = await supabase.auth.getUser()
+        const { error: insertError } = await supabase.from("agents").insert({
+          user_id: freshUser?.id,
           agency_name: agencyName,
           owner_name: fullName,
           phone,
-          email: user?.email,
+          email: freshUser?.email,
           nationality,
           country: agencyCountry,
           plan: "trial",
         })
-        router.replace("/auth/plans" as any)
-      } else {
-        // Pilgrim — check for pending referral code
-        const pendingRef = await getPendingReferral()
-        if (pendingRef) {
-          await linkPilgrimToAgent(pendingRef)
+        if (insertError) {
+          console.log("Agent insert error:", insertError.message)
+          // Still continue to plans even if insert fails
+        } else {
+          console.log("Agent inserted successfully")
         }
-        router.replace("/(tabs)")
+        router.replace("/auth/plans" as any)
       }
     } catch {
       setError(t("somethingWentWrong"))
