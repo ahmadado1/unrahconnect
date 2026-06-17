@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps"
+import SiteMapView from "../components/SiteMapView"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 
@@ -289,32 +289,22 @@ export default function SiteDetailScreen() {
         </TouchableOpacity>
 
         {showMap && (
-          <MapView
-            provider={PROVIDER_GOOGLE}
-            style={styles.map}
-            initialRegion={{
-              latitude: info.lat,
-              longitude: info.lng,
-              latitudeDelta: 0.008,
-              longitudeDelta: 0.008,
-            }}
-            showsUserLocation
-          >
-            <Marker
-              coordinate={{ latitude: info.lat, longitude: info.lng }}
-              title={siteName}
-              pinColor="#C9A84C"
-            />
-            {site === "haram" && HARAM_GATES.map(gate => (
-              <Marker
-                key={gate.id}
-                coordinate={{ latitude: gate.lat, longitude: gate.lng }}
-                title={t(gate.nameKey)}
-                description={t(gate.descriptionKey)}
-                onPress={() => navigateTo(gate.lat, gate.lng, t(gate.nameKey))}
-              />
-            ))}
-          </MapView>
+          <SiteMapView
+            lat={info.lat}
+            lng={info.lng}
+            title={siteName}
+            gates={
+              site === "haram"
+                ? HARAM_GATES.map(gate => ({
+                    id: gate.id,
+                    lat: gate.lat,
+                    lng: gate.lng,
+                    name: t(gate.nameKey),
+                  }))
+                : undefined
+            }
+            onNavigate={navigateTo}
+          />
         )}
 
         <TouchableOpacity
@@ -582,5 +572,4 @@ const styles = StyleSheet.create({
   gateDesc: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   specialBadge: { backgroundColor: "rgba(201,168,76,0.2)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   specialBadgeText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
-  map: { height: 250, marginHorizontal: 16, borderRadius: 12, marginBottom: 8 },
 })

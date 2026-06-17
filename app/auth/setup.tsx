@@ -73,11 +73,20 @@ export default function SetupScreen() {
         })
         if (insertError) {
           console.log("Agent insert error:", insertError.message)
-          // Still continue to plans even if insert fails
         } else {
           console.log("Agent inserted successfully")
         }
         router.replace("/auth/plans" as any)
+      } else {
+        // Pilgrim — check for pending referral code
+        const { getPendingReferral, linkPilgrimToAgent } = await import("@/lib/referral")
+        const pendingRef = await getPendingReferral()
+        console.log("Pending referral:", pendingRef)
+        if (pendingRef) {
+          await linkPilgrimToAgent(pendingRef)
+        }
+        console.log("Navigating to tabs...")
+        router.replace("/(tabs)")
       }
     } catch {
       setError(t("somethingWentWrong"))

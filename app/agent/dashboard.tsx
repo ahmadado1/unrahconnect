@@ -4,7 +4,7 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 
@@ -227,14 +227,40 @@ export default function AgentDashboard() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.pilgrimId, { color: theme.text }]}>
-                      {p.pilgrim_name || "Pilgrim " + p.pilgrim_id.slice(0, 8)}
+                      {p.pilgrim_name || "Pilgrim"}
                     </Text>
                     <Text style={[styles.pilgrimDate, { color: theme.textSecondary }]}>
-                      {p.pilgrim_email} · Joined {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {p.pilgrim_nationality} · Joined {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </Text>
                   </View>
-                  <View style={styles.pilgrimBadge}>
-                    <Text style={styles.pilgrimBadgeText}>Active</Text>
+                  <View style={styles.pilgrimActions}>
+                    {p.pilgrim_phone && (
+                      <TouchableOpacity
+                        style={styles.pilgrimActionBtn}
+                        onPress={() => {
+                          const phone = p.pilgrim_phone.replace(/\D/g, "")
+                          Linking.openURL(`https://wa.me/${phone}`)
+                        }}
+                      >
+                        <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                      </TouchableOpacity>
+                    )}
+                    {p.pilgrim_phone && (
+                      <TouchableOpacity
+                        style={styles.pilgrimActionBtn}
+                        onPress={() => Linking.openURL(`tel:${p.pilgrim_phone}`)}
+                      >
+                        <Ionicons name="call-outline" size={18} color="#C9A84C" />
+                      </TouchableOpacity>
+                    )}
+                    {p.pilgrim_email && (
+                      <TouchableOpacity
+                        style={styles.pilgrimActionBtn}
+                        onPress={() => Linking.openURL(`mailto:${p.pilgrim_email}`)}
+                      >
+                        <Ionicons name="mail-outline" size={18} color="#C9A84C" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))
@@ -284,4 +310,6 @@ const styles = StyleSheet.create({
   pilgrimDate: { fontSize: 11, marginTop: 2 },
   pilgrimBadge: { backgroundColor: "rgba(201,168,76,0.15)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   pilgrimBadgeText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
+  pilgrimActions: { flexDirection: "row", gap: 8 },
+  pilgrimActionBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(201,168,76,0.1)", alignItems: "center", justifyContent: "center" },
 })

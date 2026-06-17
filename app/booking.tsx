@@ -110,6 +110,19 @@ export default function BookingScreen() {
       })
       if (dbError) throw dbError
 
+      // Link booking to agent if pilgrim came via referral
+        const { data: pilgrimAgent } = await supabase
+        .from("pilgrim_agent")
+        .select("agent_id")
+        .eq("pilgrim_id", user.id)
+        .single()
+
+        if (pilgrimAgent?.agent_id) {
+        await supabase.rpc("increment_agent_bookings", { 
+          agent_id_input: pilgrimAgent.agent_id 
+        })
+        }
+
       let emailSent = false
       try {
         await sendBookingEmail({

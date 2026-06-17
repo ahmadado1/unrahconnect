@@ -5,6 +5,7 @@
   "guide": "Guide",
   "maps": "Cartes",
   "mapsSub": "Explorez les lieux saints et votre position",
+  "mapsNativeBuildRequired": "Reconstruisez l'application pour la carte intégrée, ou appuyez pour ouvrir Google Maps.",
   "services": "Services",
   "servicesSub": "Hôtels, restauration, guides et plus",
   "me": "Moi",

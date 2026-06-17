@@ -5,6 +5,7 @@
   "guide": "Rehber",
   "maps": "Haritalar",
   "mapsSub": "Kutsal mekanları ve konumunuzu keşfedin",
+  "mapsNativeBuildRequired": "Uygulama içi harita için uygulamayı yeniden derleyin veya Google Haritalar'ı açmak için dokunun.",
   "services": "Hizmetler",
   "servicesSub": "Oteller, yemek, rehberler ve daha fazlası",
   "me": "Ben",
