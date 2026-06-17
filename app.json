@@ -53,49 +53,57 @@
       ]
     },
     "plugins": [
-      "expo-router",
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.960037449593-nsmd655ofr73ln844jap3171d0s92o17"
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/logo.jpg",
-          "imageWidth": 250,
-          "resizeMode": "contain",
-          "backgroundColor": "#1E3A5F"
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/logo.jpg",
-          "color": "#1E3A5F",
-          "sounds": []
-        }
-      ],
-      "@react-native-community/datetimepicker",
-      "expo-font",
-      "expo-web-browser",
-      "expo-audio",
-      "expo-apple-authentication",
-      [
-  "expo-build-properties",
-  {
-    "ios": {
-      "useFrameworks": "static",
-      "deploymentTarget": "15.1"
-    },
-    "android": {
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34
+  "expo-router",
+  [
+    "react-native-maps",
+    {
+      "iosGoogleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g",
+      "androidGoogleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"
     }
-  }
-]
-    ],
+  ],
+  [
+    "@react-native-google-signin/google-signin",
+    {
+      "iosUrlScheme": "com.googleusercontent.apps.960037449593-nsmd655ofr73ln844jap3171d0s92o17"
+    }
+  ],
+  [
+    "expo-splash-screen",
+    {
+      "image": "./assets/images/logo.jpg",
+      "imageWidth": 250,
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A5F"
+    }
+  ],
+  [
+    "expo-notifications",
+    {
+      "icon": "./assets/images/logo.jpg",
+      "color": "#1E3A5F",
+      "sounds": []
+    }
+  ],
+  "@react-native-community/datetimepicker",
+  "expo-font",
+  "expo-web-browser",
+  "expo-audio",
+  "expo-apple-authentication",
+  [
+    "expo-build-properties",
+    {
+      "ios": {
+        "useFrameworks": "static",
+        "deploymentTarget": "15.1"
+      },
+      "android": {
+        "compileSdkVersion": 34,
+        "targetSdkVersion": 34
+      }
+    }
+  ]
+],
+    
     
     "experiments": {
       "typedRoutes": true,
