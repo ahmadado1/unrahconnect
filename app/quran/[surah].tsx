@@ -10,6 +10,12 @@ import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, 
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
+import {
+  fetchAndCachePage,
+  type MushafPageData,
+  type MushafVerse,
+} from "../../lib/quranPageCache"
+import { fetchAndCacheSurah, readCachedSurah } from "../../lib/quranReadCache"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -21,81 +27,56 @@ type Verse = {
   page: number
 }
 
-type MushafWord = {
-  text_uthmani: string
-  line_number: number
-  page_number: number
-  char_type_name: string
-  position: number
-}
+// MushafVerse and MushafPageData imported from lib/quranPageCache
 
-type MushafVerse = {
-  verse_number: number
-  verse_key: string
-  juz_number: number
-  words: MushafWord[]
-}
-
-type MushafPageData = {
-  verses: MushafVerse[]
-  juzNumber: number
-  startingSurahs: number[]
-}
-
-type LineItem =
+type FlowItem =
   | { type: "word"; text: string; key: string }
   | { type: "end"; verseNumber: number; key: string }
-
-type PageLine = {
-  lineNumber: number
-  items: LineItem[]
-}
+  | { type: "surahStart"; surahNumber: number; key: string }
 
 const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 const MUSHAF_PAGE_COUNT = 604
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
+const MUSHAF_INSETS = {
+  scrollPaddingH: 4,
+  frameOuterMargin: 4,
+  frameOuterBorder: 2.5,
+  frameOuterPadding: 4,
+  frameInnerBorder: 1,
+  contentPaddingH: 12,
+} as const
+
+const MUSHAF_INNER_FRAME_WIDTH =
+  SCREEN_WIDTH -
+  MUSHAF_INSETS.scrollPaddingH * 2 -
+  MUSHAF_INSETS.frameOuterMargin * 2 -
+  MUSHAF_INSETS.frameOuterBorder * 2 -
+  MUSHAF_INSETS.frameOuterPadding * 2 -
+  MUSHAF_INSETS.frameInnerBorder * 2
+
 // ─── MUSHAF HELPERS ──────────────────────────────────────────────────────────
 
 async function fetchMushafPage(page: number): Promise<MushafPageData> {
-  const cacheKey = `quran_page_${page}`
-
-  try {
-    const cached = await AsyncStorage.getItem(cacheKey)
-    if (cached) return JSON.parse(cached)
-  } catch {}
-
-  const url =
-    `https://api.quran.com/api/v4/verses/by_page/${page}?words=true&word_fields=text_uthmani,line_number,page_number`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
-
-  const json = await res.json()
-  const verses: MushafVerse[] = json.verses ?? []
-  const data: MushafPageData = {
-    verses,
-    juzNumber: verses[0]?.juz_number ?? 1,
-    startingSurahs: verses
-      .filter(v => v.verse_number === 1)
-      .map(v => parseInt(v.verse_key.split(":")[0], 10)),
-  }
-
-  try {
-    await AsyncStorage.setItem(cacheKey, JSON.stringify(data))
-  } catch {}
-
+  const data = await fetchAndCachePage(page)
+  if (!data) throw new Error(`Failed to fetch page ${page}`)
   return data
 }
 
-function buildPageLines(verses: MushafVerse[]): PageLine[] {
-  const map = new Map<number, LineItem[]>()
+function buildPageFlow(verses: MushafVerse[]): FlowItem[] {
+  const items: FlowItem[] = []
 
   for (const verse of verses) {
-    for (const word of verse.words) {
-      const lineNumber = word.line_number
-      if (!map.has(lineNumber)) map.set(lineNumber, [])
+    if (verse.verse_number === 1) {
+      const surahNumber = parseInt(verse.verse_key.split(":")[0], 10)
+      items.push({
+        type: "surahStart",
+        surahNumber,
+        key: `surah-start-${surahNumber}-${verse.verse_key}`,
+      })
+    }
 
-      const items = map.get(lineNumber)!
+    for (const word of verse.words) {
       if (word.char_type_name === "end") {
         items.push({
           type: "end",
@@ -112,9 +93,7 @@ function buildPageLines(verses: MushafVerse[]): PageLine[] {
     }
   }
 
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([lineNumber, items]) => ({ lineNumber, items }))
+  return items
 }
 
 function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean }) {
@@ -122,18 +101,86 @@ function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean
 
   return (
     <View style={mStyles.surahBanner}>
-      <View style={mStyles.surahBannerInner}>
-        <View style={mStyles.surahBannerDiamond} />
-        <Text
-          style={[
-            mStyles.surahBannerText,
-            fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-          ]}
-        >
-          {name}
-        </Text>
-        <View style={mStyles.surahBannerDiamond} />
+      <View style={mStyles.surahBannerFrame}>
+        <View style={mStyles.surahBannerInner}>
+          <View style={mStyles.surahBannerSide}>
+            <View style={mStyles.surahBannerDiamondOuter} />
+            <View style={mStyles.surahBannerDiamondInner} />
+          </View>
+          <Text
+            style={[
+              mStyles.surahBannerText,
+              fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+            ]}
+          >
+            {name}
+          </Text>
+          <View style={mStyles.surahBannerSide}>
+            <View style={mStyles.surahBannerDiamondInner} />
+            <View style={mStyles.surahBannerDiamondOuter} />
+          </View>
+        </View>
       </View>
+    </View>
+  )
+}
+
+function MushafTextFlow({
+  items,
+  fontsLoaded,
+  surahNames,
+}: {
+  items: FlowItem[]
+  fontsLoaded: boolean
+  surahNames: Record<number, string>
+}) {
+  return (
+    <View style={mStyles.textFlow}>
+      {items.map(item => {
+        if (item.type === "surahStart") {
+          const { surahNumber } = item
+          return (
+            <View key={item.key} style={mStyles.flowSurahBlock}>
+              <SurahBanner
+                name={surahNames[surahNumber] ?? ""}
+                fontsLoaded={fontsLoaded}
+              />
+              {surahNumber !== 9 && surahNumber !== 1 && (
+                <View style={mStyles.bismillahRow}>
+                  <Text
+                    style={[
+                      mStyles.bismillahText,
+                      fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+                    ]}
+                  >
+                    {BISMILLAH}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )
+        }
+
+        if (item.type === "word") {
+          return (
+            <Text
+              key={item.key}
+              style={[
+                mStyles.word,
+                fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+              ]}
+            >
+              {item.text}
+            </Text>
+          )
+        }
+
+        return (
+          <View key={item.key} style={mStyles.verseEndBadge}>
+            <Text style={mStyles.verseEndText}>{item.verseNumber}</Text>
+          </View>
+        )
+      })}
     </View>
   )
 }
@@ -147,6 +194,7 @@ function MushafPageContent({
   fontsLoaded: boolean
   surahNames: Record<number, string>
 }) {
+  const scrollRef = useRef<ScrollView>(null)
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -175,93 +223,74 @@ function MushafPageContent({
     }
   }, [pageNumber])
 
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+  }, [pageNumber])
+
   if (loading) {
     return (
-      <View style={mStyles.pageLoading}>
-        <ActivityIndicator color="#8B6914" size="large" />
+      <View style={mStyles.pageContainer}>
+        <View style={mStyles.pageLoading}>
+          <ActivityIndicator color="#8B6914" size="large" />
+        </View>
       </View>
     )
   }
 
   if (error || !pageData) {
     return (
-      <View style={mStyles.pageLoading}>
-        <Text style={mStyles.pageError}>Unable to load page {pageNumber}</Text>
+      <View style={mStyles.pageContainer}>
+        <View style={mStyles.pageLoading}>
+          <Text style={mStyles.pageError}>Unable to load page {pageNumber}</Text>
+        </View>
       </View>
     )
   }
 
   const primarySurah = parseInt(pageData.verses[0]?.verse_key.split(":")[0] ?? "1", 10)
   const primarySurahName = surahNames[primarySurah] ?? ""
-  const lines = buildPageLines(pageData.verses)
+  const flowItems = buildPageFlow(pageData.verses)
 
   return (
-    <ScrollView
-      style={mStyles.pageScroll}
-      contentContainerStyle={mStyles.pageScrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={mStyles.pageFrame}>
-        <View style={mStyles.ornamentTop}>
-          <View style={mStyles.borderLineOuter} />
-          <View style={mStyles.borderLineInner} />
-        </View>
-
-        <View style={mStyles.metaRow}>
-          <Text style={mStyles.metaText}>Juz {pageData.juzNumber}</Text>
-          <Text style={mStyles.metaText}>{pageNumber}</Text>
-          <Text style={[mStyles.metaText, mStyles.metaSurah]}>{primarySurahName}</Text>
-        </View>
-
-        {pageData.startingSurahs.map(surahNum => (
-          <View key={`surah-start-${surahNum}`}>
-            <SurahBanner name={surahNames[surahNum] ?? ""} fontsLoaded={fontsLoaded} />
-            {surahNum !== 9 && surahNum !== 1 && (
-              <View style={mStyles.bismillahRow}>
-                <Text
-                  style={[
-                    mStyles.bismillahText,
-                    fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-                  ]}
-                >
-                  {BISMILLAH}
-                </Text>
-              </View>
-            )}
-          </View>
-        ))}
-
-        {lines.map((line, idx) => (
-          <View
-            key={line.lineNumber}
-            style={[mStyles.lineRow, idx === lines.length - 1 && mStyles.lineRowLast]}
-          >
-            {line.items.map(item =>
-              item.type === "word" ? (
-                <Text
-                  key={item.key}
-                  style={[
-                    mStyles.word,
-                    fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-                  ]}
-                >
-                  {item.text}
-                </Text>
-              ) : (
-                <View key={item.key} style={mStyles.verseEndBadge}>
-                  <Text style={mStyles.verseEndText}>{item.verseNumber}</Text>
-                </View>
-              )
-            )}
-          </View>
-        ))}
-
-        <View style={mStyles.ornamentBottom}>
-          <View style={mStyles.borderLineInner} />
-          <View style={mStyles.borderLineOuter} />
-        </View>
+    <View style={mStyles.pageContainer}>
+      <View style={mStyles.pageMetaBar}>
+        <Text style={mStyles.metaText}>Juz {pageData.juzNumber}</Text>
+        <Text style={mStyles.metaText}>{pageNumber}</Text>
+        <Text style={[mStyles.metaText, mStyles.metaSurah]} numberOfLines={1}>
+          {primarySurahName}
+        </Text>
       </View>
-    </ScrollView>
+
+      <ScrollView
+        ref={scrollRef}
+        style={mStyles.pageScroll}
+        contentContainerStyle={mStyles.pageScrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
+        <View style={mStyles.pageFrameOuter}>
+          <View style={mStyles.pageFrameInner}>
+            <View style={mStyles.pageContent}>
+              <View style={mStyles.ornamentTop}>
+                <View style={mStyles.borderLineOuter} />
+                <View style={mStyles.borderLineInner} />
+              </View>
+
+              <MushafTextFlow
+                items={flowItems}
+                fontsLoaded={fontsLoaded}
+                surahNames={surahNames}
+              />
+
+              <View style={mStyles.ornamentBottom}>
+                <View style={mStyles.borderLineInner} />
+                <View style={mStyles.borderLineOuter} />
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -338,6 +367,7 @@ function MushafView({
         data={pages}
         horizontal
         pagingEnabled
+        nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={currentPage - 1}
         keyExtractor={item => item.toString()}
@@ -352,13 +382,11 @@ function MushafView({
           setCurrentPage(newPage)
         }}
         renderItem={({ item }) => (
-          <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
-            <MushafPageContent
-              pageNumber={item}
-              fontsLoaded={fontsLoaded}
-              surahNames={surahNames}
-            />
-          </View>
+          <MushafPageContent
+            pageNumber={item}
+            fontsLoaded={fontsLoaded}
+            surahNames={surahNames}
+          />
         )}
         onScrollToIndexFailed={info => {
           setTimeout(() => {
@@ -430,16 +458,6 @@ export default function SurahScreen() {
     type: string
   }>()
 
-  const getTranslationEdition = () => {
-  switch (i18n.language) {
-    case "fr": return "fr.hamidullah"
-    case "ur": return "ur.jalandhry"
-    case "tr": return "tr.diyanet"
-    case "ar": return "ar.muyassar"
-    default: return "en.sahih"
-  }
-}
-
   useEffect(() => {
   if (!surah) return
   fetchVerses()
@@ -476,102 +494,51 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
 
   // ─── FETCH VERSES ──────────────────────────────────────────────────────────
 
+  const applyReadingProgress = async (verses: Verse[]) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    const { data: progress } = await supabase
+      .from("quran_progress")
+      .select("verse_number")
+      .eq("user_id", session.user.id)
+      .eq("surah_number", Number(surah))
+      .maybeSingle()
+
+    if (progress?.verse_number) {
+      const idx = verses.findIndex(v => v.number === progress.verse_number)
+      if (idx >= 0) setInitialIndex(idx)
+    }
+  }
+
   const fetchVerses = async () => {
     if (!surah || Number(surah) < 1 || Number(surah) > 114) return
     try {
       setLoading(true)
-  
-      // ── Check cache first ──
-      const cacheKey = `quran_surah_${surah}_${i18n.language}`
-      try {
-        const cached = await AsyncStorage.getItem(cacheKey)
-        if (cached) {
-          const parsed = JSON.parse(cached)
-          setVerseList(parsed)
-          if (parsed.length > 0) setCurrentPage(parsed[0].page || 1)
-          setLoading(false)
-          // Still fetch fresh in background
-        }
-      } catch (e) {}
 
-    // Try multiple APIs in order
-    let combined: Verse[] = []
-
-    // API 1: alquran.cloud single edition (Arabic only first)
-    try {
-      const arabicRes = await fetch(
-        `https://api.alquran.cloud/v1/surah/${surah}/quran-uthmani`
-      )
-      const arabicData = await arabicRes.json()
-      
-      if (arabicData.status === "OK" && arabicData.data?.ayahs) {
-        // Try to get translation separately
-        let translations: string[] = []
-        try {
-          const transRes = await fetch(
-            `https://api.alquran.cloud/v1/surah/${surah}/${getTranslationEdition()}`
-          )
-          const transData = await transRes.json()
-          if (transData.status === "OK") {
-            translations = transData.data.ayahs.map((a: any) => a.text)
-          }
-        } catch {
-          // Translation failed — use empty strings
-        }
-
-        combined = arabicData.data.ayahs.map((ayah: any, index: number) => {
-          let text = ayah.text
-          if (ayah.numberInSurah === 1 && Number(surah) !== 1 && Number(surah) !== 9) {
-            const words = text.split(" ")
-            if (words.length > 4) text = words.slice(4).join(" ").trim()
-          }
-          return {
-            number: ayah.numberInSurah,
-            numberInQuran: ayah.number,
-            text,
-            translation: translations[index] ?? "",
-            page: ayah.page,
-          }
-        })
+      const cached = await readCachedSurah(Number(surah), i18n.language)
+      if (cached?.length) {
+        setVerseList(cached)
+        setCurrentPage(cached[0].page || 1)
+        await applyReadingProgress(cached)
+        return
       }
-    } catch (e) {
-      console.log("Primary API failed:", e)
-    }
 
-    if (combined.length === 0) {
+      const combined = await fetchAndCacheSurah(Number(surah), i18n.language)
+      if (combined?.length) {
+        setVerseList(combined)
+        setCurrentPage(combined[0].page || 1)
+        await applyReadingProgress(combined)
+        return
+      }
+
       throw new Error("All APIs failed")
+    } catch (e) {
+      console.log("Quran API error:", e)
+    } finally {
+      setLoading(false)
     }
-
-    setVerseList(combined)
-    if (combined.length > 0) setCurrentPage(combined[0].page || 1)
-
-      // ── Cache the verses ──
-        try {
-          const cacheKey = `quran_surah_${surah}_${i18n.language}`
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(combined))
-        } catch (e) {}
-
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      const { data: progress } = await supabase
-        .from("quran_progress")
-        .select("verse_number")
-        .eq("user_id", session.user.id)
-        .eq("surah_number", Number(surah))
-        .maybeSingle()
-
-      if (progress?.verse_number) {
-        const idx = combined.findIndex(v => v.number === progress.verse_number)
-        if (idx >= 0) setInitialIndex(idx)
-      }
-    }
-  } catch (e) {
-    console.log("Quran API error:", e)
-    setVerseList([])
-  } finally {
-    setLoading(false)
   }
-}
 
 
   // ─── FETCH BOOKMARKS ───────────────────────────────────────────────────────
@@ -717,6 +684,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               Loading {name}...
             </Text>
           </View>
+        ) : verseList.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <Ionicons name="cloud-offline-outline" size={40} color={theme.textSecondary} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Unable to load verses. Check your connection or wait for the offline download to finish.
+            </Text>
+          </View>
         ) : (
           <FlatList
             ref={listRef}
@@ -856,13 +830,28 @@ const mStyles = StyleSheet.create({
   mushafPager: {
     flex: 1,
   },
+  pageContainer: {
+    flex: 1,
+    width: SCREEN_WIDTH,
+    backgroundColor: "#FAF6EE",
+  },
+  pageMetaBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "#FAF6EE",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(139,105,20,0.25)",
+  },
   pageScroll: {
     flex: 1,
     backgroundColor: "#FAF6EE",
   },
   pageScrollContent: {
-    flexGrow: 1,
-    paddingBottom: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 4,
   },
   pageLoading: {
     flex: 1,
@@ -874,22 +863,27 @@ const mStyles = StyleSheet.create({
     color: "#8B6914",
     fontSize: 14,
   },
-  pageFrame: {
-    flex: 1,
-    margin: 12,
-    backgroundColor: "#FAF6EE",
-    borderWidth: 3,
+  pageFrameOuter: {
+    marginHorizontal: 4,
+    marginVertical: 8,
+    borderWidth: 2.5,
     borderColor: "#8B6914",
-    borderRadius: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    padding: 4,
+    backgroundColor: "#FAF6EE",
+    alignSelf: "stretch",
   },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-    paddingHorizontal: 4,
+  pageFrameInner: {
+    borderWidth: 1,
+    borderColor: "#8B6914",
+    backgroundColor: "#FAF6EE",
+    overflow: "hidden",
+  },
+  pageContent: {
+    paddingHorizontal: 12,
+    paddingTop: 20,
+    paddingBottom: 20,
+    overflow: "hidden",
+    width: "100%",
   },
   metaText: {
     color: "#8B6914",
@@ -899,76 +893,103 @@ const mStyles = StyleSheet.create({
   },
   metaSurah: {
     color: "#C9A84C",
-    maxWidth: "40%",
+    flex: 1,
     textAlign: "right",
+    marginLeft: 8,
   },
   ornamentTop: { marginBottom: 8 },
   ornamentBottom: { marginTop: 8 },
   borderLineOuter: {
-    height: 2,
+    height: 2.5,
     backgroundColor: "#8B6914",
     borderRadius: 1,
   },
   borderLineInner: {
-    height: 0.8,
-    backgroundColor: "#C9A84C",
-    marginHorizontal: 6,
-    marginVertical: 3,       // was 2
+    height: 1,
+    backgroundColor: "#8B6914",
+    marginVertical: 4,
     borderRadius: 1,
   },
   surahBanner: {
     alignItems: "center",
-    marginVertical: 8,       // was 6
+    marginVertical: 8,
+    width: "100%",
+  },
+  surahBannerFrame: {
+    borderWidth: 1,
+    borderColor: "#8B6914",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    backgroundColor: "#F5EDD6",
+    maxWidth: "100%",
   },
   surahBannerInner: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: "#8B6914",
-    paddingHorizontal: 20,   // was 16
-    paddingVertical: 6,      // was 4
-    gap: 12,
-    backgroundColor: "#F5EDD6",
+    paddingHorizontal: 28,
+    paddingVertical: 8,
+    gap: 16,
+    backgroundColor: "#FAF6EE",
   },
-  surahBannerDiamond: {
-    width: 8,
-    height: 8,
+  surahBannerSide: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  surahBannerDiamondOuter: {
+    width: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: "#8B6914",
+    backgroundColor: "#F5EDD6",
+    transform: [{ rotate: "45deg" }],
+  },
+  surahBannerDiamondInner: {
+    width: 6,
+    height: 6,
     backgroundColor: "#8B6914",
     transform: [{ rotate: "45deg" }],
   },
   surahBannerText: {
-    fontSize: 24,            // was 22
+    fontSize: 22,
     color: "#5C3D00",
     textAlign: "center",
+    flexShrink: 1,
   },
   bismillahRow: {
     alignItems: "center",
-    paddingVertical: 8,      // was 6
+    paddingVertical: 8,
     borderTopWidth: 0.5,
     borderBottomWidth: 0.5,
     borderColor: "rgba(139,105,20,0.3)",
-    marginHorizontal: 4,
-    marginBottom: 6,         // was 4
+    marginBottom: 6,
+    width: "100%",
   },
   bismillahText: {
-    fontSize: 24,            // was 22
+    fontSize: 26,
     color: "#1E3A5F",
     textAlign: "center",
+    lineHeight: 48,
   },
-  lineRow: {
+  textFlow: {
     flexDirection: "row-reverse",
-    justifyContent: "center",
+    flexWrap: "wrap",
     alignItems: "center",
-    flexWrap: "nowrap",
+    width: "100%",
+    overflow: "hidden",
   },
-  lineRowLast: {
-    justifyContent: "center",
+  flowSurahBlock: {
+    width: "100%",
+    flexBasis: "100%",
   },
   word: {
-    fontSize: 22,            // was 20
+    fontSize: 26,
     color: "#1E3A5F",
-    lineHeight: 44,          // was 36 — this is the key fix
-    marginHorizontal: 2,     // was 1
+    lineHeight: 52,
+    marginHorizontal: 1,
   },
   navBar: {
     flexDirection: "row",
@@ -990,18 +1011,18 @@ const mStyles = StyleSheet.create({
   navPage: { color: "#fff", fontSize: 18, fontWeight: "600" },
   navTotal: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
   verseEndBadge: {
-    width: 32,               // was 28
-    height: 32,              // was 28
-    borderRadius: 16,        // was 14
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: "#C9A84C",
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 3,     // was 2
     backgroundColor: "rgba(201,168,76,0.08)",
+    flexShrink: 0,
   },
   verseEndText: {
-    fontSize: 12,            // was 11
+    fontSize: 11,
     color: "#C9A84C",
     textAlign: "center",
   },

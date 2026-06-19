@@ -85,7 +85,13 @@
     {
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
-      "sounds": []
+      "sounds": [
+        "./assets/audio/azan1.mp3",
+        "./assets/audio/azan2.mp3",
+        "./assets/audio/azan3.mp3",
+        "./assets/audio/azan4.mp3",
+        "./assets/audio/azan5.mp3"
+      ]
     }
   ],
   "@react-native-community/datetimepicker",

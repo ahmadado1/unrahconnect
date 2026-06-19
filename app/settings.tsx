@@ -9,7 +9,7 @@ import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } f
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
-import { cancelAllNotifications, requestNotificationPermission, scheduleDailyVerseNotification } from "@/lib/notifications";
+import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyVerseNotification } from "@/lib/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
@@ -111,6 +111,7 @@ useEffect(() => {
                   const granted = await requestNotificationPermission()
                   if (granted) {
                     await scheduleDailyVerseNotification()
+                    await reschedulePrayerNotificationsFromCache().catch(console.log)
                   }
                 } else {
                   await cancelAllNotifications()

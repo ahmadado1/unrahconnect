@@ -1,78 +1,11 @@
+import { PRAYER_ICONS, PRAYER_NAMES } from "@/lib/prayerConstants"
+import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
 import { Ionicons } from "@expo/vector-icons"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useAudioPlayer } from "expo-audio"
-import * as Location from "expo-location"
 import { useEffect, useState } from "react"
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import Svg, { Circle, Defs, Ellipse, G, Pattern, Polygon, Rect } from "react-native-svg"
+import { StyleSheet, Text, View } from "react-native"
+import Svg, { Circle, Defs, Ellipse, G, Polygon } from "react-native-svg"
 
-
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-
-const PRAYER_NAMES = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
-
-const PRAYER_ICONS: Record<string, string> = {
-  Fajr: "partly-sunny-outline",
-  Dhuhr: "sunny-outline",
-  Asr: "sunny-outline",
-  Maghrib: "cloudy-night-outline",
-  Isha: "moon-outline",
-}
-
-// ─── TYPES ───────────────────────────────────────────────────────────────────
-
-type PrayerTimes = {
-  Fajr: string
-  Dhuhr: string
-  Asr: string
-  Maghrib: string
-  Isha: string
-  date: string
-  hijri: string
-  city: string
-}
-
-// ─── PRAYER INFO ─────────────────────────────────────────────────────────────
-
-const PRAYER_INFO: Record<string, {
-  arabic: string
-  dua: string
-  duaTranslit: string
-  duaTranslation: string
-}> = {
-  Fajr: {
-    arabic: "صلاة الفجر",
-    dua: "اللَّهُمَّ بَاعِدْ بَيْنِي وَبَيْنَ خَطَايَايَ كَمَا بَاعَدْتَ بَيْنَ الْمَشْرِقِ وَالْمَغْرِبِ",
-    duaTranslit: "Allahumma ba'id bayni wa bayna khatayaya kama ba'adta baynal mashriqi wal maghrib",
-    duaTranslation: "O Allah distance me from my sins as You have distanced the East from the West"
-  },
-  Dhuhr: {
-    arabic: "صلاة الظهر",
-    dua: "اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ",
-    duaTranslit: "Allahumma aj'alni minat-tawwabina waj'alni minal mutatahhirin",
-    duaTranslation: "O Allah make me among those who repent and make me among those who purify themselves"
-  },
-  Asr: {
-    arabic: "صلاة العصر",
-    dua: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ وَالْعَجْزِ وَالْكَسَلِ",
-    duaTranslit: "Allahumma inni a'udhu bika minal hammi wal hazan wal ajzi wal kasal",
-    duaTranslation: "O Allah I seek refuge in You from worry, grief, inability and laziness"
-  },
-  Maghrib: {
-    arabic: "صلاة المغرب",
-    dua: "اللَّهُمَّ إِنِّي أَسْأَلُكَ رَحْمَتَكَ وَمَغْفِرَتَكَ",
-    duaTranslit: "Allahumma inni as'aluka rahmataka wa maghfirataka",
-    duaTranslation: "O Allah I ask You for Your mercy and Your forgiveness"
-  },
-  Isha: {
-    arabic: "صلاة العشاء",
-    dua: "اللَّهُمَّ اجْعَلْ فِي قَلْبِي نُوراً وَفِي لِسَانِي نُوراً",
-    duaTranslit: "Allahumma aj'al fi qalbi nuran wa fi lisani nura",
-    duaTranslation: "O Allah place light in my heart and light on my tongue"
-  },
-}
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+type PrayerTimes = CachedPrayerTimes
 
 const timeToMinutes = (time: string) => {
   const [h, m] = time.split(":").map(Number)
@@ -84,27 +17,6 @@ const formatCountdown = (minutes: number) => {
   const m = Math.floor(minutes % 60)
   return `${h}:${m.toString().padStart(2, "0")}`
 }
-
-// ─── ISLAMIC PATTERN SVG ─────────────────────────────────────────────────────
-
-const IslamicPatternSVG = () => (
-  <Svg
-    style={StyleSheet.absoluteFill}
-    viewBox="0 0 400 900"
-    preserveAspectRatio="xMidYMid slice"
-  >
-    <Defs>
-      <Pattern id="islamic_prayer" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-        <Polygon points="30,5 55,17.5 55,42.5 30,55 5,42.5 5,17.5" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.2" />
-        <Polygon points="30,12 48,22 48,38 30,48 12,38 12,22" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.2" />
-        <Circle cx="30" cy="30" r="6" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.2" />
-      </Pattern>
-    </Defs>
-    <Rect x="-120" y="-120" width="800" height="1140" fill="url(#islamic_prayer)" />
-  </Svg>
-)
-
-// ─── GEOMETRIC FLOWER SVG ────────────────────────────────────────────────────
 
 const GeometricFlower = () => (
   <Svg width="60" height="60" viewBox="0 0 60 60">
@@ -120,360 +32,224 @@ const GeometricFlower = () => (
   </Svg>
 )
 
-// ─── COMPONENT ───────────────────────────────────────────────────────────────
-
 export default function PrayerWidget() {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [loading, setLoading] = useState(true)
-  const [prayerPopup, setPrayerPopup] = useState<string | null>(null)
-  const [shownPopups, setShownPopups] = useState<Set<string>>(new Set())
-  const [adhanFile, setAdhanFile] = useState(require("../../assets/audio/azan1.mp3"))
-const player = useAudioPlayer(adhanFile)
 
-useEffect(() => {
-  AsyncStorage.getItem("selected_adhan").then(id => {
-    const files: Record<string, any> = {
-      "1": require("../../assets/audio/azan1.mp3"),
-      "2": require("../../assets/audio/azan2.mp3"),
-      "3": require("../../assets/audio/azan3.mp3"),
-      "4": require("../../assets/audio/azan4.mp3"),
-      "5": require("../../assets/audio/azan5.mp3"),
+  useEffect(() => {
+    const load = async () => {
+      const cached = await readCachedPrayerTimes()
+      if (cached) setPrayerTimes(cached)
+
+      const fresh = await fetchAndCachePrayerTimes()
+      if (fresh) setPrayerTimes(fresh)
+      setLoading(false)
     }
-    if (id && files[id]) setAdhanFile(files[id])
-  })
-}, [])
 
-  useEffect(() => { fetchPrayerTimes() }, [])
+    load()
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    if (!prayerTimes) return
-  
-    const checkPrayer = () => {
-      const now = new Date()
-      const nowMinutes = now.getHours() * 60 + now.getMinutes()
-      const nowSeconds = now.getSeconds()
-  
-      for (const name of PRAYER_NAMES) {
-        const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
-        // Fire exactly at prayer time — window extended to 10 minutes
-        if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 10 && !shownPopups.has(name)) {
-          setPrayerPopup(name)
-          setShownPopups(prev => new Set([...prev, name]))
-          break
-        }
-      }
-    }
-  
-    // Check immediately when prayer times load
-    checkPrayer()
-  
-    // Then check every 30 seconds — much more responsive
-    const interval = setInterval(checkPrayer, 30000)
-    return () => clearInterval(interval)
-  }, [prayerTimes, shownPopups])
-
-useEffect(() => {
-  const now = new Date()
-  const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
-  const timer = setTimeout(() => {
-    setShownPopups(new Set())
-  }, msUntilMidnight)
-  return () => clearTimeout(timer)
-}, [])
-
-  // ─── PLAY ADHAN ──────────────────────────────────────────────────────────
-
-  const playAdhan = () => {
-    try {
-      player.seekTo(0)
-      player.play()
-    } catch (e) {
-      console.log("Adhan sound error:", e)
-    }
-  }
-
-  // ─── FETCH ───────────────────────────────────────────────────────────────
-
-  const CACHE_KEY = "cached_prayer_times"
-
-const fetchPrayerTimes = async () => {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    let lat = 21.3891
-    let lng = 39.8579
-    let city = "Makkah"
-
-    if (status === "granted") {
-      const location = await Location.getCurrentPositionAsync({})
-      lat = location.coords.latitude
-      lng = location.coords.longitude
-      const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
-      city = geocode[0]?.city || geocode[0]?.region || "Your location"
-    }
-
-    const today = new Date()
-
-    // Detect if user is in Saudi Arabia by coordinates
-      const inSaudiArabia = lat >= 16.0 && lat <= 32.0 && lng >= 36.0 && lng <= 56.0
-      const method = inSaudiArabia ? 4 : 5 // 4=Umm Al-Qura (Saudi), 5=Egyptian Authority
-
-      const res = await fetch(
-        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=${method}`
-      )
-    const data = await res.json()
-
-    if (data.code === 200) {
-      const timings = data.data.timings
-      const hijriDate = data.data.date.hijri
-      const times: PrayerTimes = {
-        Fajr: timings.Fajr,
-        Dhuhr: timings.Dhuhr,
-        Asr: timings.Asr,
-        Maghrib: timings.Maghrib,
-        Isha: timings.Isha,
-        date: `${hijriDate.day} ${hijriDate.month.en} ${hijriDate.year} AH`,
-        hijri: hijriDate.month.en,
-        city,
-      }
-      setPrayerTimes(times)
-      // ✅ Save to cache
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(times))
-    }
-  } catch (e) {
-    console.log("Prayer times error — trying cache:", e)
-    // ✅ Load from cache if fetch fails
-    try {
-      const cached = await AsyncStorage.getItem(CACHE_KEY)
-      if (cached) {
-        const parsed = JSON.parse(cached)
-        setPrayerTimes({ ...parsed, city: parsed.city + " (cached)" })
-      }
-    } catch (cacheError) {
-      console.log("Cache read error:", cacheError)
-    }
-  } finally {
-    setLoading(false)
-  }
-}
-
-  // ─── PRAYER LOGIC ────────────────────────────────────────────────────────
-
   const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes()
 
   const getNextPrayer = () => {
     if (!prayerTimes) return null
     for (const name of PRAYER_NAMES) {
-      const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+      const prayerMin = timeToMinutes(prayerTimes[name])
       if (prayerMin > nowMinutes) {
-        return { name, time: prayerTimes[name as keyof PrayerTimes] as string, minutesLeft: prayerMin - nowMinutes }
+        return { name, time: prayerTimes[name], minutesLeft: prayerMin - nowMinutes }
       }
     }
-    return { name: "Fajr", time: prayerTimes!.Fajr, minutesLeft: (24 * 60 - nowMinutes) + timeToMinutes(prayerTimes!.Fajr) }
+    return {
+      name: "Fajr",
+      time: prayerTimes.Fajr,
+      minutesLeft: 24 * 60 - nowMinutes + timeToMinutes(prayerTimes.Fajr),
+    }
   }
 
   const nextPrayer = getNextPrayer()
 
   const getPrayerStatus = (name: string) => {
-  if (!prayerTimes) return "upcoming"
-  const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
-  
-  // Stay as "next" for 5 minutes after prayer time
-  if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) return "next"
-  if (nextPrayer?.name === name) return "next"
-  if (prayerMin < nowMinutes) return "past"
-  return "upcoming"
-}
+    if (!prayerTimes) return "upcoming"
+    const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
+    if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) return "next"
+    if (nextPrayer?.name === name) return "next"
+    if (prayerMin < nowMinutes) return "past"
+    return "upcoming"
+  }
 
-    const getCurrentPrayer = () => {
-      if (!prayerTimes) return null
-      for (const name of PRAYER_NAMES) {
-        const prayerMin = timeToMinutes(prayerTimes[name as keyof PrayerTimes] as string)
-        if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) {
-          return { name, time: prayerTimes[name as keyof PrayerTimes] as string }
-        }
+  const getCurrentPrayer = () => {
+    if (!prayerTimes) return null
+    for (const name of PRAYER_NAMES) {
+      const prayerMin = timeToMinutes(prayerTimes[name])
+      if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) {
+        return { name, time: prayerTimes[name] }
       }
-      return null
     }
+    return null
+  }
 
-    const currentPrayer = getCurrentPrayer()
-
-  // ─── RENDER ──────────────────────────────────────────────────────────────
+  const currentPrayer = getCurrentPrayer()
 
   return (
-    <>
-      {/* ── PRAYER WIDGET ── */}
-      <View style={styles.widget}>
-
-        {/* Top row */}
-        <View style={styles.topRow}>
-          <Text style={styles.prayerLabel}>PRAYER TIMES</Text>
-          <View style={styles.separatorV} />
-          {prayerTimes && (
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={11} color="#C9A84C" />
-              <Text style={styles.locationText}>{prayerTimes.city}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Hijri date */}
+    <View style={styles.widget}>
+      <View style={styles.topRow}>
+        <Text style={styles.prayerLabel}>PRAYER TIMES</Text>
+        <View style={styles.separatorV} />
         {prayerTimes && (
-          <View style={styles.hijriBadge}>
-            <Ionicons name="calendar-outline" size={11} color="#C9A84C" />
-            <Text style={styles.hijriText}>{prayerTimes.date}</Text>
+          <View style={styles.locationRow}>
+            <Ionicons name="location" size={11} color="#C9A84C" />
+            <Text style={styles.locationText}>{prayerTimes.city}</Text>
           </View>
         )}
+      </View>
 
-        {loading ? (
-          <Text style={styles.loadingText}>Getting prayer times...</Text>
-        ) : prayerTimes ? (
-          <>
-            {/* Next prayer box */}
-            {nextPrayer && (
-              <View style={styles.nextPrayerBox}>
-                <View>
-                  <Text style={styles.nextLabel}>
-                    {currentPrayer ? `CURRENT — ${currentPrayer.name.toUpperCase()}` : `NEXT — ${nextPrayer.name.toUpperCase()}`}
-                  </Text>
-                  <Text style={styles.nextTime}>
-                    {currentPrayer ? currentPrayer.time : nextPrayer.time}
-                  </Text>
-                </View>
-                <GeometricFlower />
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.countdownLabel}>Time remaining</Text>
-                  <Text style={styles.countdown}>{formatCountdown(nextPrayer.minutesLeft)}</Text>
-                </View>
+      {prayerTimes && (
+        <View style={styles.hijriBadge}>
+          <Ionicons name="calendar-outline" size={11} color="#C9A84C" />
+          <Text style={styles.hijriText}>{prayerTimes.date}</Text>
+        </View>
+      )}
+
+      {loading ? (
+        <Text style={styles.loadingText}>Getting prayer times...</Text>
+      ) : prayerTimes ? (
+        <>
+          {nextPrayer && (
+            <View style={styles.nextPrayerBox}>
+              <View>
+                <Text style={styles.nextLabel}>
+                  {currentPrayer
+                    ? `CURRENT — ${currentPrayer.name.toUpperCase()}`
+                    : `NEXT — ${nextPrayer.name.toUpperCase()}`}
+                </Text>
+                <Text style={styles.nextTime}>
+                  {currentPrayer ? currentPrayer.time : nextPrayer.time}
+                </Text>
               </View>
-            )}
+              <GeometricFlower />
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.countdownLabel}>Time remaining</Text>
+                <Text style={styles.countdown}>{formatCountdown(nextPrayer.minutesLeft)}</Text>
+              </View>
+            </View>
+          )}
 
-            {/* Prayers list */}
-            <View style={styles.prayersList}>
-              {PRAYER_NAMES.map(name => {
-                const status = getPrayerStatus(name)
-                return (
-                  <View key={name} style={[
+          <View style={styles.prayersList}>
+            {PRAYER_NAMES.map(name => {
+              const status = getPrayerStatus(name)
+              return (
+                <View
+                  key={name}
+                  style={[
                     styles.prayerRow,
                     status === "next" && styles.prayerRowNext,
                     status === "past" && styles.prayerRowPast,
-                  ]}>
-                    <View style={styles.prayerLeft}>
-                      <Ionicons
-                        name={PRAYER_ICONS[name] as any}
-                        size={16}
-                        color={status === "next" ? "#C9A84C" : status === "past" ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.5)"}
-                      />
-                      <Text style={[
+                  ]}
+                >
+                  <View style={styles.prayerLeft}>
+                    <Ionicons
+                      name={PRAYER_ICONS[name] as any}
+                      size={16}
+                      color={
+                        status === "next"
+                          ? "#C9A84C"
+                          : status === "past"
+                            ? "rgba(255,255,255,0.25)"
+                            : "rgba(255,255,255,0.5)"
+                      }
+                    />
+                    <Text
+                      style={[
                         styles.prayerName,
                         status === "past" && styles.prayerNamePast,
                         status === "next" && styles.prayerNameNext,
-                      ]}>{name}</Text>
-                    </View>
-                    <View style={styles.prayerRight}>
-                      <Text style={[
+                      ]}
+                    >
+                      {name}
+                    </Text>
+                  </View>
+                  <View style={styles.prayerRight}>
+                    <Text
+                      style={[
                         styles.prayerTime,
                         status === "past" && styles.prayerTimePast,
                         status === "next" && styles.prayerTimeNext,
-                      ]}>
-                        {prayerTimes[name as keyof PrayerTimes] as string}
-                      </Text>
-                      {status === "past" ? (
-                        <View style={styles.checkCircle}>
-                          <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.4)" />
-                        </View>
-                      ) : (
-                        <View style={[styles.dot, status === "next" && styles.dotNext]} />
-                      )}
-                    </View>
+                      ]}
+                    >
+                      {prayerTimes[name]}
+                    </Text>
+                    {status === "past" ? (
+                      <View style={styles.checkCircle}>
+                        <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.4)" />
+                      </View>
+                    ) : (
+                      <View style={[styles.dot, status === "next" && styles.dotNext]} />
+                    )}
                   </View>
-                )
-              })}
-            </View>
-          </>
-        ) : (
-          <Text style={styles.loadingText}>Could not load prayer times</Text>
-        )}
-
-        {/* Test button — remove before launch */}
-        
-
-      </View>
-
-      {/* ── PRAYER POPUP ── */}
-      <Modal visible={prayerPopup !== null} transparent animationType="slide" statusBarTranslucent>
-        <View style={styles.popupOverlay}>
-          <View style={styles.popupCard}>
-            <IslamicPatternSVG />
-            <Text style={styles.popupMosque}>🕌</Text>
-            <Text style={styles.popupArabic}>{prayerPopup ? PRAYER_INFO[prayerPopup]?.arabic : ""}</Text>
-            <Text style={styles.popupTitle}>It's time for {prayerPopup}</Text>
-            <View style={styles.popupDivider} />
-            <Text style={styles.popupDuaLabel}>Dua before prayer</Text>
-            <Text style={styles.popupDuaArabic}>{prayerPopup ? PRAYER_INFO[prayerPopup]?.dua : ""}</Text>
-            <Text style={styles.popupDuaTranslit}>{prayerPopup ? PRAYER_INFO[prayerPopup]?.duaTranslit : ""}</Text>
-            <Text style={styles.popupDuaTranslation}>{prayerPopup ? PRAYER_INFO[prayerPopup]?.duaTranslation : ""}</Text>
-
-            <TouchableOpacity style={styles.popupBtn} onPress={() => {
-              setPrayerPopup(null)
-            }}>
-              <Text style={styles.popupBtnText}>Pray Now</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.popupBtnSecondary} onPress={() => {
-              const snoozed = prayerPopup
-              setPrayerPopup(null)
-              setTimeout(() => setPrayerPopup(snoozed), 5 * 60 * 1000)
-            }}>
-              <Text style={styles.popupBtnSecondaryText}>Remind me in 5 minutes</Text>
-            </TouchableOpacity>
-
+                </View>
+              )
+            })}
           </View>
-        </View>
-      </Modal>
-    </>
+        </>
+      ) : (
+        <Text style={styles.loadingText}>Could not load prayer times</Text>
+      )}
+    </View>
   )
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   widget: { padding: 16, paddingBottom: 24, overflow: "hidden", position: "relative" },
-
   topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   prayerLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
   separatorV: { width: 1, height: 12, backgroundColor: "rgba(201,168,76,0.4)" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   locationText: { color: "rgba(255,255,255,0.7)", fontSize: 11 },
-
-  hijriBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(201,168,76,0.1)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, alignSelf: "flex-start", marginBottom: 14, borderWidth: 0.5, borderColor: "rgba(201,168,76,0.3)" },
+  hijriBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(201,168,76,0.1)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: "flex-start",
+    marginBottom: 14,
+    borderWidth: 0.5,
+    borderColor: "rgba(201,168,76,0.3)",
+  },
   hijriText: { color: "#C9A84C", fontSize: 11, fontWeight: "500" },
-
   loadingText: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", paddingVertical: 20 },
-
-  nextPrayerBox: { 
-    backgroundColor: "rgba(0,0,0,0.7)", 
-    borderWidth: 1, 
-    borderColor: "rgba(201,168,76,0.5)", 
-    borderRadius: 16, padding: 16, marginBottom: 16, 
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center" 
+  nextPrayerBox: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderWidth: 1,
+    borderColor: "rgba(201,168,76,0.5)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   nextLabel: { color: "#C9A84C", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 4 },
   nextTime: { color: "#fff", fontSize: 32, fontWeight: "300", letterSpacing: 2 },
   countdownLabel: { color: "rgba(255,255,255,0.4)", fontSize: 10, marginBottom: 4, textAlign: "right" },
   countdown: { color: "#C9A84C", fontSize: 18, fontWeight: "600" },
-
   prayersList: { gap: 2 },
-  
-   prayerRow: { 
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center", 
-    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",  // stronger dark background
+  prayerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.6)",
     marginBottom: 2,
   },
   prayerRowNext: { backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.4)" },
@@ -483,27 +259,18 @@ const styles = StyleSheet.create({
   prayerNamePast: { color: "rgba(255,255,255,0.3)" },
   prayerNameNext: { color: "#C9A84C", fontWeight: "600" },
   prayerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  prayerTime: { fontSize: 14, color: "rgba(255,255,255,0.9)" }, 
+  prayerTime: { fontSize: 14, color: "rgba(255,255,255,0.9)" },
   prayerTimePast: { color: "rgba(255,255,255,0.25)" },
   prayerTimeNext: { color: "#C9A84C", fontWeight: "600" },
-  checkCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  checkCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.2)" },
   dotNext: { backgroundColor: "#C9A84C" },
-
-
-
-  popupOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "flex-end" },
-  popupCard: { backgroundColor: "#1E3A5F", borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 36, paddingBottom: 52, paddingTop: 48, width: "100%", alignItems: "center", borderWidth: 1, borderColor: "rgba(201,168,76,0.3)", borderBottomWidth: 0, overflow: "hidden", minHeight: "85%" },
-  popupMosque: { fontSize: 80, marginBottom: 20 },
-  popupArabic: { fontSize: 32, color: "#C9A84C", marginBottom: 10, textAlign: "center" },
-  popupTitle: { fontSize: 26, fontWeight: "bold", color: "#fff", marginBottom: 24, textAlign: "center" },
-  popupDivider: { width: 80, height: 1, backgroundColor: "rgba(201,168,76,0.4)", marginBottom: 24 },
-  popupDuaLabel: { fontSize: 11, color: "#C9A84C", fontWeight: "600", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 16 },
-  popupDuaArabic: { fontSize: 20, color: "#fff", textAlign: "right", lineHeight: 36, marginBottom: 14, width: "100%" },
-  popupDuaTranslit: { fontSize: 14, color: "#C9A84C", fontStyle: "italic", textAlign: "center", marginBottom: 10, lineHeight: 22 },
-  popupDuaTranslation: { fontSize: 14, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 22, marginBottom: 32 },
-  popupBtn: { backgroundColor: "#C9A84C", borderRadius: 25, paddingVertical: 16, width: "100%", alignItems: "center", marginBottom: 14 },
-  popupBtnText: { color: "#1E3A5F", fontSize: 16, fontWeight: "bold" },
-  popupBtnSecondary: { paddingVertical: 12, alignItems: "center" },
-  popupBtnSecondaryText: { color: "rgba(255,255,255,0.5)", fontSize: 14 },
 })

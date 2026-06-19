@@ -5,6 +5,9 @@ import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import TasbihCounter from './component/tasbih'
+
+
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -421,6 +424,8 @@ export default function DuasScreen() {
         </TouchableOpacity>
         <Text style={styles.title}>Duas & Zikr</Text>
         <Text style={styles.subtitle}>Supplications & remembrance</Text>
+
+        <TasbihCounter />
 
         {/* Category pills */}
         <ScrollView

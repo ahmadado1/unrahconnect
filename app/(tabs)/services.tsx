@@ -49,8 +49,18 @@ export default function ServicesScreen() {
 
       {/* ── HEADER ── */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>{t("services")}</Text>
-        <Text style={styles.subtitle}>{t("servicesSub")}</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 16 }}>
+          <View>
+            <Text style={styles.title}>{t("services")}</Text>
+            <Text style={styles.subtitle}>{t("servicesSub")}</Text>
+          </View>
+          <TouchableOpacity
+            style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 20, padding: 10, marginBottom: 2 }}
+            onPress={() => router.push("/search" as any)}
+          >
+            <Ionicons name="search" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>

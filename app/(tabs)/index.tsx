@@ -354,11 +354,16 @@ export default function HomeScreen() {
                 <Text style={styles.appTagline}>{t("completeCompanion")}</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
-              <View style={styles.bar} />
-              <View style={styles.bar} />
-              <View style={styles.bar} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity style={styles.menuBtn} onPress={() => router.push("/search" as any)}>
+                <Ionicons name="search" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
+                <View style={styles.bar} />
+                <View style={styles.bar} />
+                <View style={styles.bar} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -442,7 +447,9 @@ export default function HomeScreen() {
         
 
         {/* ── DAILY REMINDER ── */}
+        <TouchableOpacity onPress={() => router.push("/duas")}>
         <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          
           <View style={styles.reminderIcon}>
             <Ionicons name="notifications-outline" size={20} color="#C9A84C" />
           </View>
@@ -452,7 +459,7 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </View>
-
+        </TouchableOpacity>
         {/* ── DONATE ── */}
         {/* ── DONATE ── */}
           <View

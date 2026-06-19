@@ -4,11 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useAudioPlayer } from "expo-audio"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
+import QuranDownloadProgress from "../components/QuranDownloadProgress"
+import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 
 // ─── ADHAN OPTIONS ───────────────────────────────────────────────────────────
 
@@ -32,9 +34,16 @@ export default function GuideScreen() {
     ADHANS.find(a => a.id === previewId)?.file ?? ADHANS[0].file
   )
 
+  useEffect(() => {
+    AsyncStorage.getItem("selected_adhan").then(id => {
+      if (id) setSelectedAdhan(id)
+    })
+  }, [])
+
   const handleSelectAdhan = async (id: string) => {
     setSelectedAdhan(id)
     await AsyncStorage.setItem("selected_adhan", id)
+    await reschedulePrayerNotificationsFromCache(id).catch(console.log)
   }
 
   const handlePreview = (id: string) => {
@@ -64,6 +73,7 @@ export default function GuideScreen() {
               <View>
                 <Text style={styles.title}>{t("guide")}</Text>
                 <Text style={styles.subtitle}>{t("prayerTimesGuide")}</Text>
+                <QuranDownloadProgress />
               </View>
               {/* Adhan picker button */}
               <TouchableOpacity
@@ -139,13 +149,17 @@ export default function GuideScreen() {
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
 
-          <View style={[styles.comingSoon, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.comingSoonTitle, { color: theme.textSecondary }]}>{t("comingSoon")}</Text>
+          <TouchableOpacity
+            style={[styles.comingSoon, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/qiblah")}
+            activeOpacity={0.7}
+          >
             <View style={styles.comingSoonItem}>
               <Ionicons name="compass-outline" size={20} color={theme.gold} />
               <Text style={[styles.comingSoonText, { color: theme.text }]}>{t("qiblaDirection")}</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />

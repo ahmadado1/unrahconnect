@@ -70,7 +70,7 @@ type Agent = {
       const renderAgent = ({ item }: { item: Agent }) => (
         <TouchableOpacity
           style={[styles.agentCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => router.push(`/agents/${item.id}` as any)}
+          onPress={() => router.push(`/agent/${item.id}` as any)}
         >
           {/* Avatar */}
           <View style={styles.avatar}>
