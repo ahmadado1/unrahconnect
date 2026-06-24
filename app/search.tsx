@@ -45,7 +45,7 @@ const ALL_ITEMS: SearchResult[] = [
   { id: "umrah", title: "Umrah Guide", subtitle: "Step by step Umrah phases", emoji: "🕋", category: "Guide", action: "navigate", target: "/umrah-guide" },
   { id: "hajj", title: "Hajj Guide", subtitle: "Complete Hajj rituals", emoji: "☪️", category: "Guide", action: "navigate", target: "/hajj" },
   { id: "ihram", title: "Ihram", subtitle: "Umrah phase 1 · Purification", emoji: "🤍", category: "Guide", action: "navigate", target: "/umrah-guide" },
-  { id: "tawaf", title: "Tawaf", subtitle: "Circling the Kaaba 7 times", emoji: "🔄", category: "Guide", action: "navigate", target: "/umrah-guide" },
+  { id: "tawaf", title: "Tawaf", subtitle: "Circling the Kaaba 7 times", emoji: "🔄", category: "Guide", action: "navigate", target: "/umrah/4" },
   { id: "sai", title: "Sa'i", subtitle: "Walking between Safa and Marwah", emoji: "🚶", category: "Guide", action: "navigate", target: "/umrah-guide" },
   { id: "halq", title: "Halq / Taqsir", subtitle: "Shaving or cutting hair", emoji: "✂️", category: "Guide", action: "navigate", target: "/umrah-guide" },
   { id: "wuquf", title: "Wuquf at Arafah", subtitle: "Hajj · Standing at Arafah", emoji: "🏔️", category: "Guide", action: "navigate", target: "/hajj" },

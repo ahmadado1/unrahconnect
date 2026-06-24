@@ -53,7 +53,12 @@
         "./assets/audio/azan2.mp3",
         "./assets/audio/azan3.mp3",
         "./assets/audio/azan4.mp3",
-        "./assets/audio/azan5.mp3"
+        "./assets/audio/azan5.mp3",
+        "./assets/audio/notif/azan1.wav",
+        "./assets/audio/notif/azan2.wav",
+        "./assets/audio/notif/azan3.wav",
+        "./assets/audio/notif/azan4.wav",
+        "./assets/audio/notif/azan5.wav"
       ]
     },
     "plugins": [
@@ -90,7 +95,12 @@
         "./assets/audio/azan2.mp3",
         "./assets/audio/azan3.mp3",
         "./assets/audio/azan4.mp3",
-        "./assets/audio/azan5.mp3"
+        "./assets/audio/azan5.mp3",
+        "./assets/audio/notif/azan1.wav",
+        "./assets/audio/notif/azan2.wav",
+        "./assets/audio/notif/azan3.wav",
+        "./assets/audio/notif/azan4.wav",
+        "./assets/audio/notif/azan5.wav"
       ]
     }
   ],

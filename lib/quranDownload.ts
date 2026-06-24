@@ -3,6 +3,8 @@ import {
   downloadSurahList,
   fetchAndCacheSurah,
   getMissingSurahNumbers,
+  normalizeReadLanguage,
+  warmReadCacheForLanguage,
 } from "./quranReadCache"
 import {
   clearQuranDownloadFlag,
@@ -86,7 +88,7 @@ export async function isQuranFullyCached(): Promise<boolean> {
     const missingPages = await getMissingPageNumbers()
     if (missingPages.length > 0) return false
 
-    const language = (await AsyncStorage.getItem("language")) ?? "en"
+    const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
     const missingSurahs = await getMissingSurahNumbers(language)
     return missingSurahs.length === 0
   } catch {
@@ -97,13 +99,14 @@ export async function isQuranFullyCached(): Promise<boolean> {
 export { getCachedPageCount }
 
 export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<boolean> {
-  const language = (await AsyncStorage.getItem("language")) ?? "en"
+  const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
 
   const initialMissingPages = await getMissingPageNumbers()
   const initialMissingSurahs = await getMissingSurahNumbers(language)
 
   if (initialMissingPages.length === 0 && initialMissingSurahs.length === 0) {
     await markQuranFullyCached()
+    await warmReadCacheForLanguage(language)
     emit({
       status: "complete",
       done: TOTAL_ITEMS,
@@ -179,6 +182,7 @@ export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<
   }
 
   await markQuranFullyCached()
+  await warmReadCacheForLanguage(language)
   emit({
     status: "complete",
     done: TOTAL_ITEMS,

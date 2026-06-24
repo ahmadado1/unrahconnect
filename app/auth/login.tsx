@@ -6,22 +6,22 @@ import { useTranslation } from "react-i18next";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
+import { isExpoGo } from "../../lib/runtime";
+import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
 
 // ─── GOOGLE SIGN IN ───────────────────────────────────────────────────────────
-// Uses native library in real builds, expo-auth-session in Expo Go
-// This prevents the crash when running in Expo Go
+// Native module only exists in dev/production builds — not Expo Go.
 
 let GoogleSignin: any = null
 let statusCodes: any = null
 
-// Only import native Google Sign In in real builds — not Expo Go
-if (!__DEV__ || Platform.OS === "android") {
+if (!isExpoGo) {
   try {
     const googleSignIn = require("@react-native-google-signin/google-signin")
     GoogleSignin = googleSignIn.GoogleSignin
     statusCodes = googleSignIn.statusCodes
   } catch (e) {
-    // Not available — will fall back to expo-auth-session
+    // Not available in this environment
   }
 }
 
@@ -36,7 +36,15 @@ export default function LoginScreen() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
+  const [agentCode, setAgentCode] = useState("")
+  const [agentCodeError, setAgentCodeError] = useState("")
   const { t } = useTranslation()
+
+  useEffect(() => {
+    getPendingReferral().then(code => {
+      if (code) setAgentCode(normalizeReferralCode(code))
+    })
+  }, [])
 
   // Configure Google Sign In on mount
   useEffect(() => {
@@ -75,14 +83,30 @@ export default function LoginScreen() {
 
   // ─── EMAIL AUTH ────────────────────────────────────────────────────────────
 
+  const validateAgentCodeInput = async () => {
+    const code = normalizeReferralCode(agentCode)
+    if (!code) return true
+    const valid = await isValidReferralCode(code)
+    if (!valid) {
+      setAgentCodeError(t("agentCodeInvalid"))
+      return false
+    }
+    setAgentCodeError("")
+    return true
+  }
+
   const handleAuth = async () => {
     if (!email || !password) { setError("Please fill in all fields"); return }
     if (isSignUp && !fullName) { setError("Please enter your full name"); return }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return }
+    if (!(await validateAgentCodeInput())) return
     setLoading(true)
     setError("")
   
     if (isSignUp) {
+      const code = normalizeReferralCode(agentCode)
+      if (code) await saveReferralCode(code)
+
       const { error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: { data: { full_name: fullName, gender } }
@@ -121,6 +145,8 @@ export default function LoginScreen() {
           setError(error.message)
         }
       } else {
+        const code = normalizeReferralCode(agentCode)
+        if (code) await linkPilgrimToAgent(code)
         router.replace("/(tabs)")
       }
     }
@@ -149,6 +175,8 @@ const handleGoogleSignIn = async () => {
           const { data: { user } } = await supabase.auth.getUser()
           const profileComplete = user?.user_metadata?.profile_complete
           if (!profileComplete) {
+            const code = normalizeReferralCode(agentCode)
+            if (code) await saveReferralCode(code)
             fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
               method: "POST",
               headers: {
@@ -162,6 +190,8 @@ const handleGoogleSignIn = async () => {
             }).catch(e => console.log("Welcome email error:", e))
             router.replace("/auth/setup" as any)
           } else {
+            const code = normalizeReferralCode(agentCode)
+            if (code) await linkPilgrimToAgent(code)
             router.replace("/(tabs)")
           }}
       }
@@ -201,6 +231,8 @@ const handleGoogleSignIn = async () => {
        const { data: { user } } = await supabase.auth.getUser()
        const profileComplete = user?.user_metadata?.profile_complete
        if (!profileComplete) {
+         const code = normalizeReferralCode(agentCode)
+         if (code) await saveReferralCode(code)
          fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
            method: "POST",
            headers: { 
@@ -214,6 +246,8 @@ const handleGoogleSignIn = async () => {
          }).catch(e => console.log("Welcome email error:", e))
          router.replace("/auth/setup" as any)
        } else {
+         const code = normalizeReferralCode(agentCode)
+         if (code) await linkPilgrimToAgent(code)
          router.replace("/(tabs)")
        }
        }}
@@ -316,6 +350,30 @@ const handleGoogleSignIn = async () => {
               />
             </View>
 
+            {/* Agent code */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.text }]}>{t("agentCodeOptional")}</Text>
+              <Text style={[styles.fieldHint, { color: theme.textSecondary }]}>{t("agentCodeHint")}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: theme.card, borderColor: theme.border, color: theme.text },
+                  agentCode.length > 0 && styles.inputApplied,
+                  agentCodeError ? styles.inputError : null,
+                ]}
+                placeholder={t("agentCodePlaceholder")}
+                placeholderTextColor={theme.textSecondary}
+                value={agentCode}
+                onChangeText={text => {
+                  setAgentCode(normalizeReferralCode(text))
+                  if (agentCodeError) setAgentCodeError("")
+                }}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              {agentCodeError ? <Text style={styles.agentCodeError}>{agentCodeError}</Text> : null}
+            </View>
+
             {/* Forgot password */}
             {!isSignUp && (
               <TouchableOpacity onPress={handleResetPassword} style={styles.forgotBtn}>
@@ -398,6 +456,10 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
   input: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 0.5 },
+  inputApplied: { borderColor: "#C9A84C", borderWidth: 1.5 },
+  inputError: { borderColor: "#E24B4A", borderWidth: 1 },
+  fieldHint: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
+  agentCodeError: { color: "#E24B4A", fontSize: 12, marginTop: 6 },
   error: { color: "#E24B4A", fontSize: 13, marginBottom: 16, textAlign: "center" },
   btn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginBottom: 16, marginTop: 8 },
   btnDisabled: { opacity: 0.6 },

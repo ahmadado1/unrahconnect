@@ -1,11 +1,13 @@
-import { saveReferralCode } from "@/lib/referral"
+import { normalizeReferralCode, saveReferralCode } from "@/lib/referral"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Text, View } from "react-native"
 
 export default function JoinScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>()
   const router = useRouter()
+  const { t } = useTranslation()
 
   useEffect(() => {
     handleReferral()
@@ -13,8 +15,7 @@ export default function JoinScreen() {
 
   const handleReferral = async () => {
     if (ref) {
-      await saveReferralCode(ref)
-      console.log("Referral code saved:", ref)
+      await saveReferralCode(normalizeReferralCode(ref))
     }
     // Redirect to login/signup
     router.replace("/auth/login")
@@ -27,7 +28,7 @@ export default function JoinScreen() {
         Welcome to UmrahConnect
       </Text>
       <Text style={{ color: "#C9A84C", fontSize: 14, marginBottom: 24 }}>
-        Setting up your referral...
+        {ref ? `${t("agentCodeApplied")}: ${normalizeReferralCode(ref)}` : "Preparing sign up..."}
       </Text>
       <ActivityIndicator color="#C9A84C" />
     </View>

@@ -49,7 +49,25 @@ async function translatePhase(phase: any, targetLang: string) {
   )
 
   const tips = await Promise.all(
-    phase.tips.map((t: string) => translateText(t, targetLang))
+    phase.tips.map(async (tip: {
+      text: string
+      arabic?: string
+      transliteration?: string
+      translation?: string
+      citation?: string
+    }) => ({
+      text: await translateText(tip.text, targetLang),
+      arabic: tip.arabic,
+      transliteration: tip.transliteration
+        ? await translateText(tip.transliteration, targetLang)
+        : undefined,
+      translation: tip.translation
+        ? await translateText(tip.translation, targetLang)
+        : undefined,
+      citation: tip.citation
+        ? await translateText(tip.citation, targetLang)
+        : undefined,
+    }))
   )
 
   const duas = await Promise.all(

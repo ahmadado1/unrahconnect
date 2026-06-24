@@ -1,16 +1,11 @@
 import { PRAYER_ICONS, PRAYER_NAMES } from "@/lib/prayerConstants"
-import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
+import { fetchAndCachePrayerTimes, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes"
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
 import Svg, { Circle, Defs, Ellipse, G, Polygon } from "react-native-svg"
 
 type PrayerTimes = CachedPrayerTimes
-
-const timeToMinutes = (time: string) => {
-  const [h, m] = time.split(":").map(Number)
-  return h * 60 + m
-}
 
 const formatCountdown = (minutes: number) => {
   const h = Math.floor(minutes / 60)

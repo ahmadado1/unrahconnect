@@ -16,12 +16,46 @@ const TRANSLATION_EDITIONS: Record<string, string> = {
   en: "en.sahih",
 }
 
+const memoryCache = new Map<string, ReadVerse[]>()
+
+export function normalizeReadLanguage(language: string) {
+  const base = language.split("-")[0].toLowerCase()
+  return TRANSLATION_EDITIONS[base] ? base : "en"
+}
+
 export function getTranslationEdition(language: string) {
-  return TRANSLATION_EDITIONS[language] ?? TRANSLATION_EDITIONS.en
+  return TRANSLATION_EDITIONS[normalizeReadLanguage(language)]
 }
 
 export function surahCacheKey(surah: number, language: string) {
-  return `quran_surah_${surah}_${language}`
+  return `quran_surah_${surah}_${normalizeReadLanguage(language)}`
+}
+
+/** Instant read from in-memory cache (no AsyncStorage). */
+export function peekCachedSurah(surah: number, language: string): ReadVerse[] | null {
+  const cached = memoryCache.get(surahCacheKey(surah, language))
+  return cached?.length ? cached : null
+}
+
+/** Load all cached surahs for a language into memory for instant read mode. */
+export async function warmReadCacheForLanguage(language: string): Promise<number> {
+  const lang = normalizeReadLanguage(language)
+  const keys = Array.from({ length: 114 }, (_, i) => surahCacheKey(i + 1, lang))
+  const pairs = await AsyncStorage.multiGet(keys)
+  let loaded = 0
+
+  pairs.forEach(([key, value]) => {
+    if (!value) return
+    try {
+      const parsed: ReadVerse[] = JSON.parse(value)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryCache.set(key, parsed)
+        loaded++
+      }
+    } catch {}
+  })
+
+  return loaded
 }
 
 export async function readCachedSurah(
@@ -29,9 +63,18 @@ export async function readCachedSurah(
   language: string
 ): Promise<ReadVerse[] | null> {
   try {
-    const cached = await AsyncStorage.getItem(surahCacheKey(surah, language))
+    const key = surahCacheKey(surah, language)
+    const inMemory = memoryCache.get(key)
+    if (inMemory?.length) return inMemory
+
+    const cached = await AsyncStorage.getItem(key)
     if (!cached) return null
-    return JSON.parse(cached)
+
+    const parsed: ReadVerse[] = JSON.parse(cached)
+    if (!Array.isArray(parsed) || parsed.length === 0) return null
+
+    memoryCache.set(key, parsed)
+    return parsed
   } catch {
     return null
   }
@@ -42,7 +85,9 @@ export async function writeCachedSurah(
   language: string,
   verses: ReadVerse[]
 ): Promise<void> {
-  await AsyncStorage.setItem(surahCacheKey(surah, language), JSON.stringify(verses))
+  const key = surahCacheKey(surah, language)
+  memoryCache.set(key, verses)
+  await AsyncStorage.setItem(key, JSON.stringify(verses))
 }
 
 export async function fetchAndCacheSurah(

@@ -106,7 +106,14 @@ export default function HajjPhaseDetailScreen() {
           {data.tips.map((tip, index) => (
             <View key={index} style={styles.tipRow}>
               <Ionicons name="checkmark-circle" size={18} color="#C9A84C" />
-              <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip}</Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip.text}</Text>
+                {tip.citation && !tip.arabic ? (
+                  <Text style={{ fontSize: 11, lineHeight: 16, color: "#C9A84C", fontStyle: "italic" }}>
+                    📖 {tip.citation}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           ))}
         </View>

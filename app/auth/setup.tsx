@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import LanguageDropdown from "../components/LanguageDropdown"
+import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { supabase } from "../../lib/supabase"
 
 
@@ -30,6 +31,8 @@ export default function SetupScreen() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [referralCode, setReferralCode] = useState("")
+  const [referralError, setReferralError] = useState("")
   const [selectedLang, setSelectedLang] = useState(i18n.language || "en")
   const [langOpen, setLangOpen] = useState(false)
 
@@ -43,6 +46,12 @@ export default function SetupScreen() {
     })
   }, [])
 
+  useEffect(() => {
+    getPendingReferral().then(code => {
+      if (code) setReferralCode(normalizeReferralCode(code))
+    })
+  }, [])
+
   const handleContinue = async () => {
     if (!fullName || !phone || !nationality) {
       setError(t("pleaseFillAll"))
@@ -53,8 +62,21 @@ export default function SetupScreen() {
       return
     }
 
-    setLoading(true)
     setError("")
+    setReferralError("")
+
+    if (userType === "pilgrim") {
+      const code = normalizeReferralCode(referralCode)
+      if (code) {
+        const valid = await isValidReferralCode(code)
+        if (!valid) {
+          setReferralError(t("agentCodeInvalid"))
+          return
+        }
+      }
+    }
+
+    setLoading(true)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -93,14 +115,10 @@ export default function SetupScreen() {
         }
         router.replace("/auth/plans" as any)
       } else {
-        // Pilgrim — check for pending referral code
-        const { getPendingReferral, linkPilgrimToAgent } = await import("@/lib/referral")
-        const pendingRef = await getPendingReferral()
-        console.log("Pending referral:", pendingRef)
-        if (pendingRef) {
-          await linkPilgrimToAgent(pendingRef)
+        const code = normalizeReferralCode(referralCode)
+        if (code) {
+          await linkPilgrimToAgent(code)
         }
-        console.log("Navigating to tabs...")
         router.replace("/(tabs)")
       }
     } catch {
@@ -238,6 +256,27 @@ export default function SetupScreen() {
                     <Text style={[styles.genderText, gender === "female" && { color: "#fff" }]}>{t("female")}</Text>
                   </TouchableOpacity>
                 </View>
+
+                <Text style={[styles.label, { color: theme.text }]}>{t("agentCodeOptional")}</Text>
+                <Text style={[styles.fieldHint, { color: theme.textSecondary }]}>{t("agentCodeHint")}</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: theme.card, borderColor: theme.border, color: theme.text },
+                    referralCode.length > 0 && styles.inputApplied,
+                    referralError && styles.inputError,
+                  ]}
+                  placeholder={t("agentCodePlaceholder")}
+                  placeholderTextColor={theme.textSecondary}
+                  value={referralCode}
+                  onChangeText={text => {
+                    setReferralCode(normalizeReferralCode(text))
+                    if (referralError) setReferralError("")
+                  }}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
+                {referralError ? <Text style={styles.fieldError}>{referralError}</Text> : null}
               </>
             )}
 
@@ -302,6 +341,10 @@ const styles = StyleSheet.create({
   typeSub: { fontSize: 12, lineHeight: 18 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 16 },
   input: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 0.5, marginBottom: 4 },
+  inputApplied: { borderColor: "#C9A84C", borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.05)" },
+  inputError: { borderColor: "#E24B4A", borderWidth: 1 },
+  fieldError: { color: "#E24B4A", fontSize: 12, marginTop: 4, marginBottom: 4 },
+  fieldHint: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
   genderRow: { flexDirection: "row", gap: 12, marginBottom: 4 },
   genderBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "center" },
   genderActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },

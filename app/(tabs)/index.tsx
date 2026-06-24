@@ -1,6 +1,6 @@
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
-import { schedulePrayerNotifications } from "@/lib/notifications";
+import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, readCachedPrayerTimes } from "@/lib/prayerTimes";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -105,13 +105,6 @@ function JourneyCard({ emoji, title, sub, onPress, theme }: { emoji: string; tit
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-
-const PRAYER_NAMES = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
-
-const timeToMinutes = (time: string) => {
-  const [h, m] = time.split(":").map(Number)
-  return h * 60 + m
-}
 
 const getWeatherCondition = (code: number) => {
   if (code === 0) return "Sunny"
@@ -245,45 +238,35 @@ export default function HomeScreen() {
 
     // ── Fetch fresh in background ──
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      let lat = 21.3891
-      let lng = 39.8579
-
-      if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({})
-        lat = location.coords.latitude
-        lng = location.coords.longitude
+      const cachedTimes = await readCachedPrayerTimes()
+      if (cachedTimes) {
+        setHijriDate({
+          day: cachedTimes.hijriDay ?? cachedTimes.date.split(" ")[0] ?? "--",
+          month: cachedTimes.hijriMonth ?? cachedTimes.hijri ?? "---",
+          year: cachedTimes.hijriYear ?? cachedTimes.date.split(" ")[2] ?? "----",
+        })
+        setNextPrayer(getNextPrayerFromTimes(cachedTimes))
       }
 
-      const today = new Date()
-      const pRes = await fetch(
-        `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=4`
-      )
-      const pData = await pRes.json()
-
-      if (pData.code === 200) {
-        const h = pData.data.date.hijri
-        const newHijri = { day: h.day, month: h.month.en, year: h.year }
-        setHijriDate(newHijri)
-
-        const timings = pData.data.timings
-        const nowMinutes = today.getHours() * 60 + today.getMinutes()
-        let newNextPrayer = { name: "Fajr", time: timings.Fajr }
-        for (const name of PRAYER_NAMES) {
-          const prayerMin = timeToMinutes(timings[name])
-          if (prayerMin > nowMinutes) {
-            newNextPrayer = { name, time: timings[name] }
-            break
-          }
+      const times = await fetchAndCachePrayerTimes()
+      if (times) {
+        const newHijri = {
+          day: times.hijriDay,
+          month: times.hijriMonth,
+          year: times.hijriYear,
         }
+        const newNextPrayer = getNextPrayerFromTimes(times)
+        setHijriDate(newHijri)
         setNextPrayer(newNextPrayer)
 
-        const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
-        if (notifEnabled !== "false") {
-          schedulePrayerNotifications({
-            fajr: timings.Fajr, dhuhr: timings.Dhuhr,
-            asr: timings.Asr, maghrib: timings.Maghrib, isha: timings.Isha,
-          }).catch(e => console.log("Prayer notification error:", e))
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        let lat = 21.3891
+        let lng = 39.8579
+
+        if (status === "granted") {
+          const location = await Location.getCurrentPositionAsync({})
+          lat = location.coords.latitude
+          lng = location.coords.longitude
         }
 
         // ── Weather ──
@@ -297,7 +280,6 @@ export default function HomeScreen() {
           const newWeather = { temp: `${temp}°C`, condition }
           setWeather(newWeather)
 
-          // ── Save to cache ──
           await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
             hijriDate: newHijri,
             weather: newWeather,

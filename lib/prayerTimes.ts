@@ -1,3 +1,4 @@
+import { PRAYER_NAMES } from "@/lib/prayerConstants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Location from "expo-location"
 
@@ -11,7 +12,50 @@ export type CachedPrayerTimes = {
   Isha: string
   date: string
   hijri: string
+  hijriDay: string
+  hijriMonth: string
+  hijriYear: string
   city: string
+}
+
+/** Parse "05:30", "05:30:00", or "05:30 (GMT+3)" into hour/minute. */
+export function parsePrayerTimeHourMinute(time: string): { hour: number; minute: number } {
+  const match = time.match(/(\d{1,2}):(\d{2})/)
+  if (!match) return { hour: 0, minute: 0 }
+  return { hour: parseInt(match[1], 10), minute: parseInt(match[2], 10) }
+}
+
+export function timeToMinutes(time: string): number {
+  const { hour, minute } = parsePrayerTimeHourMinute(time)
+  return hour * 60 + minute
+}
+
+export function getNextPrayerFromTimes(
+  times: Pick<CachedPrayerTimes, "Fajr" | "Dhuhr" | "Asr" | "Maghrib" | "Isha">,
+  now = new Date()
+) {
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  for (const name of PRAYER_NAMES) {
+    const prayerMin = timeToMinutes(times[name])
+    if (prayerMin > nowMinutes) {
+      return { name, time: times[name] }
+    }
+  }
+  return { name: "Fajr" as const, time: times.Fajr }
+}
+
+async function syncPrayerNotifications(times: CachedPrayerTimes) {
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return
+
+  const { schedulePrayerNotifications } = await import("@/lib/notifications")
+  await schedulePrayerNotifications({
+    fajr: times.Fajr,
+    dhuhr: times.Dhuhr,
+    asr: times.Asr,
+    maghrib: times.Maghrib,
+    isha: times.Isha,
+  }).catch(e => console.log("Prayer notification error:", e))
 }
 
 export async function readCachedPrayerTimes(): Promise<CachedPrayerTimes | null> {
@@ -59,10 +103,14 @@ export async function fetchAndCachePrayerTimes(): Promise<CachedPrayerTimes | nu
       Isha: timings.Isha,
       date: `${hijriDate.day} ${hijriDate.month.en} ${hijriDate.year} AH`,
       hijri: hijriDate.month.en,
+      hijriDay: hijriDate.day,
+      hijriMonth: hijriDate.month.en,
+      hijriYear: hijriDate.year,
       city,
     }
 
     await AsyncStorage.setItem(PRAYER_TIMES_CACHE_KEY, JSON.stringify(times))
+    await syncPrayerNotifications(times)
     return times
   } catch {
     return readCachedPrayerTimes()

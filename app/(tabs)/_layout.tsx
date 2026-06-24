@@ -1,15 +1,48 @@
 import { useTheme } from "@/context/themeContext";
+import { isExpoGo } from "@/lib/runtime";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 
-export default function TabsLayout() {
+function StandardTabs() {
   const { theme } = useTheme()
   const { t } = useTranslation()
 
-  if (Platform.OS === "ios") {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.card,
+          borderTopWidth: 0.5,
+          borderTopColor: theme.border,
+          height: 90,
+          paddingBottom: 22,
+          paddingTop: 10,
+        },
+        tabBarActiveTintColor: "#C9A84C",
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+        },
+      }}
+    >
+      <Tabs.Screen name="index" options={{ title: t("home"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} /> }} />
+      <Tabs.Screen name="umrah" options={{ title: t("guide"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} /> }} />
+      <Tabs.Screen name="maps" options={{ title: t("maps"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "map" : "map-outline"} size={24} color={color} /> }} />
+      <Tabs.Screen name="services" options={{ title: t("services"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} /> }} />
+      <Tabs.Screen name="me" options={{ title: t("me"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} /> }} />
+    </Tabs>
+  )
+}
+
+export default function TabsLayout() {
+  const { t } = useTranslation()
+
+  if (Platform.OS === "ios" && !isExpoGo) {
     return (
       <NativeTabs
         iconColor={{ default: "#94A3B8", selected: "#C9A84C" }}
@@ -41,31 +74,5 @@ export default function TabsLayout() {
     )
   }
 
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.card,
-          borderTopWidth: 0.5,
-          borderTopColor: theme.border,
-          height: 90,
-          paddingBottom: 22,
-          paddingTop: 10,
-        },
-        tabBarActiveTintColor: "#C9A84C",
-        tabBarInactiveTintColor: theme.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-        },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: t("home"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} /> }} />
-      <Tabs.Screen name="umrah" options={{ title: t("guide"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} /> }} />
-      <Tabs.Screen name="maps" options={{ title: t("maps"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "map" : "map-outline"} size={24} color={color} /> }} />
-      <Tabs.Screen name="services" options={{ title: t("services"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} /> }} />
-      <Tabs.Screen name="me" options={{ title: t("me"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} /> }} />
-    </Tabs>
-  )
+  return <StandardTabs />
 }

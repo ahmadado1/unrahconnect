@@ -54,10 +54,17 @@
         "phaseUmrah1Tip1",
         "phaseUmrah1Tip2",
         "phaseUmrah1Tip3",
-        "phaseUmrah1Tip4",
         "phaseUmrah1Tip5",
         "phaseUmrah1Tip6",
         "phaseUmrah1Tip7"
+      ],
+      "tipsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        { "citationKey": "phaseUmrah1Tip7Citation" }
       ],
       "femaleNoteKey": "phaseUmrah1FemaleNote"
     },
@@ -77,6 +84,20 @@
         "phaseUmrah2Step7",
         "phaseUmrah2Step8",
         "phaseUmrah2Step9"
+      ],
+      "stepsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "arabic": "لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لاَ شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لاَ شَرِيكَ لَكَ",
+          "transliterationKey": "phaseUmrah2Step8Translit"
+        },
+        null
       ],
       "duas": [
         {
@@ -113,6 +134,15 @@
         "phaseUmrah2Tip6",
         "phaseUmrah2Tip7"
       ],
+      "tipsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        { "citationKey": "phaseUmrah2Tip7Citation" }
+      ],
       "femaleNoteKey": "phaseUmrah2FemaleNote"
     },
     {
@@ -130,6 +160,21 @@
         "phaseUmrah3Step6",
         "phaseUmrah3Step7",
         "phaseUmrah3Step8"
+      ],
+      "stepsSupplements": [
+        null,
+        {
+          "arabic": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+          "transliterationKey": "phaseUmrah3Step2Translit",
+          "translationKey": "phaseUmrah3Step2Translation",
+          "citationKey": "phaseUmrah3Step2Citation"
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "duas": [
         {
@@ -173,6 +218,21 @@
         "phaseUmrah3Tip7",
         "phaseUmrah3Tip8"
       ],
+      "tipsSupplements": [
+        null,
+        null,
+        null,
+        {
+          "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا وَاسِعًا وَشِفَاءً مِنْ كُلِّ دَاءٍ",
+          "transliterationKey": "phaseUmrah3Tip4Translit",
+          "translationKey": "phaseUmrah3Tip4Translation",
+          "citationKey": "phaseUmrah3Tip4Citation"
+        },
+        null,
+        null,
+        null,
+        null
+      ],
       "femaleNoteKey": "phaseUmrah3FemaleNote"
     },
     {
@@ -193,6 +253,24 @@
         "phaseUmrah4Step9",
         "phaseUmrah4Step10",
         "phaseUmrah4Step11"
+      ],
+      "stepsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        {
+          "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا وَاسِعًا وَشِفَاءً مِنْ كُلِّ دَاءٍ",
+          "transliterationKey": "phaseUmrah3Tip4Translit",
+          "translationKey": "phaseUmrah3Tip4Translation",
+          "citationKey": "phaseUmrah3Tip4Citation"
+        },
+        null
       ],
       "duas": [
         {
@@ -243,6 +321,17 @@
         "phaseUmrah4Tip8",
         "phaseUmrah4Tip9"
       ],
+      "tipsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        { "citationKey": "phaseUmrah4Tip9Citation" }
+      ],
       "femaleNoteKey": "phaseUmrah4FemaleNote"
     },
     {
@@ -262,6 +351,23 @@
         "phaseUmrah5Step8",
         "phaseUmrah5Step9",
         "phaseUmrah5Step10"
+      ],
+      "stepsSupplements": [
+        null,
+        {
+          "arabic": "إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ",
+          "transliterationKey": "phaseUmrah5Step2Translit",
+          "translationKey": "phaseUmrah5Step2Translation",
+          "citationKey": "phaseUmrah5Step2Citation"
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
       ],
       "duas": [
         {
@@ -364,6 +470,15 @@
         "phaseUmrah6Tip6",
         "phaseUmrah6Tip7"
       ],
+      "tipsSupplements": [
+        { "citationKey": "phaseUmrah6Tip1Citation" },
+        null,
+        null,
+        null,
+        null,
+        { "citationKey": "phaseUmrah2Tip7Citation" },
+        null
+      ],
       "femaleNoteKey": "phaseUmrah6FemaleNote"
     },
     {
@@ -438,6 +553,17 @@
         "phaseUmrah7Tip7",
         "phaseUmrah7Tip8",
         "phaseUmrah7Tip9"
+      ],
+      "tipsSupplements": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        { "citationKey": "phaseUmrah7Tip7Citation" },
+        null,
+        null
       ],
       "femaleNoteKey": "phaseUmrah7FemaleNote"
     }

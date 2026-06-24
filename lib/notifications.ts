@@ -1,39 +1,86 @@
 import i18n from "@/i18n"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { prayerNameFromNotification } from "@/lib/prayerConstants"
+import { parsePrayerTimeHourMinute } from "@/lib/prayerTimes"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Notifications from "expo-notifications"
+import {
+  AndroidAudioContentType,
+  AndroidAudioUsage,
+} from "expo-notifications"
 import { Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v2"
 
-async function getAdhanSound(): Promise<string> {
-  const selectedAdhan = (await AsyncStorage.getItem("selected_adhan")) || "1"
-  return `azan${selectedAdhan}.mp3`
+export function getPrayerChannelId(adhanId: string) {
+  return `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
+}
+
+function getIosAdhanSound(adhanId: string) {
+  return `azan${adhanId}.wav`
+}
+
+function getAndroidAdhanSound(adhanId: string) {
+  return `azan${adhanId}.mp3`
+}
+
+async function getSelectedAdhanId() {
+  return (await AsyncStorage.getItem("selected_adhan")) || "1"
 }
 
 export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
-  if (Platform.OS !== "android") return
+  if (Platform.OS !== "android") return null
 
-  const adhanSound = selectedAdhan ? `azan${selectedAdhan}.mp3` : await getAdhanSound()
+  const adhanId = selectedAdhan || (await getSelectedAdhanId())
+  const channelId = getPrayerChannelId(adhanId)
+  const adhanSound = getAndroidAdhanSound(adhanId)
 
-  await Notifications.setNotificationChannelAsync(PRAYER_CHANNEL_ID, {
+  // Channel sound cannot be changed after creation — always recreate fresh.
+  await Notifications.deleteNotificationChannelAsync(channelId).catch(() => {})
+
+  await Notifications.setNotificationChannelAsync(channelId, {
     name: "Prayer Times",
     importance: Notifications.AndroidImportance.MAX,
     sound: adhanSound,
     vibrationPattern: [0, 250, 250, 250],
     enableVibrate: true,
+    bypassDnd: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    audioAttributes: {
+      usage: AndroidAudioUsage.NOTIFICATION_RINGTONE,
+      contentType: AndroidAudioContentType.SONIFICATION,
+      flags: {
+        enforceAudibility: true,
+        requestHardwareAudioVideoSynchronization: false,
+      },
+    },
   })
+
+  // Remove legacy channels that may still play the default chime.
+  await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
+  for (const id of ["1", "2", "3", "4", "5"]) {
+    const legacyId = `prayer-adhan-${id}`
+    const v2Id = getPrayerChannelId(id)
+    if (legacyId !== channelId) {
+      await Notifications.deleteNotificationChannelAsync(legacyId).catch(() => {})
+    }
+    if (v2Id !== channelId && id !== adhanId) {
+      await Notifications.deleteNotificationChannelAsync(v2Id).catch(() => {})
+    }
+  }
+
+  return channelId
 }
 
 Notifications.setNotificationHandler({
   handleNotification: async notification => {
     const identifier = notification.request.identifier
     const data = notification.request.content.data as Record<string, unknown> | undefined
+    const isPrayer = identifier.startsWith("prayer-")
 
-    if (identifier.startsWith("prayer-")) {
+    if (isPrayer) {
       const prayerName = prayerNameFromNotification(identifier, data)
       if (prayerName) {
         triggerPrayerAlert(prayerName, true)
@@ -42,7 +89,8 @@ Notifications.setNotificationHandler({
 
     return {
       shouldShowAlert: true,
-      shouldPlaySound: true,
+      // Foreground: play full adhan in-app instead of the default notification chime.
+      shouldPlaySound: !isPrayer,
       shouldSetBadge: true,
       shouldShowBanner: true,
       shouldShowList: true,
@@ -108,10 +156,8 @@ export async function schedulePrayerNotifications(
   },
   selectedAdhan?: string
 ) {
-  const adhanId = selectedAdhan || (await AsyncStorage.getItem("selected_adhan")) || "1"
-  const adhanSound = `azan${adhanId}.mp3`
-
-  await setupPrayerNotificationChannel(adhanId)
+  const adhanId = selectedAdhan || (await getSelectedAdhanId())
+  const channelId = await setupPrayerNotificationChannel(adhanId)
 
   const scheduled = await Notifications.getAllScheduledNotificationsAsync()
   for (const notif of scheduled) {
@@ -129,9 +175,7 @@ export async function schedulePrayerNotifications(
   ]
 
   for (const prayer of prayers) {
-    const [hourStr, minuteStr] = prayer.time.split(":")
-    const hour = parseInt(hourStr, 10)
-    const minute = parseInt(minuteStr, 10)
+    const { hour, minute } = parsePrayerTimeHourMinute(prayer.time)
 
     await Notifications.scheduleNotificationAsync({
       identifier: `prayer-${prayer.name.toLowerCase()}-now`,
@@ -146,15 +190,15 @@ export async function schedulePrayerNotifications(
               : i18n.language === "ur"
                 ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر 🕌`
                 : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
-        sound: adhanSound,
+        sound: Platform.OS === "android" ? getAndroidAdhanSound(adhanId) : getIosAdhanSound(adhanId),
         data: { screen: "prayer", prayerName: prayer.name },
-        ...(Platform.OS === "android" ? { channelId: PRAYER_CHANNEL_ID } : {}),
+        ...(Platform.OS === "android" && channelId ? { channelId } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
-        ...(Platform.OS === "android" ? { channelId: PRAYER_CHANNEL_ID } : {}),
+        ...(Platform.OS === "android" && channelId ? { channelId } : {}),
       },
     })
   }

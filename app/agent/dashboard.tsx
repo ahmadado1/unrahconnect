@@ -1,3 +1,4 @@
+import * as Clipboard from "expo-clipboard"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -60,10 +61,18 @@ export default function AgentDashboard() {
 
   const shareProfile = () => {
     const code = agentData?.referral_code || "AGT-XXXXXX"
-    const link = `umrahconnect://join?ref=${code}`
     Share.share({
-      message: `${t("shareProfileMessage", { agency: agent?.agency_name || t("myAgency") })}\n\nDownload UmrahConnect and use my link:\n${link}`,
+      message: t("shareAgentCodeMessage", {
+        code,
+        agency: agent?.agency_name || t("myAgency"),
+      }),
     })
+  }
+
+  const copyAgentCode = async () => {
+    const code = agentData?.referral_code
+    if (!code) return
+    await Clipboard.setStringAsync(code)
   }
 
   return (
@@ -120,30 +129,34 @@ export default function AgentDashboard() {
           </View>
         </View>
 
-        {/* Referral Code Card */}
-          {agentData?.referral_code && (
+        {agentData?.referral_code && (
             <View style={[styles.card, { backgroundColor: "#1E3A5F", borderColor: "rgba(201,168,76,0.3)" }]}>
               <Text style={{ color: "#C9A84C", fontWeight: "bold", fontSize: 13, marginBottom: 8 }}>
-                🔗 Your Referral Code
+                🔑 {t("yourAgentCode")}
               </Text>
-              <View style={styles.codeRow}>
-                <Text style={styles.codeText}>{agentData.referral_code}</Text>
+              <Text style={styles.codeText}>{agentData.referral_code}</Text>
+              <View style={styles.codeActions}>
+                <TouchableOpacity style={styles.copyBtn} onPress={copyAgentCode}>
+                  <Ionicons name="copy-outline" size={18} color="#1E3A5F" />
+                  <Text style={styles.copyBtnText}>{t("copyCode")}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.copyBtn}
                   onPress={() => {
-                    const link = `umrahconnect://join?ref=${agentData.referral_code}`
                     Share.share({
-                      message: `Join UmrahConnect with my referral link:\n${link}`,
-                      url: link,
+                      message: t("shareAgentCodeMessage", {
+                        code: agentData.referral_code,
+                        agency: agent?.agency_name || t("myAgency"),
+                      }),
                     })
                   }}
                 >
                   <Ionicons name="share-outline" size={18} color="#1E3A5F" />
-                  <Text style={styles.copyBtnText}>Share Link</Text>
+                  <Text style={styles.copyBtnText}>{t("shareMyAgency")}</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 8 }}>
-                Share this code with pilgrims to link them to your agency
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 10 }}>
+                {t("shareAgentCodeHint")}
               </Text>
             </View>
           )}
@@ -213,7 +226,7 @@ export default function AgentDashboard() {
               <View style={{ alignItems: "center", paddingVertical: 20 }}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>🕋</Text>
                 <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center" }}>
-                  No pilgrims yet. Share your referral link to get started.
+                  No pilgrims yet. Share your agent code to get started.
                 </Text>
               </View>
             ) : (
@@ -300,7 +313,8 @@ const styles = StyleSheet.create({
   upgradeBtn: { backgroundColor: "#C9A84C", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
   upgradeBtnText: { fontSize: 13, fontWeight: "bold", color: "#1E3A5F" },
   codeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  codeText: { fontSize: 22, fontWeight: "bold", color: "#fff", letterSpacing: 2 },
+  codeActions: { flexDirection: "row", gap: 10, marginTop: 14 },
+  codeText: { fontSize: 28, fontWeight: "bold", color: "#fff", letterSpacing: 3 },
   copyBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C9A84C", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   copyBtnText: { fontSize: 13, fontWeight: "bold", color: "#1E3A5F" },
   pilgrimRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },

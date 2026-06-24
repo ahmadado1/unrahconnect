@@ -1,3 +1,5 @@
+import PhaseStepsSection from "@/app/components/PhaseStepsSection"
+import MadinahPlacesSection from "@/app/components/MadinahPlacesSection"
 import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
@@ -7,7 +9,8 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const umrahPhases = phaseStructure.umrah
@@ -32,6 +35,12 @@ export default function PhaseDetailScreen() {
   const nextPhase = phaseOrder[currentIndex + 1]
   const [isCompleted, setIsCompleted] = useState(false)
   const [gender, setGender] = useState<"male" | "female">("male")
+  const scrollY = useSharedValue(0)
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y
+    },
+  })
 
   useEffect(() => {
     const checkProgress = async () => {
@@ -63,7 +72,11 @@ export default function PhaseDetailScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" backgroundColor={data.textColor} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+      >
         <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: data.textColor }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -76,7 +89,9 @@ export default function PhaseDetailScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.description, { color: theme.textSecondary }]}>{data.description}</Text>
+          {phaseId !== "4" ? (
+            <Text style={[styles.description, { color: theme.textSecondary }]}>{data.description}</Text>
+          ) : null}
 
           {gender === "female" && data.femaleNote && (
             <View style={styles.femaleNote}>
@@ -87,15 +102,17 @@ export default function PhaseDetailScreen() {
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("whatToDo")}</Text>
-          {data.steps.map((step, index) => (
-            <View key={index} style={styles.stepRow}>
-              <View style={styles.stepNum}>
-                <Text style={styles.stepNumText}>{index + 1}</Text>
-              </View>
-              <Text style={[styles.stepText, { color: theme.textSecondary }]}>{step}</Text>
-            </View>
-          ))}
+          {phaseId === "1" ? (
+            <MadinahPlacesSection badgeColor={data.textColor} />
+          ) : rawPhase ? (
+            <PhaseStepsSection
+              phaseId={phaseId ?? ""}
+              stepsKeys={rawPhase.stepsKeys}
+              data={data}
+              scrollY={scrollY}
+              showIntro={phaseId === "4"}
+            />
+          ) : null}
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
@@ -116,7 +133,27 @@ export default function PhaseDetailScreen() {
           {data.tips.map((tip, index) => (
             <View key={index} style={styles.tipRow}>
               <Ionicons name="checkmark-circle" size={18} color="#C9A84C" />
-              <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip}</Text>
+              <View style={styles.tipContent}>
+                <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip.text}</Text>
+                {tip.arabic ? (
+                  <View style={[styles.tipDuaBlock, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                    <Text style={styles.tipDuaArabic}>{tip.arabic}</Text>
+                    {tip.transliteration ? (
+                      <Text style={styles.tipDuaTranslit}>{tip.transliteration}</Text>
+                    ) : null}
+                    {tip.translation ? (
+                      <Text style={[styles.tipDuaTranslation, { color: theme.textSecondary }]}>
+                        {tip.translation}
+                      </Text>
+                    ) : null}
+                    {tip.citation ? (
+                      <Text style={styles.tipCitation}>📖 {tip.citation}</Text>
+                    ) : null}
+                  </View>
+                ) : tip.citation ? (
+                  <Text style={styles.tipCitation}>📖 {tip.citation}</Text>
+                ) : null}
+              </View>
             </View>
           ))}
         </View>
@@ -154,7 +191,7 @@ export default function PhaseDetailScreen() {
         </TouchableOpacity>
 
         <View style={{ height: 50 }} />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   )
 }
@@ -172,10 +209,6 @@ const styles = StyleSheet.create({
   description: { fontSize: 15, lineHeight: 24, marginBottom: 4 },
   divider: { height: 0.5, marginVertical: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 14 },
-  stepRow: { flexDirection: "row", gap: 12, marginBottom: 12, alignItems: "flex-start" },
-  stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 },
-  stepNumText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
-  stepText: { flex: 1, fontSize: 14, lineHeight: 22 },
   femaleNote: { flexDirection: "row", gap: 8, backgroundColor: "#E6F1FB", borderRadius: 10, padding: 12, marginTop: 12, alignItems: "flex-start" },
   femaleNoteText: { flex: 1, fontSize: 13, color: "#0C447C", lineHeight: 20 },
   duaCard: { borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5 },
@@ -185,7 +218,30 @@ const styles = StyleSheet.create({
   duaDivider: { height: 0.5, marginBottom: 8 },
   duaTranslation: { fontSize: 13, lineHeight: 20 },
   tipRow: { flexDirection: "row", gap: 10, marginBottom: 10, alignItems: "flex-start" },
-  tipText: { flex: 1, fontSize: 14, lineHeight: 22 },
+  tipContent: { flex: 1, gap: 4 },
+  tipText: { fontSize: 14, lineHeight: 22 },
+  tipDuaBlock: {
+    borderRadius: 10,
+    borderWidth: 0.5,
+    padding: 12,
+    gap: 8,
+    marginTop: 4,
+  },
+  tipDuaArabic: {
+    fontSize: 20,
+    textAlign: "center",
+    lineHeight: 34,
+    color: "#1E3A5F",
+  },
+  tipDuaTranslit: {
+    fontSize: 13,
+    color: "#C9A84C",
+    fontStyle: "italic",
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  tipDuaTranslation: { fontSize: 13, lineHeight: 20, textAlign: "center" },
+  tipCitation: { fontSize: 11, lineHeight: 16, color: "#C9A84C", fontStyle: "italic" },
   completeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "green", marginHorizontal: 20, borderRadius: 25, padding: 14, marginBottom: 12 },
   completeBtnDone: { backgroundColor: "#C9A84C" },
   completeBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },

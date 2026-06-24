@@ -3,46 +3,100 @@ import { supabase } from "./supabase"
 
 const REFERRAL_KEY = "pending_referral_code"
 
-// Save referral code when app opens via deep link
-export const saveReferralCode = async (code: string) => {
-  await AsyncStorage.setItem(REFERRAL_KEY, code)
+export function normalizeReferralCode(code: string) {
+  return code.trim().toUpperCase()
 }
 
-// Get saved referral code
-export const getPendingReferral = async () => {
+export async function saveReferralCode(code: string) {
+  const normalized = normalizeReferralCode(code)
+  if (!normalized) return
+  await AsyncStorage.setItem(REFERRAL_KEY, normalized)
+}
+
+export async function getPendingReferral() {
   return await AsyncStorage.getItem(REFERRAL_KEY)
 }
 
-// Clear referral code after linking
-export const clearReferral = async () => {
+export async function clearReferral() {
   await AsyncStorage.removeItem(REFERRAL_KEY)
 }
 
-// Link pilgrim to agent after signup
-export const linkPilgrimToAgent = async (referralCode: string) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+export async function isValidReferralCode(referralCode: string): Promise<boolean> {
+  const normalized = normalizeReferralCode(referralCode)
+  if (!normalized) return false
 
-    // Find agent by referral code
+  const { data } = await supabase
+    .from("agents")
+    .select("id")
+    .eq("referral_code", normalized)
+    .maybeSingle()
+
+  return !!data
+}
+
+export async function pilgrimHasAgent(pilgrimId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("pilgrim_agent")
+    .select("id")
+    .eq("pilgrim_id", pilgrimId)
+    .maybeSingle()
+
+  return !!data
+}
+
+export async function linkPilgrimToAgent(referralCode: string): Promise<boolean> {
+  try {
+    const normalized = normalizeReferralCode(referralCode)
+    if (!normalized) return false
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    if (await pilgrimHasAgent(user.id)) {
+      await clearReferral()
+      return true
+    }
+
     const { data: agent } = await supabase
       .from("agents")
       .select("id")
-      .eq("referral_code", referralCode)
-      .single()
+      .eq("referral_code", normalized)
+      .maybeSingle()
 
-    if (!agent) return
+    if (!agent) return false
 
-    // Link pilgrim to agent
-    await supabase.from("pilgrim_agent").insert({
+    const { error } = await supabase.from("pilgrim_agent").insert({
       pilgrim_id: user.id,
       agent_id: agent.id,
-      referral_code: referralCode,
+      referral_code: normalized,
     })
 
-    console.log("Pilgrim linked to agent:", referralCode)
+    if (error) {
+      console.log("Link pilgrim error:", error.message)
+      return false
+    }
+
     await clearReferral()
+    return true
   } catch (e) {
     console.log("Link pilgrim error:", e)
+    return false
   }
+}
+
+/** Save pending code, or link immediately if user is already signed in. */
+export async function applyAgentCode(code: string): Promise<boolean> {
+  const normalized = normalizeReferralCode(code)
+  if (!normalized) return false
+
+  const valid = await isValidReferralCode(normalized)
+  if (!valid) return false
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    return linkPilgrimToAgent(normalized)
+  }
+
+  await saveReferralCode(normalized)
+  return true
 }

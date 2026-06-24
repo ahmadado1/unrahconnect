@@ -15,7 +15,7 @@ import {
   type MushafPageData,
   type MushafVerse,
 } from "../../lib/quranPageCache"
-import { fetchAndCacheSurah, readCachedSurah } from "../../lib/quranReadCache"
+import { fetchAndCacheSurah, normalizeReadLanguage, peekCachedSurah, readCachedSurah } from "../../lib/quranReadCache"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -437,19 +437,6 @@ export default function SurahScreen() {
   const [initialIndex, setInitialIndex] = useState(0)
   const listRef = useRef<FlatList>(null)
   const [viewMode, setViewMode] = useState<"text" | "mushaf">("text")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [verseList, setVerseList] = useState<Verse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
-  const saveTimer = useRef<any>(null)
-
-  
-
-  const [fontsLoaded] = useFonts({
-    ScheherazadeNew_400Regular,
-    ScheherazadeNew_700Bold,
-  })
-
   const { surah, name, arabicName, verses, type } = useLocalSearchParams<{
     surah: string
     name: string
@@ -458,11 +445,107 @@ export default function SurahScreen() {
     type: string
   }>()
 
+  const initialLang = normalizeReadLanguage(i18n.language)
+  const initialSurahNum = surah ? Number(surah) : 0
+  const initialCached = initialSurahNum > 0 ? peekCachedSurah(initialSurahNum, initialLang) : null
+
+  const [currentPage, setCurrentPage] = useState(() => initialCached?.[0]?.page || 1)
+  const [verseList, setVerseList] = useState<Verse[]>(() => initialCached ?? [])
+  const [loading, setLoading] = useState(() => !initialCached?.length)
+  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
+  const saveTimer = useRef<any>(null)
+  const loadRequestRef = useRef(0)
+
+  const [fontsLoaded] = useFonts({
+    ScheherazadeNew_400Regular,
+    ScheherazadeNew_700Bold,
+  })
+
+  const applyReadingProgress = async (verses: Verse[]) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    const { data: progress } = await supabase
+      .from("quran_progress")
+      .select("verse_number")
+      .eq("user_id", session.user.id)
+      .eq("surah_number", Number(surah))
+      .maybeSingle()
+
+    if (progress?.verse_number) {
+      const idx = verses.findIndex(v => v.number === progress.verse_number)
+      if (idx >= 0) setInitialIndex(idx)
+    }
+  }
+
+  const fetchBookmarks = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from("quran_bookmarks")
+        .select("verse_number")
+        .eq("user_id", session.user.id)
+        .eq("surah_number", Number(surah))
+      if (data) setBookmarked(new Set(data.map((b: any) => b.verse_number)))
+    } catch (e) {
+      console.log("Bookmark fetch error:", e)
+    }
+  }
+
+  const applyLoadedVerses = (verses: Verse[]) => {
+    setVerseList(verses)
+    setCurrentPage(verses[0]?.page || 1)
+    setLoading(false)
+    void applyReadingProgress(verses)
+    void fetchBookmarks()
+  }
+
   useEffect(() => {
-  if (!surah) return
-  fetchVerses()
-  fetchBookmarks()
-}, [surah, i18n.language])  
+    if (!surah) return
+
+    const requestId = ++loadRequestRef.current
+    const surahNum = Number(surah)
+    const lang = normalizeReadLanguage(i18n.language)
+
+    const load = async () => {
+      const instant = peekCachedSurah(surahNum, lang)
+      if (instant?.length) {
+        if (loadRequestRef.current !== requestId) return
+        applyLoadedVerses(instant)
+        return
+      }
+
+      setVerseList([])
+      setLoading(true)
+
+      const cached = await readCachedSurah(surahNum, lang)
+      if (loadRequestRef.current !== requestId) return
+
+      if (cached?.length) {
+        applyLoadedVerses(cached)
+        return
+      }
+
+      try {
+        const combined = await fetchAndCacheSurah(surahNum, lang)
+        if (loadRequestRef.current !== requestId) return
+
+        if (combined?.length) {
+          applyLoadedVerses(combined)
+        } else {
+          setLoading(false)
+        }
+      } catch (e) {
+        console.log("Quran API error:", e)
+        if (loadRequestRef.current === requestId) {
+          setLoading(false)
+        }
+      }
+    }
+
+    load()
+  }, [surah, i18n.language])
 
   useEffect(() => {
     if (initialIndex > 0 && verseList.length > 0 && !loading) {
@@ -491,72 +574,6 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
   }
   throw new Error("HTTP Error")
 }
-
-  // ─── FETCH VERSES ──────────────────────────────────────────────────────────
-
-  const applyReadingProgress = async (verses: Verse[]) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-
-    const { data: progress } = await supabase
-      .from("quran_progress")
-      .select("verse_number")
-      .eq("user_id", session.user.id)
-      .eq("surah_number", Number(surah))
-      .maybeSingle()
-
-    if (progress?.verse_number) {
-      const idx = verses.findIndex(v => v.number === progress.verse_number)
-      if (idx >= 0) setInitialIndex(idx)
-    }
-  }
-
-  const fetchVerses = async () => {
-    if (!surah || Number(surah) < 1 || Number(surah) > 114) return
-    try {
-      setLoading(true)
-
-      const cached = await readCachedSurah(Number(surah), i18n.language)
-      if (cached?.length) {
-        setVerseList(cached)
-        setCurrentPage(cached[0].page || 1)
-        await applyReadingProgress(cached)
-        return
-      }
-
-      const combined = await fetchAndCacheSurah(Number(surah), i18n.language)
-      if (combined?.length) {
-        setVerseList(combined)
-        setCurrentPage(combined[0].page || 1)
-        await applyReadingProgress(combined)
-        return
-      }
-
-      throw new Error("All APIs failed")
-    } catch (e) {
-      console.log("Quran API error:", e)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-
-  // ─── FETCH BOOKMARKS ───────────────────────────────────────────────────────
-
-  const fetchBookmarks = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-      const { data } = await supabase
-        .from("quran_bookmarks")
-        .select("verse_number")
-        .eq("user_id", session.user.id)
-        .eq("surah_number", Number(surah))
-      if (data) setBookmarked(new Set(data.map((b: any) => b.verse_number)))
-    } catch (e) {
-      console.log("Bookmark fetch error:", e)
-    }
-  }
 
   // ─── TOGGLE BOOKMARK ───────────────────────────────────────────────────────
 
