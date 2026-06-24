@@ -1,20 +1,83 @@
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
-import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, readCachedPrayerTimes } from "@/lib/prayerTimes";
+import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes } from "@/lib/prayerTimes";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { getUmrahProgress, supabase } from "@/lib/supabase";
+import { useRouter, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "../../lib/supabase";
-import DrawerMenu from "../component/DrawerMenu";
 
+const UMRAH_PHASE_TITLE_KEYS = [
+  "phase_umrah_1_title",
+  "phase_umrah_2_title",
+  "phase_umrah_3_title",
+  "phase_umrah_4_title",
+  "phase_umrah_5_title",
+  "phase_umrah_6_title",
+  "phase_umrah_7_title",
+] as const
 
+const UMRAH_TOTAL_PHASES = UMRAH_PHASE_TITLE_KEYS.length
 
+// ─── DHIKR LIST ──────────────────────────────────────────────────────────────
+
+const DHIKR_LIST = [
+  { arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", translit: "SubhanAllah wa bihamdihi", meaning: "Glory and praise be to Allah" },
+  { arabic: "الْحَمْدُ لِلَّهِ", translit: "Alhamdulillah", meaning: "All praise is due to Allah" },
+  { arabic: "لَا إِلَهَ إِلَّا اللَّهُ", translit: "La ilaha illallah", meaning: "There is no god but Allah" },
+  { arabic: "اللَّهُ أَكْبَرُ", translit: "Allahu Akbar", meaning: "Allah is the Greatest" },
+  { arabic: "أَسْتَغْفِرُ اللَّهَ", translit: "Astaghfirullah", meaning: "I seek forgiveness from Allah" },
+  { arabic: "سُبْحَانَ اللَّهِ الْعَظِيمِ", translit: "SubhanAllah il-Azeem", meaning: "Glory be to Allah the Magnificent" },
+]
+
+// ─── CIRCULAR TIMER ──────────────────────────────────────────────────────────
+
+function formatTimerDisplay(minutesLeft: number) {
+  if (minutesLeft < 60) {
+    return { value: String(minutesLeft), label: "min left", fontSize: 22 }
+  }
+  const h = Math.floor(minutesLeft / 60)
+  const m = minutesLeft % 60
+  return { value: `${h}:${String(m).padStart(2, "0")}`, label: "left", fontSize: 20 }
+}
+
+function CircularTimer({ minutesLeft, total = 300 }: { minutesLeft: number; total?: number }) {
+  const size = 90
+  const strokeWidth = 6
+  const progress = total > 0 ? Math.min(minutesLeft / total, 1) : 0
+  const { value, label, fontSize } = formatTimerDisplay(minutesLeft)
+
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", width: size, height: size }}>
+        {/* Background circle */}
+        <View style={{
+          width: size, height: size, borderRadius: size / 2,
+          borderWidth: strokeWidth, borderColor: "rgba(255,255,255,0.15)",
+          position: "absolute"
+        }} />
+        {/* Progress arc - simulated with rotation */}
+        <View style={{
+          width: size, height: size, borderRadius: size / 2,
+          borderWidth: strokeWidth,
+          borderColor: "transparent",
+          borderTopColor: "#4CAF50",
+          borderRightColor: progress > 0.25 ? "#4CAF50" : "transparent",
+          borderBottomColor: progress > 0.5 ? "#4CAF50" : "transparent",
+          borderLeftColor: progress > 0.75 ? "#4CAF50" : "transparent",
+          position: "absolute",
+          transform: [{ rotate: "-90deg" }]
+        }} />
+      </View>
+      <Text style={{ color: "#fff", fontSize, fontWeight: "bold" }}>{value}</Text>
+      <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 10 }}>{label}</Text>
+    </View>
+  )
+}
 
 // ─── BOOKING CARD ────────────────────────────────────────────────────────────
 
@@ -63,43 +126,15 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
   )
 }
 
-// ─── GLANCE CARD ─────────────────────────────────────────────────────────────
+// ─── QUICK ACCESS ITEM ───────────────────────────────────────────────────────
 
-function GlanceCard({ icon, label, value, sub, theme, onPress }: { icon: string; label: string; value: string; sub: string; theme: any; onPress?: () => void }) {
-  const content = (
-    <>
-      <View style={glanceStyles.iconBox}>
-        <Ionicons name={icon as any} size={18} color="#C9A84C" />
+function QuickItem({ icon, label, onPress, theme }: { icon: any; label: string; onPress: () => void; theme: any }) {
+  return (
+    <TouchableOpacity style={[qaStyles.item, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress}>
+      <View style={qaStyles.iconBox}>
+        <Ionicons name={icon} size={24} color="#1E3A5F" />
       </View>
-      <Text style={[glanceStyles.label, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[glanceStyles.value, { color: theme.text }]}>{value}</Text>
-      <Text style={glanceStyles.sub}>{sub}</Text>
-    </>
-  )
-
-  if (onPress) {
-    return (
-      <TouchableOpacity style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress} activeOpacity={0.7}>
-        {content}
-      </TouchableOpacity>
-    )
-  }
-
-  return (
-    <View style={[glanceStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      {content}
-    </View>
-  )
-}
-
-// ─── JOURNEY CARD ────────────────────────────────────────────────────────────
-
-function JourneyCard({ emoji, title, sub, onPress, theme }: { emoji: string; title: string; sub: string; onPress: () => void; theme: any }) {
-  return (
-    <TouchableOpacity style={[journeyStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress}>
-      <Text style={journeyStyles.emoji}>{emoji}</Text>
-      <Text style={[journeyStyles.title, { color: theme.text }]}>{title}</Text>
-      <Text style={journeyStyles.sub}>{sub}</Text>
+      <Text style={[qaStyles.label, { color: theme.text }]}>{label}</Text>
     </TouchableOpacity>
   )
 }
@@ -116,186 +151,154 @@ const getWeatherCondition = (code: number) => {
   return "Stormy"
 }
 
+function formatPrayerTimeDisplay(timeStr: string): string {
+  const { hour, minute } = parsePrayerTimeHourMinute(timeStr)
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+}
+
+function getMinutesUntilPrayer(timeStr: string, now = new Date()): number {
+  if (!timeStr || timeStr === "--:--") return 0
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const prayerMinutes = timeToMinutes(timeStr)
+  let diff = prayerMinutes - nowMinutes
+  if (diff < 0) diff += 24 * 60
+  return diff
+}
+
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const router = useRouter()
   const { theme } = useTheme()
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [ayah, setAyah] = useState("Loading verse...")
-  const [ayahRef, setAyahRef] = useState("")
-  const [userName, setUserName] = useState("")
-  const [bookings, setBookings] = useState<any[]>([])
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+
+  const [userName, setUserName] = useState("")
   const [user, setUser] = useState<any>(null)
   const [isAgent, setIsAgent] = useState(false)
-  const [agentStats, setAgentStats] = useState({ bookings: 0, clients: 0, revenue: 0 })
+  const [ayah, setAyah] = useState('"And Allah intends for you ease and does not intend for you hardship."')
+  const [ayahRef, setAyahRef] = useState("Quran 2:185")
+  const [nextPrayer, setNextPrayer] = useState({ name: "—", time: "--:--" })
+  const [locationName, setLocationName] = useState("")
+  const [minutesLeft, setMinutesLeft] = useState(0)
+  const [umrahProgress, setUmrahProgress] = useState({ step: 1, phase: "", total: UMRAH_TOTAL_PHASES, percent: 0 })
+  const [dhikr] = useState(() => DHIKR_LIST[new Date().getDay() % DHIKR_LIST.length])
+  const [dhikrFaved, setDhikrFaved] = useState(false)
+  const [bookings, setBookings] = useState<any[]>([])
 
-  // Location-based data
-  const [hijriDate, setHijriDate] = useState({ day: "--", month: "---", year: "----" })
-  const [weather, setWeather] = useState({ temp: "--°C", condition: "Loading" })
-  const [nextPrayer, setNextPrayer] = useState({ name: "---", time: "--:--" })
-
-  // Fetch user name
+  // ── Fetch user ──
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
-        setUserName(user.user_metadata?.full_name?.split(" ")[0] || "")
+        setUserName(user.user_metadata?.full_name?.split(" ")[0] || t("pilgrim"))
         setIsAgent(user.user_metadata?.user_type === "agent")
-        if (user.user_metadata?.user_type === "agent") {
-          const { data: agentRow, error } = await supabase
-            .from("agents")
-            .select("bookings, pilgrims_managed")
-            .eq("user_id", user.id)
-            .single()
-          
-          
-          
-            if (agentRow) {
-              setAgentStats({
-                bookings: agentRow.bookings || 0,
-                clients: agentRow.pilgrims_managed || 0,
-                revenue: 0,
-              })
-            }
-        }
       }
     }
     getUser()
   }, [])
 
-  // Fetch verse of the day
+  // ── Fetch verse ──
   useEffect(() => {
-  const VERSE_KEY = "cached_verse"
-  const VERSE_DATE_KEY = "cached_verse_date"
-
-  const getVerseEdition = () => {
-    switch(i18n.language) {
-      case "fr": return "fr.hamidullah"
-      case "ur": return "ur.jalandhry"
-      case "tr": return "tr.diyanet"
-      case "ar": return "ar.muyassar"
-      default: return "en.asad"
-    }
-  }
-
-  const fetchVerse = async () => {
-    // Show cached verse immediately
-    try {
-      const cachedVerse = await AsyncStorage.getItem(VERSE_KEY)
-      const cachedDate = await AsyncStorage.getItem(VERSE_DATE_KEY)
-      const today = new Date().toISOString().split("T")[0]
-
-      if (cachedVerse && cachedDate === today) {
-        const v = JSON.parse(cachedVerse)
-        setAyah(v.text)
-        setAyahRef(v.ref)
-        return // Don't fetch if we already have today's verse
+    const fetchVerse = async () => {
+      const getVerseEdition = () => {
+        switch (i18n.language) {
+          case "fr": return "fr.hamidullah"
+          case "ur": return "ur.jalandhry"
+          case "tr": return "tr.diyanet"
+          case "ar": return "ar.muyassar"
+          default: return "en.asad"
+        }
       }
-    } catch (e) {}
-
-    // Fetch new verse
-    try {
-      const randomVerse = Math.floor(Math.random() * 6236) + 1
-      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
-      const data = await res.json()
-      if (data.code === 200) {
-        const text = `"${data.data.text}"`
-        const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
-        setAyah(text)
-        setAyahRef(ref)
+      try {
+        const cached = await AsyncStorage.getItem("cached_verse")
+        const cachedDate = await AsyncStorage.getItem("cached_verse_date")
         const today = new Date().toISOString().split("T")[0]
-        await AsyncStorage.setItem(VERSE_KEY, JSON.stringify({ text, ref }))
-        await AsyncStorage.setItem(VERSE_DATE_KEY, today)
-      }
-    } catch (e) {
-      setAyah("In the name of Allah, the Most Gracious, the Most Merciful.")
-      setAyahRef("Quran — 1:1")
+        if (cached && cachedDate === today) {
+          const v = JSON.parse(cached)
+          setAyah(v.text)
+          setAyahRef(v.ref)
+          return
+        }
+        const randomVerse = Math.floor(Math.random() * 6236) + 1
+        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
+        const data = await res.json()
+        if (data.code === 200) {
+          const text = `"${data.data.text}"`
+          const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
+          setAyah(text)
+          setAyahRef(ref)
+          await AsyncStorage.setItem("cached_verse", JSON.stringify({ text, ref }))
+          await AsyncStorage.setItem("cached_verse_date", today)
+        }
+      } catch (e) {}
     }
-  }
+    fetchVerse()
+  }, [])
 
-  fetchVerse()
-}, [])
-
-  // Fetch location-based data: prayer times, hijri date, weather
+  // ── Fetch prayer + location ──
   useEffect(() => {
-  const CACHE_KEY = "home_location_data"
-
-  const fetchLocationData = async () => {
-    // ── Load cache immediately ──
-    try {
-      const cached = await AsyncStorage.getItem(CACHE_KEY)
-      if (cached) {
-        const c = JSON.parse(cached)
-        setHijriDate(c.hijriDate)
-        setWeather(c.weather)
-        setNextPrayer(c.nextPrayer)
-      }
-    } catch (e) {}
-
-    // ── Fetch fresh in background ──
-    try {
-      const cachedTimes = await readCachedPrayerTimes()
-      if (cachedTimes) {
-        setHijriDate({
-          day: cachedTimes.hijriDay ?? cachedTimes.date.split(" ")[0] ?? "--",
-          month: cachedTimes.hijriMonth ?? cachedTimes.hijri ?? "---",
-          year: cachedTimes.hijriYear ?? cachedTimes.date.split(" ")[2] ?? "----",
-        })
-        setNextPrayer(getNextPrayerFromTimes(cachedTimes))
-      }
-
-      const times = await fetchAndCachePrayerTimes()
-      if (times) {
-        const newHijri = {
-          day: times.hijriDay,
-          month: times.hijriMonth,
-          year: times.hijriYear,
+    const fetchPrayer = async () => {
+      try {
+        const cached = await readCachedPrayerTimes()
+        if (cached) {
+          const p = getNextPrayerFromTimes(cached)
+          setNextPrayer(p)
+          setMinutesLeft(getMinutesUntilPrayer(p.time))
+          if (cached.city) setLocationName(cached.city)
         }
-        const newNextPrayer = getNextPrayerFromTimes(times)
-        setHijriDate(newHijri)
-        setNextPrayer(newNextPrayer)
-
-        const { status } = await Location.requestForegroundPermissionsAsync()
-        let lat = 21.3891
-        let lng = 39.8579
-
-        if (status === "granted") {
-          const location = await Location.getCurrentPositionAsync({})
-          lat = location.coords.latitude
-          lng = location.coords.longitude
+        const times = await fetchAndCachePrayerTimes()
+        if (times) {
+          const p = getNextPrayerFromTimes(times)
+          setNextPrayer(p)
+          setMinutesLeft(getMinutesUntilPrayer(p.time))
+          if (times.city) setLocationName(times.city)
         }
+      } catch (e) {}
+    }
+    fetchPrayer()
+  }, [])
 
-        // ── Weather ──
+  // ── Tick countdown every minute ──
+  useEffect(() => {
+    if (!nextPrayer.time || nextPrayer.time === "--:--") return
+    const tick = () => setMinutesLeft(getMinutesUntilPrayer(nextPrayer.time))
+    const interval = setInterval(tick, 60000)
+    return () => clearInterval(interval)
+  }, [nextPrayer.time])
+
+  // ── Fetch Umrah progress (same source as umrah-guide) ──
+  useFocusEffect(
+    useCallback(() => {
+      const loadProgress = async () => {
         try {
-          const wRes = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode`
-          )
-          const wData = await wRes.json()
-          const temp = Math.round(wData.current.temperature_2m)
-          const condition = getWeatherCondition(wData.current.weathercode)
-          const newWeather = { temp: `${temp}°C`, condition }
-          setWeather(newWeather)
+          const completed = await getUmrahProgress()
+          const completedCount = completed.length
 
-          await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
-            hijriDate: newHijri,
-            weather: newWeather,
-            nextPrayer: newNextPrayer,
-          }))
+          if (completedCount >= UMRAH_TOTAL_PHASES) {
+            setUmrahProgress({
+              step: UMRAH_TOTAL_PHASES,
+              phase: t(UMRAH_PHASE_TITLE_KEYS[UMRAH_TOTAL_PHASES - 1]),
+              total: UMRAH_TOTAL_PHASES,
+              percent: 100,
+            })
+            return
+          }
+
+          setUmrahProgress({
+            step: completedCount + 1,
+            phase: t(UMRAH_PHASE_TITLE_KEYS[completedCount]),
+            total: UMRAH_TOTAL_PHASES,
+            percent: Math.round((completedCount / UMRAH_TOTAL_PHASES) * 100),
+          })
         } catch (e) {}
       }
-    } catch (e) {
-      console.log("Location data error:", e)
-    }
-  }
+      loadProgress()
+    }, [t])
+  )
 
-  fetchLocationData()
-}, [])
-
-  // Fetch bookings
+  // ── Fetch bookings ──
   useEffect(() => {
     const fetchBookings = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -314,170 +317,172 @@ export default function HomeScreen() {
   const upcoming = bookings.filter(b => b.check_in >= today)
   const past = bookings.filter(b => b.check_in < today)
 
-  const hour = new Date().getHours()
-  const timeGreeting = hour < 12 ? t("homeGoodMorning") : hour < 17 ? t("homeGoodAfternoon") : t("homeGoodEvening")
-
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
-      
-
-        {/* ── HEADER ── */}
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoEmoji}>🌙</Text>
-              </View>
-              <View>
-                <Text style={styles.greeting}>{t("greeting")}</Text>
-                <Text style={styles.appName}>UmrahConnect</Text>
-                <Text style={styles.appTagline}>{t("completeCompanion")}</Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity style={styles.menuBtn} onPress={() => router.push("/search" as any)}>
-                <Ionicons name="search" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuBtn} onPress={() => setDrawerOpen(true)}>
-                <View style={styles.bar} />
-                <View style={styles.bar} />
-                <View style={styles.bar} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}  bounces={false}>
-
-        {/* ── HERO BANNER ── */}
-        {isAgent ? (
-            <TouchableOpacity
-              style={styles.heroBanner}
-              onPress={() => router.push("/agent/dashboard" as any)}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#C9A84C", alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontSize: 16, fontWeight: "bold", color: "#1E3A5F" }}>
-                    {user?.user_metadata?.agency_name?.[0]?.toUpperCase() || "A"}
-                  </Text>
+        {/* ── HERO ── */}
+        <ImageBackground
+          source={require("../../assets/images/hero-mosque.jpeg")}
+          style={styles.hero}
+          imageStyle={styles.heroImage}
+        >
+          <View style={styles.heroOverlay} />
+          <View style={[styles.heroInner, { paddingTop: insets.top }]}>
+            {/* Header bar */}
+            <View style={styles.headerBar}>
+              <View style={styles.logoRow}>
+                <View style={styles.logoCircle}>
+                  <Text style={{ fontSize: 22 }}>🌙</Text>
                 </View>
                 <View>
-                  <Text style={styles.heroWelcome}>TRAVEL AGENT</Text>
-                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-                    {user?.user_metadata?.agency_name || "My Agency"}
-                  </Text>
+                  <Text style={styles.logoName}>{t("appName")}</Text>
+                  <Text style={styles.logoTagline}>{t("tagline")}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#C9A84C" style={{ marginLeft: "auto" }} />
               </View>
-              <Text style={styles.heroSub}>Tap to open your agency dashboard →</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.heroBanner}>
-              <Text style={styles.heroWelcome}>{timeGreeting}, {userName || t("pilgrim")} 🌙</Text>
-              <Text style={styles.heroTitle}>{t("whereGlobalizationMatters")}</Text>
-              <Text style={styles.heroSub}>{t("spiritualSub")}</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/search" as any)}>
+                  <Ionicons name="search-outline" size={20} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/(tabs)/me" as any)}>
+                  <Ionicons name="person-outline" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
 
-        {/* ── TODAY AT A GLANCE ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("todayAtAGlance")}</Text>
-        <View style={styles.glanceGrid}>
-          <GlanceCard icon="time-outline" label={t("nextPrayer")} value={nextPrayer.name} sub={nextPrayer.time} theme={theme} />
-          <GlanceCard icon="partly-sunny-outline" label={t("weather")} value={weather.temp} sub={weather.condition} theme={theme} />
-          <GlanceCard icon="calendar-outline" label={t("hijriDate")} value={`${hijriDate.day} ${hijriDate.month}`} sub={`${hijriDate.year} AH`} theme={theme} />
-          <GlanceCard icon="book-outline" label={t("quran")} value="114" sub="surahs" theme={theme} onPress={() => router.push("/quran")} />
-        </View>
+            {/* Greeting */}
+            <View style={styles.heroContent}>
+              <Text style={styles.assalamu}>{t("greeting")}, {userName}</Text>
+              <Text style={styles.heroGreeting}>{t("whereGlobalizationMatters")}</Text>
+              <Text style={styles.heroVerse} numberOfLines={2} ellipsizeMode="tail">{ayah}</Text>
+              <Text style={styles.heroVerseRef}>{ayahRef}</Text>
+            </View>
+          </View>
+          <View style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 40,
+            backgroundColor: theme.background,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+          }} />
+        </ImageBackground>
 
+        {/* ── PRAYER CARD ── */}
+        <ImageBackground
+          source={require("../../assets/images/hero-mosque.jpeg")}
+          style={styles.prayerCard}
+          imageStyle={{ opacity: 0.15, borderRadius: 24 }}
+        >
+          <View style={styles.prayerLeft}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.prayerLabel}>{t("nextPrayer")}</Text>
+            </View>
+            <Text style={styles.prayerName}>{nextPrayer.name}</Text>
+            <Text style={styles.prayerTime}>{formatPrayerTimeDisplay(nextPrayer.time)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 }}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.prayerLocation}>{locationName}</Text>
+            </View>
+          </View>
+          <CircularTimer minutesLeft={minutesLeft} total={minutesLeft} />
+        </ImageBackground>
 
-        {/* ── MY JOURNEY ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("myJourney")}</Text>
-        <View style={styles.journeyGrid}>
-          <JourneyCard emoji="🕋" title={t("umrahGuideTitle")} sub={t("umrahGuidePhaseSub")} onPress={() => router.push("/umrah-guide")} theme={theme} />
-          <JourneyCard emoji="☪️" title={t("hajjGuideTitle")} sub={t("hajjGuideSub")} onPress={() => router.push("/hajj")} theme={theme} />
-        </View>
+        {/* ── CONTINUE UMRAH JOURNEY ── */}
+        <TouchableOpacity
+          style={[styles.journeyCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => router.push("/umrah-guide" as any)}
+          activeOpacity={0.85}
+        >
+          <Image
+            source={require("../../assets/images/kaaba.png")}
+            style={styles.journeyKaaba}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.journeyTitle, { color: theme.text }]}>Continue Umrah Journey</Text>
+            <Text style={[styles.journeyStep, { color: theme.textSecondary }]}>Step {umrahProgress.step} of {umrahProgress.total}</Text>
+            <Text style={[styles.journeyPhase, { color: theme.textSecondary }]}>{umrahProgress.phase}</Text>
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${umrahProgress.percent}%` }]} />
+            </View>
+            <Text style={styles.progressPercent}>{umrahProgress.percent}%</Text>
+          </View>
+          <View style={styles.journeyArrow}>
+            <Ionicons name="chevron-forward" size={18} color={theme.text} />
+          </View>
+        </TouchableOpacity>
 
-        {/* ── VERSE OF THE DAY ── */}
-        <View style={styles.verseCard}>
-          <Text style={styles.verseLabel}>✦ {t("verseOfDay")}</Text>
-          <Text style={styles.verseText}>{ayah}</Text>
-          <Text style={styles.verseRef}>{ayahRef}</Text>
+        {/* ── TODAY'S DHIKR ── */}
+        <View style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <ImageBackground
+            source={{ uri: "https://images.unsplash.com/photo-1585036156171-384164a8c675?w=400" }}
+            style={StyleSheet.absoluteFillObject}
+            imageStyle={{ opacity: 0.06, borderRadius: 20 }}
+          />
+          <View style={styles.dhikrHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={styles.dhikrIconBox}>
+                <Ionicons name="hand-left-outline" size={16} color="#fff" />
+              </View>
+              <Text style={[styles.dhikrLabel, { color: theme.text }]}>Today's Dhikr</Text>
+            </View>
+            <TouchableOpacity onPress={() => setDhikrFaved(!dhikrFaved)}>
+              <Ionicons name={dhikrFaved ? "heart" : "heart-outline"} size={20} color={dhikrFaved ? "#C9A84C" : theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.dhikrArabic}>{dhikr.arabic}</Text>
+          <Text style={styles.dhikrTranslit}>'{dhikr.translit}'</Text>
+          <Text style={[styles.dhikrMeaning, { color: theme.textSecondary }]}>({dhikr.meaning})</Text>
         </View>
 
         {/* ── QUICK ACCESS ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("quickAccess")}</Text>
-        <View style={styles.quickRow}>
-          <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/(tabs)/services")}
-          >
-            <Text style={styles.quickEmoji}>🏨</Text>
-            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("services")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("servicesSub")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/(tabs)/maps")}
-          >
-            <Text style={styles.quickEmoji}>🗺️</Text>
-            <Text style={[styles.quickTitle, { color: theme.text }]}>{t("maps")}</Text>
-            <Text style={[styles.quickSub, { color: theme.textSecondary }]}>{t("mapsSub")}</Text>
-          </TouchableOpacity>
+        <View style={styles.qaHeader}>
+          <Text style={[styles.qaTitle, { color: theme.text }]}>{t("quickAccess")}</Text>
+          <TouchableOpacity><Text style={styles.qaViewAll}>{t("seeAll")}</Text></TouchableOpacity>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaRow}>
+          <QuickItem icon="cube-outline" label={t("umrahGuide")} onPress={() => router.push("/umrah-guide" as any)} theme={theme} />
+          <QuickItem icon="moon-outline" label={t("hajj")} onPress={() => router.push("/hajj" as any)} theme={theme} />
+          <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} />
+          <QuickItem icon="hand-left-outline" label={t("duas")} onPress={() => router.push("/duas" as any)} theme={theme} />
+          <QuickItem icon="book-outline" label={t("quran")} onPress={() => router.push("/quran" as any)} theme={theme} />
+          <QuickItem icon="bus-outline" label={t("transport")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} />
+        </ScrollView>
 
-        
-
-        {/* ── DAILY REMINDER ── */}
-        <TouchableOpacity onPress={() => router.push("/duas")}>
-        <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          
-          <View style={styles.reminderIcon}>
-            <Ionicons name="notifications-outline" size={20} color="#C9A84C" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.reminderTitle, { color: theme.text }]}>{t("rememberDua")}</Text>
-            <Text style={[styles.reminderSub, { color: theme.textSecondary }]}>{t("rememberDuaSub")}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
-        </View>
-        </TouchableOpacity>
-        {/* ── DONATE ── */}
-        {/* ── DONATE ── */}
-          <View
-            style={styles.donateCard}
-            
-          >
-            <View style={styles.donateTopRow}>
-              <Image
-                source={require("../../assets/images/project.png")}
-                style={styles.donateLogo}
-                resizeMode="contain"
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.donateTitle}>{t("supportMaidabo")}</Text>
-                <Text style={styles.donateSub}>{t("maidaboSub")}</Text>
-              </View>
-            </View>
-            <View style={styles.donateDivider} />
-            <Text style={styles.donateDesc}>
-              {t("maidaboDesc")}
-            </Text>
-            <View style={styles.donateBtnRow}>
-              <TouchableOpacity
-                style={styles.donateBtn}
-                onPress={() => Linking.openURL("https://maidabo.com")}
-              >
-                <Ionicons name="heart" size={16} color="#fff" />
-                <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
-              </TouchableOpacity>
+        {/* ── MAIDABO FOUNDATION ── */}
+        <View style={styles.donateCard}>
+          <View style={styles.donateTopRow}>
+            <Image
+              source={require("../../assets/images/project.png")}
+              style={styles.donateLogo}
+              resizeMode="contain"
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.donateTitle}>{t("supportMaidabo")}</Text>
+              <Text style={styles.donateSub}>{t("maidaboSub")}</Text>
             </View>
           </View>
+          <View style={styles.donateDivider} />
+          <Text style={styles.donateDesc}>{t("maidaboDesc")}</Text>
+          <View style={styles.donateBtnRow}>
+            <TouchableOpacity
+              style={styles.donateBtn}
+              onPress={() => Linking.openURL("https://maidabo.com")}
+            >
+              <Ionicons name="heart" size={16} color="#fff" />
+              <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* ── BOOKINGS ── */}
         {bookings.length > 0 && (
           <View style={styles.bookingsSection}>
-            <Text style={[styles.sectionTitle, { color: theme.text, marginHorizontal: 0, marginTop: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
               {t("myBookings")}
             </Text>
             {upcoming.length > 0 && (
@@ -497,8 +502,6 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </View>
   )
 }
@@ -507,40 +510,105 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { backgroundColor: "#1E3A5F", paddingBottom: 20 },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16 },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logoCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(201,168,76,0.2)", borderWidth: 1.5, borderColor: "#C9A84C", alignItems: "center", justifyContent: "center" },
-  logoEmoji: { fontSize: 24 },
-  greeting: { color: "#C9A84C", fontSize: 12 },
-  appName: { color: "#fff", fontSize: 22, fontWeight: "bold" },
-  appTagline: { color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 },
-  menuBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
-  bar: { width: 20, height: 2, backgroundColor: "#fff", borderRadius: 2 },
-  heroBanner: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 18, padding: 20, alignItems: "center", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.3)" },
-  heroWelcome: { color: "#C9A84C", fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginBottom: 6 },
-  heroTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 4 },
-  heroSub: { color: "rgba(255,255,255,0.5)", fontSize: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginHorizontal: 16, marginTop: 20, marginBottom: 12 },
-  glanceGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: 16, gap: 8 },
-  journeyGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: 16, gap: 8 },
-  quickRow: { flexDirection: "row", marginHorizontal: 16, gap: 10 },
-  quickCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: "center", borderWidth: 0.5, marginBottom: 20 },
-  quickEmoji: { fontSize: 28, marginBottom: 8 },
-  quickTitle: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
-  quickSub: { fontSize: 11 },
-  verseCard: { backgroundColor: "#1E3A5F", margin: 16, borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: "rgba(201,168,76,0.25)" },
-  verseLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "600", letterSpacing: 0.6, marginBottom: 10 },
-  verseText: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 22, fontStyle: "italic", marginBottom: 10 },
-  verseRef: { color: "#C9A84C", fontSize: 11, textAlign: "right" },
-  reminderCard: { marginHorizontal: 16, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 0.5 },
-  reminderIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" },
-  reminderTitle: { fontSize: 13, fontWeight: "600", marginBottom: 2 },
-  reminderSub: { fontSize: 11, lineHeight: 16 },
+
+  // Hero
+  hero: {
+    minHeight: 420,
+    overflow: "hidden",
+  },
+  heroImage: {
+    resizeMode: "cover",
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,20,0.6)",
+  },
+  heroInner: { flex: 1, justifyContent: "space-between" },
+  headerBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  logoCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(201,168,76,0.25)", borderWidth: 1.5, borderColor: "#C9A84C", alignItems: "center", justifyContent: "center" },
+  logoName: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  logoTagline: { color: "rgba(255,255,255,0.5)", fontSize: 10 },
+  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  heroContent: { padding: 20, paddingBottom: 80 },
+  assalamu: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginBottom: 4 },
+  heroGreeting: { color: "#fff", fontSize: 32, fontWeight: "bold", lineHeight: 40, marginBottom: 12 },
+  heroVerse: { color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 22, fontStyle: "italic", marginBottom: 20 },
+  heroVerseRef: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
+
+  // Prayer card
+  prayerCard: {
+    marginHorizontal: 16,
+    marginTop: -60,
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#1E3A5F",
+    overflow: "hidden",
+    minHeight: 140,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  prayerLeft: { flex: 1 },
+  prayerLabel: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
+  prayerName: { color: "#fff", fontSize: 26, fontWeight: "bold", marginBottom: 2 },
+  prayerTime: { color: "#C9A84C", fontSize: 22, fontWeight: "700" },
+  prayerLocation: { color: "rgba(255,255,255,0.5)", fontSize: 12 },
+
+  // Journey card
+  journeyCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 0.5 },
+  journeyKaaba: { width: 70, height: 70, borderRadius: 14 },
+  journeyTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
+  journeyStep: { fontSize: 12, marginBottom: 1 },
+  journeyPhase: { fontSize: 12, marginBottom: 8 },
+  progressBarTrack: { height: 5, backgroundColor: "rgba(0,0,0,0.08)", borderRadius: 3, overflow: "hidden" },
+  progressBarFill: { height: 5, backgroundColor: "#C9A84C", borderRadius: 3 },
+  progressPercent: { color: "#C9A84C", fontSize: 11, marginTop: 4, fontWeight: "600" },
+  journeyArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.06)", alignItems: "center", justifyContent: "center" },
+
+  // Dhikr card
+  dhikrCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 20, borderWidth: 0.5, overflow: "hidden" },
+  dhikrHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  dhikrIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#2D6A4F", alignItems: "center", justifyContent: "center" },
+  dhikrLabel: { fontSize: 15, fontWeight: "600" },
+  dhikrArabic: { fontSize: 28, color: "#1E3A5F", textAlign: "center", lineHeight: 50, marginBottom: 8 },
+  dhikrTranslit: { color: "#C9A84C", fontSize: 14, textAlign: "center", fontStyle: "italic", marginBottom: 4 },
+  dhikrMeaning: { fontSize: 13, textAlign: "center" },
+
+  // Quick Access
+  qaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 16, marginTop: 20, marginBottom: 12 },
+  qaTitle: { fontSize: 17, fontWeight: "bold" },
+  qaViewAll: { color: "#C9A84C", fontSize: 13, fontWeight: "600" },
+  qaRow: { paddingHorizontal: 16, gap: 10 },
+
+  // Maidabo + bookings
+  sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12 },
   bookingsSection: { marginHorizontal: 16, marginTop: 20 },
   groupLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-
-  donateCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 20, padding: 20, backgroundColor: "#1E3A5F", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)" },
+  donateCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 20,
+    padding: 20,
+    backgroundColor: "#1E3A5F",
+    borderWidth: 1,
+    borderColor: "rgba(201,168,76,0.4)",
+  },
   donateTopRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   donateLogo: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff" },
   donateTitle: { color: "#C9A84C", fontSize: 16, fontWeight: "bold", marginBottom: 3 },
@@ -548,23 +616,22 @@ const styles = StyleSheet.create({
   donateDivider: { height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", marginBottom: 14 },
   donateDesc: { color: "rgba(255,255,255,0.8)", fontSize: 13, lineHeight: 20, textAlign: "center", marginBottom: 18 },
   donateBtnRow: { alignItems: "center" },
-  donateBtn: { backgroundColor: "#C9A84C", borderRadius: 25, paddingVertical: 12, paddingHorizontal: 36, flexDirection: "row", alignItems: "center", gap: 8 },
+  donateBtn: {
+    backgroundColor: "#C9A84C",
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   donateBtnText: { color: "#1E3A5F", fontSize: 15, fontWeight: "bold" },
 })
 
-const glanceStyles = StyleSheet.create({
-  card: { width: "48%", backgroundColor: "#fff", borderRadius: 14, padding: 12, borderWidth: 0.5, borderColor: "rgba(0,0,0,0.07)", alignItems: "flex-start", gap: 4 },
-  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  label: { fontSize: 11, color: "#999" },
-  value: { fontSize: 15, fontWeight: "700", color: "#1E3A5F" },
-  sub: { fontSize: 11, color: "#C9A84C" },
-})
-
-const journeyStyles = StyleSheet.create({
-  card: { width: "48%", backgroundColor: "#fff", borderRadius: 14, padding: 14, borderWidth: 0.5, borderColor: "rgba(0,0,0,0.07)", alignItems: "center" },
-  emoji: { fontSize: 26, marginBottom: 8 },
-  title: { fontSize: 13, fontWeight: "600", color: "#1E3A5F", marginBottom: 2, textAlign: "center" },
-  sub: { fontSize: 10, color: "#C9A84C", textAlign: "center" },
+const qaStyles = StyleSheet.create({
+  item: { width: 80, alignItems: "center", borderRadius: 16, padding: 12, borderWidth: 0.5 },
+  iconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(30,58,95,0.08)", alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  label: { fontSize: 11, textAlign: "center", fontWeight: "500" },
 })
 
 const bookingStyles = StyleSheet.create({
@@ -580,6 +647,4 @@ const bookingStyles = StyleSheet.create({
   detailLabel: { fontSize: 11, marginBottom: 2 },
   detailValue: { fontSize: 13, fontWeight: "600" },
   nights: { fontSize: 12, textAlign: "center", marginTop: 4 },
-
-  
 })
