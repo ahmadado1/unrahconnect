@@ -41,14 +41,14 @@ function StandardTabs() {
 
 export default function TabsLayout() {
   const { t } = useTranslation()
+  const { isDark } = useTheme()
 
   if (Platform.OS === "ios" && !isExpoGo) {
     return (
       <NativeTabs
         iconColor={{ default: "#94A3B8", selected: "#C9A84C" }}
-        labelStyle={{ color: "#0F172A" }}
+        labelStyle={{ color: isDark ? "#F8FAFC" : "#0F172A" }}
         tintColor="#C9A84C"
-        disableTransparentOnScrollEdge
       >
         <NativeTabs.Trigger name="index">
           <Label>{t("home")}</Label>

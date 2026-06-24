@@ -205,6 +205,9 @@ export async function schedulePrayerNotifications(
 }
 
 export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: string) {
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+
   const cached = await AsyncStorage.getItem("cached_prayer_times")
   if (!cached) return false
 

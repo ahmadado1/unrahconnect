@@ -9,7 +9,7 @@ import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } f
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
-import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyVerseNotification } from "@/lib/notifications";
+import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyVerseNotification, setupPrayerNotificationChannel } from "@/lib/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
@@ -62,8 +62,8 @@ useEffect(() => {
                   { code: "tr", label: "🇹🇷 Türkçe" },
                 ]
                 Alert.alert(
-                  "Select Language",
-                  "Choose your preferred language",
+                  t("language"),
+                  t("choosePreferredLanguage"),
                   [
                     ...languages.map(lang => ({
                       text: lang.label,
@@ -72,7 +72,7 @@ useEffect(() => {
                         AsyncStorage.setItem("language", lang.code)
                       }
                     })),
-                    { text: "Cancel", style: "cancel" as const }
+                    { text: t("cancel"), style: "cancel" as const }
                   ],
                   { cancelable: true }
                 )
@@ -110,6 +110,7 @@ useEffect(() => {
                 if (val) {
                   const granted = await requestNotificationPermission()
                   if (granted) {
+                    await setupPrayerNotificationChannel().catch(console.log)
                     await scheduleDailyVerseNotification()
                     await reschedulePrayerNotificationsFromCache().catch(console.log)
                   }

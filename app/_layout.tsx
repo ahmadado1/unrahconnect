@@ -79,9 +79,7 @@ export default function RootLayout() {
     requestNotificationPermission().then(async granted => {
       if (!granted) return
       await setupPrayerNotificationChannel().catch(console.log)
-      if (Platform.OS === "android") {
-        await reschedulePrayerNotificationsFromCache().catch(console.log)
-      }
+      await reschedulePrayerNotificationsFromCache().catch(console.log)
     })
 
     const handleDeepLink = async (url: string) => {

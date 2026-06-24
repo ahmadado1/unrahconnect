@@ -4,7 +4,13 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev": "expo start --dev-client",
     "start:go": "expo start --go",
+    "build:ios:dev": "eas build --profile development --platform ios",
+    "build:android:dev": "eas build --profile development --platform android",
+    "build:ios": "eas build --profile production --platform ios",
+    "build:android": "eas build --profile production --platform android",
+    "build:apk": "eas build --profile apk --platform android",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
