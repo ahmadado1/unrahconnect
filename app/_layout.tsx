@@ -4,6 +4,7 @@ import {
   handlePrayerNotificationOpen,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
+  scheduleDailyVerseNotification,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications";
 import { normalizeReferralCode, saveReferralCode } from "@/lib/referral";
@@ -80,6 +81,10 @@ export default function RootLayout() {
       if (!granted) return
       await setupPrayerNotificationChannel().catch(console.log)
       await reschedulePrayerNotificationsFromCache().catch(console.log)
+      const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+      if (notifEnabled !== "false") {
+        await scheduleDailyVerseNotification().catch(console.log)
+      }
     })
 
     const handleDeepLink = async (url: string) => {
@@ -199,6 +204,7 @@ const checkAuth = async () => {
               <Stack.Screen name="duas" />
               <Stack.Screen name="islamic-calendar" />
               <Stack.Screen name="maps/[site]" />
+              <Stack.Screen name="haramain/[station]" />
               <Stack.Screen name="auth/setup" />
               <Stack.Screen name="auth/plans" />
               <Stack.Screen name="agent/dashboard" />
@@ -206,6 +212,7 @@ const checkAuth = async () => {
               <Stack.Screen name="agent/[id]" />
               <Stack.Screen name="join" />
               <Stack.Screen name="qiblah" />
+              <Stack.Screen name="AIGuideScreen" />
             </Stack>
 
             {status === "onboarding" && <Redirect href="/onboarding" />}

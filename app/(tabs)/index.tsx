@@ -208,6 +208,7 @@ export default function HomeScreen() {
           case "ur": return "ur.jalandhry"
           case "tr": return "tr.diyanet"
           case "ar": return "ar.muyassar"
+          case "bn": return "bn.bengali"
           default: return "en.asad"
         }
       }

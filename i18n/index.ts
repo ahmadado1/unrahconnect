@@ -3,6 +3,7 @@ import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 
 import ar from "./ar.json"
+import bn from "./bn.json"
 import en from "./en.json"
 import fr from "./fr.json"
 import tr from "./tr.json"
@@ -17,6 +18,7 @@ const initI18n = async () => {
       resources: {
         en: { translation: en },
         ar: { translation: ar },
+        bn: { translation: bn },
         fr: { translation: fr },
         ur: { translation: ur },
         tr: { translation: tr },

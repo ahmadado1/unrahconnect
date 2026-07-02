@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.umrahconnect.app",
       "backgroundColor": "#1E3A5F",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["uber"]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"

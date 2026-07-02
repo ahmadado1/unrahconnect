@@ -9,6 +9,7 @@ export type ReadVerse = {
 }
 
 const TRANSLATION_EDITIONS: Record<string, string> = {
+  bn: "bn.bengali",
   fr: "fr.hamidullah",
   ur: "ur.jalandhry",
   tr: "tr.diyanet",
@@ -133,6 +134,9 @@ export async function fetchAndCacheSurah(
         }
       }
     )
+
+    const hasTranslation = combined.some(v => v.translation.trim().length > 0)
+    if (!hasTranslation) return null
 
     await writeCachedSurah(surah, language, combined)
     return combined

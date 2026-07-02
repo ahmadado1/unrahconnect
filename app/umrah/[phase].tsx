@@ -106,6 +106,7 @@ export default function PhaseDetailScreen() {
             <MadinahPlacesSection badgeColor={data.textColor} />
           ) : rawPhase ? (
             <PhaseStepsSection
+              journey="umrah"
               phaseId={phaseId ?? ""}
               stepsKeys={rawPhase.stepsKeys}
               data={data}

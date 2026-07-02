@@ -2,7 +2,7 @@ const fs = require('fs')
 
 const content = fs.readFileSync('i18n/index.ts', 'utf8')
 
-const languages = ['en', 'ar', 'fr', 'ur', 'tr']
+const languages = ['en', 'ar', 'bn', 'fr', 'ur', 'tr']
 
 languages.forEach(lang => {
   // Find the translation object for each language

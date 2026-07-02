@@ -1,6 +1,6 @@
 import type { PrayerName } from "./prayerConstants"
 
-type PrayerAlertHandler = (prayerName: PrayerName, playSound?: boolean) => void
+type PrayerAlertHandler = (prayerName: PrayerName, playSound?: boolean) => void | Promise<void>
 
 let handler: PrayerAlertHandler | null = null
 
@@ -12,5 +12,5 @@ export function registerPrayerAlertHandler(nextHandler: PrayerAlertHandler) {
 }
 
 export function triggerPrayerAlert(prayerName: PrayerName, playSound = true) {
-  handler?.(prayerName, playSound)
+  void handler?.(prayerName, playSound)
 }

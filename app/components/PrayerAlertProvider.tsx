@@ -13,6 +13,11 @@ function getTodayKey() {
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
 }
 
+async function areNotificationsEnabled() {
+  const val = await AsyncStorage.getItem("notifications_enabled")
+  return val !== "false"
+}
+
 export default function PrayerAlertProvider({ children }: { children: React.ReactNode }) {
   const [prayerPopup, setPrayerPopup] = useState<PrayerName | null>(null)
   const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
@@ -21,9 +26,11 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   const snoozeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const player = useAudioPlayer(ADHAN_FILES[adhanId] ?? ADHAN_FILES["1"])
   const adhanIdRef = useRef(adhanId)
+  const shownPopupsRef = useRef(shownPopups)
   const showPrayerAlertRef = useRef<(prayerName: PrayerName, playSound?: boolean) => void>(() => {})
 
   adhanIdRef.current = adhanId
+  shownPopupsRef.current = shownPopups
 
   const playAdhan = async () => {
     try {
@@ -41,6 +48,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   }
 
   showPrayerAlertRef.current = (prayerName: PrayerName, playSound = true) => {
+    if (shownPopupsRef.current.has(prayerName)) return
     setPrayerPopup(prayerName)
     setShownPopups(prev => new Set([...prev, prayerName]))
     if (playSound) {
@@ -56,7 +64,9 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   }
 
   useEffect(() => {
-    return registerPrayerAlertHandler((name, playSound) => {
+    return registerPrayerAlertHandler(async (name, playSound) => {
+      if (!(await areNotificationsEnabled())) return
+      if (shownPopupsRef.current.has(name)) return
       showPrayerAlertRef.current(name, playSound)
     })
   }, [])
@@ -113,13 +123,15 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   useEffect(() => {
     if (!prayerTimes) return
 
-    const checkPrayer = () => {
+    const checkPrayer = async () => {
+      if (!(await areNotificationsEnabled())) return
+
       const now = new Date()
       const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
       for (const name of PRAYER_NAMES) {
         const prayerMin = timeToMinutes(prayerTimes[name])
-        if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 10 && !shownPopups.has(name)) {
+        if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 10 && !shownPopupsRef.current.has(name)) {
           showPrayerAlertRef.current(name, true)
           break
         }

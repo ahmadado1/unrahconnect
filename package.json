@@ -3,9 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
-    "start:dev": "expo start --dev-client",
+    "start": "expo start --dev-client",
     "start:go": "expo start --go",
+    "start:lan": "expo start",
+    "start:dev": "expo start --dev-client",
     "build:ios:dev": "eas build --profile development --platform ios",
     "build:android:dev": "eas build --profile development --platform android",
     "build:ios": "eas build --profile production --platform ios",
@@ -35,7 +36,7 @@
     "expo-auth-session": "~7.0.11",
     "expo-av": "~16.0.8",
     "expo-build-properties": "~1.0.10",
-    "expo-clipboard": "^56.0.4",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
     "expo-device": "~8.0.10",
@@ -79,7 +80,9 @@
   "private": true,
   "expo": {
     "install": {
-      "exclude": ["react-native-maps"]
+      "exclude": [
+        "react-native-maps"
+      ]
     }
   }
 }

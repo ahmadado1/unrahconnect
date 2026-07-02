@@ -8,6 +8,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 export const LANGUAGES = [
   { code: "en", label: "🇬🇧 English", native: "English" },
   { code: "ar", label: "🇸🇦 العربية", native: "العربية" },
+  { code: "bn", label: "🇧🇩 বাংলা", native: "বাংলা" },
   { code: "fr", label: "🇫🇷 Français", native: "Français" },
   { code: "ur", label: "🇵🇰 اردو", native: "اردو" },
   { code: "tr", label: "🇹🇷 Türkçe", native: "Türkçe" },
@@ -32,6 +33,10 @@ export default function LanguageDropdown({ value, onChange, open, onToggle }: La
     onChange(code)
     await i18n.changeLanguage(code)
     await AsyncStorage.setItem("language", code)
+    const { clearQuranDownloadFlag } = await import("@/lib/quranPageCache")
+    const { downloadFullQuran } = await import("@/lib/quranDownload")
+    await clearQuranDownloadFlag()
+    downloadFullQuran().catch(console.log)
     if (open) onToggle()
   }
 

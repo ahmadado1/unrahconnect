@@ -23,7 +23,8 @@ function getIosAdhanSound(adhanId: string) {
 }
 
 function getAndroidAdhanSound(adhanId: string) {
-  return `azan${adhanId}.mp3`
+  // Use 25s WAV clips (same as iOS) — full MP3s are too long for notification sounds.
+  return `azan${adhanId}.wav`
 }
 
 async function getSelectedAdhanId() {
@@ -130,11 +131,13 @@ export async function scheduleDailyVerseNotification() {
         : i18n.language === "fr" ? "✨ Verset du jour"
         : i18n.language === "tr" ? "✨ Günün Ayeti"
         : i18n.language === "ur" ? "✨ آج کی آیت"
+        : i18n.language === "bn" ? "✨ আজকের আয়াত"
         : "✨ Verse of the Day",
       body: i18n.language === "ar" ? "آيتك القرآنية اليومية جاهزة. افتح UmrahConnect لقراءتها."
         : i18n.language === "fr" ? "Votre verset du jour est prêt. Ouvrez UmrahConnect pour le lire."
         : i18n.language === "tr" ? "Günlük Kuran ayetiniz hazır. Okumak için UmrahConnect'i açın."
         : i18n.language === "ur" ? "آپ کی روزانہ کی قرآنی آیت تیار ہے۔ پڑھنے کے لیے UmrahConnect کھولیں۔"
+        : i18n.language === "bn" ? "আপনার দৈনিক কুরআনের আয়াত প্রস্তুত। পড়তে UmrahConnect খুলুন।"
         : "Your daily Quran verse is ready. Open UmrahConnect to read it.",
       sound: true,
     },
@@ -189,7 +192,9 @@ export async function schedulePrayerNotifications(
               ? `${prayer.name} namazı vakti. Allahu Ekber 🕌`
               : i18n.language === "ur"
                 ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر 🕌`
-                : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
+                : i18n.language === "bn"
+                  ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার 🕌`
+                  : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
         sound: Platform.OS === "android" ? getAndroidAdhanSound(adhanId) : getIosAdhanSound(adhanId),
         data: { screen: "prayer", prayerName: prayer.name },
         ...(Platform.OS === "android" && channelId ? { channelId } : {}),

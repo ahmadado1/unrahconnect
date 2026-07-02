@@ -15,6 +15,7 @@ import Animated, { FadeInDown } from "react-native-reanimated"
 import type { SharedValue } from "react-native-reanimated"
 
 type Props = {
+  journey?: "umrah" | "hajj"
   phaseId: string
   stepsKeys: string[]
   data: ResolvedPhase
@@ -23,6 +24,7 @@ type Props = {
 }
 
 export default function PhaseStepsSection({
+  journey = "umrah",
   phaseId,
   stepsKeys,
   data,
@@ -54,14 +56,14 @@ export default function PhaseStepsSection({
           const stepKey = stepsKeys[index]
           if (!stepKey) return null
 
-          if (phaseId === "3" && index === 5) {
+          if (journey === "umrah" && phaseId === "3" && index === 5) {
             return <TalbiyahStopStepCard key={stepKey} scrollY={scrollY} />
           }
-          if (phaseId === "3" && index === 7) {
+          if (journey === "umrah" && phaseId === "3" && index === 7) {
             return <BlackStoneStepCard key={stepKey} />
           }
 
-          const meta = getStepMeta(phaseId, index)
+          const meta = getStepMeta(journey, phaseId, index)
           const titleKey = stepTitleKey(stepKey)
           const title = t(titleKey, { defaultValue: "" })
           const badge = t(stepBadgeKey(stepKey), { defaultValue: "" })

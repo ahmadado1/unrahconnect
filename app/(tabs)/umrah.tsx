@@ -137,6 +137,23 @@ export default function GuideScreen() {
 
           <TouchableOpacity
             style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/AIGuideScreen")}
+          >
+            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a2a3a" : "#E6F1FB" }]}>
+              <Text style={styles.cardEmoji}>✨</Text>
+            </View>
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>AI Guide</Text>
+              <Text style={styles.cardSub}>Ask anything</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                Umrah, Hajj, Haram navigation & app help
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => router.push("/islamic-calendar")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
