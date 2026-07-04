@@ -19,12 +19,11 @@ export function getPrayerChannelId(adhanId: string) {
 }
 
 function getIosAdhanSound(adhanId: string) {
-  return `azan${adhanId}.wav`
+  return `azan${adhanId}.mp3`
 }
 
 function getAndroidAdhanSound(adhanId: string) {
-  // Use 25s WAV clips (same as iOS) — full MP3s are too long for notification sounds.
-  return `azan${adhanId}.wav`
+  return `azan${adhanId}.mp3`
 }
 
 async function getSelectedAdhanId() {
