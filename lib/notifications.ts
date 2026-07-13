@@ -12,36 +12,31 @@ import {
 import { Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v2"
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v4"
 
-export function getPrayerChannelId(adhanId: string) {
-  return `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
+export function getPrayerChannelId(adhanId: string, isFajr = false) {
+  return isFajr
+    ? `${PRAYER_CHANNEL_PREFIX}-${adhanId}-fajr`
+    : `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
 }
 
-function getIosAdhanSound(adhanId: string) {
-  return `azan${adhanId}.mp3`
-}
-
-function getAndroidAdhanSound(adhanId: string) {
-  return `azan${adhanId}.mp3`
+/** Lock-screen / notification sounds must be ≤30s on iOS or the system plays the default chime. */
+function getNotificationAdhanSound(adhanId: string, isFajr = false) {
+  return isFajr ? `azan${adhanId}_fajr_lock.mp3` : `azan${adhanId}_lock.mp3`
 }
 
 async function getSelectedAdhanId() {
   return (await AsyncStorage.getItem("selected_adhan")) || "1"
 }
 
-export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
-  if (Platform.OS !== "android") return null
+async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
+  const channelId = getPrayerChannelId(adhanId, isFajr)
+  const adhanSound = getNotificationAdhanSound(adhanId, isFajr)
 
-  const adhanId = selectedAdhan || (await getSelectedAdhanId())
-  const channelId = getPrayerChannelId(adhanId)
-  const adhanSound = getAndroidAdhanSound(adhanId)
-
-  // Channel sound cannot be changed after creation — always recreate fresh.
   await Notifications.deleteNotificationChannelAsync(channelId).catch(() => {})
 
   await Notifications.setNotificationChannelAsync(channelId, {
-    name: "Prayer Times",
+    name: isFajr ? "Fajr Adhan" : "Prayer Times",
     importance: Notifications.AndroidImportance.MAX,
     sound: adhanSound,
     vibrationPattern: [0, 250, 250, 250],
@@ -58,16 +53,22 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
     },
   })
 
+  return channelId
+}
+
+export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
+  if (Platform.OS !== "android") return null
+
+  const adhanId = selectedAdhan || (await getSelectedAdhanId())
+  const channelId = await ensureAndroidChannel(adhanId, false)
+  await ensureAndroidChannel(adhanId, true)
+
   // Remove legacy channels that may still play the default chime.
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
   for (const id of ["1", "2", "3", "4", "5"]) {
-    const legacyId = `prayer-adhan-${id}`
-    const v2Id = getPrayerChannelId(id)
-    if (legacyId !== channelId) {
-      await Notifications.deleteNotificationChannelAsync(legacyId).catch(() => {})
-    }
-    if (v2Id !== channelId && id !== adhanId) {
-      await Notifications.deleteNotificationChannelAsync(v2Id).catch(() => {})
+    for (const prefix of ["prayer-adhan-", "prayer-adhan-v2-", "prayer-adhan-v3-"]) {
+      await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
+      await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
     }
   }
 
@@ -159,7 +160,9 @@ export async function schedulePrayerNotifications(
   selectedAdhan?: string
 ) {
   const adhanId = selectedAdhan || (await getSelectedAdhanId())
-  const channelId = await setupPrayerNotificationChannel(adhanId)
+  const regularChannelId = await setupPrayerNotificationChannel(adhanId)
+  const fajrChannelId =
+    Platform.OS === "android" ? getPrayerChannelId(adhanId, true) : null
 
   const scheduled = await Notifications.getAllScheduledNotificationsAsync()
   for (const notif of scheduled) {
@@ -178,6 +181,9 @@ export async function schedulePrayerNotifications(
 
   for (const prayer of prayers) {
     const { hour, minute } = parsePrayerTimeHourMinute(prayer.time)
+    const isFajr = prayer.name === "Fajr"
+    const sound = getNotificationAdhanSound(adhanId, isFajr)
+    const channelId = isFajr ? fajrChannelId : regularChannelId
 
     await Notifications.scheduleNotificationAsync({
       identifier: `prayer-${prayer.name.toLowerCase()}-now`,
@@ -194,7 +200,7 @@ export async function schedulePrayerNotifications(
                 : i18n.language === "bn"
                   ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার 🕌`
                   : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
-        sound: Platform.OS === "android" ? getAndroidAdhanSound(adhanId) : getIosAdhanSound(adhanId),
+        sound,
         data: { screen: "prayer", prayerName: prayer.name },
         ...(Platform.OS === "android" && channelId ? { channelId } : {}),
       },
@@ -297,7 +303,8 @@ export async function cancelAllNotifications() {
 export function handlePrayerNotificationOpen(
   identifier: string,
   data: Record<string, unknown> | undefined,
-  navigateToGuide: () => void
+  navigateToGuide: () => void,
+  deliveredAt?: Date | number | string | null
 ) {
   if (!identifier.startsWith("prayer-")) return false
 
@@ -305,7 +312,24 @@ export function handlePrayerNotificationOpen(
   navigateToGuide()
 
   if (prayerName) {
-    setTimeout(() => triggerPrayerAlert(prayerName, true), 400)
+    const deliveredMs =
+      deliveredAt != null ? new Date(deliveredAt).getTime() : NaN
+    const elapsedSec = Number.isFinite(deliveredMs)
+      ? Math.max(0, (Date.now() - deliveredMs) / 1000)
+      : 0
+
+    // Don't restart from 0 — continue from where the lock-screen clip likely left off.
+    setTimeout(
+      () =>
+        triggerPrayerAlert(prayerName, {
+          playSound: true,
+          continueIfPlaying: true,
+          forceRestart: false,
+          forceShow: true,
+          seekSeconds: elapsedSec > 1.5 ? Math.min(elapsedSec, 180) : undefined,
+        }),
+      350
+    )
   }
 
   return true

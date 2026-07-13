@@ -14,7 +14,8 @@
       "backgroundColor": "#1E3A5F",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["uber"]
+        "LSApplicationQueriesSchemes": ["uber"],
+        "UIBackgroundModes": ["audio", "fetch"]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"
@@ -50,11 +51,16 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio/azan1.mp3",
-        "./assets/audio/azan2.mp3",
-        "./assets/audio/azan3.mp3",
-        "./assets/audio/azan4.mp3",
-        "./assets/audio/azan5.mp3"
+        "./assets/audio/azan1_lock.mp3",
+        "./assets/audio/azan2_lock.mp3",
+        "./assets/audio/azan3_lock.mp3",
+        "./assets/audio/azan4_lock.mp3",
+        "./assets/audio/azan5_lock.mp3",
+        "./assets/audio/azan1_fajr_lock.mp3",
+        "./assets/audio/azan2_fajr_lock.mp3",
+        "./assets/audio/azan3_fajr_lock.mp3",
+        "./assets/audio/azan4_fajr_lock.mp3",
+        "./assets/audio/azan5_fajr_lock.mp3"
       ]
     },
     "plugins": [
@@ -87,11 +93,16 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio/azan1.mp3",
-        "./assets/audio/azan2.mp3",
-        "./assets/audio/azan3.mp3",
-        "./assets/audio/azan4.mp3",
-        "./assets/audio/azan5.mp3"
+        "./assets/audio/azan1_lock.mp3",
+        "./assets/audio/azan2_lock.mp3",
+        "./assets/audio/azan3_lock.mp3",
+        "./assets/audio/azan4_lock.mp3",
+        "./assets/audio/azan5_lock.mp3",
+        "./assets/audio/azan1_fajr_lock.mp3",
+        "./assets/audio/azan2_fajr_lock.mp3",
+        "./assets/audio/azan3_fajr_lock.mp3",
+        "./assets/audio/azan4_fajr_lock.mp3",
+        "./assets/audio/azan5_fajr_lock.mp3"
       ]
     }
   ],

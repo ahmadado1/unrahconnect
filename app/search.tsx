@@ -30,7 +30,7 @@ const ALL_ITEMS: SearchResult[] = [
   { id: "lost", title: "Lost & Found", subtitle: "Pilgrim Support Centers", emoji: "🔍", category: "Maps", action: "navigate", target: "/maps/lost-found" },
 
   // ── SERVICES ──
-  { id: "hotels", title: "Hotels", subtitle: "Book hotels near Haram", emoji: "🏨", category: "Services", action: "navigate", target: "/hotels" },
+  { id: "hotels", title: "Hotels", subtitle: "Hotels near Haram & Nabawi", emoji: "🏨", category: "Services", action: "navigate", target: "/hotels" },
   { id: "restaurants", title: "Restaurants", subtitle: "Food near holy sites", emoji: "🍽️", category: "Services", action: "navigate", target: "/restaurants" },
   { id: "agents", title: "Find an Agent", subtitle: "Browse travel agencies", emoji: "🏢", category: "Services", action: "navigate", target: "/agent" },
   { id: "haramain", title: "Haramain Railway", subtitle: "High speed train · Official site", emoji: "🚄", category: "Transport", action: "link", target: "https://www.hhr.com.sa" },

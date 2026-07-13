@@ -3,53 +3,123 @@ import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useRef, useState } from "react"
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-const KAABA_LAT = 21.4225
-const KAABA_LNG = 39.8262
+/** Precise Kaaba center (Masjid al-Haram), WGS84 */
+const KAABA_LAT = 21.422487
+const KAABA_LNG = 39.826206
 
+const ALIGN_ENTER_DEG = 6
+const ALIGN_EXIT_DEG = 12
+const HEADING_SMOOTH = 0.18
+
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180
+}
+
+function toDeg(rad: number) {
+  return (rad * 180) / Math.PI
+}
+
+function normalize360(deg: number) {
+  return ((deg % 360) + 360) % 360
+}
+
+/** Shortest signed delta from `from` to `to` in (-180, 180] */
+function angleDelta(from: number, to: number) {
+  return ((to - from + 540) % 360) - 180
+}
+
+function lerpAngle(from: number, to: number, t: number) {
+  return from + angleDelta(from, to) * t
+}
+
+/** Great-circle initial bearing from user → Kaaba (degrees clockwise from true north) */
 function calculateQiblahBearing(lat: number, lng: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180
-  const toDeg = (rad: number) => (rad * 180) / Math.PI
+  const φ1 = toRad(lat)
+  const φ2 = toRad(KAABA_LAT)
+  const Δλ = toRad(KAABA_LNG - lng)
 
-  const lat1 = toRad(lat)
-  const lat2 = toRad(KAABA_LAT)
-  const deltaLng = toRad(KAABA_LNG - lng)
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
 
-  const y = Math.sin(deltaLng) * Math.cos(lat2)
-  const x =
-    Math.cos(lat1) * Math.sin(lat2) -
-    Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng)
+  return normalize360(toDeg(Math.atan2(y, x)))
+}
 
-  let bearing = toDeg(Math.atan2(y, x))
-  bearing = (bearing + 360) % 360
-  return bearing
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371.0088
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function pickHeading(data: Location.LocationHeadingObject): number | null {
+  // Prefer true north when valid; magHeading alone drifts with interference
+  if (typeof data.trueHeading === "number" && data.trueHeading >= 0) {
+    return data.trueHeading
+  }
+  if (typeof data.magHeading === "number" && data.magHeading >= 0) {
+    return data.magHeading
+  }
+  return null
 }
 
 export default function QiblahScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
 
   const [qiblahBearing, setQiblahBearing] = useState<number | null>(null)
   const [heading, setHeading] = useState(0)
+  const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [distance, setDistance] = useState<number | null>(null)
+  const [aligned, setAligned] = useState(false)
+  const [usingTrueNorth, setUsingTrueNorth] = useState(true)
 
-  const rotateAnim = useRef(new Animated.Value(0)).current
-  const headingSubscriptionRef = useRef<Location.LocationSubscription | null>(null)
+  const dialAnim = useRef(new Animated.Value(0)).current
+  const lastDialRef = useRef(0)
+  const smoothHeadingRef = useRef<number | null>(null)
+  const headingSubRef = useRef<Location.LocationSubscription | null>(null)
 
-  useEffect(() => {
-    setupQiblah()
-    return () => {
-      headingSubscriptionRef.current?.remove()
-    }
+  const stopHeadingWatch = useCallback(() => {
+    headingSubRef.current?.remove()
+    headingSubRef.current = null
   }, [])
 
-  const setupQiblah = async () => {
+  const animateDialTo = useCallback(
+    (absoluteHeading: number) => {
+      // Dial rotates opposite to device heading so N stays toward true north
+      const targetRaw = -absoluteHeading
+      const prev = lastDialRef.current
+      const next = prev + angleDelta(normalize360(prev), normalize360(targetRaw))
+      lastDialRef.current = next
+      // Smoothing already applied to heading — set directly to avoid animation fights/glitches
+      dialAnim.setValue(next)
+    },
+    [dialAnim]
+  )
+
+  const setupQiblah = useCallback(async () => {
+    setLoading(true)
+    setErrorMsg(null)
+    stopHeadingWatch()
+    smoothHeadingRef.current = null
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== "granted") {
@@ -58,71 +128,71 @@ export default function QiblahScreen() {
         return
       }
 
-      const location = await Location.getCurrentPositionAsync({})
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      })
       const { latitude, longitude } = location.coords
 
       const bearing = calculateQiblahBearing(latitude, longitude)
       setQiblahBearing(bearing)
+      setDistance(Math.round(haversineKm(latitude, longitude, KAABA_LAT, KAABA_LNG)))
 
-      const dist = calculateDistance(latitude, longitude, KAABA_LAT, KAABA_LNG)
-      setDistance(dist)
+      headingSubRef.current = await Location.watchHeadingAsync(data => {
+        const raw = pickHeading(data)
+        if (raw === null) return
 
-      headingSubscriptionRef.current = await Location.watchHeadingAsync((data) => {
-        const h = data.trueHeading >= 0 ? data.trueHeading : data.magHeading
-        setHeading(h)
+        setUsingTrueNorth(typeof data.trueHeading === "number" && data.trueHeading >= 0)
+        if (typeof data.accuracy === "number") setHeadingAccuracy(data.accuracy)
+
+        if (smoothHeadingRef.current === null) {
+          smoothHeadingRef.current = raw
+        } else {
+          smoothHeadingRef.current = lerpAngle(smoothHeadingRef.current, raw, HEADING_SMOOTH)
+        }
+
+        const smoothed = normalize360(smoothHeadingRef.current)
+        setHeading(smoothed)
+        animateDialTo(smoothed)
       })
 
       setLoading(false)
-    } catch (e) {
+    } catch {
       setErrorMsg("Could not get your location. Please try again.")
       setLoading(false)
     }
-  }
+  }, [animateDialTo, stopHeadingWatch])
 
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const toRad = (deg: number) => (deg * Math.PI) / 180
-    const R = 6371
-    const dLat = toRad(lat2 - lat1)
-    const dLng = toRad(lng2 - lng1)
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return Math.round(R * c)
-  }
+  useEffect(() => {
+    setupQiblah()
+    return () => {
+      stopHeadingWatch()
+    }
+  }, [setupQiblah, stopHeadingWatch])
 
-  const lastRotationRef = useRef(0)
+  // Hysteresis so the "Facing Qiblah" badge doesn't flicker
+  useEffect(() => {
+    if (qiblahBearing === null) return
+    const diff = Math.abs(angleDelta(heading, qiblahBearing))
+    setAligned(prev => {
+      if (prev) return diff < ALIGN_EXIT_DEG
+      return diff < ALIGN_ENTER_DEG
+    })
+  }, [heading, qiblahBearing])
 
-useEffect(() => {
-  if (qiblahBearing === null) return
-
-  let rotation = qiblahBearing - heading
-
-  // Normalize to -180 to 180 relative to last rotation to avoid spin-around glitch
-  const prev = lastRotationRef.current
-  let delta = rotation - prev
-  delta = ((delta + 180) % 360 + 360) % 360 - 180
-  const target = prev + delta
-
-  lastRotationRef.current = target
-
-  Animated.timing(rotateAnim, {
-    toValue: target,
-    duration: 200,
-    useNativeDriver: true,
-  }).start()
-}, [heading, qiblahBearing])
-
-  const isAligned = () => {
-    if (qiblahBearing === null) return false
-    const diff = Math.abs(((qiblahBearing - heading + 540) % 360) - 180)
-    return diff < 8
-  }
-
-  const spin = rotateAnim.interpolate({
+  const dialSpin = dialAnim.interpolate({
     inputRange: [-100000, 100000],
     outputRange: ["-100000deg", "100000deg"],
   })
+
+  const accuracyLabel = useMemo(() => {
+    if (headingAccuracy === null || headingAccuracy < 0) return null
+    if (headingAccuracy <= 15) return { text: "High accuracy", color: "#2E8B57" }
+    if (headingAccuracy <= 35) return { text: "Medium accuracy", color: "#C9A84C" }
+    return { text: "Low accuracy — calibrate compass", color: "#E07A5F" }
+  }, [headingAccuracy])
+
+  const offsetDeg =
+    qiblahBearing === null ? 0 : Math.round(angleDelta(heading, qiblahBearing))
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -131,9 +201,9 @@ useEffect(() => {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
-          <Text style={styles.backText}>Home</Text>
+          <Text style={styles.backText}>{t("home", { defaultValue: "Home" })}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Qiblah Direction</Text>
+        <Text style={styles.title}>{t("qiblaDirection")}</Text>
         <Text style={styles.subtitle}>Find the direction to the Kaaba</Text>
       </View>
 
@@ -156,54 +226,114 @@ useEffect(() => {
 
         {!loading && !errorMsg && qiblahBearing !== null && (
           <>
-            {isAligned() && (
+            {aligned ? (
               <View style={styles.alignedBadge}>
                 <Ionicons name="checkmark-circle" size={18} color="#fff" />
                 <Text style={styles.alignedText}>Facing Qiblah</Text>
               </View>
+            ) : (
+              <View style={styles.offsetBadge}>
+                <Text style={[styles.offsetText, { color: theme.text }]}>
+                  Turn {Math.abs(offsetDeg)}°{" "}
+                  {offsetDeg > 0 ? "right" : offsetDeg < 0 ? "left" : ""}
+                </Text>
+              </View>
             )}
 
             <View style={styles.compassWrapper}>
-              <View style={[styles.compassDial, { borderColor: theme.border }]}>
-                <Text style={[styles.cardinalN, { color: theme.text }]}>N</Text>
-                <Text style={[styles.cardinalE, { color: theme.textSecondary }]}>E</Text>
-                <Text style={[styles.cardinalS, { color: theme.textSecondary }]}>S</Text>
-                <Text style={[styles.cardinalW, { color: theme.textSecondary }]}>W</Text>
+              {/* Fixed phone-up marker */}
+              <View style={styles.topPointer}>
+                <Ionicons name="caret-down" size={22} color="#C9A84C" />
+              </View>
 
+              <View
+                style={[
+                  styles.compassDial,
+                  {
+                    borderColor: aligned ? "#2E8B57" : theme.border,
+                    backgroundColor: theme.card,
+                  },
+                ]}
+              >
                 <Animated.View
-                  style={[
-                    styles.needleContainer,
-                    { transform: [{ rotate: spin }] },
-                  ]}
+                  style={[styles.rose, { transform: [{ rotate: dialSpin }] }]}
                 >
-                  <View style={styles.needleTop}>
+                  <Text style={[styles.cardinalN, { color: "#C9A84C" }]}>N</Text>
+                  <Text style={[styles.cardinalE, { color: theme.textSecondary }]}>E</Text>
+                  <Text style={[styles.cardinalS, { color: theme.textSecondary }]}>S</Text>
+                  <Text style={[styles.cardinalW, { color: theme.textSecondary }]}>W</Text>
+
+                  {Array.from({ length: 72 }, (_, i) => {
+                    const deg = i * 5
+                    const isMajor = deg % 30 === 0
+                    return (
+                      <View
+                        key={deg}
+                        style={[
+                          styles.tick,
+                          {
+                            height: isMajor ? 12 : 6,
+                            backgroundColor: isMajor ? "#C9A84C" : "rgba(201,168,76,0.35)",
+                            transform: [{ rotate: `${deg}deg` }, { translateY: -128 }],
+                          },
+                        ]}
+                      />
+                    )
+                  })}
+
+                  {/* Kaaba sits at the Qiblah bearing on the rose */}
+                  <View
+                    style={[
+                      styles.kaabaArm,
+                      { transform: [{ rotate: `${qiblahBearing}deg` }] },
+                    ]}
+                  >
                     <Text style={styles.kaabaIcon}>🕋</Text>
+                    <View style={styles.needleLine} />
                   </View>
-                  <View style={styles.needleLine} />
                 </Animated.View>
 
-                <View style={styles.centerDot} />
+                <View style={[styles.centerDot, aligned && styles.centerDotAligned]} />
               </View>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Qiblah Bearing</Text>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Qiblah</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {Math.round(qiblahBearing)}°
                 </Text>
               </View>
               <View style={styles.infoCard}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Distance to Kaaba</Text>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Heading</Text>
+                <Text style={[styles.infoValue, { color: theme.text }]}>
+                  {Math.round(heading)}°
+                </Text>
+              </View>
+              <View style={styles.infoCard}>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Distance</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {distance?.toLocaleString()} km
                 </Text>
               </View>
             </View>
 
+            {accuracyLabel && (
+              <Text style={[styles.accuracyText, { color: accuracyLabel.color }]}>
+                {accuracyLabel.text}
+                {!usingTrueNorth ? " · magnetic north" : " · true north"}
+              </Text>
+            )}
+
             <Text style={[styles.hint, { color: theme.textSecondary }]}>
-              Hold your phone flat and rotate until the Kaaba icon points up
+              Hold your phone flat. Rotate until the Kaaba lines up with the gold marker at the top.
+              If the compass drifts, wave your phone in a figure-8 to recalibrate.
             </Text>
+
+            <TouchableOpacity style={styles.recalibrateBtn} onPress={setupQiblah}>
+              <Ionicons name="refresh" size={16} color="#C9A84C" />
+              <Text style={styles.recalibrateText}>Recalibrate</Text>
+            </TouchableOpacity>
           </>
         )}
       </View>
@@ -215,7 +345,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   header: { backgroundColor: "#1E3A5F", paddingBottom: 24 },
-  backBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12, paddingHorizontal: 20, paddingTop: 16 },
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
   backText: { color: "rgba(255,255,255,0.6)", fontSize: 14 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", paddingHorizontal: 20, marginBottom: 4 },
   subtitle: { color: "#C9A84C", fontSize: 13, paddingHorizontal: 20 },
@@ -226,8 +363,14 @@ const styles = StyleSheet.create({
 
   errorBox: { alignItems: "center", gap: 12, padding: 24 },
   errorText: { fontSize: 14, textAlign: "center" },
-  retryBtn: { backgroundColor: "#C9A84C", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, marginTop: 8 },
-  retryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  retryBtn: {
+    backgroundColor: "#C9A84C",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  retryText: { color: "#0F2440", fontWeight: "700", fontSize: 14 },
 
   alignedBadge: {
     flexDirection: "row",
@@ -237,54 +380,95 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   alignedText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  offsetBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+    backgroundColor: "rgba(201,168,76,0.12)",
+  },
+  offsetText: { fontWeight: "600", fontSize: 13 },
 
-  compassWrapper: { marginBottom: 32 },
+  compassWrapper: { marginBottom: 28, alignItems: "center" },
+  topPointer: { marginBottom: 2, zIndex: 2 },
   compassDial: {
     width: 280,
     height: 280,
     borderRadius: 140,
-    borderWidth: 2,
+    borderWidth: 2.5,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
+    overflow: "hidden",
   },
-  cardinalN: { position: "absolute", top: 12, fontSize: 16, fontWeight: "700" },
-  cardinalE: { position: "absolute", right: 16, fontSize: 14, fontWeight: "500" },
-  cardinalS: { position: "absolute", bottom: 12, fontSize: 16, fontWeight: "500" },
-  cardinalW: { position: "absolute", left: 16, fontSize: 14, fontWeight: "500" },
+  rose: {
+    width: 280,
+    height: 280,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardinalN: { position: "absolute", top: 18, fontSize: 16, fontWeight: "800" },
+  cardinalE: { position: "absolute", right: 18, fontSize: 14, fontWeight: "600" },
+  cardinalS: { position: "absolute", bottom: 18, fontSize: 14, fontWeight: "600" },
+  cardinalW: { position: "absolute", left: 18, fontSize: 14, fontWeight: "600" },
 
-  needleContainer: {
+  tick: {
+    position: "absolute",
+    width: 2,
+    left: 139,
+    top: 140,
+    marginTop: -6,
+    borderRadius: 1,
+  },
+
+  kaabaArm: {
+    position: "absolute",
     width: 280,
     height: 280,
     alignItems: "center",
     justifyContent: "flex-start",
-    position: "absolute",
+    paddingTop: 28,
   },
-  needleTop: { marginTop: 20, alignItems: "center" },
-  kaabaIcon: { fontSize: 36 },
+  kaabaIcon: { fontSize: 32 },
   needleLine: {
     width: 3,
-    height: 100,
+    height: 78,
     backgroundColor: "#C9A84C",
-    marginTop: 4,
+    marginTop: 2,
     borderRadius: 2,
   },
 
   centerDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: "#1E3A5F",
+    borderWidth: 2,
+    borderColor: "#C9A84C",
     position: "absolute",
   },
+  centerDotAligned: {
+    backgroundColor: "#2E8B57",
+    borderColor: "#fff",
+  },
 
-  infoRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
-  infoCard: { alignItems: "center", paddingHorizontal: 20 },
-  infoLabel: { fontSize: 12, marginBottom: 4 },
-  infoValue: { fontSize: 18, fontWeight: "700" },
+  infoRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  infoCard: { alignItems: "center", paddingHorizontal: 12, minWidth: 72 },
+  infoLabel: { fontSize: 11, marginBottom: 4 },
+  infoValue: { fontSize: 17, fontWeight: "700" },
 
-  hint: { fontSize: 12, textAlign: "center", paddingHorizontal: 32, fontStyle: "italic" },
+  accuracyText: { fontSize: 12, fontWeight: "600", marginBottom: 10 },
+  hint: { fontSize: 12, textAlign: "center", paddingHorizontal: 20, lineHeight: 18 },
+
+  recalibrateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  recalibrateText: { color: "#C9A84C", fontWeight: "600", fontSize: 13 },
 })

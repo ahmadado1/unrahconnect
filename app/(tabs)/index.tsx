@@ -6,9 +6,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Image,
+  ImageBackground,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -165,6 +177,64 @@ function getMinutesUntilPrayer(timeStr: string, now = new Date()): number {
   return diff
 }
 
+function getVerseEdition() {
+  switch (i18n.language) {
+    case "fr": return "fr.hamidullah"
+    case "ur": return "ur.jalandhry"
+    case "tr": return "tr.diyanet"
+    case "ar": return "ar.muyassar"
+    case "bn": return "bn.bengali"
+    default: return "en.sahih"
+  }
+}
+
+// ─── GOLD CRESCENT REFRESH SPINNER ───────────────────────────────────────────
+
+function GoldRefreshSpinner({ visible }: { visible: boolean }) {
+  const spin = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (!visible) {
+      spin.setValue(0)
+      return
+    }
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [visible, spin])
+
+  if (!visible) return null
+
+  const rotate = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  })
+
+  return (
+    <View style={refreshStyles.wrap} pointerEvents="none">
+      <Animated.View style={{ transform: [{ rotate }] }}>
+        <Ionicons name="moon" size={30} color="#C9A84C" />
+      </Animated.View>
+    </View>
+  )
+}
+
+const refreshStyles = StyleSheet.create({
+  wrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+})
+
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -182,9 +252,106 @@ export default function HomeScreen() {
   const [locationName, setLocationName] = useState("")
   const [minutesLeft, setMinutesLeft] = useState(0)
   const [umrahProgress, setUmrahProgress] = useState({ step: 1, phase: "", total: UMRAH_TOTAL_PHASES, percent: 0 })
-  const [dhikr] = useState(() => DHIKR_LIST[new Date().getDay() % DHIKR_LIST.length])
+  const [dhikr, setDhikr] = useState(() => DHIKR_LIST[new Date().getDay() % DHIKR_LIST.length])
   const [dhikrFaved, setDhikrFaved] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
+  const [refreshing, setRefreshing] = useState(false)
+
+  const loadVerse = useCallback(async (forceNew = false) => {
+    try {
+      const edition = getVerseEdition()
+      const today = new Date().toISOString().split("T")[0]
+
+      if (!forceNew) {
+        const cached = await AsyncStorage.getItem("cached_verse")
+        const cachedDate = await AsyncStorage.getItem("cached_verse_date")
+        if (cached && cachedDate === today) {
+          const v = JSON.parse(cached)
+          if (v.edition === edition && v.text && v.ref) {
+            setAyah(v.text)
+            setAyahRef(v.ref)
+            return
+          }
+        }
+      }
+
+      const randomVerse = Math.floor(Math.random() * 6236) + 1
+      const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${edition}`)
+      const data = await res.json()
+      if (data.code === 200) {
+        const text = `"${data.data.text}"`
+        const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
+        setAyah(text)
+        setAyahRef(ref)
+        await AsyncStorage.setItem("cached_verse", JSON.stringify({ text, ref, edition }))
+        await AsyncStorage.setItem("cached_verse_date", today)
+      }
+    } catch (e) {}
+  }, [])
+
+  const loadPrayer = useCallback(async (preferCacheFirst = true) => {
+    try {
+      if (preferCacheFirst) {
+        const cached = await readCachedPrayerTimes()
+        if (cached) {
+          const p = getNextPrayerFromTimes(cached)
+          setNextPrayer(p)
+          setMinutesLeft(getMinutesUntilPrayer(p.time))
+          if (cached.city) setLocationName(cached.city)
+        }
+      }
+      const times = await fetchAndCachePrayerTimes()
+      if (times) {
+        const p = getNextPrayerFromTimes(times)
+        setNextPrayer(p)
+        setMinutesLeft(getMinutesUntilPrayer(p.time))
+        if (times.city) setLocationName(times.city)
+      }
+    } catch (e) {}
+  }, [])
+
+  const loadUmrahProgress = useCallback(async () => {
+    try {
+      const completed = await getUmrahProgress()
+      const completedCount = completed.length
+
+      if (completedCount >= UMRAH_TOTAL_PHASES) {
+        setUmrahProgress({
+          step: UMRAH_TOTAL_PHASES,
+          phase: t(UMRAH_PHASE_TITLE_KEYS[UMRAH_TOTAL_PHASES - 1]),
+          total: UMRAH_TOTAL_PHASES,
+          percent: 100,
+        })
+        return
+      }
+
+      setUmrahProgress({
+        step: completedCount + 1,
+        phase: t(UMRAH_PHASE_TITLE_KEYS[completedCount]),
+        total: UMRAH_TOTAL_PHASES,
+        percent: Math.round((completedCount / UMRAH_TOTAL_PHASES) * 100),
+      })
+    } catch (e) {}
+  }, [t])
+
+  const refreshDhikr = useCallback(() => {
+    setDhikr(DHIKR_LIST[Math.floor(Math.random() * DHIKR_LIST.length)])
+    setDhikrFaved(false)
+  }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      await Promise.all([
+        loadVerse(true),
+        loadPrayer(false),
+        loadUmrahProgress(),
+      ])
+      refreshDhikr()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [loadVerse, loadPrayer, loadUmrahProgress, refreshDhikr])
 
   // ── Fetch user ──
   useEffect(() => {
@@ -201,65 +368,13 @@ export default function HomeScreen() {
 
   // ── Fetch verse ──
   useEffect(() => {
-    const fetchVerse = async () => {
-      const getVerseEdition = () => {
-        switch (i18n.language) {
-          case "fr": return "fr.hamidullah"
-          case "ur": return "ur.jalandhry"
-          case "tr": return "tr.diyanet"
-          case "ar": return "ar.muyassar"
-          case "bn": return "bn.bengali"
-          default: return "en.asad"
-        }
-      }
-      try {
-        const cached = await AsyncStorage.getItem("cached_verse")
-        const cachedDate = await AsyncStorage.getItem("cached_verse_date")
-        const today = new Date().toISOString().split("T")[0]
-        if (cached && cachedDate === today) {
-          const v = JSON.parse(cached)
-          setAyah(v.text)
-          setAyahRef(v.ref)
-          return
-        }
-        const randomVerse = Math.floor(Math.random() * 6236) + 1
-        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${getVerseEdition()}`)
-        const data = await res.json()
-        if (data.code === 200) {
-          const text = `"${data.data.text}"`
-          const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
-          setAyah(text)
-          setAyahRef(ref)
-          await AsyncStorage.setItem("cached_verse", JSON.stringify({ text, ref }))
-          await AsyncStorage.setItem("cached_verse_date", today)
-        }
-      } catch (e) {}
-    }
-    fetchVerse()
-  }, [])
+    loadVerse(false)
+  }, [loadVerse])
 
   // ── Fetch prayer + location ──
   useEffect(() => {
-    const fetchPrayer = async () => {
-      try {
-        const cached = await readCachedPrayerTimes()
-        if (cached) {
-          const p = getNextPrayerFromTimes(cached)
-          setNextPrayer(p)
-          setMinutesLeft(getMinutesUntilPrayer(p.time))
-          if (cached.city) setLocationName(cached.city)
-        }
-        const times = await fetchAndCachePrayerTimes()
-        if (times) {
-          const p = getNextPrayerFromTimes(times)
-          setNextPrayer(p)
-          setMinutesLeft(getMinutesUntilPrayer(p.time))
-          if (times.city) setLocationName(times.city)
-        }
-      } catch (e) {}
-    }
-    fetchPrayer()
-  }, [])
+    loadPrayer(true)
+  }, [loadPrayer])
 
   // ── Tick countdown every minute ──
   useEffect(() => {
@@ -272,31 +387,8 @@ export default function HomeScreen() {
   // ── Fetch Umrah progress (same source as umrah-guide) ──
   useFocusEffect(
     useCallback(() => {
-      const loadProgress = async () => {
-        try {
-          const completed = await getUmrahProgress()
-          const completedCount = completed.length
-
-          if (completedCount >= UMRAH_TOTAL_PHASES) {
-            setUmrahProgress({
-              step: UMRAH_TOTAL_PHASES,
-              phase: t(UMRAH_PHASE_TITLE_KEYS[UMRAH_TOTAL_PHASES - 1]),
-              total: UMRAH_TOTAL_PHASES,
-              percent: 100,
-            })
-            return
-          }
-
-          setUmrahProgress({
-            step: completedCount + 1,
-            phase: t(UMRAH_PHASE_TITLE_KEYS[completedCount]),
-            total: UMRAH_TOTAL_PHASES,
-            percent: Math.round((completedCount / UMRAH_TOTAL_PHASES) * 100),
-          })
-        } catch (e) {}
-      }
-      loadProgress()
-    }, [t])
+      loadUmrahProgress()
+    }, [loadUmrahProgress])
   )
 
   // ── Fetch bookings ──
@@ -321,7 +413,19 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#C9A84C"
+            colors={["#C9A84C"]}
+          />
+        }
+      >
+        <GoldRefreshSpinner visible={refreshing} />
 
         {/* ── HERO ── */}
         <ImageBackground
@@ -356,7 +460,7 @@ export default function HomeScreen() {
             <View style={styles.heroContent}>
               <Text style={styles.assalamu}>{t("greeting")}, {userName}</Text>
               <Text style={styles.heroGreeting}>{t("whereGlobalizationMatters")}</Text>
-              <Text style={styles.heroVerse} numberOfLines={2} ellipsizeMode="tail">{ayah}</Text>
+              <Text style={styles.heroVerse}>{ayah}</Text>
               <Text style={styles.heroVerseRef}>{ayahRef}</Text>
             </View>
           </View>
@@ -515,7 +619,6 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     minHeight: 420,
-    overflow: "hidden",
   },
   heroImage: {
     resizeMode: "cover",
@@ -524,7 +627,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,20,0.6)",
   },
-  heroInner: { flex: 1, justifyContent: "space-between" },
+  heroInner: { flexGrow: 1, justifyContent: "space-between" },
   headerBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -543,7 +646,14 @@ const styles = StyleSheet.create({
   heroContent: { padding: 20, paddingBottom: 80 },
   assalamu: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginBottom: 4 },
   heroGreeting: { color: "#fff", fontSize: 32, fontWeight: "bold", lineHeight: 40, marginBottom: 12 },
-  heroVerse: { color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 22, fontStyle: "italic", marginBottom: 20 },
+  heroVerse: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 20,
+    fontStyle: "italic",
+    marginBottom: 10,
+    flexShrink: 0,
+  },
   heroVerseRef: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
 
   // Prayer card

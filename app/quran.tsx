@@ -1,4 +1,6 @@
 import { useTheme } from "@/context/themeContext"
+import i18n from "@/i18n"
+import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -99,7 +101,7 @@ export default function QuranScreen() {
 
   const fetchSurahs = async () => {
     try {
-      // Try loading from cache first
+      // Try loading from cache first — show immediately for offline use
       const cached = await AsyncStorage.getItem("quran_surahs")
       if (cached) {
         const parsed = JSON.parse(cached)
@@ -107,28 +109,38 @@ export default function QuranScreen() {
         setFiltered(parsed)
         setLoading(false)
       }
-  
-      // Then fetch fresh from API
+
+      // Warm surah verse cache so opening a surah is instant
+      const lang = normalizeReadLanguage(i18n.language)
+      void warmReadCacheForLanguage(lang)
+
+      // Soft refresh from network (don't block UI if we already have cache)
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 8000)
-  
-      const res = await fetch("https://api.alquran.cloud/v1/surah", {
-        signal: controller.signal
-      })
-      clearTimeout(timeout)
-  
-      const data = await res.json()
-      if (data.code === 200) {
-        setSurahs(data.data)
-        setFiltered(data.data)
-        // Save to cache for offline use
-        await AsyncStorage.setItem("quran_surahs", JSON.stringify(data.data))
-      } else if (!cached) {
-        setError(true)
+
+      try {
+        const res = await fetch("https://api.alquran.cloud/v1/surah", {
+          signal: controller.signal,
+        })
+        clearTimeout(timeout)
+
+        const data = await res.json()
+        if (data.code === 200) {
+          setSurahs(data.data)
+          setFiltered(data.data)
+          await AsyncStorage.setItem("quran_surahs", JSON.stringify(data.data))
+        } else if (!cached) {
+          setError(true)
+        }
+      } catch (e) {
+        clearTimeout(timeout)
+        if (!cached) {
+          console.log("Quran API error:", e)
+          setError(true)
+        }
       }
     } catch (e) {
-      console.log("Quran API error:", e)
-      // Only show error if no cache available
+      console.log("Quran list error:", e)
       const cached = await AsyncStorage.getItem("quran_surahs")
       if (!cached) setError(true)
     } finally {

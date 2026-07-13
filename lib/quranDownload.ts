@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import i18n from "@/i18n"
 import {
   downloadSurahList,
   fetchAndCacheSurah,
@@ -80,6 +81,16 @@ async function downloadPageFromNetwork(page: number): Promise<boolean> {
   }
 }
 
+async function getDownloadLanguage() {
+  // Prefer live i18n language so cache keys match the Quran reader.
+  const fromI18n = normalizeReadLanguage(i18n.language || "en")
+  const stored = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? fromI18n)
+  if (stored !== fromI18n) {
+    await AsyncStorage.setItem("language", fromI18n)
+  }
+  return fromI18n
+}
+
 export async function isQuranFullyCached(): Promise<boolean> {
   try {
     const flag = await AsyncStorage.getItem(QURAN_DOWNLOAD_FLAG_KEY)
@@ -88,7 +99,7 @@ export async function isQuranFullyCached(): Promise<boolean> {
     const missingPages = await getMissingPageNumbers()
     if (missingPages.length > 0) return false
 
-    const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
+    const language = await getDownloadLanguage()
     const missingSurahs = await getMissingSurahNumbers(language)
     return missingSurahs.length === 0
   } catch {
@@ -99,7 +110,7 @@ export async function isQuranFullyCached(): Promise<boolean> {
 export { getCachedPageCount }
 
 export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<boolean> {
-  const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
+  const language = await getDownloadLanguage()
 
   const initialMissingPages = await getMissingPageNumbers()
   const initialMissingSurahs = await getMissingSurahNumbers(language)

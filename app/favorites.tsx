@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext";
+import { HOTELS } from "@/lib/hotels";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -12,32 +13,10 @@ export default function FavoritesScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
-  const [hotels, setHotels] = useState<any[]>([])
+  const [hotels, setHotels] = useState<typeof HOTELS>([])
   const [restaurants, setRestaurants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const { t } = useTranslation()
-
-  const allHotels = [
-    { id: "1", name: "Hilton Suites Makkah", distance: "500m from Haram", price: 180, rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600" },
-    { id: "2", name: "Swissotel Makkah", distance: "100m from Haram", price: 320, rating: 4.9, city: "Makkah", image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600" },
-    { id: "3", name: "Marriott Makkah", distance: "800m from Haram", price: 150, rating: 4.5, city: "Makkah", image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600" },
-    { id: "4", name: "Anwar Al Madinah", distance: "200m from Nabawi", price: 240, rating: 4.9, city: "Madinah", image: "https://images.unsplash.com/photo-1455587734955-081b22074882?w=600" },
-    { id: "5", name: "Pullman Madinah", distance: "400m from Nabawi", price: 190, rating: 4.6, city: "Madinah", image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600" },
-    { id: "6", name: "Al Rawda Royal Inn", distance: "600m from Nabawi", price: 120, rating: 4.3, city: "Madinah", image: "https://images.unsplash.com/photo-1496417263034-38ec4f0b665a?w=600" },
-    { id: "7", name: "Fairmont Makkah Clock Royal", distance: "50m from Haram", price: 850, rating: 4.9, city: "Makkah", image: "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=600" },
-    { id: "8", name: "Raffles Makkah Palace", distance: "100m from Haram", price: 650, rating: 4.8, city: "Makkah", image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600" },
-    { id: "9", name: "Conrad Makkah", distance: "200m from Haram", price: 420, rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1444201983204-c43cbd584d93?w=600" },
-    { id: "10", name: "Swissotel Al Maqam", distance: "80m from Haram", price: 380, rating: 4.8, city: "Makkah", image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600" },
-    { id: "11", name: "Hilton Suites Makkah", distance: "150m from Haram", price: 280, rating: 4.7, city: "Makkah", image: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600" },
-    { id: "12", name: "Le Meridien Towers", distance: "300m from Haram", price: 220, rating: 4.5, city: "Makkah", image: "https://images.unsplash.com/photo-1445991842772-097fea258e7b?w=600" },
-    { id: "13", name: "Al Kiswah Towers", distance: "900m from Haram", price: 75, rating: 4.1, city: "Makkah", image: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600" },
-    { id: "14", name: "Dar Al Tawhid Intercontinental", distance: "1.2km from Haram", price: 95, rating: 4.2, city: "Makkah", image: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=600" },
-    { id: "15", name: "Al Shohada Hotel", distance: "800m from Haram", price: 85, rating: 4.0, city: "Madinah", image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600" },
-    { id: "16", name: "Pullman Zamzam Makkah", distance: "400m from Haram", price: 310, rating: 4.6, city: "Makkah", image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=600" },
-    { id: "17", name: "Movenpick Hotel Makkah", distance: "600m from Haram", price: 250, rating: 4.5, city: "Makkah", image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600" },
-    { id: "18", name: "Millennium Makkah", distance: "700m from Nabawi", price: 180, rating: 4.3, city: "Madinah", image: "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600" },
-    { id: "19", name: "Transcontinental Makkah", distance: "300m from Haram", price: 350, rating: 4.6, city: "Makkah", image: "https://images.unsplash.com/photo-1470219556762-1771e7f9427d?w=600" },
-  ]
 
   const allRestaurants = [
     { id: "r1", name: "Al Baik", distance: "300m from Haram", cuisine: "Fast Food", rating: 4.8, city: "Makkah", image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600" },
@@ -72,7 +51,7 @@ export default function FavoritesScreen() {
 
     if (data && !error) {
       const savedHotelIds = data.filter(f => f.item_type === "hotel").map(f => String(f.item_id))
-      setHotels(allHotels.filter(h => savedHotelIds.includes(h.id)))
+      setHotels(HOTELS.filter(h => savedHotelIds.includes(h.id)))
       const savedRestaurantIds = data.filter(f => f.item_type === "restaurant").map(f => String(f.item_id))
       setRestaurants(allRestaurants.filter(r => savedRestaurantIds.includes(r.id)))
     }
@@ -87,7 +66,6 @@ export default function FavoritesScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -97,13 +75,10 @@ export default function FavoritesScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Loading */}
         {loading && (
           <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t("loadingFavorites")}</Text>
         )}
 
-        {/* Empty state */}
         {!loading && hotels.length === 0 && restaurants.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>❤️</Text>
@@ -112,21 +87,24 @@ export default function FavoritesScreen() {
           </View>
         )}
 
-        {/* Hotels */}
         {hotels.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏨 Hotels</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Hotels</Text>
             {hotels.map(hotel => (
               <TouchableOpacity
                 key={hotel.id}
                 style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
-                onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: String(hotel.id) } })}
+                onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: hotel.id } })}
               >
-                <Image source={{ uri: hotel.image }} style={styles.cardImage} />
+                <Image source={{ uri: hotel.image }} style={styles.cardImage} resizeMode="cover" />
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{hotel.name}</Text>
-                  <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{hotel.city} · {hotel.distance}</Text>
-                  <Text style={[styles.cardPrice, { color: theme.gold }]}>${hotel.price} {t("perNight")} · ★ {hotel.rating}</Text>
+                  <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+                    {hotel.city} · {hotel.distanceLabel}
+                  </Text>
+                  <Text style={[styles.cardPrice, { color: theme.gold }]}>
+                    {"★".repeat(hotel.stars)}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>
@@ -134,7 +112,6 @@ export default function FavoritesScreen() {
           </View>
         )}
 
-        {/* Restaurants */}
         {restaurants.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Restaurants</Text>

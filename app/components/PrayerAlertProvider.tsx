@@ -1,9 +1,14 @@
 import PrayerPopupModal from "./PrayerPopupModal"
-import { registerPrayerAlertHandler } from "@/lib/prayerAlert"
-import { ADHAN_FILES, PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
-import { fetchAndCachePrayerTimes, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes"
+import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/prayerAlert"
+import { getAdhanFile, PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
+import {
+  fetchAndCachePrayerTimes,
+  readCachedPrayerTimes,
+  timeToMinutes,
+  type CachedPrayerTimes,
+} from "@/lib/prayerTimes"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useAudioPlayer, setAudioModeAsync } from "expo-audio"
+import { setAudioModeAsync, useAudioPlayer } from "expo-audio"
 import { useEffect, useRef, useState } from "react"
 
 const SHOWN_POPUPS_KEY = "prayer_popups_shown_date"
@@ -23,36 +28,90 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
   const [shownPopups, setShownPopups] = useState<Set<string>>(new Set())
   const [adhanId, setAdhanId] = useState("1")
+  const [playingForFajr, setPlayingForFajr] = useState(false)
   const snoozeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const player = useAudioPlayer(ADHAN_FILES[adhanId] ?? ADHAN_FILES["1"])
+  const player = useAudioPlayer(getAdhanFile(adhanId, playingForFajr ? "Fajr" : "Dhuhr"))
   const adhanIdRef = useRef(adhanId)
+  const playingForFajrRef = useRef(playingForFajr)
   const shownPopupsRef = useRef(shownPopups)
-  const showPrayerAlertRef = useRef<(prayerName: PrayerName, playSound?: boolean) => void>(() => {})
+  const showPrayerAlertRef = useRef<
+    (prayerName: PrayerName, options?: boolean | import("@/lib/prayerAlert").PrayerAlertOptions) => void
+  >(() => {})
 
   adhanIdRef.current = adhanId
+  playingForFajrRef.current = playingForFajr
   shownPopupsRef.current = shownPopups
 
-  const playAdhan = async () => {
+  const playAdhan = async (
+    prayerName: PrayerName,
+    opts?: {
+      forceRestart?: boolean
+      continueIfPlaying?: boolean
+      seekSeconds?: number
+    }
+  ) => {
     try {
       const selected = (await AsyncStorage.getItem("selected_adhan")) || "1"
-      const file = ADHAN_FILES[selected] ?? ADHAN_FILES["1"]
-      if (selected !== adhanIdRef.current) {
+      const isFajr = prayerName === "Fajr"
+      const file = getAdhanFile(selected, prayerName)
+      const needsReplace =
+        selected !== adhanIdRef.current || isFajr !== playingForFajrRef.current
+
+      if (needsReplace) {
         setAdhanId(selected)
+        setPlayingForFajr(isFajr)
         player.replace(file)
       }
-      player.seekTo(0)
+
+      const alreadyPlaying = !!player.playing
+      const continueIfPlaying = opts?.continueIfPlaying !== false
+      const forceRestart = opts?.forceRestart === true
+      const seekSeconds = opts?.seekSeconds
+
+      // In-app adhan already playing — keep position, don't restart or jump.
+      if (alreadyPlaying && continueIfPlaying && !forceRestart && !needsReplace) {
+        return
+      }
+
+      if (typeof seekSeconds === "number" && Number.isFinite(seekSeconds) && seekSeconds > 0) {
+        await player.seekTo(seekSeconds)
+      } else {
+        await player.seekTo(0)
+      }
+
       player.play()
     } catch (e) {
       console.log("Adhan sound error:", e)
     }
   }
 
-  showPrayerAlertRef.current = (prayerName: PrayerName, playSound = true) => {
-    if (shownPopupsRef.current.has(prayerName)) return
+  showPrayerAlertRef.current = (prayerName, rawOptions) => {
+    const options = normalizePrayerAlertOptions(rawOptions)
+    const alreadyShown = shownPopupsRef.current.has(prayerName)
+
+    if (alreadyShown && !options.forceShow) {
+      // Prayer already alerted — never restart from 0; only keep audio going if needed.
+      if (options.playSound) {
+        void playAdhan(prayerName, {
+          forceRestart: false,
+          continueIfPlaying: true,
+          seekSeconds: options.seekSeconds,
+        })
+      }
+      return
+    }
+
     setPrayerPopup(prayerName)
-    setShownPopups(prev => new Set([...prev, prayerName]))
-    if (playSound) {
-      playAdhan()
+    if (!alreadyShown) {
+      setShownPopups(prev => new Set([...prev, prayerName]))
+    }
+
+    if (options.playSound) {
+      void playAdhan(prayerName, {
+        forceRestart: options.forceRestart,
+        continueIfPlaying: options.continueIfPlaying,
+        seekSeconds: options.seekSeconds,
+      })
     }
   }
 
@@ -64,10 +123,22 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   }
 
   useEffect(() => {
-    return registerPrayerAlertHandler(async (name, playSound) => {
+    return registerPrayerAlertHandler(async (name, rawOptions) => {
       if (!(await areNotificationsEnabled())) return
-      if (shownPopupsRef.current.has(name)) return
-      showPrayerAlertRef.current(name, playSound)
+      const options = normalizePrayerAlertOptions(rawOptions)
+      if (shownPopupsRef.current.has(name) && !options.forceShow) {
+        // Don't start a second adhan — only continue if already playing / ensure playing without restart.
+        if (options.playSound) {
+          showPrayerAlertRef.current(name, {
+            ...options,
+            forceShow: false,
+            continueIfPlaying: true,
+            forceRestart: false,
+          })
+        }
+        return
+      }
+      showPrayerAlertRef.current(name, options)
     })
   }, [])
 
@@ -78,9 +149,9 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     }).catch(console.log)
 
     AsyncStorage.getItem("selected_adhan").then(id => {
-      if (id && ADHAN_FILES[id]) {
+      if (id && getAdhanFile(id)) {
         setAdhanId(id)
-        player.replace(ADHAN_FILES[id])
+        player.replace(getAdhanFile(id))
       }
     })
 
@@ -169,7 +240,16 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
           dismissPrayerAlert()
           if (snoozeTimer.current) clearTimeout(snoozeTimer.current)
           if (snoozed) {
-            snoozeTimer.current = setTimeout(() => showPrayerAlertRef.current(snoozed, true), 5 * 60 * 1000)
+            snoozeTimer.current = setTimeout(
+              () =>
+                showPrayerAlertRef.current(snoozed, {
+                  playSound: true,
+                  forceRestart: true,
+                  continueIfPlaying: false,
+                  forceShow: true,
+                }),
+              5 * 60 * 1000
+            )
           }
         }}
       />

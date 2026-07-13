@@ -516,9 +516,7 @@ export default function SurahScreen() {
         return
       }
 
-      setVerseList([])
-      setLoading(true)
-
+      // Prefer disk cache without blanking the screen first.
       const cached = await readCachedSurah(surahNum, lang)
       if (loadRequestRef.current !== requestId) return
 
@@ -526,6 +524,10 @@ export default function SurahScreen() {
         applyLoadedVerses(cached)
         return
       }
+
+      // Only show loading spinner when we truly have nothing offline.
+      setVerseList([])
+      setLoading(true)
 
       try {
         const combined = await fetchAndCacheSurah(surahNum, lang)

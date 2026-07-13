@@ -135,8 +135,9 @@ export async function fetchAndCacheSurah(
       }
     )
 
-    const hasTranslation = combined.some(v => v.translation.trim().length > 0)
-    if (!hasTranslation) return null
+    // Always cache Arabic for offline — even if translation fetch failed.
+    // Empty translations are better than forcing a network load every open.
+    if (!combined.length) return null
 
     await writeCachedSurah(surah, language, combined)
     return combined

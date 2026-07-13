@@ -10,17 +10,18 @@ import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity,
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
+import { ADHAN_OPTIONS, getAdhanFile } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 
 // ─── ADHAN OPTIONS ───────────────────────────────────────────────────────────
 
-const ADHANS = [
-  { id: "1", name: "Makkah Style", file: require("../../assets/audio/azan1.mp3") },
-  { id: "2", name: "Mishary Al-Afasy", file: require("../../assets/audio/azan2.mp3") },
-  { id: "3", name: "Madinah Style", file: require("../../assets/audio/azan3.mp3") },
-  { id: "4", name: "Abdul Basit", file: require("../../assets/audio/azan4.mp3") },
-  { id: "5", name: "Egyptian Style", file: require("../../assets/audio/azan5.mp3") },
-]
+const ADHANS = ADHAN_OPTIONS.map(opt => ({
+  id: opt.id,
+  name: opt.name,
+  fajrLabel: opt.fajrLabel,
+  file: getAdhanFile(opt.id),
+  fajrFile: getAdhanFile(opt.id, "Fajr"),
+}))
 
 export default function GuideScreen() {
   const router = useRouter()
@@ -30,8 +31,12 @@ export default function GuideScreen() {
   const [adhanPickerOpen, setAdhanPickerOpen] = useState(false)
   const [selectedAdhan, setSelectedAdhan] = useState("1")
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const [previewFajr, setPreviewFajr] = useState(false)
   const previewPlayer = useAudioPlayer(
-    ADHANS.find(a => a.id === previewId)?.file ?? ADHANS[0].file
+    getAdhanFile(
+      previewId ?? selectedAdhan ?? "1",
+      previewFajr ? "Fajr" : "Dhuhr"
+    )
   )
 
   useEffect(() => {
@@ -46,11 +51,14 @@ export default function GuideScreen() {
     await reschedulePrayerNotificationsFromCache(id).catch(console.log)
   }
 
-  const handlePreview = (id: string) => {
-    previewPlayer.seekTo(0)
+  const handlePreview = (id: string, fajr = false) => {
+    const file = getAdhanFile(id, fajr ? "Fajr" : "Dhuhr")
+    setPreviewFajr(fajr)
     setPreviewId(id)
+    previewPlayer.replace(file)
+    previewPlayer.seekTo(0)
     previewPlayer.play()
-    setTimeout(() => previewPlayer.pause(), 8000)
+    setTimeout(() => previewPlayer.pause(), 10000)
   }
 
   return (
@@ -199,6 +207,9 @@ export default function GuideScreen() {
             <Text style={[styles.modalSub, { color: theme.textSecondary }]}>
               {t("adhanPickerSub")}
             </Text>
+            <Text style={[styles.fajrNote, { color: theme.textSecondary }]}>
+              Fajr uses a special adhan with «الصلاة خير من النوم»
+            </Text>
 
             {ADHANS.map(adhan => (
               <View
@@ -209,7 +220,6 @@ export default function GuideScreen() {
                   selectedAdhan === adhan.id && styles.adhanRowActive
                 ]}
               >
-                {/* Selected indicator */}
                 <View style={[
                   styles.adhanRadio,
                   selectedAdhan === adhan.id && styles.adhanRadioActive
@@ -219,27 +229,41 @@ export default function GuideScreen() {
                   )}
                 </View>
 
-                <Text style={[
-                  styles.adhanName,
-                  { color: theme.text },
-                  selectedAdhan === adhan.id && { color: "#C9A84C", fontWeight: "600" }
-                ]}>
-                  {adhan.name}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[
+                    styles.adhanName,
+                    { color: theme.text },
+                    selectedAdhan === adhan.id && { color: "#C9A84C", fontWeight: "600" }
+                  ]}>
+                    {adhan.name}
+                  </Text>
+                  <Text style={[styles.fajrMeta, { color: theme.textSecondary }]}>
+                    Fajr: {adhan.fajrLabel}
+                  </Text>
+                </View>
 
-                {/* Preview button */}
                 <TouchableOpacity
                   style={styles.previewBtn}
-                  onPress={() => handlePreview(adhan.id)}
+                  onPress={() => handlePreview(adhan.id, false)}
                 >
                   <Ionicons
-                    name={previewId === adhan.id ? "pause-circle" : "play-circle"}
-                    size={28}
+                    name={previewId === adhan.id && !previewFajr ? "pause-circle" : "play-circle"}
+                    size={26}
                     color="#C9A84C"
                   />
                 </TouchableOpacity>
 
-                {/* Select button */}
+                <TouchableOpacity
+                  style={styles.previewBtn}
+                  onPress={() => handlePreview(adhan.id, true)}
+                >
+                  <Ionicons
+                    name={previewId === adhan.id && previewFajr ? "moon" : "moon-outline"}
+                    size={22}
+                    color="#C9A84C"
+                  />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.selectBtn, selectedAdhan === adhan.id && styles.selectBtnActive]}
                   onPress={() => handleSelectAdhan(adhan.id)}
@@ -310,7 +334,10 @@ const styles = StyleSheet.create({
   adhanRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: "#ccc", alignItems: "center", justifyContent: "center" },
   adhanRadioActive: { borderColor: "#C9A84C" },
   adhanRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#C9A84C" },
-  adhanName: { flex: 1, fontSize: 14 },
+  adhanName: { fontSize: 14 },
+  fajrMeta: { fontSize: 11, marginTop: 2 },
+  fajrNote: { fontSize: 12, paddingHorizontal: 4, marginBottom: 12, lineHeight: 17 },
+  previewBtn: { padding: 4 },
   previewBtn: { padding: 4 },
   selectBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: "#C9A84C" },
   selectBtnActive: { backgroundColor: "#C9A84C" },

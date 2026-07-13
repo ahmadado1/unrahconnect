@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -47,6 +47,7 @@ const FILTERS = [
 
 const EVENTS_CACHE_KEY = "islamic_events_cache"
 const EVENTS_CACHE_DATE_KEY = "islamic_events_cache_date"
+const CALENDAR_CACHE_PREFIX = "islamic_calendar_month_v1_"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,75 @@ type IslamicEvent = {
   gregorianYear: number
   description: string
   category: "pilgrimage" | "celebration" | "observance" | "holy"
+}
+
+type CachedCalendarMonth = {
+  days: CalendarDay[]
+  hijriMonthName: string
+  hijriMonthYear: string
+}
+
+function calendarCacheKey(month: number, year: number) {
+  return `${CALENDAR_CACHE_PREFIX}${year}_${month}`
+}
+
+function mapCalendarResponse(data: any, month: number, year: number): CachedCalendarMonth | null {
+  if (data?.code !== 200 || !Array.isArray(data.data)) return null
+  const days: CalendarDay[] = data.data.map((d: any) => ({
+    gregorianDay: parseInt(d.gregorian.day, 10),
+    gregorianMonth: month,
+    gregorianYear: year,
+    hijriDay: parseInt(d.hijri.day, 10),
+    hijriMonth: parseInt(d.hijri.month.number, 10),
+    hijriYear: parseInt(d.hijri.year, 10),
+    hijriMonthName: d.hijri.month.en,
+  }))
+  if (!days.length) return null
+  const midDay = days[Math.floor(days.length / 2)]
+  return {
+    days,
+    hijriMonthName: midDay.hijriMonthName,
+    hijriMonthYear: `${midDay.hijriYear} AH`,
+  }
+}
+
+function applyCalendarMonth(
+  month: CachedCalendarMonth,
+  setters: {
+    setCalendarDays: (days: CalendarDay[]) => void
+    setHijriMonthName: (name: string) => void
+    setHijriMonthYear: (year: string) => void
+  }
+) {
+  setters.setCalendarDays(month.days)
+  setters.setHijriMonthName(month.hijriMonthName)
+  setters.setHijriMonthYear(month.hijriMonthYear)
+}
+
+async function loadCachedCalendarMonth(month: number, year: number): Promise<CachedCalendarMonth | null> {
+  try {
+    const raw = await AsyncStorage.getItem(calendarCacheKey(month, year))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CachedCalendarMonth
+    if (!parsed?.days?.length) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+async function saveCachedCalendarMonth(month: number, year: number, data: CachedCalendarMonth) {
+  try {
+    await AsyncStorage.setItem(calendarCacheKey(month, year), JSON.stringify(data))
+  } catch {}
+}
+
+async function fetchAndCacheCalendarMonth(month: number, year: number): Promise<CachedCalendarMonth | null> {
+  const res = await fetch(`https://api.aladhan.com/v1/gToHCalendar/${month}/${year}`)
+  const data = await res.json()
+  const mapped = mapCalendarResponse(data, month, year)
+  if (mapped) await saveCachedCalendarMonth(month, year, mapped)
+  return mapped
 }
 
 // ─── EVENT CARD ──────────────────────────────────────────────────────────────
@@ -138,69 +208,92 @@ export default function IslamicCalendarScreen() {
   // Events state
   const [events, setEvents] = useState<IslamicEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
+  const viewKeyRef = useRef(`${viewYear}-${viewMonth}`)
+  viewKeyRef.current = `${viewYear}-${viewMonth}`
 
   useEffect(() => { fetchCalendar() }, [viewMonth, viewYear])
   useEffect(() => { fetchIslamicEvents() }, [])
 
-  // ─── FETCH CALENDAR ──────────────────────────────────────────────────────
+  // ─── FETCH CALENDAR (offline-first) ──────────────────────────────────────
 
   const fetchCalendar = async () => {
-    setCalendarLoading(true)
-    try {
-      const res = await fetch(`https://api.aladhan.com/v1/gToHCalendar/${viewMonth}/${viewYear}`)
-      const data = await res.json()
-      if (data.code === 200) {
-        const days: CalendarDay[] = data.data.map((d: any) => ({
-          gregorianDay: parseInt(d.gregorian.day),
-          gregorianMonth: viewMonth,
-          gregorianYear: viewYear,
-          hijriDay: parseInt(d.hijri.day),
-          hijriMonth: parseInt(d.hijri.month.number),
-          hijriYear: parseInt(d.hijri.year),
-          hijriMonthName: d.hijri.month.en,
-        }))
-        setCalendarDays(days)
-        const midDay = days[Math.floor(days.length / 2)]
-        setHijriMonthName(midDay.hijriMonthName)
-        setHijriMonthYear(`${midDay.hijriYear} AH`)
+    const month = viewMonth
+    const year = viewYear
+    const requestKey = `${year}-${month}`
+    const setters = { setCalendarDays, setHijriMonthName, setHijriMonthYear }
+    const isCurrentView = () => viewKeyRef.current === requestKey
+
+    const cached = await loadCachedCalendarMonth(month, year)
+    if (cached) {
+      if (isCurrentView()) {
+        applyCalendarMonth(cached, setters)
+        setCalendarLoading(false)
       }
+    } else if (isCurrentView()) {
+      setCalendarLoading(true)
+      setCalendarDays([])
+    }
+
+    try {
+      const fresh = await fetchAndCacheCalendarMonth(month, year)
+      if (fresh && isCurrentView()) applyCalendarMonth(fresh, setters)
+
+      // Prefetch adjacent months in the background for offline browsing
+      const prev = month === 1 ? { m: 12, y: year - 1 } : { m: month - 1, y: year }
+      const next = month === 12 ? { m: 1, y: year + 1 } : { m: month + 1, y: year }
+      void (async () => {
+        try {
+          if (!(await loadCachedCalendarMonth(prev.m, prev.y))) {
+            await fetchAndCacheCalendarMonth(prev.m, prev.y)
+          }
+          if (!(await loadCachedCalendarMonth(next.m, next.y))) {
+            await fetchAndCacheCalendarMonth(next.m, next.y)
+          }
+        } catch {}
+      })()
     } catch (e) {
       console.log("Calendar fetch error:", e)
+      // Keep showing cached month if network fails
     } finally {
-      setCalendarLoading(false)
+      if (isCurrentView()) setCalendarLoading(false)
     }
   }
 
-  // ─── FETCH EVENTS DYNAMICALLY ────────────────────────────────────────────
+  // ─── FETCH EVENTS (offline-first) ────────────────────────────────────────
 
   const fetchIslamicEvents = async () => {
-    setEventsLoading(true)
-    try {
-      // Check cache first — only refetch once per month
-      const cachedDate = await AsyncStorage.getItem(EVENTS_CACHE_DATE_KEY)
-      const cachedEvents = await AsyncStorage.getItem(EVENTS_CACHE_KEY)
-      const now = new Date()
+    const now = new Date()
+    let hadCache = false
 
-      if (cachedDate && cachedEvents) {
-        const lastFetch = new Date(cachedDate)
-        // Use cache if fetched this month
-        if (lastFetch.getMonth() === now.getMonth() && lastFetch.getFullYear() === now.getFullYear()) {
-          setEvents(JSON.parse(cachedEvents))
+    try {
+      const cachedEvents = await AsyncStorage.getItem(EVENTS_CACHE_KEY)
+      if (cachedEvents) {
+        const parsed = JSON.parse(cachedEvents) as IslamicEvent[]
+        if (Array.isArray(parsed) && parsed.length) {
+          setEvents(parsed)
           setEventsLoading(false)
+          hadCache = true
+        }
+      }
+
+      const cachedDate = await AsyncStorage.getItem(EVENTS_CACHE_DATE_KEY)
+      if (cachedDate && hadCache) {
+        const lastFetch = new Date(cachedDate)
+        if (lastFetch.getMonth() === now.getMonth() && lastFetch.getFullYear() === now.getFullYear()) {
           return
         }
       }
 
-      // Get current Hijri year
+      if (!hadCache) setEventsLoading(true)
+
       const todayRes = await fetch(
         `https://api.aladhan.com/v1/gToH?date=${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`
       )
       const todayData = await todayRes.json()
-      const currentHijriYear = parseInt(todayData.data.hijri.year)
+      const currentHijriYear = parseInt(todayData.data.hijri.year, 10)
 
       const allEvents: IslamicEvent[] = []
 
-      // Fetch for current and next Hijri year
       for (const hijriYear of [currentHijriYear, currentHijriYear + 1]) {
         for (const event of ISLAMIC_EVENTS_HIJRI) {
           try {
@@ -210,14 +303,14 @@ export default function IslamicCalendarScreen() {
             const data = await res.json()
             if (data.code === 200) {
               const g = data.data.gregorian
-              const gregorianDateStr = `${g.month.en} ${parseInt(g.day)}, ${g.year}`
+              const gregorianDateStr = `${g.month.en} ${parseInt(g.day, 10)}, ${g.year}`
               allEvents.push({
                 id: `${event.id}-${hijriYear}`,
                 name: event.name,
                 emoji: event.emoji,
                 hijriDate: `${event.hijriDay} ${HIJRI_MONTHS[event.hijriMonth - 1]} ${hijriYear} AH`,
                 gregorianDate: gregorianDateStr,
-                gregorianYear: parseInt(g.year),
+                gregorianYear: parseInt(g.year, 10),
                 description: event.description,
                 category: event.category,
               })
@@ -228,17 +321,14 @@ export default function IslamicCalendarScreen() {
         }
       }
 
-      // Sort by date
-      const sorted = allEvents.sort((a, b) =>
-        new Date(a.gregorianDate).getTime() - new Date(b.gregorianDate).getTime()
-      )
-
-      setEvents(sorted)
-
-      // Cache for next time
-      await AsyncStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(sorted))
-      await AsyncStorage.setItem(EVENTS_CACHE_DATE_KEY, now.toISOString())
-
+      if (allEvents.length) {
+        const sorted = allEvents.sort((a, b) =>
+          new Date(a.gregorianDate).getTime() - new Date(b.gregorianDate).getTime()
+        )
+        setEvents(sorted)
+        await AsyncStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(sorted))
+        await AsyncStorage.setItem(EVENTS_CACHE_DATE_KEY, now.toISOString())
+      }
     } catch (e) {
       console.log("Events fetch error:", e)
     } finally {

@@ -1,5 +1,6 @@
 import { downloadFullQuran, isQuranFullyCached } from "@/lib/quranDownload"
 import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
+import i18n from "@/i18n"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect } from "react"
 
@@ -13,8 +14,14 @@ export default function QuranBackgroundDownload() {
     let languageTimer: ReturnType<typeof setInterval> | undefined
     let lastLanguage = ""
 
+    const currentLanguage = async () => {
+      const lang = normalizeReadLanguage(i18n.language || (await AsyncStorage.getItem("language")) || "en")
+      await AsyncStorage.setItem("language", lang)
+      return lang
+    }
+
     const warmIfReady = async () => {
-      const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
+      const language = await currentLanguage()
       await warmReadCacheForLanguage(language)
     }
 
@@ -45,7 +52,7 @@ export default function QuranBackgroundDownload() {
 
     languageTimer = setInterval(async () => {
       if (cancelled) return
-      const language = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? "en")
+      const language = await currentLanguage()
       if (language === lastLanguage && (await isQuranFullyCached())) return
       lastLanguage = language
       if (!(await isQuranFullyCached())) {

@@ -25,18 +25,23 @@ export default function RootLayout() {
   const pendingNotificationRef = useRef<{
     identifier: string
     data: Record<string, unknown> | undefined
+    deliveredAt?: Date | number | string | null
   } | null>(null)
 
   statusRef.current = status
 
-  const navigateFromNotification = (identifier: string, data: Record<string, unknown> | undefined) => {
+  const navigateFromNotification = (
+    identifier: string,
+    data: Record<string, unknown> | undefined,
+    deliveredAt?: Date | number | string | null
+  ) => {
     if (handlePrayerNotificationOpen(identifier, data, () => {
       try {
         router.push("/(tabs)/umrah")
       } catch (e) {
         console.log("Prayer notification navigation error:", e)
       }
-    })) {
+    }, deliveredAt)) {
       return
     }
 
@@ -55,15 +60,21 @@ export default function RootLayout() {
     }
   }
 
-  const openNotificationRef = useRef<(identifier: string, data: Record<string, unknown> | undefined) => void>(() => {})
+  const openNotificationRef = useRef<
+    (
+      identifier: string,
+      data: Record<string, unknown> | undefined,
+      deliveredAt?: Date | number | string | null
+    ) => void
+  >(() => {})
 
-  openNotificationRef.current = (identifier: string, data: Record<string, unknown> | undefined) => {
+  openNotificationRef.current = (identifier, data, deliveredAt) => {
     if (statusRef.current !== "home") {
-      pendingNotificationRef.current = { identifier, data }
+      pendingNotificationRef.current = { identifier, data, deliveredAt }
       return
     }
 
-    setTimeout(() => navigateFromNotification(identifier, data), 300)
+    setTimeout(() => navigateFromNotification(identifier, data, deliveredAt), 300)
   }
 
   useEffect(() => {
@@ -71,7 +82,10 @@ export default function RootLayout() {
 
     const pending = pendingNotificationRef.current
     pendingNotificationRef.current = null
-    setTimeout(() => navigateFromNotification(pending.identifier, pending.data), 300)
+    setTimeout(
+      () => navigateFromNotification(pending.identifier, pending.data, pending.deliveredAt),
+      300
+    )
   }, [status])
 
   useEffect(() => {
@@ -120,13 +134,13 @@ export default function RootLayout() {
       if (!response) return
       const identifier = response.notification.request.identifier
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      openNotificationRef.current(identifier, data)
+      openNotificationRef.current(identifier, data, response.notification.date)
     })
 
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
       const identifier = response.notification.request.identifier
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      openNotificationRef.current(identifier, data)
+      openNotificationRef.current(identifier, data, response.notification.date)
     })
 
     return () => {
