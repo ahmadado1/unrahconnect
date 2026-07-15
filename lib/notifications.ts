@@ -1,4 +1,10 @@
 import i18n from "@/i18n"
+import {
+  fetchAndCacheIslamicEvents,
+  getEventNotificationCopy,
+  ISLAMIC_EVENTS_HIJRI,
+  type IslamicEvent,
+} from "@/lib/islamicEvents"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { prayerNameFromNotification } from "@/lib/prayerConstants"
 import { parsePrayerTimeHourMinute } from "@/lib/prayerTimes"
@@ -235,22 +241,68 @@ export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: str
   return true
 }
 
-export async function scheduleDhikrReminder(hour: number, minute: number) {
-  await Notifications.cancelScheduledNotificationAsync("dhikr-reminder")
+export async function scheduleDailyDhikrReminders() {
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: "dhikr-reminder",
-    content: {
-      title: "🤲 Dhikr Reminder",
-      body: "SubhanAllah, Alhamdulillah, Allahu Akbar. Take a moment to remember Allah.",
-      sound: true,
+  const slots = [
+    {
+      id: "dhikr-reminder-morning",
+      hour: 8,
+      minute: 0,
+      title: "🌅 Morning Dhikr",
+      body: "Start your day with SubhanAllah, Alhamdulillah, and Allahu Akbar.",
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
+    {
+      id: "dhikr-reminder-evening",
+      hour: 17,
+      minute: 0,
+      title: "🌇 Evening Dhikr",
+      body: "End your afternoon with dhikr. SubhanAllah, Alhamdulillah, Allahu Akbar.",
     },
-  })
+  ]
+
+  // Cancel legacy single reminder + current slots
+  await Notifications.cancelScheduledNotificationAsync("dhikr-reminder").catch(() => {})
+  for (const slot of slots) {
+    await Notifications.cancelScheduledNotificationAsync(slot.id).catch(() => {})
+  }
+
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("dhikr-reminders", {
+      name: "Daily Dhikr",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      vibrationPattern: [0, 200, 100, 200],
+      enableVibrate: true,
+    })
+  }
+
+  for (const slot of slots) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: slot.id,
+      content: {
+        title: slot.title,
+        body: slot.body,
+        sound: true,
+        data: { screen: "dhikr" },
+        ...(Platform.OS === "android" ? { channelId: "dhikr-reminders" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: slot.hour,
+        minute: slot.minute,
+        ...(Platform.OS === "android" ? { channelId: "dhikr-reminders" } : {}),
+      },
+    })
+  }
+
+  return true
+}
+
+/** @deprecated Use scheduleDailyDhikrReminders — kept for compatibility */
+export async function scheduleDhikrReminder(_hour?: number, _minute?: number) {
+  return scheduleDailyDhikrReminders()
 }
 
 export async function scheduleJourneyReminder(phaseName: string, type: "umrah" | "hajj") {
@@ -273,27 +325,123 @@ export async function scheduleJourneyReminder(phaseName: string, type: "umrah" |
 }
 
 export async function scheduleIslamicDateReminders() {
-  const reminders = [
-    { id: "ramadan", title: "🌙 Ramadan Preparation", body: "Ramadan is approaching. Start preparing your heart, fasting schedule and duas." },
-    { id: "arafah", title: "🕋 Day of Arafah", body: "Tomorrow is the Day of Arafah — the best day of the year. Fast today and make abundant dua." },
-    { id: "ashura", title: "📅 Day of Ashura", body: "The Day of Ashura is tomorrow. Fasting today expiates sins of the past year." },
-  ]
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
 
-  for (const reminder of reminders) {
-    await Notifications.scheduleNotificationAsync({
-      identifier: `islamic-${reminder.id}`,
-      content: {
-        title: reminder.title,
-        body: reminder.body,
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 8,
-        minute: 0,
-      },
+  if (!Device.isDevice) {
+    console.log("Islamic date notifications only work on real devices")
+    return false
+  }
+
+  const events = await fetchAndCacheIslamicEvents()
+  if (!events.length) return false
+
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync()
+  for (const notif of scheduled) {
+    if (notif.identifier.startsWith("islamic-")) {
+      await Notifications.cancelScheduledNotificationAsync(notif.identifier)
+    }
+  }
+
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("islamic-events", {
+      name: "Islamic Calendar",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     })
   }
+
+  const now = Date.now()
+  const eveIds = new Set(
+    ISLAMIC_EVENTS_HIJRI.filter(e => e.eveReminder).map(e => e.id)
+  )
+
+  let scheduledCount = 0
+
+  for (const event of events) {
+    const dayOf = buildEventDate(event, 8, 0)
+    if (dayOf && dayOf.getTime() > now) {
+      const copy = getEventNotificationCopy(event, "day")
+      await Notifications.scheduleNotificationAsync({
+        identifier: `islamic-${event.id}-day`,
+        content: {
+          title: copy.title,
+          body: copy.body,
+          sound: true,
+          data: {
+            screen: "islamic-calendar",
+            eventId: event.id,
+            baseId: event.baseId,
+          },
+          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: dayOf,
+          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
+        },
+      })
+      scheduledCount++
+    }
+
+    if (!eveIds.has(event.baseId)) continue
+
+    // Laylatul Qadr: evening of the day itself (night of power)
+    const isLaylatulQadr = event.baseId === "laylatul-qadr"
+    const eve = isLaylatulQadr
+      ? buildEventDate(event, 20, 0)
+      : (() => {
+          const d = buildEventDate(event, 20, 0)
+          if (!d) return null
+          d.setDate(d.getDate() - 1)
+          return d
+        })()
+
+    if (eve && eve.getTime() > now) {
+      const copy = getEventNotificationCopy(event, "eve")
+      await Notifications.scheduleNotificationAsync({
+        identifier: `islamic-${event.id}-eve`,
+        content: {
+          title: copy.title,
+          body: copy.body,
+          sound: true,
+          data: {
+            screen: "islamic-calendar",
+            eventId: event.id,
+            baseId: event.baseId,
+          },
+          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: eve,
+          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
+        },
+      })
+      scheduledCount++
+    }
+  }
+
+  console.log(`Scheduled ${scheduledCount} Islamic calendar notifications`)
+  return scheduledCount > 0
+}
+
+function buildEventDate(event: IslamicEvent, hour: number, minute: number) {
+  const year = event.gregorianYear
+  const month = event.gregorianMonth
+  const day = event.gregorianDay
+
+  if (year && month && day) {
+    return new Date(year, month - 1, day, hour, minute, 0, 0)
+  }
+
+  const parsed = new Date(event.gregorianDate)
+  if (Number.isNaN(parsed.getTime())) return null
+  parsed.setHours(hour, minute, 0, 0)
+  return parsed
 }
 
 export async function cancelAllNotifications() {

@@ -9,7 +9,7 @@ import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } f
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
-import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyVerseNotification, setupPrayerNotificationChannel } from "@/lib/notifications";
+import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyDhikrReminders, scheduleDailyVerseNotification, scheduleIslamicDateReminders, setupPrayerNotificationChannel } from "@/lib/notifications";
 import { clearQuranDownloadFlag } from "@/lib/quranPageCache";
 import { downloadFullQuran } from "@/lib/quranDownload";
 import { Ionicons } from "@expo/vector-icons";
@@ -118,7 +118,9 @@ useEffect(() => {
                   if (granted) {
                     await setupPrayerNotificationChannel().catch(console.log)
                     await scheduleDailyVerseNotification()
+                    await scheduleDailyDhikrReminders().catch(console.log)
                     await reschedulePrayerNotificationsFromCache().catch(console.log)
+                    await scheduleIslamicDateReminders().catch(console.log)
                   }
                 } else {
                   await cancelAllNotifications()

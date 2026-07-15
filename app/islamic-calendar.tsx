@@ -1,4 +1,9 @@
 import { useTheme } from "@/context/themeContext"
+import {
+  fetchAndCacheIslamicEvents,
+  type IslamicEvent,
+} from "@/lib/islamicEvents"
+import { scheduleIslamicDateReminders } from "@/lib/notifications"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useRouter } from "expo-router"
@@ -9,26 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const HIJRI_MONTHS = [
-  "Muharram", "Safar", "Rabi al-Awwal", "Rabi al-Thani",
-  "Jumada al-Awwal", "Jumada al-Thani", "Rajab", "Sha'ban",
-  "Ramadan", "Shawwal", "Dhul Qi'dah", "Dhul Hijjah"
-]
-
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-// Fixed Hijri dates — these never change
-const ISLAMIC_EVENTS_HIJRI = [
-  { id: "new-year", name: "Islamic New Year", emoji: "🌙", hijriDay: 1, hijriMonth: 1, description: "The first day of the Islamic lunar calendar. A time for reflection and renewing intentions.", category: "observance" as const },
-  { id: "ashura", name: "Day of Ashura", emoji: "🕯️", hijriDay: 10, hijriMonth: 1, description: "A day of fasting commemorating the day Allah saved Musa (AS) and his people. Fasting expiates sins of the previous year.", category: "observance" as const },
-  { id: "isra", name: "Isra wal Mi'raj", emoji: "✨", hijriDay: 27, hijriMonth: 7, description: "The night journey of the Prophet Muhammad ﷺ from Makkah to Jerusalem and his ascension to the heavens.", category: "holy" as const },
-  { id: "ramadan", name: "Ramadan Begins", emoji: "🌙", hijriDay: 1, hijriMonth: 9, description: "The blessed month of fasting, prayer, reflection and community. One of the five pillars of Islam.", category: "observance" as const },
-  { id: "laylatul-qadr", name: "Laylatul Qadr", emoji: "⭐", hijriDay: 27, hijriMonth: 9, description: "The Night of Power — better than a thousand months. Seek it in the last 10 nights of Ramadan.", category: "holy" as const },
-  { id: "eid-fitr", name: "Eid al-Fitr", emoji: "🎉", hijriDay: 1, hijriMonth: 10, description: "The festival of breaking the fast, celebrating the end of Ramadan with prayer, charity and family.", category: "celebration" as const },
-  { id: "arafah", name: "Day of Arafah", emoji: "🕋", hijriDay: 9, hijriMonth: 12, description: "The most important day of Hajj. Fasting expiates sins of the past and coming year for non-pilgrims.", category: "pilgrimage" as const },
-  { id: "eid-adha", name: "Eid al-Adha", emoji: "🐑", hijriDay: 10, hijriMonth: 12, description: "The festival of sacrifice, commemorating Ibrahim's willingness to sacrifice his son for Allah.", category: "celebration" as const },
-  { id: "mawlid", name: "Mawlid an-Nabi", emoji: "🌟", hijriDay: 12, hijriMonth: 3, description: "The birth of the Prophet Muhammad ﷺ. A time to learn about his life and follow his example.", category: "observance" as const },
-]
 
 const CATEGORY_COLORS = {
   pilgrimage: { bg: "rgba(201,168,76,0.15)", border: "rgba(201,168,76,0.4)", text: "#C9A84C" },
@@ -45,8 +31,6 @@ const FILTERS = [
   { id: "observance", label: "Observances" },
 ]
 
-const EVENTS_CACHE_KEY = "islamic_events_cache"
-const EVENTS_CACHE_DATE_KEY = "islamic_events_cache_date"
 const CALENDAR_CACHE_PREFIX = "islamic_calendar_month_v1_"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -59,17 +43,6 @@ type CalendarDay = {
   hijriMonth: number
   hijriYear: number
   hijriMonthName: string
-}
-
-type IslamicEvent = {
-  id: string
-  name: string
-  emoji: string
-  hijriDate: string
-  gregorianDate: string
-  gregorianYear: number
-  description: string
-  category: "pilgrimage" | "celebration" | "observance" | "holy"
 }
 
 type CachedCalendarMonth = {
@@ -262,72 +235,12 @@ export default function IslamicCalendarScreen() {
   // ─── FETCH EVENTS (offline-first) ────────────────────────────────────────
 
   const fetchIslamicEvents = async () => {
-    const now = new Date()
-    let hadCache = false
-
+    setEventsLoading(true)
     try {
-      const cachedEvents = await AsyncStorage.getItem(EVENTS_CACHE_KEY)
-      if (cachedEvents) {
-        const parsed = JSON.parse(cachedEvents) as IslamicEvent[]
-        if (Array.isArray(parsed) && parsed.length) {
-          setEvents(parsed)
-          setEventsLoading(false)
-          hadCache = true
-        }
-      }
-
-      const cachedDate = await AsyncStorage.getItem(EVENTS_CACHE_DATE_KEY)
-      if (cachedDate && hadCache) {
-        const lastFetch = new Date(cachedDate)
-        if (lastFetch.getMonth() === now.getMonth() && lastFetch.getFullYear() === now.getFullYear()) {
-          return
-        }
-      }
-
-      if (!hadCache) setEventsLoading(true)
-
-      const todayRes = await fetch(
-        `https://api.aladhan.com/v1/gToH?date=${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`
-      )
-      const todayData = await todayRes.json()
-      const currentHijriYear = parseInt(todayData.data.hijri.year, 10)
-
-      const allEvents: IslamicEvent[] = []
-
-      for (const hijriYear of [currentHijriYear, currentHijriYear + 1]) {
-        for (const event of ISLAMIC_EVENTS_HIJRI) {
-          try {
-            const res = await fetch(
-              `https://api.aladhan.com/v1/hToG?date=${event.hijriDay}-${event.hijriMonth}-${hijriYear}`
-            )
-            const data = await res.json()
-            if (data.code === 200) {
-              const g = data.data.gregorian
-              const gregorianDateStr = `${g.month.en} ${parseInt(g.day, 10)}, ${g.year}`
-              allEvents.push({
-                id: `${event.id}-${hijriYear}`,
-                name: event.name,
-                emoji: event.emoji,
-                hijriDate: `${event.hijriDay} ${HIJRI_MONTHS[event.hijriMonth - 1]} ${hijriYear} AH`,
-                gregorianDate: gregorianDateStr,
-                gregorianYear: parseInt(g.year, 10),
-                description: event.description,
-                category: event.category,
-              })
-            }
-          } catch (e) {
-            console.log(`Failed to fetch ${event.name}:`, e)
-          }
-        }
-      }
-
-      if (allEvents.length) {
-        const sorted = allEvents.sort((a, b) =>
-          new Date(a.gregorianDate).getTime() - new Date(b.gregorianDate).getTime()
-        )
+      const sorted = await fetchAndCacheIslamicEvents()
+      if (sorted.length) {
         setEvents(sorted)
-        await AsyncStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(sorted))
-        await AsyncStorage.setItem(EVENTS_CACHE_DATE_KEY, now.toISOString())
+        scheduleIslamicDateReminders().catch(console.log)
       }
     } catch (e) {
       console.log("Events fetch error:", e)

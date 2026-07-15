@@ -4,7 +4,9 @@ import {
   handlePrayerNotificationOpen,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
+  scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
+  scheduleIslamicDateReminders,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications";
 import { normalizeReferralCode, saveReferralCode } from "@/lib/referral";
@@ -53,8 +55,8 @@ export default function RootLayout() {
       }
     } else if (identifier === "daily-verse") {
       router.push("/quran")
-    } else if (identifier === "dhikr-reminder") {
-      router.push("/duas")
+    } else if (identifier.startsWith("dhikr-reminder")) {
+      router.push("/(tabs)" as any)
     } else if (identifier.startsWith("islamic-")) {
       router.push("/islamic-calendar")
     }
@@ -98,6 +100,8 @@ export default function RootLayout() {
       const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
       if (notifEnabled !== "false") {
         await scheduleDailyVerseNotification().catch(console.log)
+        await scheduleDailyDhikrReminders().catch(console.log)
+        await scheduleIslamicDateReminders().catch(console.log)
       }
     })
 
