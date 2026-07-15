@@ -235,6 +235,81 @@ const refreshStyles = StyleSheet.create({
   },
 })
 
+function GlowingAiButton({ onPress }: { onPress: () => void }) {
+  const glow = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glow, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [glow])
+
+  const pulseScale = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.12],
+  })
+  const pulseOpacity = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.35, 0.85],
+  })
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={aiBtnStyles.hit}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          aiBtnStyles.glowRing,
+          { opacity: pulseOpacity, transform: [{ scale: pulseScale }] },
+        ]}
+      />
+      <View style={aiBtnStyles.btn}>
+        <Ionicons name="sparkles" size={18} color="#1E3A5F" />
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+const aiBtnStyles = StyleSheet.create({
+  hit: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  glowRing: {
+    position: "absolute",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#C9A84C",
+  },
+  btn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#C9A84C",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.55)",
+  },
+})
+
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -446,13 +521,11 @@ export default function HomeScreen() {
                   <Text style={styles.logoTagline}>{t("tagline")}</Text>
                 </View>
               </View>
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/search" as any)}>
                   <Ionicons name="search-outline" size={20} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/(tabs)/me" as any)}>
-                  <Ionicons name="person-outline" size={20} color="#fff" />
-                </TouchableOpacity>
+                <GlowingAiButton onPress={() => router.push("/AIGuideScreen" as any)} />
               </View>
             </View>
 
@@ -508,7 +581,7 @@ export default function HomeScreen() {
             style={styles.journeyKaaba}
           />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.journeyTitle, { color: theme.text }]}>Continue Umrah Journey</Text>
+            <Text style={[styles.journeyTitle, { color: theme.text }]}>Continue My Umrah Journey</Text>
             <Text style={[styles.journeyStep, { color: theme.textSecondary }]}>Step {umrahProgress.step} of {umrahProgress.total}</Text>
             <Text style={[styles.journeyPhase, { color: theme.textSecondary }]}>{umrahProgress.phase}</Text>
             <View style={styles.progressBarTrack}>
@@ -555,7 +628,7 @@ export default function HomeScreen() {
           <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} />
           <QuickItem icon="hand-left-outline" label={t("duas")} onPress={() => router.push("/duas" as any)} theme={theme} />
           <QuickItem icon="book-outline" label={t("quran")} onPress={() => router.push("/quran" as any)} theme={theme} />
-          <QuickItem icon="bus-outline" label={t("transport")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} />
+          <QuickItem icon="bus-outline" label={t("services")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} />
         </ScrollView>
 
         {/* ── MAIDABO FOUNDATION ── */}

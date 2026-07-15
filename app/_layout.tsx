@@ -1,3 +1,4 @@
+import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
 import {
@@ -15,7 +16,7 @@ import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
 import { clearLocalAuth, getValidSession, supabase } from "../lib/supabase";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
@@ -187,16 +188,11 @@ const checkAuth = async () => {
 
   return (
     <ThemeProvider>
-      <PrayerAlertProvider>
-        <View style={{ flex: 1 }}>
-          <QuranBackgroundDownload />
-          {status === "loading" ? (
-          <View style={{ flex: 1, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 60 }}>🌙</Text>
-            <ActivityIndicator color="#C9A84C" style={{ marginTop: 20 }} />
-          </View>
-        ) : (
+      <AIGuideProvider>
+        <PrayerAlertProvider>
           <View style={{ flex: 1, backgroundColor: "#1E3A5F" }}>
+            <QuranBackgroundDownload />
+            {/* Always mount Stack so notification/auth navigation never races ahead of the root layout */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="auth/login" />
@@ -233,13 +229,27 @@ const checkAuth = async () => {
               <Stack.Screen name="AIGuideScreen" />
             </Stack>
 
+            {status === "loading" && (
+              <View
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  backgroundColor: "#1E3A5F",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 100,
+                }}
+              >
+                <Text style={{ fontSize: 60 }}>🌙</Text>
+                <ActivityIndicator color="#C9A84C" style={{ marginTop: 20 }} />
+              </View>
+            )}
+
             {status === "onboarding" && <Redirect href="/onboarding" />}
             {status === "login" && <Redirect href="/auth/login" />}
             {status === "home" && <Redirect href="/(tabs)" />}
           </View>
-        )}
-        </View>
-      </PrayerAlertProvider>
+        </PrayerAlertProvider>
+      </AIGuideProvider>
     </ThemeProvider>
   )
 }
