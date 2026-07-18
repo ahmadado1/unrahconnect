@@ -22,6 +22,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type CityFilter = "All" | "Makkah" | "Madinah"
+type CategoryFilter =
+  | "All"
+  | "Recommended"
+  | "Budget Friendly"
+  | "Near Haram"
+  | "Near Nabawi"
+  | "Clock Tower"
+  | "Family"
 
 function byIds(ids: string[]): Hotel[] {
   return ids
@@ -29,82 +37,57 @@ function byIds(ids: string[]): Hotel[] {
     .filter((h): h is Hotel => !!h)
 }
 
-const recommended = byIds([
+/** Curated flagship picks shown first */
+const RECOMMENDED_IDS = [
   "fairmont-clock",
   "oberoi-madinah",
   "raffles-makkah",
   "anwar-movenpick",
   "conrad-makkah",
   "hilton-madinah",
-])
-
-const makkahTopPicks = byIds([
-  "fairmont-clock",
-  "swissotel-makkah",
   "pullman-zamzam",
-  "conrad-makkah",
-  "raffles-makkah",
-  "hilton-suites-makkah",
-  "movenpick-hajar",
-  "dar-al-tawhid",
-  "marriott-makkah",
-  "sheraton-jabal",
-  "hyatt-regency-makkah",
-  "rotana-makkah",
-  "al-safwah-orchid",
-  "anjum-makkah",
-  "radisson-blu-makkah",
-  "le-meridien-towers",
+  "dar-al-taqwa",
+]
+
+/** Budget / mid-range options */
+const BUDGET_FRIENDLY_IDS = new Set([
   "elaf-kinda",
   "elaf-bakkah",
+  "al-haram-madinah",
+  "dallah-taibah",
+  "saja-madinah",
+  "al-shohada",
+  "anwar-al-madinah",
   "millennium-naseem",
   "makkah-millennium",
+  "le-meridien-towers",
 ])
 
-const nearHaram = byIds([
+/** Abraj Al-Bait / Clock Tower complex */
+const CLOCK_TOWER_IDS = new Set([
   "fairmont-clock",
   "swissotel-makkah",
   "pullman-zamzam",
-  "al-safwah-orchid",
-  "rotana-makkah",
-  "elaf-kinda",
   "raffles-makkah",
   "movenpick-hajar",
+  "rotana-makkah",
+  "al-safwah-orchid",
+])
+
+/** Good for families — suites, larger rooms, or group-friendly stays */
+const FAMILY_FRIENDLY_IDS = new Set([
+  "pullman-zamzam",
   "hilton-suites-makkah",
-  "dar-al-tawhid",
-  "marriott-makkah",
-  "hyatt-regency-makkah",
-  "sheraton-jabal",
-  "anjum-makkah",
-])
-
-const madinahTopPicks = byIds([
-  "oberoi-madinah",
   "anwar-movenpick",
-  "hilton-madinah",
-  "dar-al-taqwa",
-  "crowne-plaza-madinah",
-  "shaza-madinah",
-  "al-masa-madinah",
-  "marriott-madinah",
-])
-
-const nearNabawi = byIds([
-  "oberoi-madinah",
-  "anwar-movenpick",
-  "hilton-madinah",
-  "dar-al-taqwa",
-  "crowne-plaza-madinah",
-  "al-masa-madinah",
-  "shaza-madinah",
-  "al-shohada",
-  "al-haram-madinah",
-  "anwar-al-madinah",
-  "radisson-blu-madinah",
+  "elaf-kinda",
+  "elaf-bakkah",
   "dallah-taibah",
+  "le-meridien-towers",
   "saja-madinah",
-  "marriott-madinah",
-  "sheraton-madinah",
+  "anjum-makkah",
+  "radisson-blu-makkah",
+  "al-shohada",
+  "anwar-al-madinah",
 ])
 
 /** Closest / flagship hotels get the gold Featured badge */
@@ -122,6 +105,24 @@ const FEATURED_IDS = new Set([
   "dar-al-taqwa",
   "shaza-madinah",
 ])
+
+const recommendedHotels = byIds(RECOMMENDED_IDS)
+const budgetFriendlyHotels = HOTELS.filter(h => BUDGET_FRIENDLY_IDS.has(h.id))
+const nearHaramHotels = HOTELS.filter(h => h.city === "Makkah" && h.walkMinutes <= 5)
+const nearNabawiHotels = HOTELS.filter(h => h.city === "Madinah" && h.walkMinutes <= 5)
+const clockTowerHotels = HOTELS.filter(h => CLOCK_TOWER_IDS.has(h.id))
+const familyHotels = HOTELS.filter(h => FAMILY_FRIENDLY_IDS.has(h.id))
+
+const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; title: string; hotels: Hotel[] }[] =
+  [
+    { key: "Recommended", title: "✨ Recommended", hotels: recommendedHotels },
+    { key: "Budget Friendly", title: "💰 Budget Friendly", hotels: budgetFriendlyHotels },
+    { key: "Near Haram", title: "🕋 Closest to Haram", hotels: nearHaramHotels },
+    { key: "Near Nabawi", title: "🕌 Closest to Nabawi", hotels: nearNabawiHotels },
+    { key: "Clock Tower", title: "🏢 Clock Tower", hotels: clockTowerHotels },
+    { key: "Family", title: "👨‍👩‍👧 Family Friendly", hotels: familyHotels },
+  ]
+
 
 async function openWebsite(url: string) {
   try {
@@ -141,9 +142,19 @@ async function openWebsite(url: string) {
 
 export default function HotelsScreen() {
   const router = useRouter()
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All")
   const [activeFilter, setActiveFilter] = useState<CityFilter>("All")
   const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
-  const filters: CityFilter[] = ["All", "Makkah", "Madinah"]
+  const categoryFilters: CategoryFilter[] = [
+    "All",
+    "Recommended",
+    "Budget Friendly",
+    "Near Haram",
+    "Near Nabawi",
+    "Clock Tower",
+    "Family",
+  ]
+  const cityFilters: CityFilter[] = ["All", "Makkah", "Madinah"]
   const [searchQuery, setSearchQuery] = useState("")
   const { theme } = useTheme()
   const { t } = useTranslation()
@@ -185,22 +196,20 @@ export default function HotelsScreen() {
     [activeFilter, searchQuery]
   )
 
-  const visibleSections = useMemo(
-    () =>
-      [
-        { title: "Recommended", hotels: recommended },
-        { title: "Makkah Top Picks", hotels: makkahTopPicks },
-        { title: "Near Haram", hotels: nearHaram },
-        { title: "Madinah Top Picks", hotels: madinahTopPicks },
-        { title: "Near Masjid al-Nabawi", hotels: nearNabawi },
-      ]
-        .map(section => ({
-          title: section.title,
-          hotels: filterHotelsList(section.hotels),
-        }))
-        .filter(section => section.hotels.length > 0),
-    [filterHotelsList]
-  )
+  const visibleSections = useMemo(() => {
+    const sections =
+      activeCategory === "All"
+        ? CATEGORY_SECTIONS
+        : CATEGORY_SECTIONS.filter(section => section.key === activeCategory)
+
+    return sections
+      .map(section => ({
+        title: section.title,
+        hotels: filterHotelsList(section.hotels),
+      }))
+      .filter(section => section.hotels.length > 0)
+  }, [activeCategory, filterHotelsList])
+
 
   function HotelCard({ hotel }: { hotel: Hotel }) {
     const isFavorited = favoriteHotelIds.has(hotel.id)
@@ -316,15 +325,41 @@ export default function HotelsScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.pillsRow}
-            contentContainerStyle={{ gap: 8 }}
+            contentContainerStyle={{ gap: 8, paddingRight: 16 }}
           >
-            {filters.map(filter => (
+            {categoryFilters.map(filter => (
               <TouchableOpacity
                 key={filter}
-                style={[styles.pill, activeFilter === filter && styles.pillActive]}
+                style={[styles.pill, activeCategory === filter && styles.pillActive]}
+                onPress={() => setActiveCategory(filter)}
+              >
+                <Text
+                  style={[styles.pillText, activeCategory === filter && styles.pillTextActive]}
+                >
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.cityPillsRow}
+            contentContainerStyle={{ gap: 8, paddingRight: 16 }}
+          >
+            {cityFilters.map(filter => (
+              <TouchableOpacity
+                key={filter}
+                style={[styles.cityPill, activeFilter === filter && styles.cityPillActive]}
                 onPress={() => setActiveFilter(filter)}
               >
-                <Text style={[styles.pillText, activeFilter === filter && styles.pillTextActive]}>
+                <Text
+                  style={[
+                    styles.cityPillText,
+                    activeFilter === filter && styles.cityPillTextActive,
+                  ]}
+                >
                   {filter}
                 </Text>
               </TouchableOpacity>
@@ -332,14 +367,12 @@ export default function HotelsScreen() {
           </ScrollView>
         </View>
 
-        <View key={activeFilter}>
+        <View key={`${activeCategory}-${activeFilter}`}>
           {visibleSections.map(section => (
             <View key={section.title} style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
-                <TouchableOpacity>
-                  <Text style={styles.seeAll}>{t("seeAll")}</Text>
-                </TouchableOpacity>
+                <Text style={styles.seeAll}>{section.hotels.length}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -447,9 +480,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   searchInput: { flex: 1, color: "#fff", fontSize: 14 },
-  pillsRow: { paddingHorizontal: 16 },
+  pillsRow: { paddingHorizontal: 16, marginBottom: 10 },
+  cityPillsRow: { paddingHorizontal: 16 },
   pill: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.12)",
@@ -457,6 +491,20 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: "#C9A84C" },
   pillText: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "500" },
   pillTextActive: { color: "#1E3A5F", fontWeight: "bold" },
+  cityPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "transparent",
+  },
+  cityPillActive: {
+    borderColor: "#C9A84C",
+    backgroundColor: "rgba(201,168,76,0.18)",
+  },
+  cityPillText: { color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: "500" },
+  cityPillTextActive: { color: "#C9A84C", fontWeight: "700" },
   empty: { alignItems: "center", paddingVertical: 48, gap: 10 },
   emptyText: { fontSize: 14 },
 })
