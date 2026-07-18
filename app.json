@@ -16,7 +16,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["uber"],
-        "UIBackgroundModes": ["audio", "fetch", "background-fetch"],
+        "UIBackgroundModes": ["audio", "fetch"],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services."
       },
