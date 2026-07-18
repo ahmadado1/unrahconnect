@@ -164,8 +164,9 @@ const getWeatherCondition = (code: number) => {
 }
 
 function formatPrayerTimeDisplay(timeStr: string): string {
-  const { hour, minute } = parsePrayerTimeHourMinute(timeStr)
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+  const parsed = parsePrayerTimeHourMinute(timeStr)
+  if (!parsed) return "--:--"
+  return `${String(parsed.hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}`
 }
 
 function getMinutesUntilPrayer(timeStr: string, now = new Date()): number {

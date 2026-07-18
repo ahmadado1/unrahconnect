@@ -5,11 +5,12 @@ import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
 import { getUmrahProgress, markPhaseComplete, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect } from "@react-navigation/native"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -57,11 +58,26 @@ export default function PhaseDetailScreen() {
     setIsCompleted(newState ?? false)
   }
 
+  const goToUmrahGuide = useCallback(() => {
+    router.navigate("/umrah-guide")
+  }, [router])
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        goToUmrahGuide()
+        return true
+      }
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress)
+      return () => sub.remove()
+    }, [goToUmrahGuide])
+  )
+
   if (!data) {
     return (
       <View style={styles.notFound}>
         <Text style={{ color: theme.text }}>{t("phaseNotFound")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={goToUmrahGuide}>
           <Text style={{ color: "#C9A84C" }}>{t("goBack")}</Text>
         </TouchableOpacity>
       </View>
@@ -78,7 +94,7 @@ export default function PhaseDetailScreen() {
         scrollEventThrottle={16}
       >
         <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: data.textColor }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={goToUmrahGuide} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.phaseNumBig, { backgroundColor: data.color }]}>

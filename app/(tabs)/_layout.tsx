@@ -1,5 +1,5 @@
 import { useTheme } from "@/context/themeContext";
-import { isExpoGo } from "@/lib/runtime";
+import { isNativeBuild } from "@/lib/runtime";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 const GOLD = "#C9A84C"
 
+/** Dynamic colors so Liquid Glass tabs adapt over light/dark content on iOS. */
 function nativeTintColor() {
   if (Platform.OS !== "ios") return GOLD
   return DynamicColorIOS({ light: GOLD, dark: GOLD })
@@ -100,8 +101,8 @@ function NativeTabsLayout() {
 }
 
 export default function TabsLayout() {
-  // NativeTabs = system tab bar with Liquid Glass on iOS 26+ (requires EAS/dev build, not Expo Go)
-  if (Platform.OS === "ios" && !isExpoGo) {
+  // NativeTabs = Apple Liquid Glass tab bar on iOS 26+ (EAS / TestFlight build only — not Expo Go)
+  if (Platform.OS === "ios" && isNativeBuild) {
     return <NativeTabsLayout />
   }
 

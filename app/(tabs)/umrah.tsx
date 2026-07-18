@@ -338,7 +338,6 @@ const styles = StyleSheet.create({
   fajrMeta: { fontSize: 11, marginTop: 2 },
   fajrNote: { fontSize: 12, paddingHorizontal: 4, marginBottom: 12, lineHeight: 17 },
   previewBtn: { padding: 4 },
-  previewBtn: { padding: 4 },
   selectBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: "#C9A84C" },
   selectBtnActive: { backgroundColor: "#C9A84C" },
   selectBtnText: { fontSize: 12, color: "#C9A84C", fontWeight: "500" },

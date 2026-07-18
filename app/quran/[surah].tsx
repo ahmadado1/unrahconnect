@@ -15,7 +15,12 @@ import {
   type MushafPageData,
   type MushafVerse,
 } from "../../lib/quranPageCache"
-import { fetchAndCacheSurah, normalizeReadLanguage, peekCachedSurah, readCachedSurah } from "../../lib/quranReadCache"
+import {
+  fetchAndCacheSurah,
+  normalizeReadLanguage,
+  peekCachedSurah,
+  readSurahOfflineFirst,
+} from "../../lib/quranReadCache"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -516,12 +521,19 @@ export default function SurahScreen() {
         return
       }
 
-      // Prefer disk cache without blanking the screen first.
-      const cached = await readCachedSurah(surahNum, lang)
+      // Prefer disk cache (any language) so read mode works offline after download.
+      const cached = await readSurahOfflineFirst(surahNum, lang)
       if (loadRequestRef.current !== requestId) return
 
       if (cached?.length) {
         applyLoadedVerses(cached)
+        // Soft-refresh preferred language in background if missing
+        void fetchAndCacheSurah(surahNum, lang).then(fresh => {
+          if (loadRequestRef.current !== requestId || !fresh?.length) return
+          if (normalizeReadLanguage(i18n.language) === lang) {
+            applyLoadedVerses(fresh)
+          }
+        })
         return
       }
 

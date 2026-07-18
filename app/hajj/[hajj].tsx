@@ -4,11 +4,12 @@ import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
 import { getHajjProgress, markHajjPhaseComplete, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect } from "@react-navigation/native"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -56,11 +57,26 @@ export default function HajjPhaseDetailScreen() {
     setIsCompleted(newState ?? false)
   }
 
+  const goToHajjGuide = useCallback(() => {
+    router.navigate("/hajj")
+  }, [router])
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        goToHajjGuide()
+        return true
+      }
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress)
+      return () => sub.remove()
+    }, [goToHajjGuide])
+  )
+
   if (!data) {
     return (
       <View style={styles.notFound}>
         <Text style={{ color: theme.text }}>{t("phaseNotFound")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={goToHajjGuide}>
           <Text style={{ color: "#C9A84C" }}>{t("goBack")}</Text>
         </TouchableOpacity>
       </View>
@@ -77,7 +93,7 @@ export default function HajjPhaseDetailScreen() {
         scrollEventThrottle={16}
       >
         <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: data.textColor }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={goToHajjGuide} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.phaseNumBig, { backgroundColor: data.color }]}>

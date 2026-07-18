@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import {
   formatPhoneDisplay,
   getHotelById,
@@ -54,16 +55,27 @@ export default function HotelDetailScreen() {
   const hotelId = Array.isArray(id) ? id[0] : id
   const hotel = getHotelById(hotelId)
   const [favorited, setFavorited] = useState(false)
+  const [imageUri, setImageUri] = useState(hotel?.image ?? HOTEL_IMAGE_PLACEHOLDER)
 
   useEffect(() => {
     if (!hotel) return
     isFavorite(hotel.id, "hotel").then(setFavorited)
+    setImageUri(hotel.image)
   }, [hotel])
 
   const handleFavorite = async () => {
     if (!hotel) return
     const next = await toggleFavorite(hotel.id, "hotel")
     setFavorited(next ?? false)
+  }
+
+  const handleImageError = () => {
+    if (!hotel) return
+    if (imageUri === hotel.image && hotel.imageFallback) {
+      setImageUri(hotel.imageFallback)
+    } else if (imageUri !== HOTEL_IMAGE_PLACEHOLDER) {
+      setImageUri(HOTEL_IMAGE_PLACEHOLDER)
+    }
   }
 
   if (!hotel) {
@@ -83,9 +95,10 @@ export default function HotelDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Image
-            source={{ uri: hotel.image }}
+            source={{ uri: imageUri }}
             style={styles.heroImage}
             resizeMode="cover"
+            onError={handleImageError}
           />
           <View style={styles.heroOverlay} />
           <View style={[styles.heroContent, { paddingTop: insets.top + 8 }]}>
@@ -102,8 +115,13 @@ export default function HotelDetailScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.heroName}>{hotel.name}</Text>
-            <Text style={styles.heroStars}>{"★".repeat(hotel.stars)}{"☆".repeat(5 - hotel.stars)}</Text>
-            <Text style={styles.heroMeta}>{hotel.city} · {hotel.distanceLabel}</Text>
+            <Text style={styles.heroStars}>
+              {"★".repeat(hotel.stars)}
+              {"☆".repeat(5 - hotel.stars)}
+            </Text>
+            <Text style={styles.heroMeta}>
+              {hotel.city} · {hotel.distanceLabel}
+            </Text>
           </View>
         </View>
 

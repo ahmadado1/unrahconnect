@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import i18n from "@/i18n"
+import { fetchWithTimeout } from "./fetchWithTimeout"
 import {
   downloadSurahList,
   fetchAndCacheSurah,
@@ -44,6 +45,7 @@ let state: QuranDownloadState = {
   total: TOTAL_ITEMS,
   label: "",
 }
+let downloadPromise: Promise<boolean> | null = null
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -66,7 +68,7 @@ export function subscribeQuranDownload(listener: Listener) {
 
 async function downloadPageFromNetwork(page: number): Promise<boolean> {
   try {
-    const res = await fetch(pageApiUrl(page))
+    const res = await fetchWithTimeout(pageApiUrl(page), {}, 12000)
     if (!res.ok) return false
 
     const json = await res.json()
@@ -82,7 +84,6 @@ async function downloadPageFromNetwork(page: number): Promise<boolean> {
 }
 
 async function getDownloadLanguage() {
-  // Prefer live i18n language so cache keys match the Quran reader.
   const fromI18n = normalizeReadLanguage(i18n.language || "en")
   const stored = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? fromI18n)
   if (stored !== fromI18n) {
@@ -109,13 +110,18 @@ export async function isQuranFullyCached(): Promise<boolean> {
 
 export { getCachedPageCount }
 
-export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<boolean> {
+async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
   const language = await getDownloadLanguage()
 
   const initialMissingPages = await getMissingPageNumbers()
   const initialMissingSurahs = await getMissingSurahNumbers(language)
+  const surahListOk = await downloadSurahList()
 
-  if (initialMissingPages.length === 0 && initialMissingSurahs.length === 0) {
+  if (
+    initialMissingPages.length === 0 &&
+    initialMissingSurahs.length === 0 &&
+    surahListOk
+  ) {
     await markQuranFullyCached()
     await warmReadCacheForLanguage(language)
     emit({
@@ -130,7 +136,7 @@ export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<
   }
 
   const flag = await AsyncStorage.getItem(QURAN_DOWNLOAD_FLAG_KEY)
-  if (flag === "true") {
+  if (flag === "true" && (initialMissingPages.length > 0 || initialMissingSurahs.length > 0)) {
     await clearQuranDownloadFlag()
   }
 
@@ -145,7 +151,13 @@ export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<
 
   reportProgress("Downloading Quran...")
 
-  await downloadSurahList()
+  if (!surahListOk) {
+    const listRetry = await downloadSurahList()
+    if (!listRetry) {
+      reportProgress("Download paused — will retry", "paused")
+      return false
+    }
+  }
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     let missingPages = await getMissingPageNumbers()
@@ -192,6 +204,12 @@ export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<
     return false
   }
 
+  const listFinal = await downloadSurahList()
+  if (!listFinal) {
+    reportProgress("Download paused — will retry", "paused")
+    return false
+  }
+
   await markQuranFullyCached()
   await warmReadCacheForLanguage(language)
   emit({
@@ -205,6 +223,24 @@ export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<
   setTimeout(() => emit({ status: "idle", done: TOTAL_ITEMS, total: TOTAL_ITEMS, label: "" }), 4000)
 
   return true
+}
+
+/** Single-flight download — concurrent callers share one run. */
+export async function downloadFullQuran(onProgress?: ProgressCallback): Promise<boolean> {
+  if (downloadPromise) {
+    return downloadPromise
+  }
+
+  downloadPromise = runDownload(onProgress).finally(() => {
+    downloadPromise = null
+  })
+  return downloadPromise
+}
+
+/** After language change: keep mushaf; only fetch missing translation surahs. */
+export async function ensureQuranForLanguage(language: string): Promise<boolean> {
+  await AsyncStorage.setItem("language", normalizeReadLanguage(language))
+  return downloadFullQuran()
 }
 
 export async function resetQuranCache(): Promise<void> {

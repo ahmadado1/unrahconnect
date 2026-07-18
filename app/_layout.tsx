@@ -135,17 +135,25 @@ export default function RootLayout() {
       }
     })
 
-    Notifications.getLastNotificationResponseAsync().then(response => {
+    Notifications.getLastNotificationResponseAsync().then(async response => {
       if (!response) return
       const identifier = response.notification.request.identifier
+      const deliveredAt = response.notification.date
+      const responseKey = `${identifier}:${String(deliveredAt ?? "")}`
+      const lastHandled = await AsyncStorage.getItem("last_handled_notification_response")
+      if (lastHandled === responseKey) return
+      await AsyncStorage.setItem("last_handled_notification_response", responseKey)
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      openNotificationRef.current(identifier, data, response.notification.date)
+      openNotificationRef.current(identifier, data, deliveredAt)
     })
 
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
       const identifier = response.notification.request.identifier
+      const deliveredAt = response.notification.date
+      const responseKey = `${identifier}:${String(deliveredAt ?? "")}`
+      void AsyncStorage.setItem("last_handled_notification_response", responseKey)
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      openNotificationRef.current(identifier, data, response.notification.date)
+      openNotificationRef.current(identifier, data, deliveredAt)
     })
 
     return () => {

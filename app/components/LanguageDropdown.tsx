@@ -33,10 +33,11 @@ export default function LanguageDropdown({ value, onChange, open, onToggle }: La
     onChange(code)
     await i18n.changeLanguage(code)
     await AsyncStorage.setItem("language", code)
-    const { clearQuranDownloadFlag } = await import("@/lib/quranPageCache")
-    const { downloadFullQuran } = await import("@/lib/quranDownload")
-    await clearQuranDownloadFlag()
-    downloadFullQuran().catch(console.log)
+    const { applyRtlForLanguage } = await import("@/lib/rtl")
+    await applyRtlForLanguage(code)
+    // Keep mushaf offline; only fill missing translation surahs for the new language.
+    const { ensureQuranForLanguage } = await import("@/lib/quranDownload")
+    ensureQuranForLanguage(code).catch(console.log)
     if (open) onToggle()
   }
 

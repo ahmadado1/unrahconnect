@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import { HOTELS, type Hotel } from "@/lib/hotels"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
@@ -6,7 +7,7 @@ import { useFocusEffect } from "@react-navigation/native"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import * as WebBrowser from "expo-web-browser"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
@@ -216,6 +217,19 @@ export default function HotelsScreen() {
     const isFeatured = FEATURED_IDS.has(hotel.id)
     const category = hotel.stars === 5 ? "5 Star" : "4 Star"
     const starsDisplay = "★".repeat(hotel.stars)
+    const [imageUri, setImageUri] = useState(hotel.image)
+
+    useEffect(() => {
+      setImageUri(hotel.image)
+    }, [hotel.id, hotel.image])
+
+    const handleImageError = () => {
+      if (imageUri === hotel.image && hotel.imageFallback) {
+        setImageUri(hotel.imageFallback)
+      } else if (imageUri !== HOTEL_IMAGE_PLACEHOLDER) {
+        setImageUri(HOTEL_IMAGE_PLACEHOLDER)
+      }
+    }
 
     const handleFavoritePress = async () => {
       const newState = await toggleFavorite(hotel.id, "hotel")
@@ -234,17 +248,26 @@ export default function HotelsScreen() {
 
     return (
       <TouchableOpacity
-        style={[cardStyles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+        style={[
+          cardStyles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+            borderBottomColor: hotel.brandAccent,
+            borderBottomWidth: 3,
+          },
+        ]}
         onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: hotel.id } })}
         activeOpacity={0.9}
       >
         <ImageBackground
-          source={{ uri: hotel.image }}
+          source={{ uri: imageUri }}
           style={cardStyles.image}
           imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+          onError={handleImageError}
         >
-          <View style={cardStyles.badge}>
-            <Text style={cardStyles.badgeText}>
+          <View style={[cardStyles.badge, { backgroundColor: hotel.brandAccent }]}>
+            <Text style={[cardStyles.badgeText, { color: "#fff" }]}>
               {isFeatured ? t("featured") : hotel.city}
             </Text>
           </View>
@@ -281,7 +304,11 @@ export default function HotelsScreen() {
               <Text style={cardStyles.rating}>★ {hotel.stars}.0</Text>
             </View>
             <TouchableOpacity
-              style={[cardStyles.btn, !isFeatured && cardStyles.btnExternal]}
+              style={[
+                cardStyles.btn,
+                !isFeatured && cardStyles.btnExternal,
+                isFeatured && { backgroundColor: hotel.brandAccent },
+              ]}
               onPress={handleVisitWebsite}
             >
               <Text style={[cardStyles.btnText, !isFeatured && cardStyles.btnTextExternal]}>

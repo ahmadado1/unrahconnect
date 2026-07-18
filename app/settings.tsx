@@ -10,8 +10,9 @@ import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } f
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
 import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyDhikrReminders, scheduleDailyVerseNotification, scheduleIslamicDateReminders, setupPrayerNotificationChannel } from "@/lib/notifications";
-import { clearQuranDownloadFlag } from "@/lib/quranPageCache";
-import { downloadFullQuran } from "@/lib/quranDownload";
+import { ensureQuranForLanguage } from "@/lib/quranDownload";
+import { applyRtlForLanguage } from "@/lib/rtl";
+import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
@@ -56,25 +57,17 @@ useEffect(() => {
             <TouchableOpacity
               style={[styles.settingRow, { borderBottomColor: theme.border }]}
               onPress={() => {
-                const languages = [
-                  { code: "en", label: "🇬🇧 English" },
-                  { code: "ar", label: "🇸🇦 العربية" },
-                  { code: "bn", label: "🇧🇩 বাংলা" },
-                  { code: "fr", label: "🇫🇷 Français" },
-                  { code: "ur", label: "🇵🇰 اردو" },
-                  { code: "tr", label: "🇹🇷 Türkçe" },
-                ]
                 Alert.alert(
                   t("language"),
                   t("choosePreferredLanguage"),
                   [
-                    ...languages.map(lang => ({
+                    ...LANGUAGES.map(lang => ({
                       text: lang.label,
                       onPress: async () => {
-                        i18nInstance.changeLanguage(lang.code)
+                        await i18nInstance.changeLanguage(lang.code)
                         await AsyncStorage.setItem("language", lang.code)
-                        await clearQuranDownloadFlag()
-                        downloadFullQuran().catch(console.log)
+                        await applyRtlForLanguage(lang.code)
+                        ensureQuranForLanguage(lang.code).catch(console.log)
                       }
                     })),
                     { text: t("cancel"), style: "cancel" as const }
@@ -88,12 +81,7 @@ useEffect(() => {
                 <View style={styles.settingInfo}>
                   <Text style={[styles.settingLabel, { color: theme.text }]}>{t("language")}</Text>
                   <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                    {i18nInstance.language === "ar" ? "العربية" :
-                     i18nInstance.language === "bn" ? "বাংলা" :
-                     i18nInstance.language === "fr" ? "Français" :
-                     i18nInstance.language === "ur" ? "اردو" :
-                     i18nInstance.language === "tr" ? "Türkçe" :
-                     "English"}
+                    {getLanguageLabel(i18nInstance.language)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.gold} />

@@ -51,7 +51,6 @@ const COMING_SOON = [
   { id: "flights", emoji: "✈️", titleKey: "flights", subKey: "flightsSub" },
   { id: "pharmacy", emoji: "💊", titleKey: "pharmacy", subKey: "pharmacySub" },
   { id: "sim", emoji: "📱", titleKey: "simCards", subKey: "simCardsSub" },
-  { id: "search", emoji: "🔍", titleKey: "search", subKey: "searchSub", route: "/search", icon: "search-outline" },
 ] as const
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────

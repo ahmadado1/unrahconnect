@@ -19,15 +19,21 @@ export type CachedPrayerTimes = {
 }
 
 /** Parse "05:30", "05:30:00", or "05:30 (GMT+3)" into hour/minute. */
-export function parsePrayerTimeHourMinute(time: string): { hour: number; minute: number } {
-  const match = time.match(/(\d{1,2}):(\d{2})/)
-  if (!match) return { hour: 0, minute: 0 }
-  return { hour: parseInt(match[1], 10), minute: parseInt(match[2], 10) }
+export function parsePrayerTimeHourMinute(
+  time: string
+): { hour: number; minute: number } | null {
+  const match = String(time ?? "").match(/(\d{1,2}):(\d{2})/)
+  if (!match) return null
+  const hour = parseInt(match[1], 10)
+  const minute = parseInt(match[2], 10)
+  if (hour > 23 || minute > 59) return null
+  return { hour, minute }
 }
 
 export function timeToMinutes(time: string): number {
-  const { hour, minute } = parsePrayerTimeHourMinute(time)
-  return hour * 60 + minute
+  const parsed = parsePrayerTimeHourMinute(time)
+  if (!parsed) return -1
+  return parsed.hour * 60 + parsed.minute
 }
 
 export function getNextPrayerFromTimes(

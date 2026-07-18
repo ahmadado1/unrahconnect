@@ -82,7 +82,7 @@ export default function FavoritesScreen() {
 
         {hotels.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Hotels</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("hotels")}</Text>
             {hotels.map(hotel => (
               <TouchableOpacity
                 key={hotel.id}
@@ -107,14 +107,29 @@ export default function FavoritesScreen() {
 
         {restaurants.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>🍽️ Restaurants</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("restaurants")}</Text>
             {restaurants.map(restaurant => (
               <TouchableOpacity
                 key={restaurant.id}
                 style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
                 onPress={() => router.push({ pathname: "/restaurant-detail/[id]", params: { id: String(restaurant.id) } })}
               >
-                <Image source={{ uri: restaurant.image }} style={styles.cardImage} />
+                <View
+                  style={[
+                    styles.cardImage,
+                    restaurant.imageType === "logo" && styles.logoThumb,
+                  ]}
+                >
+                  <Image
+                    source={{ uri: restaurant.image }}
+                    style={
+                      restaurant.imageType === "logo"
+                        ? styles.logoThumbImage
+                        : styles.cardImageFill
+                    }
+                    resizeMode={restaurant.imageType === "logo" ? "contain" : "cover"}
+                  />
+                </View>
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{restaurant.name}</Text>
                   <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{restaurant.city} · {restaurant.distance}</Text>
@@ -145,7 +160,15 @@ const styles = StyleSheet.create({
   section: { marginTop: 24, paddingHorizontal: 16 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12 },
   card: { borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 0.5 },
-  cardImage: { width: 60, height: 60, borderRadius: 10 },
+  cardImage: { width: 60, height: 60, borderRadius: 10, overflow: "hidden" },
+  cardImageFill: { width: "100%", height: "100%" },
+  logoThumb: {
+    backgroundColor: "#fff",
+    padding: 8,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  logoThumbImage: { width: "100%", height: "100%" },
   cardInfo: { flex: 1 },
   cardName: { fontSize: 14, fontWeight: "bold" },
   cardMeta: { fontSize: 12, marginTop: 2 },

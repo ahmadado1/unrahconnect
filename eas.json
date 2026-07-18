@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
@@ -17,11 +18,28 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "testflight": {
+      "extends": "production",
+      "distribution": "store",
+      "ios": {
+        "autoIncrement": true
+      },
+      "channel": "production"
     }
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleTeamId": "ZLD82LL339"
+      }
+    },
+    "testflight": {
+      "extends": "production",
       "ios": {
         "appleTeamId": "ZLD82LL339"
       }

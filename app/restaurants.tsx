@@ -9,14 +9,16 @@ import {
   saudiChains,
   type Restaurant,
 } from "@/lib/restaurants"
+import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  Image,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -79,12 +81,12 @@ export default function RestaurantsScreen() {
     () =>
       [
         { title: "✨ " + t("recommended"), restaurants: recommendedRestaurants },
-        { title: "🏆 Saudi Favourites", restaurants: saudiChains },
-        { title: "🌍 " + t("international"), restaurants: internationalChains },
         { title: "🕋 " + t("nearHaram"), restaurants: nearHaramRestaurants },
         { title: "🕌 Near Nabawi", restaurants: nearNabawiRestaurants },
         { title: "🍖 " + t("arabicGrills"), restaurants: arabicGrills },
-        { title: "☕ " + t("cafesAndDesserts"), restaurants: cafesAndDesserts },
+        { title: "🏆 Saudi Favourites", restaurants: saudiChains },
+        { title: "🌍 " + t("international"), restaurants: internationalChains },
+        { title: "☕ Cafes & Hotel Dining", restaurants: cafesAndDesserts },
       ]
         .map(section => ({
           title: section.title,
@@ -97,6 +99,20 @@ export default function RestaurantsScreen() {
   function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     const isFavorited = favoriteRestaurantIds.has(restaurant.id)
     const isHero = !!restaurant.featured
+    const isLogo = restaurant.imageType === "logo"
+    const [imageUri, setImageUri] = useState(restaurant.image)
+
+    useEffect(() => {
+      setImageUri(restaurant.image)
+    }, [restaurant.id, restaurant.image])
+
+    const handleImageError = () => {
+      if (imageUri === restaurant.image && restaurant.imageFallback) {
+        setImageUri(restaurant.imageFallback)
+      } else if (imageUri !== IMAGE_PLACEHOLDER) {
+        setImageUri(IMAGE_PLACEHOLDER)
+      }
+    }
 
     const handleFavoritePress = async () => {
       const newState = await toggleFavorite(restaurant.id, "restaurant")
@@ -114,33 +130,68 @@ export default function RestaurantsScreen() {
         onPress={() => router.push(`/restaurant-detail/${restaurant.id}`)}
         activeOpacity={0.9}
       >
-        <ImageBackground
-          source={{ uri: restaurant.image }}
-          style={cardStyles.image}
-          imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
-        >
-          <View style={[cardStyles.badge, isHero && cardStyles.heroBadge]}>
-            <Text style={cardStyles.badgeText}>
-              {isHero ? "Al Baik · Iconic" : restaurant.halal ? "Halal" : t("external")}
+        {isLogo ? (
+          <View style={cardStyles.logoWrap}>
+            <View style={cardStyles.logoBox}>
+              <Image
+                source={{ uri: imageUri }}
+                style={cardStyles.logo}
+                resizeMode="contain"
+                onError={handleImageError}
+              />
+            </View>
+            <View style={[cardStyles.badge, isHero && cardStyles.heroBadge]}>
+              <Text style={cardStyles.badgeText}>
+                {isHero ? "Al Baik · Iconic" : restaurant.halal ? "Halal" : t("external")}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[cardStyles.heart, cardStyles.heartOnLight]}
+              onPress={e => {
+                e.stopPropagation()
+                handleFavoritePress()
+              }}
+            >
+              <Ionicons
+                name={isFavorited ? "heart" : "heart-outline"}
+                size={18}
+                color={isFavorited ? "#C9A84C" : "#1E3A5F"}
+              />
+            </TouchableOpacity>
+            <Text style={[cardStyles.imageLabel, cardStyles.imageLabelOnLight]}>
+              {restaurant.city} · {restaurant.distance}
             </Text>
           </View>
-          <TouchableOpacity
-            style={cardStyles.heart}
-            onPress={e => {
-              e.stopPropagation()
-              handleFavoritePress()
-            }}
+        ) : (
+          <ImageBackground
+            source={{ uri: imageUri }}
+            style={cardStyles.image}
+            imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+            onError={handleImageError}
           >
-            <Ionicons
-              name={isFavorited ? "heart" : "heart-outline"}
-              size={18}
-              color={isFavorited ? "#C9A84C" : "#fff"}
-            />
-          </TouchableOpacity>
-          <Text style={cardStyles.imageLabel}>
-            {restaurant.city} · {restaurant.distance}
-          </Text>
-        </ImageBackground>
+            <View style={[cardStyles.badge, isHero && cardStyles.heroBadge]}>
+              <Text style={cardStyles.badgeText}>
+                {isHero ? "Al Baik · Iconic" : restaurant.halal ? "Halal" : t("external")}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={cardStyles.heart}
+              onPress={e => {
+                e.stopPropagation()
+                handleFavoritePress()
+              }}
+            >
+              <Ionicons
+                name={isFavorited ? "heart" : "heart-outline"}
+                size={18}
+                color={isFavorited ? "#C9A84C" : "#fff"}
+              />
+            </TouchableOpacity>
+            <Text style={cardStyles.imageLabel}>
+              {restaurant.city} · {restaurant.distance}
+            </Text>
+          </ImageBackground>
+        )}
         <View style={cardStyles.info}>
           <Text style={[cardStyles.name, { color: theme.text }]} numberOfLines={1}>
             {restaurant.name}
@@ -251,6 +302,23 @@ export default function RestaurantsScreen() {
 const cardStyles = StyleSheet.create({
   card: { width: 260, borderRadius: 16, overflow: "hidden", borderWidth: 0.5 },
   image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative" },
+  logoWrap: {
+    height: 160,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "flex-end",
+    padding: 10,
+    position: "relative",
+  },
+  logoBox: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 20,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logo: { width: "100%", height: "100%" },
   badge: {
     position: "absolute",
     top: 10,
@@ -270,7 +338,9 @@ const cardStyles = StyleSheet.create({
     borderRadius: 20,
     padding: 6,
   },
+  heartOnLight: { backgroundColor: "rgba(255,255,255,0.9)" },
   imageLabel: { color: "rgba(255,255,255,0.8)", fontSize: 11 },
+  imageLabelOnLight: { color: "#1E3A5F", fontWeight: "600" },
   info: { padding: 14 },
   name: { fontSize: 15, fontWeight: "bold", marginBottom: 4 },
   meta: { fontSize: 12, marginBottom: 10 },

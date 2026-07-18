@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { fetchWithTimeout } from "./fetchWithTimeout"
 
 export type ReadVerse = {
   number: number
@@ -91,6 +92,24 @@ export async function writeCachedSurah(
   await AsyncStorage.setItem(key, JSON.stringify(verses))
 }
 
+/** Prefer requested language; fall back to any offline language so reading works offline. */
+export async function readSurahOfflineFirst(
+  surah: number,
+  language: string
+): Promise<ReadVerse[] | null> {
+  const primary = await readCachedSurah(surah, language)
+  if (primary?.length) return primary
+
+  const fallbackLangs = ["en", "ar", "bn", "fr", "ur", "tr"].filter(
+    code => code !== normalizeReadLanguage(language)
+  )
+  for (const code of fallbackLangs) {
+    const cached = await readCachedSurah(surah, code)
+    if (cached?.length) return cached
+  }
+  return null
+}
+
 export async function fetchAndCacheSurah(
   surah: number,
   language: string
@@ -98,19 +117,28 @@ export async function fetchAndCacheSurah(
   const existing = await readCachedSurah(surah, language)
   if (existing?.length) return existing
 
+  // Offline fallback: Arabic text from another language cache
+  const offlineFallback = await readSurahOfflineFirst(surah, language)
+
   try {
-    const arabicRes = await fetch(
-      `https://api.alquran.cloud/v1/surah/${surah}/quran-uthmani`
+    const arabicRes = await fetchWithTimeout(
+      `https://api.alquran.cloud/v1/surah/${surah}/quran-uthmani`,
+      {},
+      10000
     )
     const arabicData = await arabicRes.json()
 
-    if (arabicData.status !== "OK" || !arabicData.data?.ayahs) return null
+    if (arabicData.status !== "OK" || !arabicData.data?.ayahs) {
+      return offlineFallback
+    }
 
     let translations: string[] = []
     try {
       const edition = getTranslationEdition(language)
-      const transRes = await fetch(
-        `https://api.alquran.cloud/v1/surah/${surah}/${edition}`
+      const transRes = await fetchWithTimeout(
+        `https://api.alquran.cloud/v1/surah/${surah}/${edition}`,
+        {},
+        10000
       )
       const transData = await transRes.json()
       if (transData.status === "OK") {
@@ -136,24 +164,28 @@ export async function fetchAndCacheSurah(
     )
 
     // Always cache Arabic for offline — even if translation fetch failed.
-    // Empty translations are better than forcing a network load every open.
-    if (!combined.length) return null
+    if (!combined.length) return offlineFallback
 
     await writeCachedSurah(surah, language, combined)
     return combined
   } catch {
-    return null
+    return offlineFallback
   }
 }
 
 export async function downloadSurahList(): Promise<boolean> {
   try {
     const cached = await AsyncStorage.getItem("quran_surahs")
-    if (cached) return true
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length >= 114) return true
+      } catch {}
+    }
 
-    const res = await fetch("https://api.alquran.cloud/v1/surah")
+    const res = await fetchWithTimeout("https://api.alquran.cloud/v1/surah", {}, 10000)
     const data = await res.json()
-    if (data.code !== 200) return false
+    if (data.code !== 200 || !Array.isArray(data.data)) return false
 
     await AsyncStorage.setItem("quran_surahs", JSON.stringify(data.data))
     return true

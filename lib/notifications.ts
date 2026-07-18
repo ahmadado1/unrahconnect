@@ -186,7 +186,12 @@ export async function schedulePrayerNotifications(
   ]
 
   for (const prayer of prayers) {
-    const { hour, minute } = parsePrayerTimeHourMinute(prayer.time)
+    const parsed = parsePrayerTimeHourMinute(prayer.time)
+    if (!parsed) {
+      console.warn(`[Notifications] Skipping ${prayer.name} — invalid time:`, prayer.time)
+      continue
+    }
+    const { hour, minute } = parsed
     const isFajr = prayer.name === "Fajr"
     const sound = getNotificationAdhanSound(adhanId, isFajr)
     const channelId = isFajr ? fajrChannelId : regularChannelId

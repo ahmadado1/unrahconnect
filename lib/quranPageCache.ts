@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as FileSystem from "expo-file-system/legacy"
+import { fetchWithTimeout } from "./fetchWithTimeout"
 
 export const TOTAL_MUSHAF_PAGES = 604
 export const QURAN_DOWNLOAD_FLAG_KEY = "quran_fully_cached_v2"
@@ -98,6 +99,10 @@ export async function readCachedPage(page: number): Promise<MushafPageData | nul
 
     const raw = await FileSystem.readAsStringAsync(path)
     const parsed: MushafPageData = JSON.parse(raw)
+    if (!Array.isArray(parsed?.verses) || parsed.verses.length === 0) {
+      await FileSystem.deleteAsync(path, { idempotent: true }).catch(() => {})
+      return null
+    }
     return { ...parsed, juzNumber: extractJuzNumber(parsed.verses) }
   } catch {
     return null
@@ -114,7 +119,7 @@ export async function fetchAndCachePage(page: number): Promise<MushafPageData | 
   if (cached) return cached
 
   try {
-    const res = await fetch(pageApiUrl(page))
+    const res = await fetchWithTimeout(pageApiUrl(page), {}, 10000)
     if (!res.ok) return null
 
     const json = await res.json()
@@ -157,10 +162,9 @@ export async function getCachedPageCount(): Promise<number> {
   return TOTAL_MUSHAF_PAGES - missing.length
 }
 
-export async function isQuranFullyCached(): Promise<boolean> {
+/** Page-only check — prefer `isQuranFullyCached` from quranDownload for full readiness. */
+export async function areMushafPagesCached(): Promise<boolean> {
   try {
-    const flag = await AsyncStorage.getItem(QURAN_DOWNLOAD_FLAG_KEY)
-    if (flag !== "true") return false
     const missing = await getMissingPageNumbers()
     return missing.length === 0
   } catch {

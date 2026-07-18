@@ -36,6 +36,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   const [adhanPlaying, setAdhanPlaying] = useState(false)
   const snoozeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shownPopupsRef = useRef(shownPopups)
+  const shownHydratedRef = useRef(false)
   const showPrayerAlertRef = useRef<
     (prayerName: PrayerName, options?: boolean | import("@/lib/prayerAlert").PrayerAlertOptions) => void
   >(() => {})
@@ -108,17 +109,35 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     configureAdhanAudioMode().catch(console.log)
     setAdhanPlaying(isAdhanPlaying())
 
-    AsyncStorage.getItem(SHOWN_POPUPS_KEY).then(saved => {
-      const today = getTodayKey()
-      if (saved === today) {
-        AsyncStorage.getItem("prayer_popups_shown_list").then(list => {
-          if (list) setShownPopups(new Set(JSON.parse(list)))
-        })
+    let cancelled = false
+    ;(async () => {
+      try {
+        const today = getTodayKey()
+        const saved = await AsyncStorage.getItem(SHOWN_POPUPS_KEY)
+        if (saved === today) {
+          const list = await AsyncStorage.getItem("prayer_popups_shown_list")
+          if (!cancelled && list) {
+            setShownPopups(new Set(JSON.parse(list)))
+          }
+        } else {
+          await AsyncStorage.setItem(SHOWN_POPUPS_KEY, today)
+          await AsyncStorage.setItem("prayer_popups_shown_list", "[]")
+        }
+      } catch (e) {
+        console.log("Prayer popup hydrate error:", e)
+      } finally {
+        if (!cancelled) shownHydratedRef.current = true
       }
-    })
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
+    // Don't wipe persisted "shown today" list before hydrate finishes.
+    if (!shownHydratedRef.current) return
     const today = getTodayKey()
     AsyncStorage.setItem(SHOWN_POPUPS_KEY, today)
     AsyncStorage.setItem("prayer_popups_shown_list", JSON.stringify([...shownPopups]))
@@ -168,11 +187,24 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   }, [prayerTimes, shownPopups])
 
   useEffect(() => {
-    const now = new Date()
-    const msUntilMidnight =
-      new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
-    const timer = setTimeout(() => setShownPopups(new Set()), msUntilMidnight)
-    return () => clearTimeout(timer)
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const scheduleMidnightClear = () => {
+      const now = new Date()
+      const msUntilMidnight =
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+      timer = setTimeout(() => {
+        setShownPopups(new Set())
+        AsyncStorage.setItem(SHOWN_POPUPS_KEY, getTodayKey())
+        AsyncStorage.setItem("prayer_popups_shown_list", "[]")
+        scheduleMidnightClear()
+      }, msUntilMidnight + 500)
+    }
+
+    scheduleMidnightClear()
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   useEffect(() => {
