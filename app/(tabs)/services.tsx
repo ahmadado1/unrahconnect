@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import { FLIGHT_PLATFORMS } from "@/lib/flights"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
@@ -13,7 +14,7 @@ const APP_SERVICES = [
   { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
   { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
   { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub", route: "/booking", icon: "calendar-outline" },
-  { id: "agents", emoji: "🏢", titleKey: "findAgent", subKey: "findAgentSub", route: "/agent", icon: "people-outline" },
+  { id: "agents", emoji: "🤝", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", icon: "people-outline" },
 ] as const
 
 const HARAMAIN_STATIONS = [
@@ -48,7 +49,6 @@ const SHOPPING = [
 ] as const
 
 const COMING_SOON = [
-  { id: "flights", emoji: "✈️", titleKey: "flights", subKey: "flightsSub" },
   { id: "pharmacy", emoji: "💊", titleKey: "pharmacy", subKey: "pharmacySub" },
   { id: "sim", emoji: "📱", titleKey: "simCards", subKey: "simCardsSub" },
 ] as const
@@ -144,6 +144,46 @@ export default function ServicesScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* ── FLIGHTS ── */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          {t("flights")} ✈️
+        </Text>
+        <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
+          {t("flightsSub")}
+        </Text>
+        {FLIGHT_PLATFORMS.map(platform => (
+          <TouchableOpacity
+            key={platform.id}
+            style={[
+              styles.expandCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                borderLeftWidth: 3,
+                borderLeftColor: platform.brandColor,
+              },
+            ]}
+            onPress={() =>
+              router.push(`/flight-detail/${platform.id}` as any)
+            }
+            activeOpacity={0.85}
+          >
+            <View style={styles.expandHeader}>
+              <View style={[styles.flightIcon, { backgroundColor: `${platform.brandColor}18` }]}>
+                <Text style={styles.listEmoji}>{platform.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.listTitle, { color: theme.text }]}>{platform.name}</Text>
+                <Text style={[styles.listSub, { color: theme.textSecondary }]}>{platform.tagline}</Text>
+                <Text style={[styles.flightSite, { color: platform.brandColor }]}>
+                  {platform.websiteLabel}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+            </View>
+          </TouchableOpacity>
+        ))}
 
         {/* ── TRANSPORT ── */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("transport")}</Text>
@@ -281,6 +321,14 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 14, fontWeight: "600" },
   listSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
   coords: { fontSize: 10, marginTop: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+  flightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flightSite: { fontSize: 11, fontWeight: "600", marginTop: 4 },
 
   actionRow: { flexDirection: "row", gap: 8, marginTop: 12 },
   actionBtnOutline: {

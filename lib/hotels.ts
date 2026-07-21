@@ -1,4 +1,8 @@
+import { HOTEL_BRAND_LOGOS, HOTEL_IMAGE_PLACEHOLDER } from "./hotelImages"
+
 export type HotelCity = "Makkah" | "Madinah"
+
+export type HotelImageType = "logo" | "photo"
 
 export type Hotel = {
   id: string
@@ -14,9 +18,24 @@ export type Hotel = {
   lng: number
   image: string
   imageFallback: string
+  imageType: HotelImageType
   brandAccent: string
   description: string
   amenities: string[]
+}
+
+function hotelPhoto(
+  url: string,
+  fallback = HOTEL_IMAGE_PLACEHOLDER
+): Pick<Hotel, "image" | "imageFallback" | "imageType"> {
+  return { image: url, imageFallback: fallback, imageType: "photo" }
+}
+
+function hotelLogo(
+  logoUrl: string,
+  fallback = logoUrl
+): Pick<Hotel, "image" | "imageFallback" | "imageType"> {
+  return { image: logoUrl, imageFallback: fallback, imageType: "logo" }
 }
 
 export const HOTELS: Hotel[] = [
@@ -35,8 +54,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.fairmont.com/en/hotels/makkah/makkah-clock-royal-tower.html",
     lat: 21.418981,
     lng: 39.825229,
-    image: "https://assets.hyatt.com/content/dam/hyatt/hyattdam/images/2017/08/14/1633/Makkah-Clock-Royal-Tower-A-Fairmont-Hotel-P007-Exterior.jpg/Makkah-Clock-Royal-Tower-A-Fairmont-Hotel-P007-Exterior.16x9.jpg",
-    imageFallback: "https://makkah-madinah.accor.com/wp-content/uploads/2024/05/Makkah-Clock-Royal-Tower-A-Fairmont-Hotel-3.jpg",
+    ...hotelPhoto("https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg", "https://makkah-madinah.accor.com/wp-content/uploads/2024/05/Makkah-Clock-Royal-Tower-A-Fairmont-Hotel-3.jpg"),
     brandAccent: "#8B1E3F",
     description:
       "Iconic Clock Tower hotel in Abraj Al-Bait with direct access to Masjid al-Haram and Kaaba views from select rooms.",
@@ -54,8 +72,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.swissotel.com/hotels/makkah/",
     lat: 21.4185,
     lng: 39.8258,
-    image: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
-    imageFallback: "https://hotelcms-contents-live.almosafer.com/f4953d7c-2b07-4ca4-92f6-da236ab69ce9.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.swissotel),
     brandAccent: "#C9A84C",
     description:
       "Contemporary 5-star hotel inside Abraj Al-Bait with private entrances toward Masjid al-Haram.",
@@ -73,8 +90,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.pullman-zamzam-makkah.com",
     lat: 21.417864,
     lng: 39.825472,
-    image: "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG",
-    imageFallback: "https://hotelcms-contents-live.almosafer.com/44846dc5-a8b0-4e98-a355-7488f96774f6.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.pullman),
     brandAccent: "#E4002B",
     description:
       "Modern Pullman hotel inside the Clock Towers complex, steps from the Holy Mosque.",
@@ -92,8 +108,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.hilton.com/en/hotels/makcici-conrad-jabal-omar-makkah/",
     lat: 21.4195,
     lng: 39.8228,
-    image: "https://media.iceportal.com/68124/photos/73541428_XL.jpg",
-    imageFallback: "https://hotelcms-contents-live.almosafer.com/f4953d7c-2b07-4ca4-92f6-da236ab69ce9.jpg",
+    ...hotelPhoto("https://media.iceportal.com/68124/photos/73541428_XL.jpg", HOTEL_BRAND_LOGOS.conrad),
     brandAccent: "#1B365D",
     description:
       "Luxury Conrad hotel in Jabal Omar with Haram and Kaaba views from select rooms.",
@@ -111,8 +126,7 @@ export const HOTELS: Hotel[] = [
     website: "https://all.accor.com/hotel/A5E4/index.en.shtml",
     lat: 21.4179,
     lng: 39.8250,
-    image: "https://makkah-madinah.accor.com/wp-content/uploads/2024/05/accor-Raffles-Makkah-Palace-6-2200x1200.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
+    ...hotelPhoto("https://makkah-madinah.accor.com/wp-content/uploads/2024/05/accor-Raffles-Makkah-Palace-6-2200x1200.jpg", "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg"),
     brandAccent: "#8B1E3F",
     description:
       "Ultra-luxury all-suite Raffles hotel in the Clock Towers with direct Kaaba views.",
@@ -130,8 +144,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.hilton.com/en/hotels/maksuhi-hilton-suites-jabal-omar-makkah/",
     lat: 21.4198,
     lng: 39.8235,
-    image: "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG",
-    imageFallback: "https://media.iceportal.com/59984/photos/74191245_XL.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.hilton),
     brandAccent: "#1B4F9C",
     description:
       "Spacious Hilton suites overlooking the Haram area with shopping and dining nearby.",
@@ -149,8 +162,7 @@ export const HOTELS: Hotel[] = [
     website: "https://movenpick.accor.com/en/middle-east/saudi-arabia/makkah/hotel-makkah.html",
     lat: 21.4186,
     lng: 39.8255,
-    image: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
-    imageFallback: "https://images.trvl-media.com/lodging/3000000/2550000/2545200/2545125/842de22a.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.movenpick),
     brandAccent: "#E85D04",
     description:
       "Hajar Tower residence hotel facing King Abdul Aziz Gate with Kaaba views.",
@@ -168,8 +180,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.ihg.com/intercontinental/hotels/us/en/makkah/qcahd/hoteldetail",
     lat: 21.4210,
     lng: 39.8240,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/5/0/91/747/497/QCAHD_4178759583_R.jpg",
-    imageFallback: "https://hotelcms-contents-live.almosafer.com/44846dc5-a8b0-4e98-a355-7488f96774f6.jpg",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/5/0/91/747/497/QCAHD_4178759583_R.jpg", HOTEL_BRAND_LOGOS.ihg),
     brandAccent: "#6B2D5B",
     description:
       "Iconic InterContinental near King Fahad Gate with a private prayer hall.",
@@ -187,8 +198,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.marriott.com/en-us/hotels/qcamc-jabal-omar-marriott-hotel-makkah/overview/",
     lat: 21.4202,
     lng: 39.8220,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg",
-    imageFallback: "https://media.iceportal.com/91740/photos/63948416_XL.jpg",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg", "https://media.iceportal.com/91740/photos/63948416_XL.jpg"),
     brandAccent: "#A81C1C",
     description:
       "5-star Marriott in Jabal Omar, a short walk to Masjid al-Haram.",
@@ -206,8 +216,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.marriott.com/en-us/hotels/jedsm-sheraton-makkah-jabal-al-kaaba-hotel/overview/",
     lat: 21.4228,
     lng: 39.8195,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/502/251/6HNFVZf1h0iTIujCh6Q5SA_jedsm-exterior-6610_R.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/502/251/6HNFVZf1h0iTIujCh6Q5SA_jedsm-exterior-6610_R.jpg", "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg"),
     brandAccent: "#1B4F9C",
     description:
       "Sheraton hotel in the Jabal Al Kaaba area with easy access to the Holy Mosque.",
@@ -225,8 +234,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.hyatt.com/hyatt-regency/en-US/jedhr-jabal-omar-hyatt-regency-makkah",
     lat: 21.4203,
     lng: 39.8224,
-    image: "https://media.iceportal.com/91740/photos/63948416_XL.jpg",
-    imageFallback: "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.hyatt),
     brandAccent: "#C9A84C",
     description:
       "Hyatt Regency in the Jabal Omar development, a short walk from Masjid al-Haram.",
@@ -245,8 +253,7 @@ export const HOTELS: Hotel[] = [
       "https://www.rotana.com/rayhaanhotelandresorts/kingdomofsaudiarabia/makkah/almarwarayhaanbyrotana",
     lat: 21.4175,
     lng: 39.8265,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/3/0/46/258/780/Al_Marwa_Rayhaan_by_Rotana_R.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/3/0/46/258/780/Al_Marwa_Rayhaan_by_Rotana_R.jpg", "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG"),
     brandAccent: "#C9A84C",
     description:
       "Rotana’s Al Marwa Rayhaan on Ajyad Street near the Clock Tower complex and Masjid al-Haram.",
@@ -264,8 +271,7 @@ export const HOTELS: Hotel[] = [
     website: "https://alsafwahorchid.com.sa/",
     lat: 21.4192,
     lng: 39.8268,
-    image: "https://images.trvl-media.com/lodging/7000000/6030000/6020900/6020822/2861bd99.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "High-rise hotel facing King Abdulaziz Gate of Masjid al-Haram with Kaaba-view rooms.",
@@ -283,8 +289,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.anjumhotel.com/",
     lat: 21.4218,
     lng: 39.8232,
-    image: "https://images.trvl-media.com/lodging/8000000/7350000/7347800/7347737/e3450f9f.jpg",
-    imageFallback: "https://hotelcms-contents-live.almosafer.com/cc83327f-b38f-4906-8d1a-0587b383488e.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.anjum),
     brandAccent: "#1E3A5F",
     description:
       "Well-known 5-star pilgrim hotel near Ibrahim Al Khalil Road and Masjid al-Haram.",
@@ -302,8 +307,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.radissonhotels.com/en-us/hotels/radisson-blu-makkah",
     lat: 21.4050,
     lng: 39.8450,
-    image: "https://hotelcms-contents-live.almosafer.com/cc83327f-b38f-4906-8d1a-0587b383488e.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.radissonBlu),
     brandAccent: "#003B70",
     description:
       "Large Radisson Blu property in Aziziyah — typically reached by a short taxi ride to the Haram.",
@@ -325,8 +329,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.marriott.com/en-us/hotels/jedmk-le-meridien-towers-makkah/overview/",
     lat: 21.4105,
     lng: 39.8305,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/279/682/XWdSoTOHY0WHTneP0ahw_jedmk-towers-8259_R.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/279/682/XWdSoTOHY0WHTneP0ahw_jedmk-towers-8259_R.jpg", "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG"),
     brandAccent: "#A81C1C",
     description:
       "Stylish Le Méridien towers in Kudai, about a 12-minute walk to Masjid al-Haram.",
@@ -344,8 +347,7 @@ export const HOTELS: Hotel[] = [
     website: "https://elafgroup.com/hotel/elaf-kinda/",
     lat: 21.4168,
     lng: 39.8275,
-    image: "https://elafgroup.com/wp-content/uploads/2022/05/Kinda1.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg",
+    ...hotelPhoto("https://elafgroup.com/wp-content/uploads/2022/05/Kinda1.jpg", "https://upload.wikimedia.org/wikipedia/commons/4/4a/Abraj-al-Bait_largest_clock_tower_in_the_world.jpg"),
     brandAccent: "#1E3A5F",
     description:
       "Elaf Kinda on Al Mesial Street near the Clock Tower, close to King Abdulaziz and King Fahad Gates.",
@@ -363,8 +365,7 @@ export const HOTELS: Hotel[] = [
     website: "https://elafgroup.com/hotel/elaf-bakkah/",
     lat: 21.4080,
     lng: 39.8480,
-    image: "https://images.trvl-media.com/lodging/8000000/7090000/7081500/7081480/601f44ce.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/en/f/f4/Abraj-al-Bait-Towers.JPG",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.elaf),
     brandAccent: "#1E3A5F",
     description:
       "Elaf Bakkah in Aziziyah with city views — a short taxi or shuttle to Masjid al-Haram.",
@@ -382,8 +383,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.millenniumhotels.com/en/makkah/millennium-makkah-al-naseem/",
     lat: 21.3890,
     lng: 39.8500,
-    image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/374961897.jpg?k=c98e41248fb1f6b034baa35d95808489ec3ec3d7083bc55ed977089188c2db6b&o=",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/2/25/M_Hotel_Makkah_by_Millennium.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.millennium),
     brandAccent: "#1E3A5F",
     description:
       "Comfortable Millennium hotel in Al Naseem on the 3rd Ring Road.",
@@ -401,8 +401,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.millenniumhotels.com/en/destination/saudi-arabia/makkah/",
     lat: 21.4165,
     lng: 39.8278,
-    image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/374961897.jpg?k=c98e41248fb1f6b034baa35d95808489ec3ec3d7083bc55ed977089188c2db6b&o=",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/2/25/M_Hotel_Makkah_by_Millennium.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.millennium),
     brandAccent: "#1E3A5F",
     description:
       "Millennium Hotels property serving pilgrims with convenient access toward Masjid al-Haram.",
@@ -424,8 +423,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.oberoihotels.com/hotels-in-madina/",
     lat: 24.4690,
     lng: 39.6085,
-    image: "https://upload.wikimedia.org/wikipedia/en/b/b8/The_Oberoi_Madina.JPG",
-    imageFallback: "https://m.ahstatic.com/is/image/accorhotels/HCM_P_1064748?fmt=jpg&wid=800",
+    ...hotelPhoto("https://upload.wikimedia.org/wikipedia/en/b/b8/The_Oberoi_Madina.JPG", HOTEL_BRAND_LOGOS.oberoi),
     brandAccent: "#1E3A5F",
     description:
       "Luxury Oberoi property directly facing Masjid al-Nabawi.",
@@ -443,8 +441,7 @@ export const HOTELS: Hotel[] = [
     website: "https://movenpick.accor.com/en/middle-east/saudi-arabia/madinah/hotel-madinah-anwar.html",
     lat: 24.4678,
     lng: 39.6105,
-    image: "https://m.ahstatic.com/is/image/accorhotels/HCM_P_1064748?fmt=jpg&wid=800",
-    imageFallback: "https://m.ahstatic.com/is/image/accorhotels/Anwar_Al_Madinah_x_i129039?fmt=jpg&wid=800",
+    ...hotelPhoto("https://m.ahstatic.com/is/image/accorhotels/HCM_P_1064748?fmt=jpg&wid=800", "https://m.ahstatic.com/is/image/accorhotels/Anwar_Al_Madinah_x_i129039?fmt=jpg&wid=800"),
     brandAccent: "#E85D04",
     description:
       "5-star Mövenpick near the Ladies' Prayer Entrance with shopping nearby.",
@@ -462,8 +459,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.hilton.com/en/hotels/medhihi-madinah-hilton/",
     lat: 24.4672,
     lng: 39.6112,
-    image: "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
-    imageFallback: "https://media.iceportal.com/60037/photos/74116245_XL.jpg",
+    ...hotelPhoto("https://media.iceportal.com/60037/photos/74116233_XL.jpg", "https://media.iceportal.com/60037/photos/74116245_XL.jpg"),
     brandAccent: "#1B4F9C",
     description:
       "Classic Hilton opposite Masjid al-Nabawi on King Fahd Road.",
@@ -481,8 +477,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.taqwamadinah.com",
     lat: 24.4685,
     lng: 39.6120,
-    image: "https://media.iceportal.com/90350/photos/4375635_XL.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/en/b/b8/The_Oberoi_Madina.JPG",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "5-star hotel facing King Fahd Gate of Masjid al-Nabawi.",
@@ -500,8 +495,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.ihg.com/crowneplaza/hotels/us/en/madinah/medin/hoteldetail",
     lat: 24.4660,
     lng: 39.6100,
-    image: "https://www.cfmedia.vfmleonardo.com/imageRepo/6/0/102/264/764/MEDIN_1774790826_R.jpg",
-    imageFallback: "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
+    ...hotelPhoto("https://www.cfmedia.vfmleonardo.com/imageRepo/6/0/102/264/764/MEDIN_1774790826_R.jpg", HOTEL_BRAND_LOGOS.ihg),
     brandAccent: "#6B2D5B",
     description:
       "IHG Crowne Plaza near Bab Al Salam with Haram-view rooms.",
@@ -519,8 +513,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.daraleiman.com",
     lat: 24.4688,
     lng: 39.6118,
-    image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/656395009.jpg?k=1dc195f7d4edd1a7536cad824cb5ffdaf00c4ae761856b2cf001033e3e14a6cf&o=",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Shaza_Al_Madina_Hotel_Exterior.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "Well-known pilgrim hotel in the central zone near Masjid al-Nabawi.",
@@ -538,8 +531,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.shazahotels.com/en/our-hotels/shaza-al-madina",
     lat: 24.4675,
     lng: 39.6095,
-    image: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Shaza_Al_Madina_Hotel_Exterior.jpg",
-    imageFallback: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/656395009.jpg?k=1dc195f7d4edd1a7536cad824cb5ffdaf00c4ae761856b2cf001033e3e14a6cf&o=",
+    ...hotelPhoto("https://upload.wikimedia.org/wikipedia/commons/8/8f/Shaza_Al_Madina_Hotel_Exterior.jpg", "https://cf.bstatic.com/xdata/images/hotel/max1024x768/656395009.jpg?k=1dc195f7d4edd1a7536cad824cb5ffdaf00c4ae761856b2cf001033e3e14a6cf&o="),
     brandAccent: "#C9A84C",
     description:
       "Luxury Shaza hotel on King Fahad Road in the central area near Masjid al-Nabawi.",
@@ -557,8 +549,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.marriott.com/en-us/hotels/medmc-madinah-marriott-hotel/overview/",
     lat: 24.4645,
     lng: 39.6080,
-    image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0e/fd/82/53/madinah-marriott.jpg",
-    imageFallback: "https://www.cfmedia.vfmleonardo.com/imageRepo/6/0/102/264/764/MEDIN_1774790826_R.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.marriott),
     brandAccent: "#A81C1C",
     description:
       "Madinah Marriott on King Faisal Road with full Marriott amenities.",
@@ -576,8 +567,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.radissonhotels.com/en-us/hotels/radisson-blu-madinah",
     lat: 24.4705,
     lng: 39.6140,
-    image: "https://images.getaroom-cdn.com/image/upload/s--KIZacnKo--/c_limit,e_improve,fl_lossy.immutable_cache,h_940,q_auto:good,w_940/v1744379350/4a16899c2148cfdc874369d59d2cbb5673415928",
-    imageFallback: "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.radissonBlu),
     brandAccent: "#003B70",
     description:
       "Radisson Blu (Al Muna Kareem) near King Fahd Road, a short walk from Masjid al-Nabawi.",
@@ -595,8 +585,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.marriott.com/en-us/destination/saudi-arabia/madinah.mi",
     lat: 24.4712,
     lng: 39.6058,
-    image: "https://www.sshic.com/wp-content/uploads/2023/10/Sheraton.jpg",
-    imageFallback: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0e/fd/82/53/madinah-marriott.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.sheraton),
     brandAccent: "#1B4F9C",
     description:
       "Sheraton landmark hotel in central Madinah within walking distance of Masjid al-Nabawi.",
@@ -618,8 +607,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.google.com/maps/search/?api=1&query=Al+Shohada+Hotel+Madinah",
     lat: 24.4725,
     lng: 39.6155,
-    image: "https://cdn.worldota.net/t/1024x768/content/78/52/78524f6c5f0bae5bca0d9d1e657ed96a757279af.jpeg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Shaza_Al_Madina_Hotel_Exterior.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "Well-known pilgrim hotel on Sayyid Al Shohadaa Street near Masjid al-Nabawi.",
@@ -637,8 +625,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.daraleiman.com",
     lat: 24.4680,
     lng: 39.6135,
-    image: "https://ak-d.tripcdn.com/images/0586412000j7ygmjo9F68_R_960_660_R5_D.jpg",
-    imageFallback: "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "Pilgrim-focused hotel in the central Madinah zone within walking distance of Masjid al-Nabawi.",
@@ -656,8 +643,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.dallahtaibah.com",
     lat: 24.4695,
     lng: 39.6075,
-    image: "https://www.dallahtaibah.com/wp-content/uploads/2022/03/MainPage1.jpg",
-    imageFallback: "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
+    ...hotelPhoto("https://www.dallahtaibah.com/wp-content/uploads/2022/03/MainPage1.jpg", HOTEL_BRAND_LOGOS.dallah),
     brandAccent: "#1E3A5F",
     description:
       "Dallah Taibah on Abi Zar Street in the central district near Masjid al-Nabawi.",
@@ -675,8 +661,7 @@ export const HOTELS: Hotel[] = [
     website: "https://movenpick.accor.com/en/middle-east/saudi-arabia/madinah/hotel-madinah-anwar.html",
     lat: 24.4670,
     lng: 39.6108,
-    image: "https://m.ahstatic.com/is/image/accorhotels/Anwar_Al_Madinah_x_i129039?fmt=jpg&wid=800",
-    imageFallback: "https://m.ahstatic.com/is/image/accorhotels/HCM_P_1064748?fmt=jpg&wid=800",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.movenpick),
     brandAccent: "#E85D04",
     description:
       "Central-zone hotel near the Anwar Al Madinah complex and Masjid al-Nabawi.",
@@ -694,8 +679,7 @@ export const HOTELS: Hotel[] = [
     website: "https://www.warwickhotels.com/saja-by-warwick-madinah",
     lat: 24.4710,
     lng: 39.6125,
-    image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/17/3d/63/4f/saja-al-madinah-hotel.jpg",
-    imageFallback: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Shaza_Al_Madina_Hotel_Exterior.jpg",
+    ...hotelLogo(HOTEL_BRAND_LOGOS.generic),
     brandAccent: "#1E3A5F",
     description:
       "Popular 4-star pilgrim hotel (Saja by Warwick) within walking distance of Masjid al-Nabawi.",

@@ -1,27 +1,25 @@
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useAudioPlayer } from "expo-audio"
+import { Audio } from "expo-av"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
-import { ADHAN_OPTIONS, getAdhanFile } from "@/lib/prayerConstants"
+import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
-
-// ─── ADHAN OPTIONS ───────────────────────────────────────────────────────────
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
   name: opt.name,
   fajrLabel: opt.fajrLabel,
-  file: getAdhanFile(opt.id),
-  fajrFile: getAdhanFile(opt.id, "Fajr"),
 }))
+
+const PREVIEW_MS = 12_000
 
 export default function GuideScreen() {
   const router = useRouter()
@@ -29,36 +27,100 @@ export default function GuideScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [adhanPickerOpen, setAdhanPickerOpen] = useState(false)
-  const [selectedAdhan, setSelectedAdhan] = useState("1")
+  const [selectedAdhan, setSelectedAdhan] = useState(DEFAULT_ADHAN_ID)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [previewFajr, setPreviewFajr] = useState(false)
-  const previewPlayer = useAudioPlayer(
-    getAdhanFile(
-      previewId ?? selectedAdhan ?? "1",
-      previewFajr ? "Fajr" : "Dhuhr"
-    )
-  )
+  const previewSoundRef = useRef<Audio.Sound | null>(null)
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previewBusyRef = useRef(false)
 
   useEffect(() => {
     AsyncStorage.getItem("selected_adhan").then(id => {
-      if (id) setSelectedAdhan(id)
+      if (id && ADHAN_OPTIONS.some(opt => opt.id === id)) setSelectedAdhan(id)
     })
   }, [])
 
-  const handleSelectAdhan = async (id: string) => {
-    setSelectedAdhan(id)
-    await AsyncStorage.setItem("selected_adhan", id)
-    await reschedulePrayerNotificationsFromCache(id).catch(console.log)
+  useEffect(() => {
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
+      const sound = previewSoundRef.current
+      previewSoundRef.current = null
+      if (sound) void sound.unloadAsync().catch(() => {})
+    }
+  }, [])
+
+  const stopPreview = async () => {
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
+    setPreviewId(null)
+    setPreviewFajr(false)
+    const sound = previewSoundRef.current
+    previewSoundRef.current = null
+    if (!sound) return
+    try {
+      await sound.stopAsync()
+    } catch {}
+    try {
+      await sound.unloadAsync()
+    } catch {}
   }
 
-  const handlePreview = (id: string, fajr = false) => {
-    const file = getAdhanFile(id, fajr ? "Fajr" : "Dhuhr")
-    setPreviewFajr(fajr)
-    setPreviewId(id)
-    previewPlayer.replace(file)
-    previewPlayer.seekTo(0)
-    previewPlayer.play()
-    setTimeout(() => previewPlayer.pause(), 10000)
+  const closeAdhanPicker = () => {
+    void stopPreview()
+    setAdhanPickerOpen(false)
+  }
+
+  const handleSelectAdhan = async (id: string) => {
+    try {
+      await stopPreview()
+      setSelectedAdhan(id)
+      await AsyncStorage.setItem("selected_adhan", id)
+      await reschedulePrayerNotificationsFromCache(id)
+    } catch (e) {
+      console.log("Select adhan failed:", e)
+    }
+  }
+
+  const handlePreview = async (id: string, fajr = false) => {
+    if (previewBusyRef.current) return
+
+    if (previewId === id && previewFajr === fajr) {
+      await stopPreview()
+      return
+    }
+
+    previewBusyRef.current = true
+    try {
+      await stopPreview()
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      })
+
+      const source = getAdhanFile(id, fajr ? "Fajr" : "Dhuhr")
+      const { sound } = await Audio.Sound.createAsync(source, {
+        shouldPlay: true,
+        volume: 1,
+        isLooping: false,
+      })
+      previewSoundRef.current = sound
+      setPreviewId(id)
+      setPreviewFajr(fajr)
+      previewTimerRef.current = setTimeout(() => {
+        void stopPreview()
+      }, PREVIEW_MS)
+    } catch (e) {
+      console.log("Adhan preview failed:", e)
+      setPreviewId(null)
+      setPreviewFajr(false)
+    } finally {
+      previewBusyRef.current = false
+    }
   }
 
   return (
@@ -196,6 +258,7 @@ export default function GuideScreen() {
         transparent
         animationType="slide"
         statusBarTranslucent
+        onRequestClose={closeAdhanPicker}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
@@ -211,6 +274,11 @@ export default function GuideScreen() {
               Fajr uses a special adhan with «الصلاة خير من النوم»
             </Text>
 
+            <ScrollView
+              style={{ maxHeight: 420 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
             {ADHANS.map(adhan => (
               <View
                 key={adhan.id}
@@ -244,7 +312,7 @@ export default function GuideScreen() {
 
                 <TouchableOpacity
                   style={styles.previewBtn}
-                  onPress={() => handlePreview(adhan.id, false)}
+                  onPress={() => void handlePreview(adhan.id, false)}
                 >
                   <Ionicons
                     name={previewId === adhan.id && !previewFajr ? "pause-circle" : "play-circle"}
@@ -255,7 +323,7 @@ export default function GuideScreen() {
 
                 <TouchableOpacity
                   style={styles.previewBtn}
-                  onPress={() => handlePreview(adhan.id, true)}
+                  onPress={() => void handlePreview(adhan.id, true)}
                 >
                   <Ionicons
                     name={previewId === adhan.id && previewFajr ? "moon" : "moon-outline"}
@@ -266,7 +334,7 @@ export default function GuideScreen() {
 
                 <TouchableOpacity
                   style={[styles.selectBtn, selectedAdhan === adhan.id && styles.selectBtnActive]}
-                  onPress={() => handleSelectAdhan(adhan.id)}
+                  onPress={() => void handleSelectAdhan(adhan.id)}
                 >
                   <Text style={[
                     styles.selectBtnText,
@@ -277,15 +345,9 @@ export default function GuideScreen() {
                 </TouchableOpacity>
               </View>
             ))}
+            </ScrollView>
 
-            <TouchableOpacity
-              style={styles.doneBtn}
-              onPress={() => {
-                previewPlayer.pause()
-                setPreviewId(null)
-                setAdhanPickerOpen(false)
-              }}
-            >
+            <TouchableOpacity style={styles.doneBtn} onPress={closeAdhanPicker}>
               <Text style={styles.doneBtnText}>{t("done")}</Text>
             </TouchableOpacity>
           </View>

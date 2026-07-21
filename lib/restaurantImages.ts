@@ -2,6 +2,15 @@
 export const IMAGE_PLACEHOLDER =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"
 
+/** Brand logo from Google Favicon service (works for most official domains). */
+export function brandFavicon(domainOrUrl: string, size = 128) {
+  const host = domainOrUrl
+    .replace(/^https?:\/\//i, "")
+    .split("/")[0]
+    .trim()
+  return `https://www.google.com/s2/favicons?sz=${size}&domain_url=https://${host}`
+}
+
 /**
  * Wikipedia Commons PNG thumbs for international chains.
  * Use 250px (not 200px) — Wikimedia only serves certain thumb widths.
@@ -33,9 +42,23 @@ export const CHAIN_LOGOS = {
     "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Nando%27s_wordmark.svg/250px-Nando%27s_wordmark.svg.png",
   kudu:
     "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Kudu_logo_%28Saudi_Arabia%2C_2016%29_%28without_wordmark_variant%29.svg/250px-Kudu_logo_%28Saudi_Arabia%2C_2016%29_%28without_wordmark_variant%29.svg.png",
+  // Saudi / regional — official-site favicons (no Commons SVG available)
+  alBaik: brandFavicon("www.albaik.com"),
+  herfy: brandFavicon("herfy.com"),
+  alTazaj: brandFavicon("www.altazaj.com.sa"),
+  romansiah: brandFavicon("alromansiah.com"),
+  bateel: brandFavicon("bateel.com"),
+  raised: brandFavicon("www.raised.sa"),
+  fairmont: brandFavicon("fairmont.com"),
+  swissotel: brandFavicon("swissotel.com"),
+  oberoi: brandFavicon("oberoihotels.com"),
+  movenpick: brandFavicon("movenpick.com"),
+  /** Generic fork/knife mark for independent local venues */
+  localVenue:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Food_font_awesome.svg/250px-Food_font_awesome.svg.png",
 } as const
 
-/** Reliable Unsplash food / venue photos for Saudi & local spots */
+/** Kept for rare photo fallbacks only — prefer logos for cards. */
 export const FOOD_PHOTOS = {
   arabicGrill: "https://images.unsplash.com/photo-1544025162-d76694265947?w=400",
   friedChicken: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400",

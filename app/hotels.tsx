@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
+  Image,
   ImageBackground,
   Linking,
   ScrollView,
@@ -217,6 +218,7 @@ export default function HotelsScreen() {
     const isFeatured = FEATURED_IDS.has(hotel.id)
     const category = hotel.stars === 5 ? "5 Star" : "4 Star"
     const starsDisplay = "★".repeat(hotel.stars)
+    const isLogo = hotel.imageType === "logo"
     const [imageUri, setImageUri] = useState(hotel.image)
 
     useEffect(() => {
@@ -246,6 +248,69 @@ export default function HotelsScreen() {
       openWebsite(hotel.website)
     }
 
+    const media = isLogo ? (
+      <View style={cardStyles.logoWrap}>
+        <View style={cardStyles.logoBox}>
+          <Image
+            source={{ uri: imageUri }}
+            style={cardStyles.logo}
+            resizeMode="contain"
+            onError={handleImageError}
+          />
+        </View>
+        <View style={[cardStyles.badge, { backgroundColor: hotel.brandAccent }]}>
+          <Text style={[cardStyles.badgeText, { color: "#fff" }]}>
+            {isFeatured ? t("featured") : hotel.city}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[cardStyles.heart, cardStyles.heartOnLight]}
+          onPress={e => {
+            e.stopPropagation()
+            handleFavoritePress()
+          }}
+        >
+          <Ionicons
+            name={isFavorited ? "heart" : "heart-outline"}
+            size={18}
+            color={isFavorited ? "#C9A84C" : "#1E3A5F"}
+          />
+        </TouchableOpacity>
+        <Text style={[cardStyles.imageLabel, cardStyles.imageLabelOnLight]}>
+          {hotel.city} · {hotel.distanceLabel}
+        </Text>
+      </View>
+    ) : (
+      <ImageBackground
+        source={{ uri: imageUri }}
+        style={cardStyles.image}
+        imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+        onError={handleImageError}
+      >
+        <View style={[cardStyles.badge, { backgroundColor: hotel.brandAccent }]}>
+          <Text style={[cardStyles.badgeText, { color: "#fff" }]}>
+            {isFeatured ? t("featured") : hotel.city}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={cardStyles.heart}
+          onPress={e => {
+            e.stopPropagation()
+            handleFavoritePress()
+          }}
+        >
+          <Ionicons
+            name={isFavorited ? "heart" : "heart-outline"}
+            size={18}
+            color={isFavorited ? "#C9A84C" : "#fff"}
+          />
+        </TouchableOpacity>
+        <Text style={cardStyles.imageLabel}>
+          {hotel.city} · {hotel.distanceLabel}
+        </Text>
+      </ImageBackground>
+    )
+
     return (
       <TouchableOpacity
         style={[
@@ -260,34 +325,7 @@ export default function HotelsScreen() {
         onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: hotel.id } })}
         activeOpacity={0.9}
       >
-        <ImageBackground
-          source={{ uri: imageUri }}
-          style={cardStyles.image}
-          imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
-          onError={handleImageError}
-        >
-          <View style={[cardStyles.badge, { backgroundColor: hotel.brandAccent }]}>
-            <Text style={[cardStyles.badgeText, { color: "#fff" }]}>
-              {isFeatured ? t("featured") : hotel.city}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={cardStyles.heart}
-            onPress={e => {
-              e.stopPropagation()
-              handleFavoritePress()
-            }}
-          >
-            <Ionicons
-              name={isFavorited ? "heart" : "heart-outline"}
-              size={18}
-              color={isFavorited ? "#C9A84C" : "#fff"}
-            />
-          </TouchableOpacity>
-          <Text style={cardStyles.imageLabel}>
-            {hotel.city} · {hotel.distanceLabel}
-          </Text>
-        </ImageBackground>
+        {media}
         <View style={cardStyles.info}>
           <Text style={[cardStyles.name, { color: theme.text }]} numberOfLines={2}>
             {hotel.name}
@@ -432,6 +470,23 @@ export default function HotelsScreen() {
 const cardStyles = StyleSheet.create({
   card: { width: 260, borderRadius: 16, overflow: "hidden", borderWidth: 0.5 },
   image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative" },
+  logoWrap: {
+    height: 160,
+    backgroundColor: "#F4F6F8",
+    justifyContent: "flex-end",
+    padding: 10,
+    position: "relative",
+  },
+  logoBox: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 28,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  logo: { width: "100%", height: "100%" },
   badge: {
     position: "absolute",
     top: 10,
@@ -450,7 +505,9 @@ const cardStyles = StyleSheet.create({
     borderRadius: 20,
     padding: 6,
   },
+  heartOnLight: { backgroundColor: "rgba(255,255,255,0.9)" },
   imageLabel: { color: "rgba(255,255,255,0.8)", fontSize: 11 },
+  imageLabelOnLight: { color: "#1E3A5F", fontWeight: "600" },
   info: { padding: 14 },
   name: { fontSize: 15, fontWeight: "bold", marginBottom: 4 },
   meta: { fontSize: 12, marginBottom: 10 },

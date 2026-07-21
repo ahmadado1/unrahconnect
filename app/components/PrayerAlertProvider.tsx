@@ -1,10 +1,8 @@
 import PrayerPopupModal from "./PrayerPopupModal"
 import {
   configureAdhanAudioMode,
-  isAdhanPlaying,
   playAdhan,
   stopAdhan,
-  subscribeAdhanPlaying,
 } from "@/lib/adhanAudio"
 import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/prayerAlert"
 import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
@@ -33,7 +31,6 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   const [prayerPopup, setPrayerPopup] = useState<PrayerName | null>(null)
   const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
   const [shownPopups, setShownPopups] = useState<Set<string>>(new Set())
-  const [adhanPlaying, setAdhanPlaying] = useState(false)
   const snoozeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shownPopupsRef = useRef(shownPopups)
   const shownHydratedRef = useRef(false)
@@ -77,13 +74,10 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     setPrayerPopup(null)
   }
 
-  const handleStopAdhan = () => {
+  const handlePrayNow = () => {
     void stopAdhan()
+    setPrayerPopup(null)
   }
-
-  useEffect(() => {
-    return subscribeAdhanPlaying(setAdhanPlaying)
-  }, [])
 
   useEffect(() => {
     return registerPrayerAlertHandler(async (name, rawOptions) => {
@@ -107,7 +101,6 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     configureAdhanAudioMode().catch(console.log)
-    setAdhanPlaying(isAdhanPlaying())
 
     let cancelled = false
     ;(async () => {
@@ -219,9 +212,8 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       <PrayerPopupModal
         visible={prayerPopup !== null}
         prayerName={prayerPopup}
-        adhanPlaying={adhanPlaying}
         onDismiss={dismissPrayerAlert}
-        onStopAdhan={handleStopAdhan}
+        onPrayNow={handlePrayNow}
         onSnooze={() => {
           const snoozed = prayerPopup
           dismissPrayerAlert()

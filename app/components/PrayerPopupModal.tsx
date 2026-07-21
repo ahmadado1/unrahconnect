@@ -25,10 +25,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 type PrayerPopupModalProps = {
   visible: boolean
   prayerName: PrayerName | null
-  adhanPlaying?: boolean
   onDismiss: () => void
+  onPrayNow: () => void
   onSnooze: () => void
-  onStopAdhan?: () => void
 }
 
 const PRAYER_I18N_KEYS: Record<PrayerName, string> = {
@@ -76,10 +75,9 @@ function StatusGlyph({ status }: { status: DayPrayerStatus }) {
 export default function PrayerPopupModal({
   visible,
   prayerName,
-  adhanPlaying = false,
   onDismiss,
+  onPrayNow,
   onSnooze,
-  onStopAdhan,
 }: PrayerPopupModalProps) {
   const { t, i18n } = useTranslation()
   const router = useRouter()
@@ -222,18 +220,7 @@ export default function PrayerPopupModal({
 
             {/* Actions */}
             <View style={styles.actionsBlock}>
-              {adhanPlaying && onStopAdhan ? (
-                <TouchableOpacity
-                  style={styles.stopAdhanBtn}
-                  onPress={onStopAdhan}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="stop-circle" size={20} color="#FFFFFF" />
-                  <Text style={styles.stopAdhanText}>{t("stopAdhan")}</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity style={styles.prayNowBtn} onPress={onDismiss} activeOpacity={0.9}>
+              <TouchableOpacity style={styles.prayNowBtn} onPress={onPrayNow} activeOpacity={0.9}>
                 <Text style={styles.prayNowText}>{t("prayNow")}</Text>
               </TouchableOpacity>
 
@@ -395,24 +382,6 @@ const styles = StyleSheet.create({
   actionsBlock: {
     width: "100%",
     gap: 12,
-  },
-  stopAdhanBtn: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
-    borderRadius: 22,
-    paddingVertical: 14,
-  },
-  stopAdhanText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-    letterSpacing: 0.2,
   },
   prayNowBtn: {
     width: "100%",

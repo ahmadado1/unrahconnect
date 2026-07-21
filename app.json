@@ -16,7 +16,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["uber"],
-        "UIBackgroundModes": ["audio", "fetch"],
+        "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services."
       },
@@ -61,16 +61,16 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio/azan1_lock.mp3",
-        "./assets/audio/azan2_lock.mp3",
-        "./assets/audio/azan3_lock.mp3",
-        "./assets/audio/azan4_lock.mp3",
-        "./assets/audio/azan5_lock.mp3",
-        "./assets/audio/azan1_fajr_lock.mp3",
-        "./assets/audio/azan2_fajr_lock.mp3",
-        "./assets/audio/azan3_fajr_lock.mp3",
-        "./assets/audio/azan4_fajr_lock.mp3",
-        "./assets/audio/azan5_fajr_lock.mp3"
+        "./assets/audio1/azan1_lock.mp3",
+        "./assets/audio1/azan2_lock.mp3",
+        "./assets/audio1/azan3_lock.mp3",
+        "./assets/audio1/azan4_lock.mp3",
+        "./assets/audio1/azan5_lock.mp3",
+        "./assets/audio1/azan1_fajr_lock.mp3",
+        "./assets/audio1/azan2_fajr_lock.mp3",
+        "./assets/audio1/azan3_fajr_lock.mp3",
+        "./assets/audio1/azan4_fajr_lock.mp3",
+        "./assets/audio1/azan5_fajr_lock.mp3"
       ]
     },
     "plugins": [
@@ -103,17 +103,18 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio/azan1_lock.mp3",
-        "./assets/audio/azan2_lock.mp3",
-        "./assets/audio/azan3_lock.mp3",
-        "./assets/audio/azan4_lock.mp3",
-        "./assets/audio/azan5_lock.mp3",
-        "./assets/audio/azan1_fajr_lock.mp3",
-        "./assets/audio/azan2_fajr_lock.mp3",
-        "./assets/audio/azan3_fajr_lock.mp3",
-        "./assets/audio/azan4_fajr_lock.mp3",
-        "./assets/audio/azan5_fajr_lock.mp3"
-      ]
+        "./assets/audio1/azan1_lock.mp3",
+        "./assets/audio1/azan2_lock.mp3",
+        "./assets/audio1/azan3_lock.mp3",
+        "./assets/audio1/azan4_lock.mp3",
+        "./assets/audio1/azan5_lock.mp3",
+        "./assets/audio1/azan1_fajr_lock.mp3",
+        "./assets/audio1/azan2_fajr_lock.mp3",
+        "./assets/audio1/azan3_fajr_lock.mp3",
+        "./assets/audio1/azan4_fajr_lock.mp3",
+        "./assets/audio1/azan5_fajr_lock.mp3"
+      ],
+      "enableBackgroundRemoteNotifications": true
     }
   ],
   "@react-native-community/datetimepicker",
@@ -126,6 +127,8 @@
     }
   ],
   "expo-apple-authentication",
+  "expo-task-manager",
+  "expo-background-fetch",
   [
     "expo-build-properties",
     {

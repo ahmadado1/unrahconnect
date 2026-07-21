@@ -56,6 +56,7 @@ export default function HotelDetailScreen() {
   const hotel = getHotelById(hotelId)
   const [favorited, setFavorited] = useState(false)
   const [imageUri, setImageUri] = useState(hotel?.image ?? HOTEL_IMAGE_PLACEHOLDER)
+  const isLogo = hotel?.imageType === "logo"
 
   useEffect(() => {
     if (!hotel) return
@@ -93,33 +94,54 @@ export default function HotelDetailScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.heroImage}
-            resizeMode="cover"
-            onError={handleImageError}
-          />
-          <View style={styles.heroOverlay} />
+        <View style={[styles.hero, isLogo && styles.logoHero]}>
+          {isLogo ? (
+            <View style={styles.logoHeroInner}>
+              <View style={styles.logoBox}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                  onError={handleImageError}
+                />
+              </View>
+            </View>
+          ) : (
+            <>
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.heroImage}
+                resizeMode="cover"
+                onError={handleImageError}
+              />
+              <View style={styles.heroOverlay} />
+            </>
+          )}
           <View style={[styles.heroContent, { paddingTop: insets.top + 8 }]}>
             <View style={styles.heroTop}>
-              <TouchableOpacity style={styles.circleBtn} onPress={() => router.back()}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
+              <TouchableOpacity
+                style={[styles.circleBtn, isLogo && styles.circleBtnOnLight]}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={22} color={isLogo ? NAVY : "#fff"} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.circleBtn} onPress={handleFavorite}>
+              <TouchableOpacity
+                style={[styles.circleBtn, isLogo && styles.circleBtnOnLight]}
+                onPress={handleFavorite}
+              >
                 <Ionicons
                   name={favorited ? "heart" : "heart-outline"}
                   size={22}
-                  color={favorited ? GOLD : "#fff"}
+                  color={favorited ? GOLD : isLogo ? NAVY : "#fff"}
                 />
               </TouchableOpacity>
             </View>
-            <Text style={styles.heroName}>{hotel.name}</Text>
+            <Text style={[styles.heroName, isLogo && styles.heroTextOnLight]}>{hotel.name}</Text>
             <Text style={styles.heroStars}>
               {"★".repeat(hotel.stars)}
               {"☆".repeat(5 - hotel.stars)}
             </Text>
-            <Text style={styles.heroMeta}>
+            <Text style={[styles.heroMeta, isLogo && styles.heroMetaOnLight]}>
               {hotel.city} · {hotel.distanceLabel}
             </Text>
           </View>
@@ -204,6 +226,25 @@ const styles = StyleSheet.create({
     minHeight: 280,
     overflow: "hidden",
   },
+  logoHero: {
+    backgroundColor: "#E8EEF5",
+  },
+  logoHeroInner: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 48,
+  },
+  logoBox: {
+    width: 160,
+    height: 160,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  logoImage: { width: "80%", height: "80%" },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
@@ -229,9 +270,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  circleBtnOnLight: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+  },
   heroName: { color: "#fff", fontSize: 24, fontWeight: "bold", lineHeight: 30 },
+  heroTextOnLight: { color: NAVY },
   heroStars: { color: GOLD, fontSize: 16, marginTop: 8 },
   heroMeta: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 6 },
+  heroMetaOnLight: { color: "rgba(30,58,95,0.75)" },
   content: { padding: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
   description: { fontSize: 14, lineHeight: 22 },

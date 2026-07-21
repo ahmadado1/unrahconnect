@@ -24,6 +24,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   Services: "#2D6A4F",
   Hotels: "#1B4F9C",
   Restaurants: "#C9A84C",
+  Flights: "#0770E3",
+  Agents: "#1E3A5F",
   Transport: "#5C3D00",
   Shopping: "#7B2FBE",
   Guide: "#C9A84C",
@@ -48,8 +50,12 @@ function buildStaticItems(t: (key: string) => string): SearchResult[] {
     { id: "hotels", title: t("hotels"), subtitle: t("hotelsSub"), emoji: "🏨", category: "Services", action: "navigate", target: "/hotels" },
     { id: "restaurants", title: t("restaurants"), subtitle: t("restaurantsSub"), emoji: "🍽️", category: "Services", action: "navigate", target: "/restaurants" },
     { id: "booking", title: t("booking"), subtitle: t("bookingSub"), emoji: "📅", category: "Services", action: "navigate", target: "/booking" },
-    { id: "agents", title: t("findAgent"), subtitle: t("findAgentSub"), emoji: "🏢", category: "Services", action: "navigate", target: "/agent" },
+    { id: "agents", title: t("findAgent"), subtitle: t("findAgentSub"), emoji: "🤝", category: "Services", action: "navigate", target: "/travel-agents" },
     { id: "favorites", title: t("favorites"), subtitle: "Saved hotels & restaurants", emoji: "❤️", category: "Services", action: "navigate", target: "/favorites" },
+    { id: "saudia", title: "Saudia Airlines", subtitle: "Official Saudi carrier — Jeddah & Madinah", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/saudia" },
+    { id: "kayak", title: "Kayak", subtitle: "Compare hundreds of flight sites", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/kayak" },
+    { id: "skyscanner", title: "Skyscanner", subtitle: "Find the best flight deals worldwide", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/skyscanner" },
+    { id: "travel-agents-ng", title: "Travel Agents · Nigeria", subtitle: "46 trusted Umrah & Hajj agents", emoji: "🇳🇬", category: "Agents", action: "navigate", target: "/travel-agents/nigeria" },
 
     // Transport
     { id: "haramain-makkah", title: t("makkahStation"), subtitle: t("makkahStationAddress"), emoji: "🚄", category: "Transport", action: "navigate", target: "/haramain/makkah" },

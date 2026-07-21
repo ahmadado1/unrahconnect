@@ -89,7 +89,20 @@ export default function FavoritesScreen() {
                 style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
                 onPress={() => router.push({ pathname: "/hotel-detail/[id]", params: { id: hotel.id } })}
               >
-                <Image source={{ uri: hotel.image }} style={styles.cardImage} resizeMode="cover" />
+                <View
+                  style={[
+                    styles.cardImage,
+                    hotel.imageType === "logo" && styles.logoThumb,
+                  ]}
+                >
+                  <Image
+                    source={{ uri: hotel.image }}
+                    style={
+                      hotel.imageType === "logo" ? styles.logoThumbImage : styles.cardImageFill
+                    }
+                    resizeMode={hotel.imageType === "logo" ? "contain" : "cover"}
+                  />
+                </View>
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{hotel.name}</Text>
                   <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
