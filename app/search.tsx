@@ -49,7 +49,6 @@ function buildStaticItems(t: (key: string) => string): SearchResult[] {
     // Services
     { id: "hotels", title: t("hotels"), subtitle: t("hotelsSub"), emoji: "🏨", category: "Services", action: "navigate", target: "/hotels" },
     { id: "restaurants", title: t("restaurants"), subtitle: t("restaurantsSub"), emoji: "🍽️", category: "Services", action: "navigate", target: "/restaurants" },
-    { id: "booking", title: t("booking"), subtitle: t("bookingSub"), emoji: "📅", category: "Services", action: "navigate", target: "/booking" },
     { id: "agents", title: t("findAgent"), subtitle: t("findAgentSub"), emoji: "🤝", category: "Services", action: "navigate", target: "/travel-agents" },
     { id: "favorites", title: t("favorites"), subtitle: "Saved hotels & restaurants", emoji: "❤️", category: "Services", action: "navigate", target: "/favorites" },
     { id: "saudia", title: "Saudia Airlines", subtitle: "Official Saudi carrier — Jeddah & Madinah", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/saudia" },

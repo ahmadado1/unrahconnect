@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 const APP_SERVICES = [
   { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
   { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
-  { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub", route: "/booking", icon: "calendar-outline" },
   { id: "agents", emoji: "🤝", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", icon: "people-outline" },
 ] as const
 
@@ -49,6 +48,7 @@ const SHOPPING = [
 ] as const
 
 const COMING_SOON = [
+  { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub" },
   { id: "pharmacy", emoji: "💊", titleKey: "pharmacy", subKey: "pharmacySub" },
   { id: "sim", emoji: "📱", titleKey: "simCards", subKey: "simCardsSub" },
 ] as const

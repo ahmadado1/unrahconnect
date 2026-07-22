@@ -5,12 +5,20 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import PhoneInput from "./components/PhoneInput";
 import { supabase } from "../lib/supabase";
-
-
-
 async function sendBookingEmail(params: Record<string, string | number>) {
   const response = await fetch(
     "https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-booking-email",
@@ -126,10 +134,16 @@ export default function BookingScreen() {
       let emailSent = false
       try {
         await sendBookingEmail({
-          hotel_name: hotelName, hotel_city: hotelCity,
+          hotel_name: hotelName,
+          hotel_city: hotelCity,
           guest_name: user?.user_metadata?.full_name || "Guest",
-          guest_email: user?.email || "No email", guest_phone: phone,
-          check_in: checkIn, check_out: checkOut, guests, nights: bookingNights,
+          guest_email: user?.email || "No email",
+          guest_phone: phone,
+          check_in: checkIn,
+          check_out: checkOut,
+          guests,
+          nights: bookingNights,
+          total_price: pricePerNight * bookingNights,
           special_requests: specialRequests || "None",
         })
         emailSent = true
@@ -233,14 +247,11 @@ export default function BookingScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>{t("phoneNumber")}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }]}
-              placeholder={t("enterPhone")}
-              placeholderTextColor={theme.textSecondary}
+            <PhoneInput
+              label={t("phoneNumber")}
               value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
+              onChange={setPhone}
+              placeholder={t("enterPhone")}
             />
           </View>
         </View>

@@ -8,8 +8,23 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import LanguageDropdown from "../components/LanguageDropdown"
+import PhoneInput from "../components/PhoneInput"
+import SelectDropdown from "../components/SelectDropdown"
+import { COUNTRY_DIALS, NATIONALITIES } from "@/lib/countries"
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { supabase } from "../../lib/supabase"
+
+const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
+  id: n.id,
+  label: n.label,
+  prefix: n.flag,
+}))
+
+const COUNTRY_OPTIONS = COUNTRY_DIALS.map(c => ({
+  id: c.name,
+  label: c.name,
+  prefix: c.flag,
+}))
 
 
 export default function SetupScreen() {
@@ -219,43 +234,36 @@ export default function SetupScreen() {
               autoCapitalize="words"
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>{t("phoneNumber")}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-              placeholder={t("enterPhone")}
-              placeholderTextColor={theme.textSecondary}
+            <PhoneInput
+              label={t("phoneNumber")}
               value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
+              onChange={setPhone}
+              placeholder={t("enterPhone")}
             />
 
-            <Text style={[styles.label, { color: theme.text }]}>{t("nationality")}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
+            <SelectDropdown
+              label={t("nationality")}
               placeholder={t("nationalityPlaceholder")}
-              placeholderTextColor={theme.textSecondary}
               value={nationality}
-              onChangeText={setNationality}
-              autoCapitalize="words"
+              options={NATIONALITY_OPTIONS}
+              onChange={setNationality}
+              searchPlaceholder={t("search") || "Search"}
             />
 
             {userType === "pilgrim" && (
               <>
-                <Text style={[styles.label, { color: theme.text }]}>{t("iAm")}</Text>
-                <View style={styles.genderRow}>
-                  <TouchableOpacity
-                    style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "male" && styles.genderActive]}
-                    onPress={() => setGender("male")}
-                  >
-                    <Text style={[styles.genderText, gender === "male" && { color: "#fff" }]}>{t("male")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "female" && styles.genderActive]}
-                    onPress={() => setGender("female")}
-                  >
-                    <Text style={[styles.genderText, gender === "female" && { color: "#fff" }]}>{t("female")}</Text>
-                  </TouchableOpacity>
-                </View>
+                <SelectDropdown
+                  label={t("iAm")}
+                  placeholder={t("gender")}
+                  value={gender}
+                  options={[
+                    { id: "male", label: t("male"), prefix: "♂" },
+                    { id: "female", label: t("female"), prefix: "♀" },
+                  ]}
+                  onChange={id => setGender(id as "male" | "female")}
+                  variant="menu"
+                  searchable={false}
+                />
 
                 <Text style={[styles.label, { color: theme.text }]}>{t("agentCodeOptional")}</Text>
                 <Text style={[styles.fieldHint, { color: theme.textSecondary }]}>{t("agentCodeHint")}</Text>
@@ -291,14 +299,13 @@ export default function SetupScreen() {
                   onChangeText={setAgencyName}
                   autoCapitalize="words"
                 />
-                <Text style={[styles.label, { color: theme.text }]}>{t("agencyCountry")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
+                <SelectDropdown
+                  label={t("agencyCountry")}
                   placeholder={t("countryPlaceholder")}
-                  placeholderTextColor={theme.textSecondary}
                   value={agencyCountry}
-                  onChangeText={setAgencyCountry}
-                  autoCapitalize="words"
+                  options={COUNTRY_OPTIONS}
+                  onChange={setAgencyCountry}
+                  searchPlaceholder={t("search") || "Search"}
                 />
               </>
             )}
@@ -345,10 +352,6 @@ const styles = StyleSheet.create({
   inputError: { borderColor: "#E24B4A", borderWidth: 1 },
   fieldError: { color: "#E24B4A", fontSize: 12, marginTop: 4, marginBottom: 4 },
   fieldHint: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
-  genderRow: { flexDirection: "row", gap: 12, marginBottom: 4 },
-  genderBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "center" },
-  genderActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
-  genderText: { fontSize: 14, fontWeight: "500", color: "#1E3A5F" },
   error: { color: "#E24B4A", fontSize: 13, marginTop: 8, textAlign: "center" },
   btn: { backgroundColor: "#C9A84C", borderRadius: 25, padding: 16, alignItems: "center", marginTop: 24 },
   btnText: { color: "#1E3A5F", fontSize: 16, fontWeight: "bold" },

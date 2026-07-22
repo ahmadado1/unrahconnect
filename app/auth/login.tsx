@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
 import { isExpoGo } from "../../lib/runtime";
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
@@ -305,21 +306,18 @@ const handleGoogleSignIn = async () => {
             {/* Gender */}
             {isSignUp && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("iAm")}</Text>
-                <View style={styles.genderRow}>
-                  <TouchableOpacity
-                    style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "male" && styles.genderBtnActive]}
-                    onPress={() => setGender("male")}
-                  >
-                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "male" && styles.genderBtnTextActive]}>{t("male")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.genderBtn, { borderColor: theme.border, backgroundColor: theme.card }, gender === "female" && styles.genderBtnActive]}
-                    onPress={() => setGender("female")}
-                  >
-                    <Text style={[styles.genderBtnText, { color: theme.textSecondary }, gender === "female" && styles.genderBtnTextActive]}>{t("female")}</Text>
-                  </TouchableOpacity>
-                </View>
+                <SelectDropdown
+                  label={t("iAm")}
+                  placeholder={t("gender")}
+                  value={gender}
+                  options={[
+                    { id: "male", label: t("male"), prefix: "♂" },
+                    { id: "female", label: t("female"), prefix: "♀" },
+                  ]}
+                  onChange={id => setGender(id as "male" | "female")}
+                  variant="menu"
+                  searchable={false}
+                />
               </View>
             )}
 
