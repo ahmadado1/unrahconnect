@@ -5,7 +5,7 @@ import { useTheme } from "@/context/themeContext";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 // Opens external links
-import { ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
@@ -16,7 +16,6 @@ import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
-import { Alert } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter()
@@ -26,6 +25,7 @@ export default function SettingsScreen() {
   const { t, i18n: i18nInstance } = useTranslation()
 
   const [notifications, setNotifications] = useState(true)
+  const [languageModalOpen, setLanguageModalOpen] = useState(false)
 
 // Load saved notification preference
 useEffect(() => {
@@ -33,6 +33,14 @@ useEffect(() => {
     setNotifications(val !== "false")
   })
 }, [])
+
+  const selectLanguage = async (code: string) => {
+    await i18nInstance.changeLanguage(code)
+    await AsyncStorage.setItem("language", code)
+    await applyRtlForLanguage(code)
+    ensureQuranForLanguage(code).catch(console.log)
+    setLanguageModalOpen(false)
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -53,28 +61,11 @@ useEffect(() => {
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("preferences")}</Text>
 
-          {/* Language */}
+          {/* Language — modal list (Android Alert only supports 3 buttons) */}
             <TouchableOpacity
               style={[styles.settingRow, { borderBottomColor: theme.border }]}
-              onPress={() => {
-                Alert.alert(
-                  t("language"),
-                  t("choosePreferredLanguage"),
-                  [
-                    ...LANGUAGES.map(lang => ({
-                      text: lang.label,
-                      onPress: async () => {
-                        await i18nInstance.changeLanguage(lang.code)
-                        await AsyncStorage.setItem("language", lang.code)
-                        await applyRtlForLanguage(lang.code)
-                        ensureQuranForLanguage(lang.code).catch(console.log)
-                      }
-                    })),
-                    { text: t("cancel"), style: "cancel" as const }
-                  ],
-                  { cancelable: true }
-                )
-              }}>
+              onPress={() => setLanguageModalOpen(true)}
+            >
                 <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
                   <Ionicons name="language" size={18} color="#fff" />
                 </View>
@@ -207,6 +198,56 @@ useEffect(() => {
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      <Modal
+        visible={languageModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLanguageModalOpen(false)}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setLanguageModalOpen(false)} />
+          <View
+            style={[
+              styles.langSheet,
+              {
+                backgroundColor: theme.card,
+                paddingBottom: Math.max(insets.bottom, 16),
+              },
+            ]}
+          >
+            <View style={styles.langHandle} />
+            <Text style={[styles.langTitle, { color: theme.text }]}>{t("language")}</Text>
+            <Text style={[styles.langSub, { color: theme.textSecondary }]}>
+              {t("choosePreferredLanguage")}
+            </Text>
+            {LANGUAGES.map((lang, index) => {
+              const selected =
+                i18nInstance.language === lang.code ||
+                i18nInstance.language?.startsWith(`${lang.code}-`)
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.langOption,
+                    { borderBottomColor: theme.border },
+                    index === LANGUAGES.length - 1 && { borderBottomWidth: 0 },
+                    selected && styles.langOptionSelected,
+                  ]}
+                  onPress={() => selectLanguage(lang.code)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.langOptionLabel, { color: theme.text }]}>{lang.label}</Text>
+                  {selected && <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />}
+                </TouchableOpacity>
+              )
+            })}
+            <TouchableOpacity style={styles.langCancel} onPress={() => setLanguageModalOpen(false)}>
+              <Text style={styles.langCancelText}>{t("cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -228,4 +269,40 @@ const styles = StyleSheet.create({
   versionBox: { alignItems: "center", marginTop: 24 },
   versionText: { fontSize: 13 },
   versionSub: { fontSize: 12, color: "#C9A84C", marginTop: 4 },
+  modalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  langSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    zIndex: 1,
+  },
+  langHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  langTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  langSub: { fontSize: 13, marginBottom: 12 },
+  langOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 15,
+    borderBottomWidth: 0.5,
+  },
+  langOptionSelected: { backgroundColor: "rgba(201,168,76,0.08)", marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 10 },
+  langOptionLabel: { fontSize: 16 },
+  langCancel: { alignItems: "center", paddingVertical: 16, marginTop: 4 },
+  langCancelText: { color: "#C9A84C", fontSize: 15, fontWeight: "600" },
 })

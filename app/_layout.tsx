@@ -1,7 +1,6 @@
 import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
-import { registerAdhanBackgroundTasks } from "@/lib/adhanBackgroundTask";
 import {
   handlePrayerNotificationOpen,
   requestNotificationPermission,
@@ -95,13 +94,10 @@ export default function RootLayout() {
   useEffect(() => {
     checkAuth()
 
-    registerAdhanBackgroundTasks().catch(console.log)
-
     requestNotificationPermission().then(async granted => {
       if (!granted) return
       await setupPrayerNotificationChannel().catch(console.log)
       await reschedulePrayerNotificationsFromCache().catch(console.log)
-      await registerAdhanBackgroundTasks().catch(console.log)
       const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
       if (notifEnabled !== "false") {
         await scheduleDailyVerseNotification().catch(console.log)

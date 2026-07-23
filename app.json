@@ -16,7 +16,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["uber"],
-        "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
+        "UIBackgroundModes": ["audio"],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services."
       },
@@ -113,8 +113,7 @@
         "./assets/audio1/azan3_fajr_lock.mp3",
         "./assets/audio1/azan4_fajr_lock.mp3",
         "./assets/audio1/azan5_fajr_lock.mp3"
-      ],
-      "enableBackgroundRemoteNotifications": true
+      ]
     }
   ],
   "@react-native-community/datetimepicker",
@@ -127,8 +126,6 @@
     }
   ],
   "expo-apple-authentication",
-  "expo-task-manager",
-  "expo-background-fetch",
   [
     "expo-build-properties",
     {

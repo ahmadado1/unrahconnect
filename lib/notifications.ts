@@ -19,13 +19,18 @@ import {
 import { Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
-/** Silent visual alerts — full Adhan plays via background task / expo-av, not the system notification sound. */
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v6-silent"
+/** Android channels with lock-screen Adhan clips (≤30s). Bump prefix when sound changes. */
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v7"
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
     ? `${PRAYER_CHANNEL_PREFIX}-${adhanId}-fajr`
     : `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
+}
+
+/** Lock-screen / notification sounds must be ≤30s on iOS or the system plays the default chime. */
+function getNotificationAdhanSound(adhanId: string, isFajr = false) {
+  return isFajr ? `azan${adhanId}_fajr_lock.mp3` : `azan${adhanId}_lock.mp3`
 }
 
 async function getSelectedAdhanId() {
@@ -34,23 +39,23 @@ async function getSelectedAdhanId() {
 
 async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
   const channelId = getPrayerChannelId(adhanId, isFajr)
+  const adhanSound = getNotificationAdhanSound(adhanId, isFajr)
 
   await Notifications.deleteNotificationChannelAsync(channelId).catch(() => {})
 
   await Notifications.setNotificationChannelAsync(channelId, {
     name: isFajr ? "Fajr Adhan" : "Prayer Times",
     importance: Notifications.AndroidImportance.MAX,
-    // Silent channel: full Adhan is started by ADHAN_NOTIFICATION_TASK / background fetch.
-    sound: null,
+    sound: adhanSound,
     vibrationPattern: [0, 250, 250, 250],
     enableVibrate: true,
     bypassDnd: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     audioAttributes: {
-      usage: AndroidAudioUsage.NOTIFICATION,
+      usage: AndroidAudioUsage.NOTIFICATION_RINGTONE,
       contentType: AndroidAudioContentType.SONIFICATION,
       flags: {
-        enforceAudibility: false,
+        enforceAudibility: true,
         requestHardwareAudioVideoSynchronization: false,
       },
     },
@@ -66,7 +71,7 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
   const channelId = await ensureAndroidChannel(adhanId, false)
   await ensureAndroidChannel(adhanId, true)
 
-  // Remove legacy channels that may still play lock-screen Adhan clips.
+  // Remove legacy / silent channels that may block Adhan sound.
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
   for (const id of ["1", "2", "3", "4", "5"]) {
     for (const prefix of [
@@ -75,6 +80,7 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
       "prayer-adhan-v3-",
       "prayer-adhan-v4-",
       "prayer-adhan-v5-",
+      "prayer-adhan-v6-silent-",
     ]) {
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
@@ -93,14 +99,15 @@ Notifications.setNotificationHandler({
     if (isPrayer) {
       const prayerName = prayerNameFromNotification(identifier, data)
       if (prayerName) {
-        // Foreground: full Adhan via expo-av (never the system notification sound).
+        // App open: full Adhan via expo-av (not the short notification clip).
         triggerPrayerAlert(prayerName, true)
       }
     }
 
     return {
       shouldShowAlert: true,
-      // Prayer alerts are silent — audio comes from playAdhan / background task.
+      // Foreground: suppress system sound — expo-av plays the full track.
+      // Background/closed: OS plays the scheduled notification sound (lock clips).
       shouldPlaySound: !isPrayer,
       shouldSetBadge: true,
       shouldShowBanner: true,
@@ -197,6 +204,7 @@ export async function schedulePrayerNotifications(
     }
     const { hour, minute } = parsed
     const isFajr = prayer.name === "Fajr"
+    const sound = getNotificationAdhanSound(adhanId, isFajr)
     const channelId = isFajr ? fajrChannelId : regularChannelId
 
     await Notifications.scheduleNotificationAsync({
@@ -214,12 +222,12 @@ export async function schedulePrayerNotifications(
                 : i18n.language === "bn"
                   ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার 🕌`
                   : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
-        // Visual alert only — full Adhan is started by the background task / expo-av.
-        sound: false,
+        // Background/closed: OS plays short lock clip. Foreground: handler suppresses this.
+        sound,
+        priority: Notifications.AndroidNotificationPriority.MAX,
         data: {
           screen: "prayer",
           prayerName: prayer.name,
-          playFullAdhan: true,
         },
         ...(Platform.OS === "android" && channelId ? { channelId } : {}),
       },
@@ -231,9 +239,6 @@ export async function schedulePrayerNotifications(
       },
     })
   }
-
-  // Ensure background fetch + notification task are registered after scheduling.
-  void import("@/lib/adhanBackgroundTask").then(m => m.registerAdhanBackgroundTasks())
 }
 
 export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: string) {
