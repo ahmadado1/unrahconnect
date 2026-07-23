@@ -5,11 +5,11 @@ import { useTheme } from "@/context/themeContext";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 // Opens external links
-import { Modal, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Icons
-import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyDhikrReminders, scheduleDailyVerseNotification, scheduleIslamicDateReminders, setupPrayerNotificationChannel } from "@/lib/notifications";
+import { cancelAllNotifications, requestNotificationPermission, reschedulePrayerNotificationsFromCache, scheduleDailyDhikrReminders, scheduleDailyVerseNotification, scheduleIslamicDateReminders, scheduleTestAdhanNotification, setupPrayerNotificationChannel } from "@/lib/notifications";
 import { ensureQuranForLanguage } from "@/lib/quranDownload";
 import { applyRtlForLanguage } from "@/lib/rtl";
 import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown";
@@ -109,6 +109,36 @@ useEffect(() => {
               thumbColor={notifications ? "#C9A84C" : "#fff"}
             />
           </View>
+
+          {/* Test Adhan lock-screen sound (60s) */}
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: theme.border }]}
+            onPress={async () => {
+              const ok = await scheduleTestAdhanNotification(60)
+              if (ok) {
+                Alert.alert(
+                  "Test scheduled",
+                  "Lock your phone now. The Adhan notification sound should play in about 60 seconds."
+                )
+              } else {
+                Alert.alert(
+                  "Permission needed",
+                  "Allow notifications (with sound) for UmrahConnect, then try again."
+                )
+              }
+            }}
+          >
+            <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
+              <Ionicons name="volume-high" size={18} color="#fff" />
+            </View>
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>Test Adhan Alert</Text>
+              <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
+                Plays lock-screen sound in 60 seconds
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+          </TouchableOpacity>
 
           {/* Dark mode toggle */}
           <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>

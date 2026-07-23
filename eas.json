@@ -21,7 +21,10 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "ios": {
+    "autoIncrement": true
+  }
     },
     "testflight": {
       "extends": "production",

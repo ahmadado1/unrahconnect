@@ -19,8 +19,11 @@ import {
 import { Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
-/** Android channels with lock-screen Adhan clips (≤30s). Bump prefix when sound changes. */
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v7"
+/**
+ * Android channels with lock-screen Adhan clips.
+ * v8 = WAV sounds (iOS-reliable; Expo recommends .wav over .mp3 for notifications).
+ */
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v8"
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
@@ -28,9 +31,15 @@ export function getPrayerChannelId(adhanId: string, isFajr = false) {
     : `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
 }
 
-/** Lock-screen / notification sounds must be ≤30s on iOS or the system plays the default chime. */
+/**
+ * Must match basename of files listed in app.json → expo.notification.sounds
+ * and expo-notifications plugin sounds (extension included).
+ */
 function getNotificationAdhanSound(adhanId: string, isFajr = false) {
-  return isFajr ? `azan${adhanId}_fajr_lock.mp3` : `azan${adhanId}_lock.mp3`
+  const id = ["1", "2", "3", "4", "5"].includes(String(adhanId))
+    ? String(adhanId)
+    : DEFAULT_ADHAN_ID
+  return isFajr ? `azan${id}_fajr_lock.wav` : `azan${id}_lock.wav`
 }
 
 async function getSelectedAdhanId() {
@@ -41,8 +50,7 @@ async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
   const channelId = getPrayerChannelId(adhanId, isFajr)
   const adhanSound = getNotificationAdhanSound(adhanId, isFajr)
 
-  await Notifications.deleteNotificationChannelAsync(channelId).catch(() => {})
-
+  // New channel id (v8) — Android ignores sound changes on existing channels.
   await Notifications.setNotificationChannelAsync(channelId, {
     name: isFajr ? "Fajr Adhan" : "Prayer Times",
     importance: Notifications.AndroidImportance.MAX,
@@ -61,6 +69,7 @@ async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
     },
   })
 
+  console.log("[Notifications] Android channel ready:", channelId, "sound:", adhanSound)
   return channelId
 }
 
@@ -71,16 +80,16 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
   const channelId = await ensureAndroidChannel(adhanId, false)
   await ensureAndroidChannel(adhanId, true)
 
-  // Remove legacy / silent channels that may block Adhan sound.
+  // Clean silent / old channels that may still be selected by stale schedules.
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
   for (const id of ["1", "2", "3", "4", "5"]) {
     for (const prefix of [
-      "prayer-adhan-",
       "prayer-adhan-v2-",
       "prayer-adhan-v3-",
       "prayer-adhan-v4-",
       "prayer-adhan-v5-",
       "prayer-adhan-v6-silent-",
+      "prayer-adhan-v7-",
     ]) {
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
@@ -94,9 +103,9 @@ Notifications.setNotificationHandler({
   handleNotification: async notification => {
     const identifier = notification.request.identifier
     const data = notification.request.content.data as Record<string, unknown> | undefined
-    const isPrayer = identifier.startsWith("prayer-")
+    const isPrayer = identifier.startsWith("prayer-") || identifier === "prayer-adhan-test"
 
-    if (isPrayer) {
+    if (isPrayer && identifier !== "prayer-adhan-test") {
       const prayerName = prayerNameFromNotification(identifier, data)
       if (prayerName) {
         // App open: full Adhan via expo-av (not the short notification clip).
@@ -106,9 +115,9 @@ Notifications.setNotificationHandler({
 
     return {
       shouldShowAlert: true,
-      // Foreground: suppress system sound — expo-av plays the full track.
-      // Background/closed: OS plays the scheduled notification sound (lock clips).
-      shouldPlaySound: !isPrayer,
+      // Foreground: suppress system sound for real prayer alerts — expo-av plays full track.
+      // Test notification keeps system sound so we can verify the lock clip.
+      shouldPlaySound: !isPrayer || identifier === "prayer-adhan-test",
       shouldSetBadge: true,
       shouldShowBanner: true,
       shouldShowList: true,
@@ -123,6 +132,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 
   const permissions = await Notifications.getPermissionsAsync()
+  console.log("Notification permission (current):", permissions.status)
 
   if (permissions.status !== "granted") {
     const newPermissions = await Notifications.requestPermissionsAsync({
@@ -132,6 +142,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
         allowSound: true,
       },
     })
+    console.log("Notification permission (after request):", newPermissions.status)
     return newPermissions.status === "granted"
   }
 
@@ -176,6 +187,12 @@ export async function schedulePrayerNotifications(
   },
   selectedAdhan?: string
 ) {
+  const granted = await requestNotificationPermission()
+  if (!granted) {
+    console.warn("[Notifications] Skipping prayer schedule — permission not granted")
+    return
+  }
+
   const adhanId = selectedAdhan || (await getSelectedAdhanId())
   const regularChannelId = await setupPrayerNotificationChannel(adhanId)
   const fajrChannelId =
@@ -207,6 +224,8 @@ export async function schedulePrayerNotifications(
     const sound = getNotificationAdhanSound(adhanId, isFajr)
     const channelId = isFajr ? fajrChannelId : regularChannelId
 
+    console.log("Scheduling notification for:", prayer.name, `${hour}:${String(minute).padStart(2, "0")}`, "sound:", sound)
+
     await Notifications.scheduleNotificationAsync({
       identifier: `prayer-${prayer.name.toLowerCase()}-now`,
       content: {
@@ -225,6 +244,9 @@ export async function schedulePrayerNotifications(
         // Background/closed: OS plays short lock clip. Foreground: handler suppresses this.
         sound,
         priority: Notifications.AndroidNotificationPriority.MAX,
+        ...(Platform.OS === "ios"
+          ? { interruptionLevel: "timeSensitive" as const }
+          : {}),
         data: {
           screen: "prayer",
           prayerName: prayer.name,
@@ -239,6 +261,52 @@ export async function schedulePrayerNotifications(
       },
     })
   }
+
+  const after = await Notifications.getAllScheduledNotificationsAsync()
+  const prayerCount = after.filter(n => n.identifier.startsWith("prayer-")).length
+  console.log(`[Notifications] Scheduled ${prayerCount} prayer alerts (adhan ${adhanId})`)
+}
+
+/**
+ * Fire a one-off Adhan lock-sound notification in ~60s so you can lock the phone and verify audio.
+ */
+export async function scheduleTestAdhanNotification(seconds = 60) {
+  const granted = await requestNotificationPermission()
+  if (!granted) {
+    console.warn("[Notifications] Test Adhan blocked — permission not granted")
+    return false
+  }
+
+  const adhanId = await getSelectedAdhanId()
+  const sound = getNotificationAdhanSound(adhanId, false)
+  const channelId = await setupPrayerNotificationChannel(adhanId)
+
+  await Notifications.cancelScheduledNotificationAsync("prayer-adhan-test").catch(() => {})
+
+  console.log("Scheduling TEST Adhan notification in", seconds, "s with sound:", sound)
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: "prayer-adhan-test",
+    content: {
+      title: "Test Prayer Notification",
+      body: "Testing Adhan sound — lock your phone now",
+      sound,
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      ...(Platform.OS === "ios"
+        ? { interruptionLevel: "timeSensitive" as const }
+        : {}),
+      data: { screen: "prayer", prayerName: "Dhuhr", test: true },
+      ...(Platform.OS === "android" && channelId ? { channelId } : {}),
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds,
+      repeats: false,
+      ...(Platform.OS === "android" && channelId ? { channelId } : {}),
+    },
+  })
+
+  return true
 }
 
 export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: string) {
