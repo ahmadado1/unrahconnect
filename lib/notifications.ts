@@ -21,9 +21,10 @@ import { Platform } from "react-native"
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
 /**
  * Android channels with lock-screen Adhan clips.
- * v8 = WAV sounds (iOS-reliable; Expo recommends .wav over .mp3 for notifications).
+ * v9 restores .mp3 lock sounds (previously working). Custom sound filename must
+ * match app.json expo-notifications plugin sounds basename exactly.
  */
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v8"
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v9"
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
@@ -32,14 +33,14 @@ export function getPrayerChannelId(adhanId: string, isFajr = false) {
 }
 
 /**
- * Must match basename of files listed in app.json → expo.notification.sounds
- * and expo-notifications plugin sounds (extension included).
+ * Must match basename of files in app.json → notification.sounds / plugin sounds.
+ * Use .mp3 — this is what previously played on lock screen for this app.
  */
 function getNotificationAdhanSound(adhanId: string, isFajr = false) {
   const id = ["1", "2", "3", "4", "5"].includes(String(adhanId))
     ? String(adhanId)
     : DEFAULT_ADHAN_ID
-  return isFajr ? `azan${id}_fajr_lock.wav` : `azan${id}_lock.wav`
+  return isFajr ? `azan${id}_fajr_lock.mp3` : `azan${id}_lock.mp3`
 }
 
 async function getSelectedAdhanId() {
@@ -50,7 +51,6 @@ async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
   const channelId = getPrayerChannelId(adhanId, isFajr)
   const adhanSound = getNotificationAdhanSound(adhanId, isFajr)
 
-  // New channel id (v8) — Android ignores sound changes on existing channels.
   await Notifications.setNotificationChannelAsync(channelId, {
     name: isFajr ? "Fajr Adhan" : "Prayer Times",
     importance: Notifications.AndroidImportance.MAX,
@@ -80,7 +80,7 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
   const channelId = await ensureAndroidChannel(adhanId, false)
   await ensureAndroidChannel(adhanId, true)
 
-  // Clean silent / old channels that may still be selected by stale schedules.
+  // Remove silent / outdated channels (Android locks sound after channel create).
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
   for (const id of ["1", "2", "3", "4", "5"]) {
     for (const prefix of [
@@ -90,6 +90,7 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
       "prayer-adhan-v5-",
       "prayer-adhan-v6-silent-",
       "prayer-adhan-v7-",
+      "prayer-adhan-v8-",
     ]) {
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
@@ -537,6 +538,9 @@ export async function cancelAllNotifications() {
   await Notifications.cancelAllScheduledNotificationsAsync()
 }
 
+/** Lock-screen notification clips are ≤30s — only sync within that window. */
+const LOCK_CLIP_SYNC_SECONDS = 28
+
 export function handlePrayerNotificationOpen(
   identifier: string,
   data: Record<string, unknown> | undefined,
@@ -555,19 +559,25 @@ export function handlePrayerNotificationOpen(
       ? Math.max(0, (Date.now() - deliveredMs) / 1000)
       : 0
 
-    // Notifications are silent; full Adhan should already be playing from the
-    // background task. Opening the alert only continues / starts playback.
     setTimeout(() => {
       const alreadyPlaying = isAdhanPlaying()
+
+      // Sync with the lock-screen clip only while it would still be playing.
+      // Late opens (after the clip ended) start the full Adhan from 0 —
+      // never seek far into the track (that felt like a silent "continue").
+      const syncWithLockClip =
+        !alreadyPlaying &&
+        elapsedSec > 1.5 &&
+        elapsedSec <= LOCK_CLIP_SYNC_SECONDS
+
       triggerPrayerAlert(prayerName, {
         playSound: true,
         continueIfPlaying: true,
-        forceRestart: false,
+        forceRestart: !alreadyPlaying && !syncWithLockClip,
         forceShow: true,
-        seekSeconds:
-          alreadyPlaying || elapsedSec <= 1.5
-            ? undefined
-            : Math.min(elapsedSec, 180),
+        seekSeconds: syncWithLockClip
+          ? Math.min(elapsedSec, LOCK_CLIP_SYNC_SECONDS)
+          : undefined,
       })
     }, 350)
   }

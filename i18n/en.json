@@ -1308,5 +1308,11 @@
   "yourJourney": "YOUR JOURNEY",
   "yourProfile": "Your Profile",
   "yourProgress": "Your Progress",
-  "zamzamWell": "Zamzam Well"
+  "zamzamWell": "Zamzam Well",
+  "testAdhanAlert": "Test Adhan Alert",
+  "testAdhanAlertSub": "Plays lock-screen sound in 60 seconds",
+  "testAdhanScheduledTitle": "Test scheduled",
+  "testAdhanScheduledBody": "Lock your phone now. The Adhan notification sound should play in about 60 seconds.",
+  "testAdhanPermissionTitle": "Permission needed",
+  "testAdhanPermissionBody": "Allow notifications (with sound) for UmrahConnect, then try again."
 }

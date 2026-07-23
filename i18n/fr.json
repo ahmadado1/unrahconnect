@@ -1299,5 +1299,20 @@
   "yourJourney": "VOTRE VOYAGE",
   "yourProfile": "Votre profil",
   "yourProgress": "Votre progression",
-  "zamzamWell": "Puits de Zamzam"
+  "zamzamWell": "Puits de Zamzam",
+  "pilgrimTip": "Conseil au pèlerin",
+  "searchFlightsJeddah": "Rechercher des vols vers Djeddah",
+  "searchFlightsMadinah": "Rechercher des vols vers Médine",
+  "visitWebsite": "Visiter le site",
+  "travelAgents": "Agences de voyage",
+  "travelAgentsSub": "Trouvez des agents Omra et Hajj de confiance dans votre pays",
+  "wantAgencyListed": "Vous voulez que votre agence apparaisse ici ? Contactez-nous : ahmadado6002@gmail.com",
+  "noAgentsYet": "Aucun agent n'est encore listé pour ce pays.",
+  "areYouAnAgent": "Vous êtes agent ? Contactez-nous pour être listé.",
+  "testAdhanAlert": "Tester l'alerte Adhan",
+  "testAdhanAlertSub": "Joue le son d'écran verrouillé dans 60 secondes",
+  "testAdhanScheduledTitle": "Test programmé",
+  "testAdhanScheduledBody": "Verrouillez votre téléphone maintenant. Le son de notification de l'Adhan devrait retentir dans environ 60 secondes.",
+  "testAdhanPermissionTitle": "Autorisation requise",
+  "testAdhanPermissionBody": "Autorisez les notifications (avec son) pour UmrahConnect, puis réessayez."
 }

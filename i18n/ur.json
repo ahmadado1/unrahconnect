@@ -1299,5 +1299,20 @@
   "yourJourney": "آپ کا سفر",
   "yourProfile": "آپ کا پروفائل",
   "yourProgress": "آپ کی پیشرفت",
-  "zamzamWell": "زمزم کا کنواں"
+  "zamzamWell": "زمزم کا کنواں",
+  "pilgrimTip": "حجاج کی نصیحت",
+  "searchFlightsJeddah": "جدہ کی پروازیں تلاش کریں",
+  "searchFlightsMadinah": "مدینہ کی پروازیں تلاش کریں",
+  "visitWebsite": "ویب سائٹ دیکھیں",
+  "travelAgents": "سفر ایجنٹ",
+  "travelAgentsSub": "اپنے ملک میں قابلِ اعتماد عمرہ و حج ایجنٹ تلاش کریں",
+  "wantAgencyListed": "اپنی ایجنسی یہاں شامل کرانا چاہتے ہیں؟ رابطہ: ahmadado6002@gmail.com",
+  "noAgentsYet": "اس ملک کے لیے ابھی کوئی ایجنٹ درج نہیں۔",
+  "areYouAnAgent": "کیا آپ ایجنٹ ہیں؟ فہرست میں شامل ہونے کے لیے ہم سے رابطہ کریں۔",
+  "testAdhanAlert": "اذان الرٹ آزمائیں",
+  "testAdhanAlertSub": "۶۰ سیکنڈ میں لاک اسکرین آواز بجے گی",
+  "testAdhanScheduledTitle": "ٹیسٹ شیڈول ہو گیا",
+  "testAdhanScheduledBody": "ابھی فون لاک کریں۔ تقریباً ۶۰ سیکنڈ میں اذان نوٹیفکیشن کی آواز بجنی چاہیے۔",
+  "testAdhanPermissionTitle": "اجازت درکار ہے",
+  "testAdhanPermissionBody": "UmrahConnect کے لیے اطلاعات (آواز کے ساتھ) کی اجازت دیں، پھر دوبارہ کوشش کریں۔"
 }

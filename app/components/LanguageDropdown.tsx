@@ -15,7 +15,8 @@ export const LANGUAGES = [
 ] as const
 
 export function getLanguageLabel(code: string) {
-  return LANGUAGES.find(l => l.code === code)?.label ?? LANGUAGES[0].label
+  const base = (code || "en").split("-")[0].toLowerCase()
+  return LANGUAGES.find(l => l.code === base)?.label ?? LANGUAGES[0].label
 }
 
 type LanguageDropdownProps = {

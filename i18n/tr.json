@@ -1299,5 +1299,20 @@
   "yourJourney": "YOLCULUĞUNUZ",
   "yourProfile": "Profiliniz",
   "yourProgress": "İlerlemeniz",
-  "zamzamWell": "Zemzem Kuyusu"
+  "zamzamWell": "Zemzem Kuyusu",
+  "pilgrimTip": "Hacı için ipucu",
+  "searchFlightsJeddah": "Cidde uçuşlarını ara",
+  "searchFlightsMadinah": "Medine uçuşlarını ara",
+  "visitWebsite": "Web sitesini ziyaret et",
+  "travelAgents": "Seyahat acenteleri",
+  "travelAgentsSub": "Ülkenizdeki güvenilir Umre ve Hac acentelerini bulun",
+  "wantAgencyListed": "Acentenizin burada listelenmesini ister misiniz? İletişim: ahmadado6002@gmail.com",
+  "noAgentsYet": "Bu ülke için henüz listelenmiş acente yok.",
+  "areYouAnAgent": "Acente misiniz? Listelenmek için bizimle iletişime geçin.",
+  "testAdhanAlert": "Ezan uyarısını test et",
+  "testAdhanAlertSub": "60 saniye içinde kilit ekranı sesini çalar",
+  "testAdhanScheduledTitle": "Test planlandı",
+  "testAdhanScheduledBody": "Telefonunuzu şimdi kilitleyin. Ezan bildirim sesi yaklaşık 60 saniye içinde çalmalı.",
+  "testAdhanPermissionTitle": "İzin gerekli",
+  "testAdhanPermissionBody": "UmrahConnect için bildirimlere (sesli) izin verin, sonra tekrar deneyin."
 }

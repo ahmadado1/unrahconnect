@@ -1299,5 +1299,20 @@
   "yourJourney": "আপনার যাত্রা",
   "yourProfile": "আপনার প্রোফাইল",
   "yourProgress": "আপনার অগ্রগতি",
-  "zamzamWell": "জমজম ওয়েল"
+  "zamzamWell": "জমজম ওয়েল",
+  "pilgrimTip": "হাজী/উমরাহ পরামর্শ",
+  "searchFlightsJeddah": "জেদ্দায় ফ্লাইট খুঁজুন",
+  "searchFlightsMadinah": "মদিনায় ফ্লাইট খুঁজুন",
+  "visitWebsite": "ওয়েবসাইট দেখুন",
+  "travelAgents": "ট্রাভেল এজেন্ট",
+  "travelAgentsSub": "আপনার দেশে বিশ্বস্ত উমরাহ ও হজ এজেন্ট খুঁজুন",
+  "wantAgencyListed": "আপনার এজেন্সি এখানে তালিকাভুক্ত করতে চান? যোগাযোগ: ahmadado6002@gmail.com",
+  "noAgentsYet": "এই দেশের জন্য এখনও কোনো এজেন্ট তালিকাভুক্ত নেই।",
+  "areYouAnAgent": "আপনি কি এজেন্ট? তালিকাভুক্ত হতে আমাদের সাথে যোগাযোগ করুন।",
+  "testAdhanAlert": "আজান সতর্কতা পরীক্ষা",
+  "testAdhanAlertSub": "৬০ সেকেন্ডে লক-স্ক্রিন সাউন্ড বাজবে",
+  "testAdhanScheduledTitle": "পরীক্ষা নির্ধারণ হয়েছে",
+  "testAdhanScheduledBody": "এখন ফোন লক করুন। প্রায় ৬০ সেকেন্ডে আজান নোটিফিকেশন সাউন্ড বাজবে।",
+  "testAdhanPermissionTitle": "অনুমতি প্রয়োজন",
+  "testAdhanPermissionBody": "UmrahConnect-এর জন্য নোটিফিকেশন (সাউন্ডসহ) অনুমতি দিন, তারপর আবার চেষ্টা করুন।"
 }

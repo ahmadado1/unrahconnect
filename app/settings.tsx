@@ -116,15 +116,9 @@ useEffect(() => {
             onPress={async () => {
               const ok = await scheduleTestAdhanNotification(60)
               if (ok) {
-                Alert.alert(
-                  "Test scheduled",
-                  "Lock your phone now. The Adhan notification sound should play in about 60 seconds."
-                )
+                Alert.alert(t("testAdhanScheduledTitle"), t("testAdhanScheduledBody"))
               } else {
-                Alert.alert(
-                  "Permission needed",
-                  "Allow notifications (with sound) for UmrahConnect, then try again."
-                )
+                Alert.alert(t("testAdhanPermissionTitle"), t("testAdhanPermissionBody"))
               }
             }}
           >
@@ -132,9 +126,9 @@ useEffect(() => {
               <Ionicons name="volume-high" size={18} color="#fff" />
             </View>
             <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: theme.text }]}>Test Adhan Alert</Text>
+              <Text style={[styles.settingLabel, { color: theme.text }]}>{t("testAdhanAlert")}</Text>
               <Text style={[styles.settingValue, { color: theme.textSecondary }]}>
-                Plays lock-screen sound in 60 seconds
+                {t("testAdhanAlertSub")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
@@ -251,27 +245,35 @@ useEffect(() => {
             <Text style={[styles.langSub, { color: theme.textSecondary }]}>
               {t("choosePreferredLanguage")}
             </Text>
-            {LANGUAGES.map((lang, index) => {
-              const selected =
-                i18nInstance.language === lang.code ||
-                i18nInstance.language?.startsWith(`${lang.code}-`)
-              return (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[
-                    styles.langOption,
-                    { borderBottomColor: theme.border },
-                    index === LANGUAGES.length - 1 && { borderBottomWidth: 0 },
-                    selected && styles.langOptionSelected,
-                  ]}
-                  onPress={() => selectLanguage(lang.code)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.langOptionLabel, { color: theme.text }]}>{lang.label}</Text>
-                  {selected && <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />}
-                </TouchableOpacity>
-              )
-            })}
+            {/* ScrollView so all 6 languages stay reachable on Android (Alert only shows 3 buttons). */}
+            <ScrollView
+              style={styles.langList}
+              bounces={false}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+            >
+              {LANGUAGES.map((lang, index) => {
+                const selected =
+                  i18nInstance.language === lang.code ||
+                  i18nInstance.language?.startsWith(`${lang.code}-`)
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[
+                      styles.langOption,
+                      { borderBottomColor: theme.border },
+                      index === LANGUAGES.length - 1 && { borderBottomWidth: 0 },
+                      selected && styles.langOptionSelected,
+                    ]}
+                    onPress={() => selectLanguage(lang.code)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.langOptionLabel, { color: theme.text }]}>{lang.label}</Text>
+                    {selected && <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
             <TouchableOpacity style={styles.langCancel} onPress={() => setLanguageModalOpen(false)}>
               <Text style={styles.langCancelText}>{t("cancel")}</Text>
             </TouchableOpacity>
@@ -324,6 +326,7 @@ const styles = StyleSheet.create({
   },
   langTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
   langSub: { fontSize: 13, marginBottom: 12 },
+  langList: { maxHeight: 360 },
   langOption: {
     flexDirection: "row",
     alignItems: "center",

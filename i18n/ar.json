@@ -1299,5 +1299,20 @@
   "yourJourney": "رحلتك",
   "yourProfile": "ملفك الشخصي",
   "yourProgress": "تقدمك",
-  "zamzamWell": "بئر زمزم"
+  "zamzamWell": "بئر زمزم",
+  "pilgrimTip": "نصيحة للحاج / المعتمر",
+  "searchFlightsJeddah": "ابحث عن رحلات إلى جدة",
+  "searchFlightsMadinah": "ابحث عن رحلات إلى المدينة",
+  "visitWebsite": "زيارة الموقع",
+  "travelAgents": "وكلاء السفر",
+  "travelAgentsSub": "اعثر على وكلاء عمرة وحج موثوقين في بلدك",
+  "wantAgencyListed": "هل تريد إدراج وكالتك هنا؟ تواصل معنا على ahmadado6002@gmail.com",
+  "noAgentsYet": "لا يوجد وكلاء مدرجون بعد لهذا البلد.",
+  "areYouAnAgent": "هل أنت وكيل؟ تواصل معنا لإدراجك.",
+  "testAdhanAlert": "اختبار تنبيه الأذان",
+  "testAdhanAlertSub": "يشغّل صوت شاشة القفل خلال 60 ثانية",
+  "testAdhanScheduledTitle": "تم جدولة الاختبار",
+  "testAdhanScheduledBody": "اقفل هاتفك الآن. يفترض أن يصدر صوت إشعار الأذان خلال نحو 60 ثانية.",
+  "testAdhanPermissionTitle": "الإذن مطلوب",
+  "testAdhanPermissionBody": "اسمح بالإشعارات (مع الصوت) لتطبيق UmrahConnect ثم حاول مرة أخرى."
 }
