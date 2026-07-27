@@ -1314,5 +1314,21 @@
   "testAdhanScheduledTitle": "Test programmé",
   "testAdhanScheduledBody": "Verrouillez votre téléphone maintenant. Le son de notification de l'Adhan devrait retentir dans environ 60 secondes.",
   "testAdhanPermissionTitle": "Autorisation requise",
-  "testAdhanPermissionBody": "Autorisez les notifications (avec son) pour UmrahConnect, puis réessayez."
+  "testAdhanPermissionBody": "Autorisez les notifications (avec son) pour UmrahConnect, puis réessayez.",
+  "morningAdhkar": "Adhkar du matin",
+  "eveningAdhkar": "Adhkar du soir",
+  "morningAdhkarTitle": "أذكار الصباح — Adhkar du matin",
+  "morningAdhkarSub": "Après le Fajr",
+  "morningAdhkarDesc": "Commencez la journée avec les adhkar authentiques du matin",
+  "eveningAdhkarTitle": "أذكار المساء — Adhkar du soir",
+  "eveningAdhkarSub": "Avant le Maghrib / la nuit",
+  "eveningAdhkarDesc": "Terminez la journée en vous souvenant d'Allah",
+  "adhkarProgress": "{{done}} sur {{total}} terminés",
+  "adhkarAllComplete": "Tout est terminé ! BarakAllahu feek 🤲",
+  "adhkarCompleted": "Terminé",
+  "adhkarTapToCount": "Appuyez pour compter",
+  "morningAdhkarReminder": "Rappel Adhkar du matin",
+  "eveningAdhkarReminder": "Rappel Adhkar du soir",
+  "tapToChangeTime": "Appuyez pour changer l'heure",
+  "reset": "Réinitialiser"
 }

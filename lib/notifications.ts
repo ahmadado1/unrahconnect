@@ -335,32 +335,46 @@ export async function scheduleDailyDhikrReminders() {
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return false
 
-  const slots = [
-    {
+  const morningEnabled = (await AsyncStorage.getItem("adhkar_morning_enabled")) !== "false"
+  const eveningEnabled = (await AsyncStorage.getItem("adhkar_evening_enabled")) !== "false"
+
+  const morningHour = Number((await AsyncStorage.getItem("adhkar_morning_hour")) ?? "8")
+  const morningMinute = Number((await AsyncStorage.getItem("adhkar_morning_minute")) ?? "0")
+  const eveningHour = Number((await AsyncStorage.getItem("adhkar_evening_hour")) ?? "17")
+  const eveningMinute = Number((await AsyncStorage.getItem("adhkar_evening_minute")) ?? "0")
+
+  const slots = []
+  if (morningEnabled) {
+    slots.push({
       id: "dhikr-reminder-morning",
-      hour: 8,
-      minute: 0,
-      title: "🌅 Morning Dhikr",
-      body: "Start your day with SubhanAllah, Alhamdulillah, and Allahu Akbar.",
-    },
-    {
+      hour: Number.isFinite(morningHour) ? morningHour : 8,
+      minute: Number.isFinite(morningMinute) ? morningMinute : 0,
+      title: "🌅 أذكار الصباح",
+      body: "Time for your morning adhkar — start your day with Allah's remembrance",
+      period: "morning",
+    })
+  }
+  if (eveningEnabled) {
+    slots.push({
       id: "dhikr-reminder-evening",
-      hour: 17,
-      minute: 0,
-      title: "🌇 Evening Dhikr",
-      body: "End your afternoon with dhikr. SubhanAllah, Alhamdulillah, Allahu Akbar.",
-    },
-  ]
+      hour: Number.isFinite(eveningHour) ? eveningHour : 17,
+      minute: Number.isFinite(eveningMinute) ? eveningMinute : 0,
+      title: "🌙 أذكار المساء",
+      body: "Time for your evening adhkar — end your day remembering Allah",
+      period: "evening",
+    })
+  }
 
   // Cancel legacy single reminder + current slots
   await Notifications.cancelScheduledNotificationAsync("dhikr-reminder").catch(() => {})
-  for (const slot of slots) {
-    await Notifications.cancelScheduledNotificationAsync(slot.id).catch(() => {})
-  }
+  await Notifications.cancelScheduledNotificationAsync("dhikr-reminder-morning").catch(() => {})
+  await Notifications.cancelScheduledNotificationAsync("dhikr-reminder-evening").catch(() => {})
+
+  if (slots.length === 0) return true
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("dhikr-reminders", {
-      name: "Daily Dhikr",
+      name: "Daily Adhkar",
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: "default",
       vibrationPattern: [0, 200, 100, 200],
@@ -375,7 +389,7 @@ export async function scheduleDailyDhikrReminders() {
         title: slot.title,
         body: slot.body,
         sound: true,
-        data: { screen: "dhikr" },
+        data: { screen: "adhkar", period: slot.period },
         ...(Platform.OS === "android" ? { channelId: "dhikr-reminders" } : {}),
       },
       trigger: {

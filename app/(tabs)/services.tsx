@@ -14,6 +14,7 @@ const APP_SERVICES = [
   { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
   { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
   { id: "agents", emoji: "🤝", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", icon: "people-outline" },
+  { id: "hospitals", emoji: "🏥", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", icon: "medkit-outline" },
 ] as const
 
 const HARAMAIN_STATIONS = [

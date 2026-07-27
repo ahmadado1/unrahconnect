@@ -1314,5 +1314,21 @@
   "testAdhanScheduledTitle": "Test planlandı",
   "testAdhanScheduledBody": "Telefonunuzu şimdi kilitleyin. Ezan bildirim sesi yaklaşık 60 saniye içinde çalmalı.",
   "testAdhanPermissionTitle": "İzin gerekli",
-  "testAdhanPermissionBody": "UmrahConnect için bildirimlere (sesli) izin verin, sonra tekrar deneyin."
+  "testAdhanPermissionBody": "UmrahConnect için bildirimlere (sesli) izin verin, sonra tekrar deneyin.",
+  "morningAdhkar": "Sabah Zikirleri",
+  "eveningAdhkar": "Akşam Zikirleri",
+  "morningAdhkarTitle": "أذكار الصباح — Sabah Zikirleri",
+  "morningAdhkarSub": "Sabah namazından sonra",
+  "morningAdhkarDesc": "Güne sahih sabah zikirleriyle başlayın",
+  "eveningAdhkarTitle": "أذكار المساء — Akşam Zikirleri",
+  "eveningAdhkarSub": "Akşam / gece öncesi",
+  "eveningAdhkarDesc": "Akşam zikirleriyle günü Allah'ı anarak bitirin",
+  "adhkarProgress": "{{done}} / {{total}} tamamlandı",
+  "adhkarAllComplete": "Hepsi tamam! Allah razı olsun 🤲",
+  "adhkarCompleted": "Tamamlandı",
+  "adhkarTapToCount": "Saymak için dokunun",
+  "morningAdhkarReminder": "Sabah zikri hatırlatması",
+  "eveningAdhkarReminder": "Akşam zikri hatırlatması",
+  "tapToChangeTime": "Saati değiştirmek için dokunun",
+  "reset": "Sıfırla"
 }

@@ -1314,5 +1314,21 @@
   "testAdhanScheduledTitle": "Test scheduled",
   "testAdhanScheduledBody": "Lock your phone now. The Adhan notification sound should play in about 60 seconds.",
   "testAdhanPermissionTitle": "Permission needed",
-  "testAdhanPermissionBody": "Allow notifications (with sound) for UmrahConnect, then try again."
+  "testAdhanPermissionBody": "Allow notifications (with sound) for UmrahConnect, then try again.",
+  "morningAdhkar": "Morning Adhkar",
+  "eveningAdhkar": "Evening Adhkar",
+  "morningAdhkarTitle": "أذكار الصباح — Morning Adhkar",
+  "morningAdhkarSub": "After Fajr",
+  "morningAdhkarDesc": "Start your day with authentic morning remembrances",
+  "eveningAdhkarTitle": "أذكار المساء — Evening Adhkar",
+  "eveningAdhkarSub": "Before Maghrib / night",
+  "eveningAdhkarDesc": "End your day remembering Allah with evening adhkar",
+  "adhkarProgress": "{{done}} of {{total}} completed",
+  "adhkarAllComplete": "All Complete! BarakAllahu feek 🤲",
+  "adhkarCompleted": "Completed",
+  "adhkarTapToCount": "Tap to count",
+  "morningAdhkarReminder": "Morning Adhkar reminder",
+  "eveningAdhkarReminder": "Evening Adhkar reminder",
+  "tapToChangeTime": "Tap to change time",
+  "reset": "Reset"
 }

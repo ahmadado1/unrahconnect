@@ -35,6 +35,14 @@ const UMRAH_PHASE_TITLE_KEYS = [
 
 const UMRAH_TOTAL_PHASES = UMRAH_PHASE_TITLE_KEYS.length
 
+/** Morning Adhkar: 8:00–10:59 · Evening Adhkar: 17:00–17:59 */
+function getAdhkarWindow(now = new Date()): "morning" | "evening" | null {
+  const hour = now.getHours()
+  if (hour >= 8 && hour < 11) return "morning"
+  if (hour >= 17 && hour < 18) return "evening"
+  return null
+}
+
 // ─── DHIKR LIST ──────────────────────────────────────────────────────────────
 
 const DHIKR_LIST = [
@@ -331,6 +339,7 @@ export default function HomeScreen() {
   const [dhikr, setDhikr] = useState(() => DHIKR_LIST[new Date().getDay() % DHIKR_LIST.length])
   const [dhikrFaved, setDhikrFaved] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
+  const [adhkarWindow, setAdhkarWindow] = useState<"morning" | "evening" | null>(() => getAdhkarWindow())
   const [refreshing, setRefreshing] = useState(false)
 
   const loadVerse = useCallback(async (forceNew = false) => {
@@ -464,8 +473,16 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadUmrahProgress()
+      setAdhkarWindow(getAdhkarWindow())
     }, [loadUmrahProgress])
   )
+
+  // Keep Adhkar card in sync as the clock crosses window boundaries
+  useEffect(() => {
+    const tick = () => setAdhkarWindow(getAdhkarWindow())
+    const interval = setInterval(tick, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   // ── Fetch bookings ──
   useEffect(() => {
@@ -594,6 +611,40 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.text} />
           </View>
         </TouchableOpacity>
+
+        {/* Adhkar — under Umrah Journey; morning 8–11am, evening 5–6pm only */}
+        {adhkarWindow === "morning" && (
+          <TouchableOpacity
+            style={[styles.adhkarHomeCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/MorningAdhkarScreen" as any)}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.adhkarHomeIcon, { backgroundColor: "rgba(201,168,76,0.18)" }]}>
+              <Text style={styles.adhkarHomeEmoji}>🌅</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.adhkarHomeTitle, { color: theme.text }]}>{t("morningAdhkarTitle")}</Text>
+              <Text style={[styles.adhkarHomeSub, { color: theme.textSecondary }]}>{t("morningAdhkarDesc")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
+          </TouchableOpacity>
+        )}
+        {adhkarWindow === "evening" && (
+          <TouchableOpacity
+            style={[styles.adhkarHomeCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/EveningAdhkarScreen" as any)}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.adhkarHomeIcon, { backgroundColor: "rgba(30,58,95,0.12)" }]}>
+              <Text style={styles.adhkarHomeEmoji}>🌙</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.adhkarHomeTitle, { color: theme.text }]}>{t("eveningAdhkarTitle")}</Text>
+              <Text style={[styles.adhkarHomeSub, { color: theme.textSecondary }]}>{t("eveningAdhkarDesc")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
+          </TouchableOpacity>
+        )}
 
         {/* ── TODAY'S DHIKR ── */}
         <View style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -765,6 +816,30 @@ const styles = StyleSheet.create({
   progressBarFill: { height: 5, backgroundColor: "#C9A84C", borderRadius: 3 },
   progressPercent: { color: "#C9A84C", fontSize: 11, marginTop: 4, fontWeight: "600" },
   journeyArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.06)", alignItems: "center", justifyContent: "center" },
+
+  // Timed Adhkar card (under Umrah Journey)
+  adhkarHomeCard: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 0.5,
+    borderLeftWidth: 3,
+    borderLeftColor: "#C9A84C",
+  },
+  adhkarHomeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adhkarHomeEmoji: { fontSize: 22 },
+  adhkarHomeTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  adhkarHomeSub: { fontSize: 12, lineHeight: 16 },
 
   // Dhikr card
   dhikrCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 20, borderWidth: 0.5, overflow: "hidden" },

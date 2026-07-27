@@ -56,8 +56,18 @@ export default function RootLayout() {
       }
     } else if (identifier === "daily-verse") {
       router.push("/quran")
+    } else if (
+      identifier === "dhikr-reminder-morning" ||
+      (data?.screen === "adhkar" && data?.period === "morning")
+    ) {
+      router.push("/MorningAdhkarScreen" as any)
+    } else if (
+      identifier === "dhikr-reminder-evening" ||
+      (data?.screen === "adhkar" && data?.period === "evening")
+    ) {
+      router.push("/EveningAdhkarScreen" as any)
     } else if (identifier.startsWith("dhikr-reminder")) {
-      router.push("/(tabs)" as any)
+      router.push("/MorningAdhkarScreen" as any)
     } else if (identifier.startsWith("islamic-")) {
       router.push("/islamic-calendar")
     }
@@ -235,6 +245,8 @@ const checkAuth = async () => {
               <Stack.Screen name="join" />
               <Stack.Screen name="qiblah" />
               <Stack.Screen name="AIGuideScreen" />
+              <Stack.Screen name="MorningAdhkarScreen" />
+              <Stack.Screen name="EveningAdhkarScreen" />
             </Stack>
 
             {status === "loading" && (

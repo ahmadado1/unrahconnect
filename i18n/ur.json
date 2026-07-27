@@ -1314,5 +1314,21 @@
   "testAdhanScheduledTitle": "ٹیسٹ شیڈول ہو گیا",
   "testAdhanScheduledBody": "ابھی فون لاک کریں۔ تقریباً ۶۰ سیکنڈ میں اذان نوٹیفکیشن کی آواز بجنی چاہیے۔",
   "testAdhanPermissionTitle": "اجازت درکار ہے",
-  "testAdhanPermissionBody": "UmrahConnect کے لیے اطلاعات (آواز کے ساتھ) کی اجازت دیں، پھر دوبارہ کوشش کریں۔"
+  "testAdhanPermissionBody": "UmrahConnect کے لیے اطلاعات (آواز کے ساتھ) کی اجازت دیں، پھر دوبارہ کوشش کریں۔",
+  "morningAdhkar": "صبح کے اذکار",
+  "eveningAdhkar": "شام کے اذکار",
+  "morningAdhkarTitle": "أذكار الصباح — صبح کے اذکار",
+  "morningAdhkarSub": "فجر کے بعد",
+  "morningAdhkarDesc": "مستند صبح کے اذکار سے دن کا آغاز کریں",
+  "eveningAdhkarTitle": "أذكار المساء — شام کے اذکار",
+  "eveningAdhkarSub": "مغرب / رات سے پہلے",
+  "eveningAdhkarDesc": "شام کے اذکار کے ساتھ اللہ کے ذکر میں دن ختم کریں",
+  "adhkarProgress": "{{total}} میں سے {{done}} مکمل",
+  "adhkarAllComplete": "سب مکمل! بارک اللہ فیک 🤲",
+  "adhkarCompleted": "مکمل",
+  "adhkarTapToCount": "گننے کے لیے تھپتھپائیں",
+  "morningAdhkarReminder": "صبح کے اذکار کی یاددہانی",
+  "eveningAdhkarReminder": "شام کے اذکار کی یاددہانی",
+  "tapToChangeTime": "وقت بدلنے کے لیے تھپتھپائیں",
+  "reset": "ری سیٹ"
 }

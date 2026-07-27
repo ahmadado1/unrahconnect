@@ -43,13 +43,13 @@ function buildStaticItems(t: (key: string) => string): SearchResult[] {
     { id: "arafah", title: "Mount Arafah", subtitle: "Hajj Site · Makkah", emoji: "🏔️", category: "Maps", action: "navigate", target: "/maps/arafah" },
     { id: "zamzam", title: "Zamzam Well", subtitle: "Holy Water · Makkah", emoji: "💧", category: "Maps", action: "navigate", target: "/maps/zamzam" },
     { id: "safa", title: "Safa & Marwah", subtitle: "Sa'i Location · Makkah", emoji: "🚶", category: "Maps", action: "navigate", target: "/maps/safa" },
-    { id: "hospitals", title: "Hospitals", subtitle: "Medical Centers · Makkah & Madinah", emoji: "🏥", category: "Maps", action: "navigate", target: "/maps/hospital-makkah" },
     { id: "lost", title: "Lost & Found", subtitle: "Pilgrim Support Centers", emoji: "🔍", category: "Maps", action: "navigate", target: "/maps/lost-found" },
 
     // Services
     { id: "hotels", title: t("hotels"), subtitle: t("hotelsSub"), emoji: "🏨", category: "Services", action: "navigate", target: "/hotels" },
     { id: "restaurants", title: t("restaurants"), subtitle: t("restaurantsSub"), emoji: "🍽️", category: "Services", action: "navigate", target: "/restaurants" },
     { id: "agents", title: t("findAgent"), subtitle: t("findAgentSub"), emoji: "🤝", category: "Services", action: "navigate", target: "/travel-agents" },
+    { id: "hospitals", title: t("hospitals"), subtitle: t("hospitalsSub"), emoji: "🏥", category: "Services", action: "navigate", target: "/maps/hospital-makkah" },
     { id: "favorites", title: t("favorites"), subtitle: "Saved hotels & restaurants", emoji: "❤️", category: "Services", action: "navigate", target: "/favorites" },
     { id: "saudia", title: "Saudia Airlines", subtitle: "Official Saudi carrier — Jeddah & Madinah", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/saudia" },
     { id: "kayak", title: "Kayak", subtitle: "Compare hundreds of flight sites", emoji: "✈️", category: "Flights", action: "navigate", target: "/flight-detail/kayak" },
@@ -72,6 +72,8 @@ function buildStaticItems(t: (key: string) => string): SearchResult[] {
     { id: "umrah", title: t("umrahGuide"), subtitle: "Step by step Umrah phases", emoji: "🕋", category: "Guide", action: "navigate", target: "/umrah-guide" },
     { id: "hajj", title: t("hajj"), subtitle: "Complete Hajj rituals", emoji: "☪️", category: "Guide", action: "navigate", target: "/hajj" },
     { id: "ai-guide", title: "AI Guide", subtitle: "Ask Umrah & Hajj questions", emoji: "🤖", category: "Guide", action: "navigate", target: "/AIGuideScreen" },
+    { id: "morning-adhkar", title: t("morningAdhkarTitle"), subtitle: t("morningAdhkarSub"), emoji: "🌅", category: "Guide", action: "navigate", target: "/MorningAdhkarScreen" },
+    { id: "evening-adhkar", title: t("eveningAdhkarTitle"), subtitle: t("eveningAdhkarSub"), emoji: "🌙", category: "Guide", action: "navigate", target: "/EveningAdhkarScreen" },
     { id: "ihram", title: "Ihram", subtitle: "Umrah phase 1", emoji: "🤍", category: "Guide", action: "navigate", target: "/umrah/1" },
     { id: "tawaf", title: "Tawaf", subtitle: "Circling the Kaaba", emoji: "🔄", category: "Guide", action: "navigate", target: "/umrah/4" },
     { id: "sai", title: "Sa'i", subtitle: "Between Safa and Marwah", emoji: "🚶", category: "Guide", action: "navigate", target: "/umrah/5" },

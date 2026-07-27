@@ -1314,5 +1314,21 @@
   "testAdhanScheduledTitle": "تم جدولة الاختبار",
   "testAdhanScheduledBody": "اقفل هاتفك الآن. يفترض أن يصدر صوت إشعار الأذان خلال نحو 60 ثانية.",
   "testAdhanPermissionTitle": "الإذن مطلوب",
-  "testAdhanPermissionBody": "اسمح بالإشعارات (مع الصوت) لتطبيق UmrahConnect ثم حاول مرة أخرى."
+  "testAdhanPermissionBody": "اسمح بالإشعارات (مع الصوت) لتطبيق UmrahConnect ثم حاول مرة أخرى.",
+  "morningAdhkar": "أذكار الصباح",
+  "eveningAdhkar": "أذكار المساء",
+  "morningAdhkarTitle": "أذكار الصباح",
+  "morningAdhkarSub": "بعد الفجر",
+  "morningAdhkarDesc": "ابدأ يومك بأذكار الصباح المأثورة",
+  "eveningAdhkarTitle": "أذكار المساء",
+  "eveningAdhkarSub": "قبل المغرب / الليل",
+  "eveningAdhkarDesc": "اختم يومك بذكر الله بأذكار المساء",
+  "adhkarProgress": "{{done}} من {{total}} مكتمل",
+  "adhkarAllComplete": "أحسنت! بارك الله فيك 🤲",
+  "adhkarCompleted": "مكتمل",
+  "adhkarTapToCount": "اضغط للعد",
+  "morningAdhkarReminder": "تذكير أذكار الصباح",
+  "eveningAdhkarReminder": "تذكير أذكار المساء",
+  "tapToChangeTime": "اضغط لتغيير الوقت",
+  "reset": "إعادة تعيين"
 }

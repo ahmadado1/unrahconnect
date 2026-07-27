@@ -60,13 +60,55 @@ If the user asks anything outside these topics, reply EXACTLY with this message 
 "${OFF_TOPIC_REPLY}"
 
 APP SCREENS AND HOW TO NAVIGATE:
-- Home tab: daily verse, prayer countdown, dhikr, checklist progress
+- Home tab: daily verse, prayer countdown, dhikr, checklist progress → home
 - Guide tab: Umrah checklist, Hajj guide, Quran reader, Qibla, Islamic calendar, AI Guide
-- Maps tab: Makkah and Madinah maps with landmarks
-- Services tab: Hotels, Restaurants, Transport (Haramain Railway, SAPTCO, Uber), Shopping malls
+- Maps: Makkah landmarks (haram, zamzam, safa, mina, arafah) and Madinah (nabawi / Rawdah)
+- Services: Hotels, Restaurants, Transport, Hospitals, Travel Agents, Shopping
 - Me tab: profile, settings, language, bookmarks
 
-Tell users exactly where to tap. Example: "Open the Guide tab, then tap the Umrah checklist."
+DEEP LINK MARKERS (REQUIRED WHEN RELEVANT):
+At the end of your response, when the user can open a specific screen in the app, include up to 3 markers in this exact format (on their own lines):
+[LINK: screenPath | emoji Label]
+
+Rules:
+- Maximum 3 [LINK: ...] markers per response
+- Place them at the very end of the reply
+- Do not wrap markers in code fences or markdown links
+- For general Islamic knowledge with no matching app screen, omit markers entirely
+- Prefer the most specific destination (exact surah, exact Umrah/Hajj step, exact map site)
+
+Allowed screenPath values (examples):
+- quran/18 → open Surah Al-Kahf
+- quran/36 → open Surah Ya-Sin
+- quran → Quran list
+- umrah/1 → Madinah Visit step
+- umrah/2 → Ihram
+- umrah/3 → Arriving in Makkah
+- umrah/4 or umrah/tawaf → Tawaf
+- umrah/5 or umrah/sai → Sa'i
+- umrah/6 or umrah/halq → Halq/Taqsir
+- umrah/7 → Umrah Complete
+- umrah-guide → full Umrah checklist
+- hajj → Hajj guide overview
+- hajj/4 → Day of Arafah (Hajj step 4)
+- maps/haram or maps/makkah → Makkah / Masjid al-Haram map
+- maps/nabawi or maps/madinah → Madinah / Masjid Nabawi map (Rawdah, Prophet's grave)
+- maps/zamzam → Zamzam
+- maps/safa → Safa & Marwah
+- maps/mina → Mina
+- maps/arafah → Arafah
+- qiblah → Qibla compass
+- hotels → Hotels
+- restaurants → Restaurants
+- hospitals → Hospitals (maps/hospital-makkah)
+- travel-agents → Find an agent
+- home → Home / prayer times
+- services → Services tab
+
+Examples:
+[LINK: quran/18 | 📖 Read Al-Kahf]
+[LINK: umrah/tawaf | ✅ Tawaf Guide]
+[LINK: maps/madinah | 🗺 Madinah Map]
 
 UMRAH STEPS (reference the user's current progress naturally):
 1. Madinah Visit (optional but recommended)
@@ -116,6 +158,7 @@ serve(async (req) => {
       completedSteps,
       currentStep,
       currentStepName,
+      stream: wantStream = true,
     } = body
 
     const systemPrompt = buildSystemPrompt({
@@ -142,7 +185,7 @@ serve(async (req) => {
       })
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": ANTHROPIC_API_KEY,
@@ -152,24 +195,108 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
+        stream: wantStream !== false,
         system: systemPrompt,
         messages,
       }),
     })
 
-    const data = await response.json()
+    if (!anthropicRes.ok) {
+      const errData = await anthropicRes.json().catch(() => ({}))
+      return new Response(
+        JSON.stringify({ error: errData.error?.message ?? "Anthropic request failed" }),
+        {
+          status: anthropicRes.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      )
+    }
 
-    if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message ?? "Anthropic request failed" }), {
-        status: response.status,
+    // Non-streaming fallback (legacy clients)
+    if (wantStream === false) {
+      const data = await anthropicRes.json()
+      const reply = data.content?.[0]?.text ?? "Sorry, I couldn't generate a response."
+      return new Response(JSON.stringify({ reply }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
 
-    const reply = data.content?.[0]?.text ?? "Sorry, I couldn't generate a response."
+    // Transform Anthropic SSE → simple SSE: data: {"type":"text","text":"..."} / {"type":"done"}
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = anthropicRes.body?.getReader()
+        if (!reader) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: "No stream body" })}\n\n`))
+          controller.close()
+          return
+        }
+
+        let buffer = ""
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const parts = buffer.split("\n")
+            buffer = parts.pop() ?? ""
+
+            for (const line of parts) {
+              const trimmed = line.trim()
+              if (!trimmed.startsWith("data:")) continue
+              const payload = trimmed.slice(5).trim()
+              if (!payload || payload === "[DONE]") continue
+
+              try {
+                const event = JSON.parse(payload)
+                if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+                  const text = event.delta.text ?? ""
+                  if (text) {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ type: "text", text })}\n\n`),
+                    )
+                  }
+                } else if (event.type === "message_stop") {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`))
+                } else if (event.type === "error") {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "error",
+                        error: event.error?.message ?? "Stream error",
+                      })}\n\n`,
+                    ),
+                  )
+                }
+              } catch {
+                // skip malformed SSE chunks
+              }
+            }
+          }
+
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`))
+        } catch (e) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "error", error: String(e) })}\n\n`,
+            ),
+          )
+        } finally {
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
     })
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {

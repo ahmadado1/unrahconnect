@@ -16,7 +16,6 @@ const LOCATIONS = [
   { id: "arafah", emoji: "🏔️", nameKey: "arafah", subKey: "hajjSite", query: "Mount Arafah, Makkah, Saudi Arabia" },
   { id: "zamzam", emoji: "💧", nameKey: "zamzamWell", subKey: "makkah", query: "Zamzam Well, Makkah, Saudi Arabia" },
   { id: "safa", emoji: "🚶", nameKey: "safaMarwah", subKey: "makkah", query: "Safa and Marwah, Makkah, Saudi Arabia" },
-  { id: "hospital-makkah", emoji: "🏥", nameKey: "hospitals", subKey: "makkah", query: "King Abdullah Medical Complex Makkah" },
   { id: "lost-found", emoji: "🔍", nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
 ] as const
 
