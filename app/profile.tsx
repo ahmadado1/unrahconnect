@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PhoneInput from "./components/PhoneInput"
 import SelectDropdown from "./components/SelectDropdown"
+import { isNetworkError } from "@/lib/networkError"
 import { supabase } from "../lib/supabase"
 
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
@@ -77,8 +78,11 @@ export default function ProfileScreen() {
         await supabase.rpc("delete_user")
         await supabase.auth.signOut()
         router.replace("/auth/login")
-      } catch {
-        Alert.alert("Error", "Could not delete account. Please try again.")
+      } catch (e) {
+        Alert.alert(
+          t("error"),
+          isNetworkError(e) ? t("networkError") : t("somethingWentWrong")
+        )
       } finally {
         setLoading(false)
       }
@@ -88,7 +92,7 @@ export default function ProfileScreen() {
       { text: "Not using it anymore", onPress: confirmDelete },
       { text: "Privacy concerns", onPress: confirmDelete },
       { text: "Found a better app", onPress: confirmDelete },
-      { text: "Cancel", style: "cancel" },
+      { text: t("cancel"), style: "cancel" },
     ])
   }
 
@@ -99,7 +103,10 @@ export default function ProfileScreen() {
     })
     if (error) {
       console.log(error)
-      Alert.alert("Error", error.message)
+      Alert.alert(
+        t("error"),
+        isNetworkError(error) ? t("networkError") : t("somethingWentWrong")
+      )
     } else {
       setEditing(false)
       await getUser()

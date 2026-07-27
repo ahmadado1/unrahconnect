@@ -57,16 +57,23 @@ export default function RootLayout() {
     } else if (identifier === "daily-verse") {
       router.push("/quran")
     } else if (
+      identifier === "adhkar-reminder-morning" ||
       identifier === "dhikr-reminder-morning" ||
-      (data?.screen === "adhkar" && data?.period === "morning")
+      (data?.screen === "adhkar" && data?.period === "morning") ||
+      data?.route === "/MorningAdhkarScreen"
     ) {
       router.push("/MorningAdhkarScreen" as any)
     } else if (
+      identifier === "adhkar-reminder-evening" ||
       identifier === "dhikr-reminder-evening" ||
-      (data?.screen === "adhkar" && data?.period === "evening")
+      (data?.screen === "adhkar" && data?.period === "evening") ||
+      data?.route === "/EveningAdhkarScreen"
     ) {
       router.push("/EveningAdhkarScreen" as any)
-    } else if (identifier.startsWith("dhikr-reminder")) {
+    } else if (
+      identifier.startsWith("adhkar-reminder") ||
+      identifier.startsWith("dhikr-reminder")
+    ) {
       router.push("/MorningAdhkarScreen" as any)
     } else if (identifier.startsWith("islamic-")) {
       router.push("/islamic-calendar")

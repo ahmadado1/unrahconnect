@@ -1,4 +1,5 @@
 import { useAIGuide } from "@/context/AIGuideContext"
+import { isNetworkError } from "@/lib/networkError"
 import { getUmrahProgress, supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase"
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js"
 import { Ionicons } from "@expo/vector-icons"
@@ -410,21 +411,21 @@ function getKeywordDeepLinks(...texts) {
   return links
 }
 
-async function getInvokeErrorMessage(error) {
+async function getInvokeErrorKey(error) {
   if (error instanceof FunctionsHttpError) {
     try {
       const body = await error.context.json()
-      if (body?.error) return String(body.error)
+      if (body?.error && isNetworkError(body.error)) return "networkError"
+      // Keep specific server errors as plain text via null → caller uses somethingWentWrong
+      if (body?.error) return null
     } catch {
       // ignore parse errors
     }
   }
 
-  if (error instanceof FunctionsFetchError) {
-    return "Could not reach the AI service. Check your connection and try again."
-  }
-
-  return error?.message ?? "Something went wrong. Please try again."
+  if (error instanceof FunctionsFetchError) return "networkError"
+  if (isNetworkError(error)) return "networkError"
+  return "somethingWentWrong"
 }
 
 function buildProgressContext(completedIds) {
@@ -549,7 +550,7 @@ async function streamAiGuide({ body, onText, signal }) {
 export default function AIGuideScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const listRef = useRef(null)
   const abortRef = useRef(null)
   const { messages, setMessages, loading, setLoading, clearChat } = useAIGuide()
@@ -744,13 +745,13 @@ export default function AIGuideScreen() {
       )
     } catch (err) {
       if (err?.name === "AbortError") return
-      const detail = await getInvokeErrorMessage(err)
+      const key = await getInvokeErrorKey(err)
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
             ? {
                 ...m,
-                content: detail || String(err?.message || err),
+                content: key ? t(key) : t("somethingWentWrong"),
                 links: [],
                 streaming: false,
               }

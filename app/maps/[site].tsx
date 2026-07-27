@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import RawdahVisitCard from "../components/RawdahVisitCard"
 import SiteMapView from "../components/SiteMapView"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -277,6 +278,12 @@ export default function SiteDetailScreen() {
             </View>
           ))}
         </View>
+
+        {site === "nabawi" && (
+          <View style={{ marginHorizontal: 16, marginTop: 8 }}>
+            <RawdahVisitCard />
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.navBtn, { backgroundColor: "#1E3A5F" }]}

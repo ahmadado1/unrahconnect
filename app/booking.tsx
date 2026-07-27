@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PhoneInput from "./components/PhoneInput";
+import { isNetworkError } from "@/lib/networkError";
 import { supabase } from "../lib/supabase";
 async function sendBookingEmail(params: Record<string, string | number>) {
   const response = await fetch(
@@ -158,7 +159,10 @@ export default function BookingScreen() {
       )
     } catch (error: unknown) {
       console.error("Booking failed:", error)
-      Alert.alert("Booking failed", "Something went wrong. Please try again.")
+      Alert.alert(
+        t("bookingFailed"),
+        isNetworkError(error) ? t("networkError") : t("somethingWentWrong")
+      )
     } finally {
       setLoading(false)
     }

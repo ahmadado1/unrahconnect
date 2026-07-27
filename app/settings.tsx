@@ -79,6 +79,7 @@ export default function SettingsScreen() {
     await AsyncStorage.setItem("language", code)
     await applyRtlForLanguage(code)
     ensureQuranForLanguage(code).catch(console.log)
+    await scheduleDailyDhikrReminders().catch(console.log)
     setLanguageModalOpen(false)
   }
 

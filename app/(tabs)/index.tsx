@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Animated,
   Easing,
   Image,
@@ -371,7 +372,9 @@ export default function HomeScreen() {
         await AsyncStorage.setItem("cached_verse", JSON.stringify({ text, ref, edition }))
         await AsyncStorage.setItem("cached_verse_date", today)
       }
-    } catch (e) {}
+    } catch (e) {
+      if (forceNew) throw e
+    }
   }, [])
 
   const loadPrayer = useCallback(async (preferCacheFirst = true) => {
@@ -392,7 +395,9 @@ export default function HomeScreen() {
         setMinutesLeft(getMinutesUntilPrayer(p.time))
         if (times.city) setLocationName(times.city)
       }
-    } catch (e) {}
+    } catch (e) {
+      if (!preferCacheFirst) throw e
+    }
   }, [])
 
   const loadUmrahProgress = useCallback(async () => {
@@ -433,10 +438,12 @@ export default function HomeScreen() {
         loadUmrahProgress(),
       ])
       refreshDhikr()
+    } catch (e) {
+      Alert.alert(t("networkError"))
     } finally {
       setRefreshing(false)
     }
-  }, [loadVerse, loadPrayer, loadUmrahProgress, refreshDhikr])
+  }, [loadVerse, loadPrayer, loadUmrahProgress, refreshDhikr, t])
 
   // ── Fetch user ──
   useEffect(() => {

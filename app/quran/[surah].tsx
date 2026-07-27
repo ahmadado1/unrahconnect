@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -438,6 +439,7 @@ function MushafView({
 export default function SurahScreen() {
   const router = useRouter()
   const { theme } = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [initialIndex, setInitialIndex] = useState(0)
   const listRef = useRef<FlatList>(null)
@@ -719,7 +721,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           <View style={styles.loadingContainer}>
             <Ionicons name="cloud-offline-outline" size={40} color={theme.textSecondary} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Unable to load verses. Check your connection or wait for the offline download to finish.
+              {t("unableToLoadVerses")}
             </Text>
           </View>
         ) : (

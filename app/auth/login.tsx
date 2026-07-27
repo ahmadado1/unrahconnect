@@ -9,6 +9,7 @@ import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
 import { isExpoGo } from "../../lib/runtime";
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
+import { errorMessageKey, isNetworkError } from "@/lib/networkError";
 
 // ─── GOOGLE SIGN IN ───────────────────────────────────────────────────────────
 // Native module only exists in dev/production builds — not Expo Go.
@@ -97,62 +98,69 @@ export default function LoginScreen() {
   }
 
   const handleAuth = async () => {
-    if (!email || !password) { setError("Please fill in all fields"); return }
-    if (isSignUp && !fullName) { setError("Please enter your full name"); return }
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return }
+    if (!email || !password) { setError(t("fillAllFields")); return }
+    if (isSignUp && !fullName) { setError(t("enterFullName")); return }
+    if (password.length < 6) { setError(t("passwordMinLength")); return }
     if (!(await validateAgentCodeInput())) return
     setLoading(true)
     setError("")
-  
-    if (isSignUp) {
-      const code = normalizeReferralCode(agentCode)
-      if (code) await saveReferralCode(code)
 
-      const { error: signUpError } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { full_name: fullName, gender } }
-      })
-      if (signUpError) {
-        if (signUpError.message.includes("already registered") || signUpError.message.includes("already exists")) {
-          setError("This email is already registered. Please login instead.")
-        } else {
-          console.log("Signup error:", signUpError.message)
-          setError("Something went wrong. Please try again.")
-        }
-      } else {
-        fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
-        },
-        body: JSON.stringify({
-          guest_name: fullName,
-          guest_email: email,
-        })
-      }).then(r => r.text()).then(t => console.log("Welcome email response:", t))
-        .catch(e => console.log("Welcome email error:", e))
-        router.replace("/auth/setup" as any)
-}
-  
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        if (error.message.includes("Invalid login")) {
-          setError("Wrong email or password. Please try again.")
-        } else if (error.message.includes("Email not confirmed")) {
-          setError("Please confirm your email before logging in.")
-        } else {
-          setError(error.message)
-        }
-      } else {
+    try {
+      if (isSignUp) {
         const code = normalizeReferralCode(agentCode)
-        if (code) await linkPilgrimToAgent(code)
-        router.replace("/(tabs)")
+        if (code) await saveReferralCode(code)
+
+        const { error: signUpError } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { full_name: fullName, gender } }
+        })
+        if (signUpError) {
+          if (isNetworkError(signUpError)) {
+            setError(t("networkError"))
+          } else if (signUpError.message.includes("already registered") || signUpError.message.includes("already exists")) {
+            setError(t("emailAlreadyRegistered"))
+          } else {
+            console.log("Signup error:", signUpError.message)
+            setError(t("somethingWentWrong"))
+          }
+        } else {
+          fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
+            },
+            body: JSON.stringify({
+              guest_name: fullName,
+              guest_email: email,
+            })
+          }).then(r => r.text()).then(txt => console.log("Welcome email response:", txt))
+            .catch(e => console.log("Welcome email error:", e))
+          router.replace("/auth/setup" as any)
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+          if (isNetworkError(error)) {
+            setError(t("networkError"))
+          } else if (error.message.includes("Invalid login")) {
+            setError(t("wrongEmailOrPassword"))
+          } else if (error.message.includes("Email not confirmed")) {
+            setError(t("confirmEmailFirst"))
+          } else {
+            setError(t(errorMessageKey(error)))
+          }
+        } else {
+          const code = normalizeReferralCode(agentCode)
+          if (code) await linkPilgrimToAgent(code)
+          router.replace("/(tabs)")
+        }
       }
+    } catch (e) {
+      setError(t(errorMessageKey(e)))
+    } finally {
+      setLoading(false)
     }
-  
-    setLoading(false)
   }
 
   // ─── GOOGLE SIGN IN ────────────────────────────────────────────────────────
@@ -171,7 +179,7 @@ const handleGoogleSignIn = async () => {
         })
         console.log("Supabase error:", error)
         if (error) {
-          setError(error.message)
+          setError(isNetworkError(error) ? t("networkError") : error.message)
         } else {
           const { data: { user } } = await supabase.auth.getUser()
           const profileComplete = user?.user_metadata?.profile_complete
@@ -201,8 +209,10 @@ const handleGoogleSignIn = async () => {
       console.log("Google error code:", err.code)
       if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
         // User cancelled — do nothing
+      } else if (isNetworkError(err)) {
+        setError(t("networkError"))
       } else {
-        setError("Google sign in failed. Please try again.")
+        setError(t("googleSignInFailed"))
       }
     }
   } else {
@@ -227,7 +237,7 @@ const handleGoogleSignIn = async () => {
         provider: "apple",
         token: identityToken,
       })
-      if (error) setError(error.message)
+      if (error) setError(isNetworkError(error) ? t("networkError") : error.message)
     else {
        const { data: { user } } = await supabase.auth.getUser()
        const profileComplete = user?.user_metadata?.profile_complete
@@ -255,8 +265,10 @@ const handleGoogleSignIn = async () => {
   } catch (e: any) {
     if (e.code === "ERR_REQUEST_CANCELED") {
       // User cancelled — do nothing
+    } else if (isNetworkError(e)) {
+      setError(t("networkError"))
     } else {
-      setError("Apple sign in failed. Please try again.")
+      setError(t("appleSignInFailed"))
     }
   }
 }

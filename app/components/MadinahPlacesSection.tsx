@@ -1,5 +1,6 @@
 import { MADINAH_PLACES } from "@/lib/madinahPlaces"
 import PhaseStepCard from "@/app/components/PhaseStepCard"
+import RawdahVisitCard from "@/app/components/RawdahVisitCard"
 import { useTheme } from "@/context/themeContext"
 import { useTranslation } from "react-i18next"
 import { StyleSheet, Text, View } from "react-native"
@@ -24,27 +25,30 @@ export default function MadinahPlacesSection({ badgeColor }: Props) {
 
       <View style={styles.list}>
         {MADINAH_PLACES.map((place, index) => (
-          <PhaseStepCard
-            key={place.number}
-            number={Number(place.number)}
-            index={index}
-            title={t(place.titleKey)}
-            text={t(place.descriptionKey)}
-            badgeColor={badgeColor}
-            crucial={place.crucial}
-            citation={place.citationKey ? t(place.citationKey) : undefined}
-          >
-            {place.subItems?.map((sub) => (
-              <View key={sub.titleKey} style={styles.subItem}>
-                <Text style={[styles.subTitle, { color: theme.text }]}>
-                  {t(sub.titleKey)}
-                </Text>
-                <Text style={[styles.subDesc, { color: theme.textSecondary }]}>
-                  {t(sub.descriptionKey)}
-                </Text>
-              </View>
-            ))}
-          </PhaseStepCard>
+          <View key={place.number}>
+            <PhaseStepCard
+              number={Number(place.number)}
+              index={index}
+              title={t(place.titleKey)}
+              text={t(place.descriptionKey)}
+              badgeColor={badgeColor}
+              crucial={place.crucial}
+              citation={place.citationKey ? t(place.citationKey) : undefined}
+            >
+              {place.subItems?.map((sub) => (
+                <View key={sub.titleKey} style={styles.subItem}>
+                  <Text style={[styles.subTitle, { color: theme.text }]}>
+                    {t(sub.titleKey)}
+                  </Text>
+                  <Text style={[styles.subDesc, { color: theme.textSecondary }]}>
+                    {t(sub.descriptionKey)}
+                  </Text>
+                </View>
+              ))}
+            </PhaseStepCard>
+            {/* After Riyad Al Jannah — Rawdah visit windows + Nusuk for daytime */}
+            {place.number === "2" && <RawdahVisitCard compact />}
+          </View>
         ))}
       </View>
     </View>
