@@ -116,7 +116,9 @@ export default function PhoneInput({
           onPress={() => setPickerOpen(true)}
           activeOpacity={0.75}
         >
-          <Text style={styles.flag}>{country.flag}</Text>
+          <View style={styles.codeBadge}>
+            <Text style={styles.codeBadgeText}>{country.code}</Text>
+          </View>
           <Text style={[styles.dial, { color: theme.text }]}>{country.dial}</Text>
           <Ionicons name="chevron-down" size={14} color={theme.textSecondary} />
         </TouchableOpacity>
@@ -184,7 +186,9 @@ export default function PhoneInput({
                   ]}
                   onPress={() => pickCountry(item.code)}
                 >
-                  <Text style={styles.rowFlag}>{item.flag}</Text>
+                  <View style={styles.codeBadge}>
+                    <Text style={styles.codeBadgeText}>{item.code}</Text>
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.countryName, { color: theme.text }]}>
                       {item.name}
@@ -225,7 +229,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRightWidth: 0.5,
   },
-  flag: { fontSize: 18 },
+  codeBadge: {
+    backgroundColor: "rgba(30,58,95,0.1)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 32,
+    alignItems: "center",
+  },
+  codeBadgeText: { fontSize: 11, fontWeight: "700", color: "#1E3A5F" },
   dial: { fontSize: 15, fontWeight: "600" },
   input: { flex: 1, fontSize: 15, paddingHorizontal: 12, paddingVertical: 14 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)" },
@@ -263,7 +275,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 0.5,
   },
-  rowFlag: { fontSize: 24 },
   countryName: { fontSize: 15, fontWeight: "500" },
   selected: { backgroundColor: "rgba(201,168,76,0.08)" },
 })

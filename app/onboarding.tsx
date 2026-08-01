@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIconKey } from "@/components/AppIcon"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
@@ -7,11 +9,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const { width } = Dimensions.get("window")
 
-const slides = [
-  { id: "1", emoji: "🌙", titleKey: "onboardingWelcomeTitle", subKey: "onboardingWelcomeSub" },
-  { id: "2", emoji: "🕋", titleKey: "onboardingFeaturesTitle", subKey: "onboardingFeaturesSub" },
-  { id: "3", emoji: "✨", titleKey: "onboardingJourneyTitle", subKey: "onboardingJourneySub" },
-] as const
+const slides: { id: string; icon: AppIconKey; titleKey: string; subKey: string }[] = [
+  { id: "1", icon: "moon", titleKey: "onboardingWelcomeTitle", subKey: "onboardingWelcomeSub" },
+  { id: "2", icon: "kaaba", titleKey: "onboardingFeaturesTitle", subKey: "onboardingFeaturesSub" },
+  { id: "3", icon: "sparkles", titleKey: "onboardingJourneyTitle", subKey: "onboardingJourneySub" },
+]
 
 
   export default function OnboardingScreen() {
@@ -49,7 +51,7 @@ const slides = [
             renderItem={({ item }) => (
               <View style={[styles.slide, { width }]}>
                 <View style={[styles.slideContent, { paddingTop: insets.top + 40 }]}>
-                  <Text style={styles.emoji}>{item.emoji}</Text>
+                  <AnimatedHeroIcon name={item.icon} size={80} accent="gold" style={{ marginBottom: 32 }} />
                   <Text style={styles.title}>{t(item.titleKey)}</Text>
                   <Text style={styles.subtitle}>{t(item.subKey)}</Text>
                 </View>
@@ -90,7 +92,6 @@ const styles = StyleSheet.create({
   
     slide: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#1E3A5F" },
     slideContent: { alignItems: "center", paddingHorizontal: 40 },
-    emoji: { fontSize: 80, marginBottom: 32 },
     title: { fontSize: 28, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 16 },
     subtitle: { fontSize: 16, color: "rgba(255,255,255,0.75)", textAlign: "center", lineHeight: 24 },
   

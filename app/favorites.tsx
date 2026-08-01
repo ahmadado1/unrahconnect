@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HOTELS } from "@/lib/hotels"
 import { getRestaurantById, RESTAURANTS, type Restaurant } from "@/lib/restaurants"
@@ -74,7 +76,7 @@ export default function FavoritesScreen() {
 
         {!loading && hotels.length === 0 && restaurants.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>❤️</Text>
+            <AnimatedHeroIcon name="heart" size={56} accent="gold" style={{ marginBottom: 16 }} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noFavorites")}</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>{t("noFavoritesSub")}</Text>
           </View>
@@ -108,9 +110,7 @@ export default function FavoritesScreen() {
                   <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
                     {hotel.city} · {hotel.distanceLabel}
                   </Text>
-                  <Text style={[styles.cardPrice, { color: theme.gold }]}>
-                    {"★".repeat(hotel.stars)}
-                  </Text>
+                  <StarRating count={hotel.stars} size={12} color={theme.gold} />
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>
@@ -146,7 +146,15 @@ export default function FavoritesScreen() {
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{restaurant.name}</Text>
                   <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>{restaurant.city} · {restaurant.distance}</Text>
-                  <Text style={[styles.cardPrice, { color: theme.gold }]}>{restaurant.cuisine} · ★ {restaurant.rating}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <Text style={[styles.cardMeta, { color: theme.textSecondary, marginTop: 0 }]}>
+                      {restaurant.cuisine} ·
+                    </Text>
+                    <AppIcon name="star" size={12} color={theme.gold} />
+                    <Text style={[styles.cardPrice, { color: theme.gold, marginTop: 0 }]}>
+                      {restaurant.rating}
+                    </Text>
+                  </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.gold} />
               </TouchableOpacity>
@@ -167,7 +175,6 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   loadingText: { textAlign: "center", marginTop: 40 },
   emptyState: { alignItems: "center", paddingTop: 80, paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
   emptySub: { fontSize: 14, textAlign: "center", lineHeight: 22 },
   section: { marginTop: 24, paddingHorizontal: 16 },

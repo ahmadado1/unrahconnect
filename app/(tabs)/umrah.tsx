@@ -1,3 +1,4 @@
+import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -58,12 +59,18 @@ export default function GuideScreen() {
     setPreviewFajr(false)
     const sound = previewSoundRef.current
     previewSoundRef.current = null
-    if (!sound) return
+    if (sound) {
+      try {
+        await sound.stopAsync()
+      } catch {}
+      try {
+        await sound.unloadAsync()
+      } catch {}
+    }
+    // Restore background-capable session so prayer Adhan still works after preview
     try {
-      await sound.stopAsync()
-    } catch {}
-    try {
-      await sound.unloadAsync()
+      const { configureAdhanAudioMode } = await import("@/lib/adhanAudio")
+      await configureAdhanAudioMode()
     } catch {}
   }
 
@@ -94,13 +101,8 @@ export default function GuideScreen() {
     previewBusyRef.current = true
     try {
       await stopPreview()
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        allowsRecordingIOS: false,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      })
+      const { configureAdhanAudioMode } = await import("@/lib/adhanAudio")
+      await configureAdhanAudioMode()
 
       const source = getAdhanFile(id, fajr ? "Fajr" : "Dhuhr")
       const { sound } = await Audio.Sound.createAsync(source, {
@@ -165,7 +167,7 @@ export default function GuideScreen() {
             onPress={() => router.push("/umrah-guide")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a3a2a" : "#E1F5EE" }]}>
-              <Text style={styles.cardEmoji}>🕋</Text>
+              <AppIcon name="kaaba" size={28}  />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
@@ -180,7 +182,7 @@ export default function GuideScreen() {
             onPress={() => router.push("/hajj")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2a1a" : "#FAEEDA" }]}>
-              <Text style={styles.cardEmoji}>☪️</Text>
+              <AppIcon name="crescent" size={28}  />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
@@ -195,7 +197,7 @@ export default function GuideScreen() {
             onPress={() => router.push("/quran")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
-              <Text style={styles.cardEmoji}>📖</Text>
+              <AppIcon name="book" size={28}  />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t("quranReader")}</Text>
@@ -210,7 +212,7 @@ export default function GuideScreen() {
             onPress={() => router.push("/AIGuideScreen")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a2a3a" : "#E6F1FB" }]}>
-              <Text style={styles.cardEmoji}>✨</Text>
+              <AppIcon name="sparkles" size={28}  />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>AI Guide</Text>
@@ -227,7 +229,7 @@ export default function GuideScreen() {
             onPress={() => router.push("/islamic-calendar")}
           >
             <View style={[styles.cardIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
-              <Text style={styles.cardEmoji}>📆</Text>
+              <AppIcon name="calendar" size={28}  />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t("islamicDates")}</Text>
@@ -373,7 +375,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
   guideCard: { borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 0.5 },
   cardIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  cardEmoji: { fontSize: 28 },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 2 },
   cardSub: { fontSize: 12, color: "#C9A84C", marginBottom: 6 },

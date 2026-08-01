@@ -18,7 +18,8 @@ export const LOGO_URL =
   "https://cdn.jsdelivr.net/gh/ahmadado1/unrahconnect@main/assets/images/logo.jpg"
 
 export const SITE_URL = "https://myumrahconnect.com"
-export const SUPPORT_EMAIL = "ahmadado6002@gmail.com"
+export const INFO_EMAIL = "info@myumrahconnect.com"
+export const SUPPORT_EMAIL = "support@myumrahconnect.com"
 export const FROM_EMAIL = "UmrahConnect <noreply@myumrahconnect.com>"
 
 export function escapeHtml(value: unknown): string {
@@ -83,8 +84,11 @@ export function wrapEmail(bodyHtml: string, options: WrapOptions = {}): string {
                 Supporting pilgrims with guides, prayer times, Quran, and trusted services.
               </p>
               <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;">
-                <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND.navy};text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a>
+                <a href="mailto:${INFO_EMAIL}" style="color:${BRAND.navy};text-decoration:none;font-weight:600;">${INFO_EMAIL}</a>
                 &nbsp;·&nbsp;
+                <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND.navy};text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a>
+              </p>
+              <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;">
                 <a href="${SITE_URL}" style="color:${BRAND.navy};text-decoration:none;font-weight:600;">myumrahconnect.com</a>
               </p>
               <p style="margin:16px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#8A97A5;">

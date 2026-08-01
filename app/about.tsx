@@ -1,3 +1,5 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -6,6 +8,14 @@ import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const FEATURES = [
+  { icon: "bed" as const, titleKey: "hotelsTitle", descKey: "aboutHotelsDesc" },
+  { icon: "restaurant" as const, titleKey: "restaurantsTitle", descKey: "aboutRestaurantsDesc" },
+  { icon: "kaaba" as const, titleKey: "umrahGuideTitle", descKey: "aboutUmrahDesc" },
+  { icon: "crescent" as const, titleKey: "hajjGuideTitle", descKey: "aboutHajjDesc" },
+  { icon: "bag" as const, titleKey: "mallsShopping", descKey: "aboutShoppingDesc" },
+  { icon: "mosque" as const, titleKey: "mosquesZiyarat", descKey: "aboutZiyaratDesc" },
+] as const;
 
 export default function AboutScreen() {
   const router = useRouter()
@@ -30,7 +40,7 @@ export default function AboutScreen() {
 
         {/* Logo section — always navy */}
         <View style={[styles.logoSection, { backgroundColor: theme.header }]}>
-          <Text style={styles.logoEmoji}>🌙</Text>
+          <AnimatedHeroIcon name="moon" size={60} accent="gold" style={{ marginBottom: 12 }} />
           <Text style={styles.appName}>UmrahConnect</Text>
           <Text style={styles.tagline}>{t("tagline")}</Text>
           <View style={styles.locationRow}>
@@ -51,53 +61,15 @@ export default function AboutScreen() {
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("whatWeOffer")}</Text>
 
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🏨</Text>
-            <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>{t("hotelsTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutHotelsDesc")}</Text>
+          {FEATURES.map((feature) => (
+            <View key={feature.titleKey} style={styles.featureItem}>
+              <AppIcon name={feature.icon} size={24} color={ICON_GOLD} />
+              <View style={styles.featureInfo}>
+                <Text style={[styles.featureName, { color: theme.text }]}>{t(feature.titleKey)}</Text>
+                <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t(feature.descKey)}</Text>
+              </View>
             </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🍽️</Text>
-            <View style={styles.featureInfo}>
-               <Text style={[styles.featureName, { color: theme.text }]}>{t("restaurantsTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutRestaurantsDesc")}</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🕋</Text>
-            <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutUmrahDesc")}</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>☪️</Text>
-            <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutHajjDesc")}</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🛍️</Text>
-            <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>{t("mallsShopping")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutShoppingDesc")}</Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🕌</Text>
-            <View style={styles.featureInfo}>
-              <Text style={[styles.featureName, { color: theme.text }]}>{t("mosquesZiyarat")}</Text>
-              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{t("aboutZiyaratDesc")}</Text>
-            </View>
-          </View>
+          ))}
 
         </View>
 
@@ -125,7 +97,6 @@ const styles = StyleSheet.create({
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8 },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   logoSection: { alignItems: "center", padding: 32, paddingTop: 24 },
-  logoEmoji: { fontSize: 60, marginBottom: 12 },
   appName: { color: "#fff", fontSize: 26, fontWeight: "bold", marginBottom: 6 },
   tagline: { color: "#C9A84C", fontSize: 14, marginBottom: 10 },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -134,7 +105,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 12 },
   sectionText: { fontSize: 14, lineHeight: 22 },
   featureItem: { flexDirection: "row", gap: 12, marginBottom: 14, alignItems: "flex-start" },
-  featureIcon: { fontSize: 24 },
   featureInfo: { flex: 1 },
   featureName: { fontSize: 14, fontWeight: "bold", marginBottom: 2 },
   featureDesc: { fontSize: 13, lineHeight: 20 },

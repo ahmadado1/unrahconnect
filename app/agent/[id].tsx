@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -86,7 +88,7 @@ type Agent = {
             <View style={{ width: 36 }} />
           </View>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
-            <Text style={{ fontSize: 56 }}>🏢</Text>
+            <AnimatedHeroIcon name="business" size={56} accent="gold" style={{ marginBottom: 8 }} />
             <Text style={{ fontSize: 20, fontWeight: "bold", color: theme.text }}>Agent Not Found</Text>
             <Text style={{ fontSize: 14, color: theme.textSecondary, textAlign: "center", lineHeight: 22 }}>
               This agency profile doesn't exist or may have been removed.
@@ -135,9 +137,18 @@ type Agent = {
                     </View>
                     )}
                     <View style={styles.planBadge}>
-                    <Text style={styles.planText}>
-                        {agent.plan === "pro" ? "⭐ Pro Agent" : agent.plan === "basic" ? "Basic" : "Trial"}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      {agent.plan === "pro" ? (
+                        <>
+                          <AppIcon name="star" size={12} color="#C9A84C" />
+                          <Text style={styles.planText}>Pro Agent</Text>
+                        </>
+                      ) : (
+                        <Text style={styles.planText}>
+                          {agent.plan === "basic" ? "Basic" : "Trial"}
+                        </Text>
+                      )}
+                    </View>
                     </View>
                 </View>
                 </View>

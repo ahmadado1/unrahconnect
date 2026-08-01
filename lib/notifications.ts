@@ -151,17 +151,23 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function scheduleDailyVerseNotification() {
-  await Notifications.cancelScheduledNotificationAsync("daily-verse")
+  await Notifications.cancelScheduledNotificationAsync("daily-verse").catch(() => {})
+
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+
+  const verseEnabled = (await AsyncStorage.getItem("daily_verse_enabled")) !== "false"
+  if (!verseEnabled) return false
 
   await Notifications.scheduleNotificationAsync({
     identifier: "daily-verse",
     content: {
-      title: i18n.language === "ar" ? "✨ آية اليوم"
-        : i18n.language === "fr" ? "✨ Verset du jour"
-        : i18n.language === "tr" ? "✨ Günün Ayeti"
-        : i18n.language === "ur" ? "✨ آج کی آیت"
-        : i18n.language === "bn" ? "✨ আজকের আয়াত"
-        : "✨ Verse of the Day",
+      title: i18n.language === "ar" ? "آية اليوم"
+        : i18n.language === "fr" ? "Verset du jour"
+        : i18n.language === "tr" ? "Günün Ayeti"
+        : i18n.language === "ur" ? "آج کی آیت"
+        : i18n.language === "bn" ? "আজকের আয়াত"
+        : "Verse of the Day",
       body: i18n.language === "ar" ? "آيتك القرآنية اليومية جاهزة. افتح UmrahConnect لقراءتها."
         : i18n.language === "fr" ? "Votre verset du jour est prêt. Ouvrez UmrahConnect pour le lire."
         : i18n.language === "tr" ? "Günlük Kuran ayetiniz hazır. Okumak için UmrahConnect'i açın."
@@ -169,6 +175,7 @@ export async function scheduleDailyVerseNotification() {
         : i18n.language === "bn" ? "আপনার দৈনিক কুরআনের আয়াত প্রস্তুত। পড়তে UmrahConnect খুলুন।"
         : "Your daily Quran verse is ready. Open UmrahConnect to read it.",
       sound: true,
+      data: { screen: "quran" },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -176,7 +183,11 @@ export async function scheduleDailyVerseNotification() {
       minute: 0,
     },
   })
+  return true
 }
+
+/** Prevent overlapping cancel/schedule races that leave zero prayer alarms. */
+let schedulePrayerChain: Promise<void> = Promise.resolve()
 
 export async function schedulePrayerNotifications(
   prayerTimes: {
@@ -188,84 +199,110 @@ export async function schedulePrayerNotifications(
   },
   selectedAdhan?: string
 ) {
-  const granted = await requestNotificationPermission()
-  if (!granted) {
-    console.warn("[Notifications] Skipping prayer schedule — permission not granted")
-    return
-  }
-
-  const adhanId = selectedAdhan || (await getSelectedAdhanId())
-  const regularChannelId = await setupPrayerNotificationChannel(adhanId)
-  const fajrChannelId =
-    Platform.OS === "android" ? getPrayerChannelId(adhanId, true) : null
-
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync()
-  for (const notif of scheduled) {
-    if (notif.identifier.startsWith("prayer-")) {
-      await Notifications.cancelScheduledNotificationAsync(notif.identifier)
+  const run = async () => {
+    const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+    if (notifEnabled === "false") {
+      console.warn("[Notifications] Skipping prayer schedule — master notifications off")
+      return
     }
-  }
-
-  const prayers = [
-    { name: "Fajr", time: prayerTimes.fajr, emoji: "🌅", arabic: "الفجر" },
-    { name: "Dhuhr", time: prayerTimes.dhuhr, emoji: "☀️", arabic: "الظهر" },
-    { name: "Asr", time: prayerTimes.asr, emoji: "🌤️", arabic: "العصر" },
-    { name: "Maghrib", time: prayerTimes.maghrib, emoji: "🌇", arabic: "المغرب" },
-    { name: "Isha", time: prayerTimes.isha, emoji: "🌙", arabic: "العشاء" },
-  ]
-
-  for (const prayer of prayers) {
-    const parsed = parsePrayerTimeHourMinute(prayer.time)
-    if (!parsed) {
-      console.warn(`[Notifications] Skipping ${prayer.name} — invalid time:`, prayer.time)
-      continue
+    const prayerAlerts = (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
+    if (!prayerAlerts) {
+      console.warn("[Notifications] Skipping prayer schedule — prayer alerts off")
+      return
     }
-    const { hour, minute } = parsed
-    const isFajr = prayer.name === "Fajr"
-    const sound = getNotificationAdhanSound(adhanId, isFajr)
-    const channelId = isFajr ? fajrChannelId : regularChannelId
 
-    console.log("Scheduling notification for:", prayer.name, `${hour}:${String(minute).padStart(2, "0")}`, "sound:", sound)
+    const granted = await requestNotificationPermission()
+    if (!granted) {
+      console.warn("[Notifications] Skipping prayer schedule — permission not granted")
+      return
+    }
 
-    await Notifications.scheduleNotificationAsync({
-      identifier: `prayer-${prayer.name.toLowerCase()}-now`,
-      content: {
-        title: `${prayer.emoji} ${prayer.name} — ${prayer.arabic}`,
-        body: i18n.language === "ar"
-          ? `حان وقت صلاة ${prayer.arabic} · الله أكبر 🕌`
-          : i18n.language === "fr"
-            ? `C'est l'heure de la prière ${prayer.name}. Allahou Akbar 🕌`
-            : i18n.language === "tr"
-              ? `${prayer.name} namazı vakti. Allahu Ekber 🕌`
-              : i18n.language === "ur"
-                ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر 🕌`
-                : i18n.language === "bn"
-                  ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার 🕌`
-                  : `It's time for ${prayer.name} prayer. Allahu Akbar 🕌`,
-        // Background/closed: OS plays short lock clip. Foreground: handler suppresses this.
-        sound,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-        ...(Platform.OS === "ios"
-          ? { interruptionLevel: "timeSensitive" as const }
-          : {}),
-        data: {
-          screen: "prayer",
-          prayerName: prayer.name,
+    const adhanId = selectedAdhan || (await getSelectedAdhanId())
+    const regularChannelId = await setupPrayerNotificationChannel(adhanId)
+    const fajrChannelId =
+      Platform.OS === "android" ? getPrayerChannelId(adhanId, true) : null
+
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync()
+    await Promise.all(
+      scheduled
+        .filter(notif => notif.identifier.startsWith("prayer-"))
+        .map(notif =>
+          Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {})
+        )
+    )
+
+    const prayers = [
+      { name: "Fajr", time: prayerTimes.fajr, arabic: "الفجر" },
+      { name: "Dhuhr", time: prayerTimes.dhuhr, arabic: "الظهر" },
+      { name: "Asr", time: prayerTimes.asr, arabic: "العصر" },
+      { name: "Maghrib", time: prayerTimes.maghrib, arabic: "المغرب" },
+      { name: "Isha", time: prayerTimes.isha, arabic: "العشاء" },
+    ]
+
+    for (const prayer of prayers) {
+      const parsed = parsePrayerTimeHourMinute(prayer.time)
+      if (!parsed) {
+        console.warn(`[Notifications] Skipping ${prayer.name} — invalid time:`, prayer.time)
+        continue
+      }
+      const { hour, minute } = parsed
+      const isFajr = prayer.name === "Fajr"
+      const sound = getNotificationAdhanSound(adhanId, isFajr)
+      const channelId = isFajr ? fajrChannelId : regularChannelId
+
+      console.log(
+        "Scheduling notification for:",
+        prayer.name,
+        `${hour}:${String(minute).padStart(2, "0")}`,
+        "sound:",
+        sound
+      )
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `prayer-${prayer.name.toLowerCase()}-now`,
+        content: {
+          title: `${prayer.name} — ${prayer.arabic}`,
+          body:
+            i18n.language === "ar"
+              ? `حان وقت صلاة ${prayer.arabic} · الله أكبر`
+              : i18n.language === "fr"
+                ? `C'est l'heure de la prière ${prayer.name}. Allahou Akbar`
+                : i18n.language === "tr"
+                  ? `${prayer.name} namazı vakti. Allahu Ekber`
+                  : i18n.language === "ur"
+                    ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر`
+                    : i18n.language === "bn"
+                      ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার`
+                      : `It's time for ${prayer.name} prayer. Allahu Akbar`,
+          // Background/closed: OS plays short lock clip. Foreground: handler suppresses this.
+          sound,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          ...(Platform.OS === "ios"
+            ? { interruptionLevel: "timeSensitive" as const }
+            : {}),
+          data: {
+            screen: "prayer",
+            prayerName: prayer.name,
+          },
+          ...(Platform.OS === "android" && channelId ? { channelId } : {}),
         },
-        ...(Platform.OS === "android" && channelId ? { channelId } : {}),
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-        ...(Platform.OS === "android" && channelId ? { channelId } : {}),
-      },
-    })
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour,
+          minute,
+          ...(Platform.OS === "android" && channelId ? { channelId } : {}),
+        },
+      })
+    }
+
+    const after = await Notifications.getAllScheduledNotificationsAsync()
+    const prayerCount = after.filter(n => n.identifier.startsWith("prayer-")).length
+    console.log(`[Notifications] Scheduled ${prayerCount} prayer alerts (adhan ${adhanId})`)
   }
 
-  const after = await Notifications.getAllScheduledNotificationsAsync()
-  const prayerCount = after.filter(n => n.identifier.startsWith("prayer-")).length
-  console.log(`[Notifications] Scheduled ${prayerCount} prayer alerts (adhan ${adhanId})`)
+  const next = schedulePrayerChain.then(run, run)
+  schedulePrayerChain = next.catch(() => {})
+  await next
 }
 
 /**
@@ -314,10 +351,18 @@ export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: str
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return false
 
-  const cached = await AsyncStorage.getItem("cached_prayer_times")
-  if (!cached) return false
+  const prayerAlerts = (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
+  if (!prayerAlerts) return false
 
-  const times = JSON.parse(cached)
+  const { fetchAndCachePrayerTimes, isPrayerTimesCacheFresh, readCachedPrayerTimes } =
+    await import("@/lib/prayerTimes")
+
+  let times = await readCachedPrayerTimes()
+  if (!isPrayerTimesCacheFresh(times)) {
+    times = await fetchAndCachePrayerTimes({ force: true })
+  }
+  if (!times) return false
+
   await schedulePrayerNotifications(
     {
       fajr: times.Fajr,
@@ -437,7 +482,7 @@ export async function scheduleJourneyReminder(phaseName: string, type: "umrah" |
   await Notifications.scheduleNotificationAsync({
     identifier: "journey-reminder",
     content: {
-      title: "🕋 Continue Your Journey",
+      title: "Continue Your Journey",
       body: `Don't forget to complete: ${phaseName}. Open UmrahConnect to continue.`,
       sound: true,
       data: { type },
@@ -453,6 +498,17 @@ export async function scheduleJourneyReminder(phaseName: string, type: "umrah" |
 export async function scheduleIslamicDateReminders() {
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return false
+
+  const islamicEnabled = (await AsyncStorage.getItem("islamic_dates_enabled")) !== "false"
+  if (!islamicEnabled) {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync()
+    for (const notif of scheduled) {
+      if (notif.identifier.startsWith("islamic-")) {
+        await Notifications.cancelScheduledNotificationAsync(notif.identifier).catch(() => {})
+      }
+    }
+    return false
+  }
 
   if (!Device.isDevice) {
     console.log("Islamic date notifications only work on real devices")

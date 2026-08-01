@@ -1,12 +1,14 @@
 import { useTheme } from "@/context/themeContext"
 import {
   getAgentCountForCountry,
+  getCachedAgents,
+  prefetchTravelAgents,
   TRAVEL_AGENT_COUNTRIES,
 } from "@/lib/travelAgents"
 import { Ionicons } from "@expo/vector-icons"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ScrollView,
@@ -27,6 +29,38 @@ export default function FindAgentCountriesScreen() {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [query, setQuery] = useState("")
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true
+
+      const refreshCounts = async () => {
+        const next: Record<string, number> = {}
+        // Prefer cache for instant labels
+        const cached = await getCachedAgents()
+        for (const c of TRAVEL_AGENT_COUNTRIES) {
+          if (c.comingSoon) {
+            next[c.id] = 0
+          } else if (cached.length) {
+            next[c.id] = cached.filter(a => a.countryId === c.id).length
+          } else {
+            next[c.id] = await getAgentCountForCountry(c.id)
+          }
+        }
+        if (active) setCounts(next)
+      }
+
+      void refreshCounts()
+      void prefetchTravelAgents().then(() => {
+        if (active) void refreshCounts()
+      })
+
+      return () => {
+        active = false
+      }
+    }, [])
+  )
 
   const filteredCountries = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -44,7 +78,7 @@ export default function FindAgentCountriesScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>
-          {t("findAgent", { defaultValue: "Find an Agent" })} 🤝
+          {t("findAgent", { defaultValue: "Find an Agent" })}
         </Text>
         <Text style={styles.subtitle}>
           {t("travelAgentsSub", {
@@ -77,11 +111,13 @@ export default function FindAgentCountriesScreen() {
 
         {filteredCountries.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No countries match your search</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              No countries match your search
+            </Text>
           </View>
         ) : (
           filteredCountries.map(country => {
-            const count = country.comingSoon ? 0 : getAgentCountForCountry(country.id)
+            const count = counts[country.id] ?? 0
             return (
               <TouchableOpacity
                 key={country.id}
@@ -95,17 +131,21 @@ export default function FindAgentCountriesScreen() {
                 activeOpacity={0.88}
                 onPress={() => router.push(`/travel-agents/${country.id}` as any)}
               >
-                <View style={styles.flagWrap}>
-                  <Text style={styles.countryFlag}>{country.flag}</Text>
+                <View style={[styles.flagWrap, { backgroundColor: theme.background }]}>
+                  <Text style={styles.flagEmoji}>{country.flag}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.countryName, { color: theme.text }]}>{country.name}</Text>
+                  <Text style={[styles.countryName, { color: theme.text }]}>
+                    {country.name}
+                  </Text>
                   <Text style={styles.countryCount}>
                     {country.comingSoon
                       ? t("comingSoonLabel", { defaultValue: "Coming Soon" })
                       : count >= 40
                         ? "40+ agents"
-                        : `${count} agents`}
+                        : count > 0
+                          ? `${count} agents`
+                          : "View agents"}
                   </Text>
                 </View>
                 {country.comingSoon ? (
@@ -123,7 +163,7 @@ export default function FindAgentCountriesScreen() {
         <View style={[styles.tipCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Ionicons name="information-circle-outline" size={20} color={GOLD} />
           <Text style={[styles.tipText, { color: theme.textSecondary }]}>
-            Nigeria currently has a full agent directory. More countries are coming soon.
+            Most countries now have agent directories. France and the UK are coming soon.
           </Text>
         </View>
       </ScrollView>
@@ -181,13 +221,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: NAVY,
-    borderWidth: 1,
-    borderColor: GOLD,
+    borderWidth: 0.5,
+    borderColor: "rgba(30,58,95,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  countryFlag: { fontSize: 26 },
+  flagEmoji: { fontSize: 26, lineHeight: 32 },
   countryName: {
     fontSize: 15,
     fontWeight: "700",

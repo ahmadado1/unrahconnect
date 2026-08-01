@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import type { ReactNode } from "react"
 import { useEffect } from "react"
@@ -129,11 +130,17 @@ export default function PhaseStepCard({
                 </Text>
               ) : null}
               {citation ? (
-                <Text style={styles.citation}>📖 {citation}</Text>
+                <View style={styles.citationRow}>
+                  <AppIcon name="book" size={12} color={ICON_GOLD} />
+                  <Text style={styles.citation}>{citation}</Text>
+                </View>
               ) : null}
             </View>
           ) : citation ? (
-            <Text style={styles.citation}>📖 {citation}</Text>
+            <View style={styles.citationRow}>
+              <AppIcon name="book" size={12} color={ICON_GOLD} />
+              <Text style={styles.citation}>{citation}</Text>
+            </View>
           ) : null}
           {noteKey ? (
             <View style={styles.noteBadge}>
@@ -209,7 +216,8 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: "#1E3A5F",
   },
-  citation: { fontSize: 11, lineHeight: 16, color: "#C9A84C", fontStyle: "italic" },
+  citationRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  citation: { fontSize: 11, lineHeight: 16, color: "#C9A84C", fontStyle: "italic", flex: 1 },
   noteBadge: {
     backgroundColor: "rgba(217, 119, 6, 0.1)",
     borderRadius: 10,

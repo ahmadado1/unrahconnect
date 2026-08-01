@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "@/context/themeContext"
 import { Platform, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -41,7 +42,7 @@ export default function RawdahVisitCard({ compact }: Props) {
     >
       <View style={styles.headerRow}>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconEmoji}>🌿</Text>
+          <AppIcon name="leaf" size={22} color={ICON_GOLD} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: theme.text }]}>{t("rawdahVisitTitle")}</Text>
@@ -53,11 +54,11 @@ export default function RawdahVisitCard({ compact }: Props) {
 
       <View style={styles.tipRow}>
         <View style={[styles.tipPill, { backgroundColor: "rgba(45,106,79,0.12)" }]}>
-          <Text style={styles.tipPillIcon}>🌅</Text>
+          <AppIcon name="sunny" size={16} color={ICON_GOLD} />
           <Text style={[styles.tipPillText, { color: theme.text }]}>{t("rawdahMorningTip")}</Text>
         </View>
         <View style={[styles.tipPill, { backgroundColor: "rgba(30,58,95,0.1)" }]}>
-          <Text style={styles.tipPillIcon}>🌙</Text>
+          <AppIcon name="moon" size={16} color={ICON_GOLD} />
           <Text style={[styles.tipPillText, { color: theme.text }]}>{t("rawdahNightTip")}</Text>
         </View>
       </View>
@@ -100,7 +101,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconEmoji: { fontSize: 22 },
   title: { fontSize: 16, fontWeight: "700" },
   subtitle: { fontSize: 12, marginTop: 2, lineHeight: 16 },
   tipRow: { gap: 8 },
@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  tipPillIcon: { fontSize: 16, marginTop: 1 },
   tipPillText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "500" },
   dayBox: {
     borderRadius: 12,

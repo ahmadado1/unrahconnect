@@ -17,13 +17,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PhoneInput from "./components/PhoneInput"
 import SelectDropdown from "./components/SelectDropdown"
+import { sendAccountEmail } from "@/lib/accountEmails"
 import { isNetworkError } from "@/lib/networkError"
 import { supabase } from "../lib/supabase"
 
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
   id: n.id,
   label: n.label,
-  prefix: n.flag,
 }))
 
 export default function ProfileScreen() {
@@ -71,6 +71,14 @@ export default function ProfileScreen() {
           data: { user },
         } = await supabase.auth.getUser()
         if (!user) return
+
+        // Email before account is removed (fire-and-forget)
+        await sendAccountEmail({
+          type: "account_deleted",
+          guest_email: user.email || "",
+          guest_name: user.user_metadata?.full_name || fullName || "Pilgrim",
+        })
+
         await supabase.from("bookings").delete().eq("user_id", user.id)
         await supabase.from("favorites").delete().eq("user_id", user.id)
         await supabase.from("umrah_progress").delete().eq("user_id", user.id)
@@ -145,6 +153,12 @@ export default function ProfileScreen() {
       setPasswordError(error.message)
       return
     }
+
+    void sendAccountEmail({
+      type: "password_changed",
+      guest_email: user?.email || "",
+      guest_name: fullName || user?.user_metadata?.full_name || "Pilgrim",
+    })
 
     setPasswordDone(true)
     setTimeout(() => {
@@ -261,8 +275,8 @@ export default function ProfileScreen() {
               placeholder={t("gender")}
               value={gender}
               options={[
-                { id: "male", label: t("male"), prefix: "♂" },
-                { id: "female", label: t("female"), prefix: "♀" },
+                { id: "male", label: t("male"), icon: "male" },
+                { id: "female", label: t("female"), icon: "female" },
               ]}
               onChange={id => setGender(id as "male" | "female")}
               variant="menu"

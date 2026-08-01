@@ -606,7 +606,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         .eq("user_id", session.user.id)
         .eq("surah_number", Number(surah))
         .eq("verse_number", verse.number)
-      console.log("Delete error:", error)  // 👈 add this
+      console.log("Delete error:", error)
       setBookmarked(prev => { const next = new Set(prev); next.delete(verse.number); return next })
     } else {
       const { error } = await supabase.from("quran_bookmarks").insert({
@@ -618,7 +618,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         verse_text: verse.text,
         verse_translation: verse.translation,
       })
-      console.log("Insert error:", error)  // 👈 add this
+      console.log("Insert error:", error)
       if (!error) {
         setBookmarked(prev => new Set([...prev, verse.number]))
       }

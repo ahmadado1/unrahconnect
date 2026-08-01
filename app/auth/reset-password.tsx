@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
+import { AppIcon } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -6,6 +8,7 @@ import {
     Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { sendAccountEmail } from "@/lib/accountEmails"
 import { supabase } from "../../lib/supabase";
 
 export default function ResetPasswordScreen() {
@@ -54,6 +57,11 @@ export default function ResetPasswordScreen() {
     if (error) {
       setError(error.message)
     } else {
+      void sendAccountEmail({
+        type: "password_changed",
+        guest_email: String(email || ""),
+        guest_name: "Pilgrim",
+      })
       setDone(true)
       setTimeout(() => {
         supabase.auth.signOut()
@@ -73,7 +81,7 @@ export default function ResetPasswordScreen() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.logo}>🔑</Text>
+            <AnimatedHeroIcon name="key" size={60} accent="gold" style={{ marginBottom: 12 }} />
             <Text style={[styles.title, { color: theme.text }]}>
               {done ? "Password Updated!" : step === "code" ? "Check your email" : "New Password"}
             </Text>
@@ -88,7 +96,8 @@ export default function ResetPasswordScreen() {
 
           {done ? (
             <View style={styles.successBox}>
-              <Text style={styles.successText}>✅ All done!</Text>
+              <AppIcon name="checkmarkCircle" size={28} color="#2E7D32" />
+              <Text style={styles.successText}>All done!</Text>
             </View>
           ) : step === "code" ? (
             <View style={styles.form}>
@@ -174,7 +183,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { flex: 1, padding: 24 },
   header: { alignItems: "center", marginBottom: 40 },
-  logo: { fontSize: 60, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 6, textAlign: "center" },
   subtitle: { fontSize: 15, textAlign: "center" },
   form: { flex: 1 },
@@ -186,6 +194,6 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   toggle: { fontSize: 14, textAlign: "center", marginTop: 8 },
-  successBox: { flex: 1, alignItems: "center", justifyContent: "center" },
+  successBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   successText: { fontSize: 22, fontWeight: "bold" },
 })

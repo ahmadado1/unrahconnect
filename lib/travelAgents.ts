@@ -1,12 +1,31 @@
-/** Real Nigerian travel agents directory (Excel-sourced). */
+/** Travel agents directory — countries local, agents from Supabase (+ cache). */
+
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { supabase } from "@/lib/supabase"
 
 export type TravelAgentCountry = {
   id: string
   name: string
+  /** Flag emoji shown in the country selector. */
   flag: string
   comingSoon?: boolean
 }
 
+/** DB row shape for public.travel_agents */
+export type TravelAgentRow = {
+  id: string
+  name: string
+  country: string
+  city: string
+  address: string | null
+  phone: string | null
+  website: string | null
+  whatsapp: string | null
+  email: string | null
+  featured: boolean
+}
+
+/** App-facing agent model (compatible with existing UI). */
 export type TravelAgent = {
   id: string
   countryId: string
@@ -16,11 +35,14 @@ export type TravelAgent = {
   phone: string | null
   phone2?: string | null
   email: string | null
+  website?: string | null
+  whatsapp?: string | null
   services: string[]
   featured: boolean
 }
 
-export const TRAVEL_AGENT_CONTACT_EMAIL = "ahmadado6002@gmail.com"
+export const TRAVEL_AGENT_CONTACT_EMAIL = "info@myumrahconnect.com"
+export const GET_FEATURED_URL = "https://myumrahconnect.com/advertise"
 
 export const DEFAULT_AGENT_SERVICES = [
   "Umrah Packages",
@@ -31,549 +53,286 @@ export const DEFAULT_AGENT_SERVICES = [
 
 export const TRAVEL_AGENT_COUNTRIES: TravelAgentCountry[] = [
   { id: "nigeria", name: "Nigeria", flag: "🇳🇬" },
-  { id: "egypt", name: "Egypt", flag: "🇪🇬", comingSoon: true },
+  { id: "niger", name: "Niger", flag: "🇳🇪" },
+  { id: "burkina-faso", name: "Burkina Faso", flag: "🇧🇫" },
+  { id: "mali", name: "Mali", flag: "🇲🇱" },
+  { id: "chad", name: "Chad", flag: "🇹🇩" },
+  { id: "egypt", name: "Egypt", flag: "🇪🇬" },
+  { id: "uae", name: "UAE", flag: "🇦🇪" },
+  { id: "jordan", name: "Jordan", flag: "🇯🇴" },
+  { id: "south-africa", name: "South Africa", flag: "🇿🇦" },
   { id: "uk", name: "United Kingdom", flag: "🇬🇧", comingSoon: true },
-  { id: "pakistan", name: "Pakistan", flag: "🇵🇰", comingSoon: true },
-  { id: "bangladesh", name: "Bangladesh", flag: "🇧🇩", comingSoon: true },
-  { id: "indonesia", name: "Indonesia", flag: "🇮🇩", comingSoon: true },
+  { id: "pakistan", name: "Pakistan", flag: "🇵🇰" },
+  { id: "india", name: "India", flag: "🇮🇳" },
+  { id: "malaysia", name: "Malaysia", flag: "🇲🇾" },
+  { id: "bangladesh", name: "Bangladesh", flag: "🇧🇩" },
+  { id: "indonesia", name: "Indonesia", flag: "🇮🇩" },
   { id: "france", name: "France", flag: "🇫🇷", comingSoon: true },
-  { id: "algeria", name: "Algeria", flag: "🇩🇿", comingSoon: true },
-  { id: "morocco", name: "Morocco", flag: "🇲🇦", comingSoon: true },
-  { id: "turkey", name: "Turkey", flag: "🇹🇷", comingSoon: true },
+  { id: "algeria", name: "Algeria", flag: "🇩🇿" },
+  { id: "morocco", name: "Morocco", flag: "🇲🇦" },
+  { id: "turkey", name: "Turkey", flag: "🇹🇷" },
 ]
 
-export const TRAVEL_AGENTS: TravelAgent[] = [
-  {
-    id: "ng-1-le-meridian-air-services-ltd",
-    countryId: "nigeria",
-    agencyName: "LE-MERIDIAN AIR SERVICES LTD",
-    city: "Kano",
-    address: "9A Post Office Road, Kano",
-    phone: null,
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-2-luday-travel-services-ltd",
-    countryId: "nigeria",
-    agencyName: "LUDAY TRAVEL SERVICES LTD",
-    city: "Kano",
-    address: "Suit B16, No 14/15 Ummi Plaza Trade Fair Complex, Kano",
-    phone: "08033333668",
-    phone2: "08034448557",
-    email: "luday_travel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-3-m-m-yahaya-sons-ltd",
-    countryId: "nigeria",
-    agencyName: "M&M YAHAYA & SONS LTD",
-    city: "Kano",
-    address: "No. Sharada Phase 1, Kano",
-    phone: "08065078878",
-    email: "mmyandsonsltd@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-4-m-t-a-travels-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "M.T.A TRAVELS AND TOURS LIMITED",
-    city: "Kano",
-    address: "No 5 Magwan Audu Bako Way, Kano",
-    phone: "08033114025",
-    phone2: "08022903222",
-    email: "magwantatt@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-5-mabrook-travel-and-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "MABROOK TRAVEL AND TOURS LTD",
-    city: "Kano",
-    address: "No 5, Civic Center Road, Kano",
-    phone: "08035865872",
-    email: "mabrooktravel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-6-masanawa-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "MASANAWA TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No 13 Zaria Road Opp. Kano State House",
-    phone: "08032477880",
-    email: "masanawatravel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-7-masha-allah-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "MASHA ALLAH TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No. 4 Zoo Road, Kano",
-    phone: "08152720001",
-    phone2: "08033497397",
-    email: "mashaallahtravelagency@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-8-mecca-medina-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "MECCA MEDINA TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "5 Ibrahim Taiwo Road, Kano",
-    phone: "08033960941",
-    phone2: "08065645779",
-    email: "mmtal58@hotmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-9-meeqat-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "MEEQAT TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No. 9, Ibrahim Taiwo Road, Kano",
-    phone: "08023048180",
-    phone2: "08023106975",
-    email: "meeqattravels@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-10-memlad-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "MEMLAD TOURS LTD",
-    city: "Kaduna",
-    address: "12 Emir Rd, Ang. Rimi Lowcoast, Kaduna",
-    phone: "08034528160",
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-11-mfak-travel-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "MFAK TRAVEL AND TOURS LIMITED",
-    city: "Kano",
-    address: "No 63 Ibrahim Taiwo, Kano",
-    phone: "08023091591",
-    email: "mafaktravels@hotmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-12-msl-travel-tours-nigeria-limited",
-    countryId: "nigeria",
-    agencyName: "MSL TRAVEL & TOURS NIGERIA LIMITED",
-    city: "Kano",
-    address: "No. 59 Ibrahim Taiwo Road, Kano",
-    phone: "08023724155",
-    phone2: "08023726814",
-    email: "msltravels@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-13-mubash-shirin-air-services-ltd",
-    countryId: "nigeria",
-    agencyName: "MUBASH SHIRIN AIR SERVICES LTD",
-    city: "Kano",
-    address: "No. 36C Beirut Road, Kano",
-    phone: "08033494023",
-    email: "mubashair55@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-14-mu-min-travels-and-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "MU'MIN TRAVELS AND TOURS LTD",
-    city: "Kano",
-    address: "No. 1, IBB Way, Kano",
-    phone: "08035865400",
-    email: "mumintravels2014@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-15-mungadi-taiseer-travel-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "MUNGADI & TAISEER TRAVEL & TOURS LTD",
-    city: "Kano",
-    address: "No. 12/13 Gidan Buhari Road, Kano",
-    phone: "08065846965",
-    phone2: "08098846965",
-    email: "mungad_altaiseer@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-16-murna-travel-agent",
-    countryId: "nigeria",
-    agencyName: "MURNA TRAVEL AGENT",
-    city: "Kano",
-    address: "Gidan Badamasi, No. 25 Niger Street, Kano",
-    phone: "08035955359",
-    email: "murnatravelagency@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-17-namira-umrah-hajj-services-ltd",
-    countryId: "nigeria",
-    agencyName: "NAMIRA UMRAH & HAJJ SERVICES LTD",
-    city: "Kano",
-    address: "No. 63 El-Duniya Complex, Ibrahim Taiwo Road, Kano",
-    phone: "08036379380",
-    phone2: "07031225400",
-    email: "namira.ltd@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-18-nasaf-travel-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "NASAF TRAVEL & TOURS LTD",
-    city: "Kano",
-    address: "No. 5 Hospital Road, Kano",
-    phone: "08069776880",
-    phone2: "08056201622",
-    email: "nasaftravelskano@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-19-new-era-travel-and-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "NEW ERA TRAVEL AND TOURS LTD",
-    city: "Kano",
-    address: "No 3 Beirut Road, Kano",
-    phone: "08033325593",
-    email: "neweralag@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-20-nusra-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "NUSRA TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No. 34 Beirut Road, Kano",
-    phone: "08033468442",
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-21-oasis-air-service-limited",
-    countryId: "nigeria",
-    agencyName: "OASIS AIR SERVICE LIMITED",
-    city: "Kano",
-    address: "61 Ibrahim Taiwo Road, Kano",
-    phone: null,
-    email: "oasistravel37@hotmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-22-rahama-air-service-limited",
-    countryId: "nigeria",
-    agencyName: "RAHAMA AIR SERVICE LIMITED",
-    city: "Kano",
-    address: "20 Civil Centre Road, Kano",
-    phone: "08027747352",
-    email: "rahamair@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-23-royal-first-class-travel-tours",
-    countryId: "nigeria",
-    agencyName: "ROYAL FIRST CLASS TRAVEL & TOURS",
-    city: "Kano",
-    address: "No 5 Civic Center Road, Kano",
-    phone: "08033340620",
-    phone2: "07028306040",
-    email: "muhammadgogel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-24-sahihul-arafat-air-service",
-    countryId: "nigeria",
-    agencyName: "SAHIHUL ARAFAT AIR SERVICE",
-    city: "Kano",
-    address: "No. 170 Murtala Muhammad Way, Kano",
-    phone: "08035450465",
-    phone2: "07039030029",
-    email: "sahihularafat@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-25-sanilak-travel-tours-limited",
-    countryId: "nigeria",
-    agencyName: "SANILAK TRAVEL & TOURS LIMITED",
-    city: "Kano",
-    address: "60 Zoo Road, Kano",
-    phone: "08033149028",
-    phone2: "08054837783",
-    email: "slkmatatravels@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-26-shami-travel-agent",
-    countryId: "nigeria",
-    agencyName: "SHAMI TRAVEL AGENT",
-    city: "Kano",
-    address: "71 Ibrahim Taiwo Road, Kano",
-    phone: "08023855123",
-    email: "shamitravels@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-27-silhovette-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "SILHOVETTE TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No 78 Ibrahim Taiwo Road, Kano",
-    phone: "08051563699",
-    phone2: "08037766572",
-    email: "shilhovettetravels@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-28-sky-trust-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "SKY TRUST TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "48 Unity Road, Kano",
-    phone: "08023041543",
-    email: "skytrusttravels@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-29-skygate-travels-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "SKYGATE TRAVELS AND TOURS LIMITED",
-    city: "Kano",
-    address: "13B Post Office Road, Kano",
-    phone: "08037034690",
-    phone2: "08053466312",
-    email: "skygatetravel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-30-soli-air-service-ltd",
-    countryId: "nigeria",
-    agencyName: "SOLI AIR SERVICE LTD",
-    city: "Kano",
-    address: "32 Beirut Road, Kano",
-    phone: "064892511",
-    email: "soliatirltd@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-31-soltan-travels-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "SOLTAN TRAVELS AND TOURS LIMITED",
-    city: "Kano",
-    address: "Gidan Sani Kwangila, Zoo Road, Kano",
-    phone: null,
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-32-super-wings-air-services-ltd",
-    countryId: "nigeria",
-    agencyName: "SUPER WINGS AIR SERVICES LTD",
-    city: "Kano",
-    address: "9 Beirut Road, Kano",
-    phone: null,
-    email: "superairservice@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-33-talas-air-services",
-    countryId: "nigeria",
-    agencyName: "TALAS AIR SERVICES",
-    city: "Kano",
-    address: "No. 34 Beirut Road, Kano",
-    phone: "08037129099",
-    email: "talasair@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-34-the-traveller-enterprises-ltd",
-    countryId: "nigeria",
-    agencyName: "THE TRAVELLER ENTERPRISES LTD",
-    city: "Kano",
-    address: "No. 71 Ibrahim Taiwo Road, Kano",
-    phone: "08037861651",
-    phone2: "08054002063",
-    email: "abdulaziznaibi@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-35-t-i-c-travel-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "T.I.C TRAVEL AND TOURS LIMITED",
-    city: "Kano",
-    address: "No 3 Beirut Road, Kano",
-    phone: null,
-    email: "tictravelstours@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-36-tofa-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "TOFA TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No. 492 U.D.B. Road, Kano",
-    phone: "08036892128",
-    email: "tofa2travel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-37-tura-travels-and-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "TURA TRAVELS AND TOURS LTD",
-    city: "Kano",
-    address: "No. 2 Beirut Road, Kano",
-    phone: null,
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-38-u-a-travels-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "U.A. TRAVELS AND TOURS LIMITED",
-    city: "Kano",
-    address: "255 Tarauni Along Juma'at Mosque, Kano",
-    phone: "08066982277",
-    email: "ua.travels@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-39-universal-isma-umra-travel-agent-ltd",
-    countryId: "nigeria",
-    agencyName: "UNIVERSAL ISMA UMRA TRAVEL AGENT LTD",
-    city: "Kano",
-    address: "No 1 Bompai Road Opp Central Hotel, Kano",
-    phone: "08023095763",
-    email: "ismoumarah@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-40-yakasai-air-travels-limited",
-    countryId: "nigeria",
-    agencyName: "YAKASAI AIR TRAVELS LIMITED",
-    city: "Kano",
-    address: "No. 10 Zoo Road, Sky House, Kano",
-    phone: "08033477541",
-    phone2: "08033958187",
-    email: "yksair@post.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-41-yammata-tours-limited",
-    countryId: "nigeria",
-    agencyName: "YAMMATA TOURS LIMITED",
-    city: "Kano",
-    address: "34 Beirut Road, Kano",
-    phone: "08033140286",
-    phone2: "08044122588",
-    email: null,
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: false,
-  },
-  {
-    id: "ng-42-yusra-travels-and-tours-limited",
-    countryId: "nigeria",
-    agencyName: "YUSRA TRAVELS AND TOURS LIMITED",
-    city: "Kano",
-    address: "9 Buhari Triangle, Zoo Road, Kano",
-    phone: "08065846965",
-    email: "yusuratravelsandtours@gmail.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-43-zago-global-links-nigeria-ltd",
-    countryId: "nigeria",
-    agencyName: "ZAGO GLOBAL LINKS NIGERIA LTD",
-    city: "Kano",
-    address: "59 Murtala Mohd Way, Kano",
-    phone: "08037035051",
-    email: "danzago114@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-44-zango-travel-and-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "ZANGO TRAVEL AND TOURS LTD",
-    city: "Kano",
-    address: "No. 54 Ibrahim Taiwo Road, Kano",
-    phone: "064641557",
-    email: "zangotravel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-45-zeenest-travel-tours-ltd",
-    countryId: "nigeria",
-    agencyName: "ZEENEST TRAVEL & TOURS LTD",
-    city: "Kano",
-    address: "No. 65 Ardiyya House Behind Radio Kano",
-    phone: "07055904051",
-    email: "zeenestravel@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-  {
-    id: "ng-46-zirga-zirga-travel-agent",
-    countryId: "nigeria",
-    agencyName: "ZIRGA-ZIRGA TRAVEL AGENT",
-    city: "Kano",
-    address: "14 Katsina Road, Kano",
-    phone: "08023585558",
-    email: "abelcom4@yahoo.com",
-    services: [...DEFAULT_AGENT_SERVICES],
-    featured: true,
-  },
-]
+const CACHE_KEY = "travel_agents_cache_v1"
+const CACHE_TS_KEY = "travel_agents_cache_ts_v1"
 
-/** Convert local NG numbers (0803…) to WhatsApp digits (234803…). */
+let memoryCache: TravelAgent[] | null = null
+
+function mapRow(row: TravelAgentRow): TravelAgent {
+  const whatsapp = row.whatsapp ?? null
+  const phone = row.phone ?? null
+  return {
+    id: row.id,
+    countryId: row.country,
+    agencyName: row.name,
+    city: row.city ?? "",
+    address: row.address ?? "",
+    phone,
+    phone2: whatsapp && whatsapp !== phone ? whatsapp : null,
+    email: row.email ?? null,
+    website: row.website ?? null,
+    whatsapp,
+    services: [...DEFAULT_AGENT_SERVICES],
+    featured: !!row.featured,
+  }
+}
+
+export function sortAgents(agents: TravelAgent[]): TravelAgent[] {
+  return agents.slice().sort(
+    (a, b) =>
+      Number(b.featured) - Number(a.featured) ||
+      a.city.localeCompare(b.city) ||
+      a.agencyName.localeCompare(b.agencyName)
+  )
+}
+
+async function readDiskCache(): Promise<TravelAgent[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const rows = JSON.parse(raw) as TravelAgent[]
+    return Array.isArray(rows) ? rows : null
+  } catch {
+    return null
+  }
+}
+
+async function writeDiskCache(agents: TravelAgent[]) {
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(agents))
+    await AsyncStorage.setItem(CACHE_TS_KEY, String(Date.now()))
+  } catch (e) {
+    console.warn("[TravelAgents] cache write failed", e)
+  }
+}
+
+/** Instant cache (memory → disk). Does not hit the network. */
+export async function getCachedAgents(): Promise<TravelAgent[]> {
+  if (memoryCache) return memoryCache
+  const disk = await readDiskCache()
+  if (disk) {
+    memoryCache = disk
+    return disk
+  }
+  return []
+}
+
+export async function getCachedAgentsForCountry(countryId: string): Promise<TravelAgent[]> {
+  const all = await getCachedAgents()
+  return sortAgents(all.filter(a => a.countryId === countryId))
+}
+
+async function fetchAgentsFromSupabase(): Promise<TravelAgent[]> {
+  const { data, error } = await supabase
+    .from("travel_agents")
+    .select("id, name, country, city, address, phone, website, whatsapp, email, featured")
+    .order("featured", { ascending: false })
+    .order("city", { ascending: true })
+    .order("name", { ascending: true })
+
+  if (error) {
+    console.warn("[TravelAgents] fetch error:", error.message)
+    throw error
+  }
+
+  return (data as TravelAgentRow[] | null)?.map(mapRow) ?? []
+}
+
+/**
+ * Load agents for a country: return cache immediately via callback,
+ * then refresh from Supabase and update cache.
+ */
+export async function loadAgentsForCountry(
+  countryId: string,
+  onCache?: (agents: TravelAgent[]) => void
+): Promise<TravelAgent[]> {
+  const cached = await getCachedAgentsForCountry(countryId)
+  onCache?.(cached)
+
+  try {
+    const fresh = await fetchAgentsFromSupabase()
+    memoryCache = fresh
+    await writeDiskCache(fresh)
+    return sortAgents(fresh.filter(a => a.countryId === countryId))
+  } catch {
+    return cached
+  }
+}
+
+export async function loadAgentById(
+  id: string,
+  onCache?: (agent: TravelAgent | null) => void
+): Promise<TravelAgent | null> {
+  const cachedAll = await getCachedAgents()
+  const fromCache = cachedAll.find(a => a.id === id) ?? null
+  onCache?.(fromCache)
+
+  try {
+    const { data, error } = await supabase
+      .from("travel_agents")
+      .select("id, name, country, city, address, phone, website, whatsapp, email, featured")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return fromCache
+
+    const agent = mapRow(data as TravelAgentRow)
+    // Merge into cache
+    const next = cachedAll.filter(a => a.id !== agent.id)
+    next.push(agent)
+    memoryCache = next
+    await writeDiskCache(next)
+    return agent
+  } catch {
+    return fromCache
+  }
+}
+
+export async function getAgentCountForCountry(countryId: string): Promise<number> {
+  const agents = await getCachedAgentsForCountry(countryId)
+  if (agents.length > 0) return agents.length
+
+  try {
+    const { count, error } = await supabase
+      .from("travel_agents")
+      .select("id", { count: "exact", head: true })
+      .eq("country", countryId)
+    if (error) throw error
+    return count ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** Prefetch all agents into cache (call from countries index if desired). */
+export async function prefetchTravelAgents(): Promise<void> {
+  const cached = await getCachedAgents()
+  if (cached.length) {
+    // Still refresh in background
+    fetchAgentsFromSupabase()
+      .then(async fresh => {
+        memoryCache = fresh
+        await writeDiskCache(fresh)
+      })
+      .catch(() => {})
+    return
+  }
+
+  try {
+    const fresh = await fetchAgentsFromSupabase()
+    memoryCache = fresh
+    await writeDiskCache(fresh)
+  } catch {
+    // offline / table not ready
+  }
+}
+
+export function getTravelAgentCountry(id: string | string[] | undefined) {
+  const key = Array.isArray(id) ? id[0] : id
+  if (!key) return null
+  return TRAVEL_AGENT_COUNTRIES.find(c => c.id === key) ?? null
+}
+
+const CITY_DISPLAY_ORDER: Record<string, string[]> = {
+  nigeria: ["Abuja", "Kano", "Lagos"],
+  egypt: ["Cairo", "Giza"],
+  "south-africa": ["Cape Town", "Johannesburg"],
+  algeria: ["Algiers", "Oran"],
+  pakistan: ["Islamabad", "Lahore", "Karachi"],
+  india: ["Mumbai", "Kozhikode"],
+  malaysia: ["Kuala Lumpur", "Johor Bahru", "Kemaman", "Kajang"],
+  indonesia: ["South Jakarta", "Central Jakarta", "East Jakarta"],
+}
+
+/** Group non-featured agents by city. Featured agents are listed separately first. */
+export function groupAgentsByCity(agents: TravelAgent[], countryId?: string) {
+  const groups: { city: string; agents: TravelAgent[]; isFeaturedSection?: boolean }[] = []
+
+  const featured = sortAgents(agents.filter(a => a.featured))
+  if (featured.length > 0) {
+    groups.push({ city: "Featured", agents: featured, isFeaturedSection: true })
+  }
+
+  const rest = agents.filter(a => !a.featured)
+  const indexByCity = new Map<string, number>()
+  for (const agent of rest) {
+    const city = agent.city.trim() || "Other"
+    const existing = indexByCity.get(city)
+    if (existing === undefined) {
+      indexByCity.set(city, groups.length)
+      groups.push({ city, agents: [agent] })
+    } else {
+      groups[existing].agents.push(agent)
+    }
+  }
+
+  const preferred = countryId ? CITY_DISPLAY_ORDER[countryId] : undefined
+  if (preferred?.length) {
+    const featuredGroup = groups.find(g => g.isFeaturedSection)
+    const cityGroups = groups.filter(g => !g.isFeaturedSection)
+    cityGroups.sort((a, b) => {
+      const ai = preferred.indexOf(a.city)
+      const bi = preferred.indexOf(b.city)
+      const aRank = ai === -1 ? 999 : ai
+      const bRank = bi === -1 ? 999 : bi
+      return aRank - bRank || a.city.localeCompare(b.city)
+    })
+    return featuredGroup ? [featuredGroup, ...cityGroups] : cityGroups
+  }
+
+  return groups
+}
+
+/**
+ * Normalize phone digits for WhatsApp / tel.
+ * Local NG numbers (0803…) → 234803…; other intl numbers keep their country code.
+ */
 export function toWhatsAppNumber(phone: string | null | undefined): string | null {
   if (!phone) return null
   const digits = phone.replace(/\D/g, "")
   if (!digits) return null
-  if (digits.startsWith("234")) return digits
+  if (
+    digits.startsWith("234") ||
+    digits.startsWith("227") ||
+    digits.startsWith("226") ||
+    digits.startsWith("223") ||
+    digits.startsWith("971") ||
+    digits.startsWith("962") ||
+    digits.startsWith("92") ||
+    digits.startsWith("91") ||
+    digits.startsWith("90") ||
+    digits.startsWith("60") ||
+    digits.startsWith("62") ||
+    digits.startsWith("235") ||
+    digits.startsWith("880") ||
+    digits.startsWith("213") ||
+    digits.startsWith("212") ||
+    digits.startsWith("27") ||
+    digits.startsWith("20")
+  ) {
+    return digits
+  }
   if (digits.startsWith("0")) return `234${digits.slice(1)}`
   if (digits.length === 10) return `234${digits}`
   return digits
@@ -583,26 +342,3 @@ export function toTelHref(phone: string | null | undefined): string | null {
   const wa = toWhatsAppNumber(phone)
   return wa ? `tel:+${wa}` : null
 }
-
-export function getTravelAgentCountry(id: string | string[] | undefined) {
-  const key = Array.isArray(id) ? id[0] : id
-  if (!key) return null
-  return TRAVEL_AGENT_COUNTRIES.find(c => c.id === key) ?? null
-}
-
-export function getAgentsForCountry(countryId: string) {
-  return TRAVEL_AGENTS.filter(a => a.countryId === countryId)
-    .slice()
-    .sort((a, b) => Number(b.featured) - Number(a.featured) || a.agencyName.localeCompare(b.agencyName))
-}
-
-export function getTravelAgentById(id: string | string[] | undefined) {
-  const key = Array.isArray(id) ? id[0] : id
-  if (!key) return null
-  return TRAVEL_AGENTS.find(a => a.id === key) ?? null
-}
-
-export function getAgentCountForCountry(countryId: string) {
-  return TRAVEL_AGENTS.filter(a => a.countryId === countryId).length
-}
-

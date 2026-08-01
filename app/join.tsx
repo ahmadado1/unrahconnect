@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { normalizeReferralCode, saveReferralCode } from "@/lib/referral"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect } from "react"
@@ -23,7 +24,7 @@ export default function JoinScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: 60, marginBottom: 20 }}>🌙</Text>
+      <AnimatedHeroIcon name="moon" size={60} accent="gold" style={{ marginBottom: 20 }} />
       <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
         Welcome to UmrahConnect
       </Text>

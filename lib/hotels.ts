@@ -40,7 +40,7 @@ function hotelLogo(
 
 export const HOTELS: Hotel[] = [
   // ═══════════════════════════════════════════
-  // MAKKAH · 5★ · Abraj Al-Bait / near Haram
+  // MAKKAH · 5-Star · Abraj Al-Bait / near Haram
   // ═══════════════════════════════════════════
   {
     id: "fairmont-clock",
@@ -315,7 +315,7 @@ export const HOTELS: Hotel[] = [
   },
 
   // ═══════════════════════════════════════════
-  // MAKKAH · 4★
+  // MAKKAH · 4-Star
   // ═══════════════════════════════════════════
   {
     id: "le-meridien-towers",
@@ -409,7 +409,7 @@ export const HOTELS: Hotel[] = [
   },
 
   // ═══════════════════════════════════════════
-  // MADINAH · 5★
+  // MADINAH · 5-Star
   // ═══════════════════════════════════════════
   {
     id: "oberoi-madinah",
@@ -454,11 +454,11 @@ export const HOTELS: Hotel[] = [
     stars: 5,
     walkMinutes: 3,
     distanceLabel: "3 min walk to Masjid al-Nabawi",
-    address: "King Fahd Road, opposite Prophet's Mosque, Madinah 42311",
+    address: "King Fahd Road, Bada'ah, Madinah 41419",
     phone: "+966148209999",
     website: "https://www.hilton.com/en/hotels/medhihi-madinah-hilton/",
-    lat: 24.4672,
-    lng: 39.6112,
+    lat: 24.47205,
+    lng: 39.61064,
     ...hotelPhoto("https://media.iceportal.com/60037/photos/74116233_XL.jpg", "https://media.iceportal.com/60037/photos/74116245_XL.jpg"),
     brandAccent: "#1B4F9C",
     description:
@@ -593,7 +593,7 @@ export const HOTELS: Hotel[] = [
   },
 
   // ═══════════════════════════════════════════
-  // MADINAH · 4★
+  // MADINAH · 4-Star
   // ═══════════════════════════════════════════
   {
     id: "al-shohada",
@@ -717,13 +717,13 @@ export function filterHotels(options: {
   })
 }
 
-/** Group filtered hotels into Makkah 5★ | Makkah 4★ | Madinah 5★ | Madinah 4★ */
+/** Group filtered hotels into Makkah 5-Star | Makkah 4-Star | Madinah 5-Star | Madinah 4-Star */
 export function groupHotelsIntoSections(hotels: Hotel[]): HotelSection[] {
   const sections: HotelSection[] = [
-    { city: "Makkah", stars: 5, title: "Makkah 5★", hotels: [] },
-    { city: "Makkah", stars: 4, title: "Makkah 4★", hotels: [] },
-    { city: "Madinah", stars: 5, title: "Madinah 5★", hotels: [] },
-    { city: "Madinah", stars: 4, title: "Madinah 4★", hotels: [] },
+    { city: "Makkah", stars: 5, title: "Makkah 5-Star", hotels: [] },
+    { city: "Makkah", stars: 4, title: "Makkah 4-Star", hotels: [] },
+    { city: "Madinah", stars: 5, title: "Madinah 5-Star", hotels: [] },
+    { city: "Madinah", stars: 4, title: "Madinah 4-Star", hotels: [] },
   ]
 
   for (const hotel of hotels) {
@@ -734,22 +734,20 @@ export function groupHotelsIntoSections(hotels: Hotel[]): HotelSection[] {
   return sections.filter(s => s.hotels.length > 0)
 }
 
+/** Prefer place name + address so Maps resolves the real venue (not a nearby approximate pin). */
+function hotelPlaceQuery(hotel: Hotel) {
+  const parts = [hotel.name, hotel.address || hotel.city, "Saudi Arabia"].filter(Boolean)
+  return parts.join(", ")
+}
+
 export function openHotelDirections(hotel: Hotel) {
-  const lat = Number(hotel.lat)
-  const lng = Number(hotel.lng)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name)}`
-  }
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`
+  const query = hotelPlaceQuery(hotel)
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}&travelmode=walking`
 }
 
 export function openHotelDirectionsApple(hotel: Hotel) {
-  const lat = Number(hotel.lat)
-  const lng = Number(hotel.lng)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return `http://maps.apple.com/?q=${encodeURIComponent(hotel.name)}`
-  }
-  return `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=w`
+  const query = hotelPlaceQuery(hotel)
+  return `http://maps.apple.com/?daddr=${encodeURIComponent(query)}&dirflg=w`
 }
 
 export function formatPhoneDisplay(phone: string) {

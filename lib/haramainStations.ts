@@ -2,7 +2,7 @@ export type HaramainStationId = "makkah" | "madinah"
 
 export type HaramainStationInfo = {
   id: HaramainStationId
-  emoji: string
+  icon: "train"
   titleKey: string
   arabicNameKey: string
   lat: number
@@ -30,7 +30,7 @@ export const HARAMAIN_PHONE_DISPLAY = "920 004 433"
 export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> = {
   makkah: {
     id: "makkah",
-    emoji: "🚄",
+    icon: "train",
     titleKey: "makkahStation",
     arabicNameKey: "hhrMakkahArabic",
     lat: 21.4536,
@@ -52,7 +52,7 @@ export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> =
   },
   madinah: {
     id: "madinah",
-    emoji: "🚄",
+    icon: "train",
     titleKey: "madinahStation",
     arabicNameKey: "hhrMadinahArabic",
     lat: 24.5489,

@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -110,9 +112,16 @@ type Agent = {
 
             {/* Plan badge */}
             <View style={styles.planBadge}>
-            <Text style={styles.planText}>
-                {item.plan === "pro" ? "⭐ Pro" : item.plan === "basic" ? "Basic" : "Trial"}
-            </Text>
+            {item.plan === "pro" ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <AppIcon name="star" size={10} color="#C9A84C" />
+                <Text style={styles.planText}>Pro</Text>
+              </View>
+            ) : (
+              <Text style={styles.planText}>
+                {item.plan === "basic" ? "Basic" : "Trial"}
+              </Text>
+            )}
             </View>
         </View>
 
@@ -160,7 +169,7 @@ type Agent = {
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>🏢</Text>
+          <AnimatedHeroIcon name="business" size={48} accent="gold" />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>No agents found</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
             Be the first to register as a travel agent
@@ -204,7 +213,6 @@ const styles = StyleSheet.create({
     planBadge: { backgroundColor: "rgba(201,168,76,0.1)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start" },
     planText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
     emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 32 },
-    emptyEmoji: { fontSize: 48 },
     emptyTitle: { fontSize: 18, fontWeight: "bold" },
     emptyText: { fontSize: 14, textAlign: "center", color: "#888" },
   })

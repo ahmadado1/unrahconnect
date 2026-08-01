@@ -1,3 +1,4 @@
+import { AppIcon, getIonIconColor, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,7 +50,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
         {/* Header — always navy */}
         <View style={styles.drawerHeader}>
           <View style={styles.drawerLogo}>
-            <Text style={styles.drawerLogoText}>🌙</Text>
+            <AppIcon name="moon" size={24} color={ICON_GOLD} />
           </View>
           <Text style={styles.drawerTitle}>UmrahConnect</Text>
           <Text style={styles.drawerSubtitle}>{t("drawerTagline")}</Text>
@@ -60,25 +61,31 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
 
           {/* Profile */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/profile"); onClose(); }}>
-            <Ionicons name="person-outline" size={22} color={theme.text} />
+            <Ionicons name="person-outline" size={22} color={getIonIconColor("person-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("profile")}</Text>
           </TouchableOpacity>
 
           {/* Favorites */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/favorites" as Href); onClose(); }}>
-            <Ionicons name="heart-outline" size={22} color={theme.text} />
+            <Ionicons name="heart-outline" size={22} color={getIonIconColor("heart-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("favorites")}</Text>
           </TouchableOpacity>
 
           {/* Notifications */}
-          <TouchableOpacity style={styles.menuItem} >
-            <Ionicons name="notifications-outline" size={22} color={theme.text} />
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              router.push("/notifications" as Href)
+              onClose()
+            }}
+          >
+            <Ionicons name="notifications-outline" size={22} color={getIonIconColor("notifications-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("notifications")}</Text>
           </TouchableOpacity>
 
           {/* Settings */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/settings"); onClose(); }}>
-            <Ionicons name="settings-outline" size={22} color={theme.text} />
+            <Ionicons name="settings-outline" size={22} color={getIonIconColor("settings-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("settings")}</Text>
           </TouchableOpacity>
 
@@ -87,13 +94,13 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
 
           {/* About Us */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/about"); onClose(); }}>
-            <Ionicons name="information-circle-outline" size={22} color={theme.text} />
+            <Ionicons name="information-circle-outline" size={22} color={getIonIconColor("information-circle-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("aboutUs")}</Text>
           </TouchableOpacity>
 
           {/* Contact Us */}
           <TouchableOpacity style={styles.menuItem} onPress={() => { router.push("/contact"); onClose(); }}>
-            <Ionicons name="call-outline" size={22} color={theme.text} />
+            <Ionicons name="call-outline" size={22} color={getIonIconColor("call-outline")} />
             <Text style={[styles.menuText, { color: theme.text }]}>{t("contactUs")}</Text>
           </TouchableOpacity>
 
@@ -151,7 +158,6 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     marginBottom: 12,
   },
-  drawerLogoText: { fontSize: 24 },
   drawerTitle: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   drawerSubtitle: { color: "#C9A84C", fontSize: 12, marginTop: 4 },
   menuItems: { padding: 16, flex: 1 },

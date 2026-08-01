@@ -1,4 +1,6 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
@@ -21,6 +23,8 @@ const KAABA_LNG = 39.826206
 const ALIGN_ENTER_DEG = 6
 const ALIGN_EXIT_DEG = 12
 const HEADING_SMOOTH = 0.18
+const LOCATION_CACHE_KEY = "qibla_last_location"
+const LOCATION_TIMEOUT_MS = 4000
 
 function toRad(deg: number) {
   return (deg * Math.PI) / 180
@@ -66,7 +70,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 }
 
 function pickHeading(data: Location.LocationHeadingObject): number | null {
-  // Prefer true north when valid; magHeading alone drifts with interference
   if (typeof data.trueHeading === "number" && data.trueHeading >= 0) {
     return data.trueHeading
   }
@@ -74,6 +77,55 @@ function pickHeading(data: Location.LocationHeadingObject): number | null {
     return data.magHeading
   }
   return null
+}
+
+async function readCachedLocation(): Promise<{ latitude: number; longitude: number } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LOCATION_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (
+      typeof parsed?.latitude === "number" &&
+      typeof parsed?.longitude === "number" &&
+      Number.isFinite(parsed.latitude) &&
+      Number.isFinite(parsed.longitude)
+    ) {
+      return { latitude: parsed.latitude, longitude: parsed.longitude }
+    }
+  } catch {}
+  return null
+}
+
+async function cacheLocation(latitude: number, longitude: number) {
+  try {
+    await AsyncStorage.setItem(
+      LOCATION_CACHE_KEY,
+      JSON.stringify({ latitude, longitude, savedAt: Date.now() })
+    )
+  } catch {}
+}
+
+async function getLocationFast(): Promise<{ latitude: number; longitude: number } | null> {
+  // Prefer last known (works offline immediately)
+  try {
+    const last = await Location.getLastKnownPositionAsync()
+    if (last?.coords) {
+      return { latitude: last.coords.latitude, longitude: last.coords.longitude }
+    }
+  } catch {}
+
+  // Fresh fix with a hard timeout so we never hang on loading
+  try {
+    const location = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), LOCATION_TIMEOUT_MS)),
+    ])
+    if (location?.coords) {
+      return { latitude: location.coords.latitude, longitude: location.coords.longitude }
+    }
+  } catch {}
+
+  return readCachedLocation()
 }
 
 export default function QiblahScreen() {
@@ -90,6 +142,7 @@ export default function QiblahScreen() {
   const [distance, setDistance] = useState<number | null>(null)
   const [aligned, setAligned] = useState(false)
   const [usingTrueNorth, setUsingTrueNorth] = useState(true)
+  const [usingCachedLocation, setUsingCachedLocation] = useState(false)
 
   const dialAnim = useRef(new Animated.Value(0)).current
   const lastDialRef = useRef(0)
@@ -103,40 +156,26 @@ export default function QiblahScreen() {
 
   const animateDialTo = useCallback(
     (absoluteHeading: number) => {
-      // Dial rotates opposite to device heading so N stays toward true north
       const targetRaw = -absoluteHeading
       const prev = lastDialRef.current
       const next = prev + angleDelta(normalize360(prev), normalize360(targetRaw))
       lastDialRef.current = next
-      // Smoothing already applied to heading — set directly to avoid animation fights/glitches
       dialAnim.setValue(next)
     },
     [dialAnim]
   )
 
-  const setupQiblah = useCallback(async () => {
-    setLoading(true)
-    setErrorMsg(null)
+  const applyLocation = useCallback((latitude: number, longitude: number, fromCache: boolean) => {
+    const bearing = calculateQiblahBearing(latitude, longitude)
+    setQiblahBearing(bearing)
+    setDistance(Math.round(haversineKm(latitude, longitude, KAABA_LAT, KAABA_LNG)))
+    setUsingCachedLocation(fromCache)
+    void cacheLocation(latitude, longitude)
+  }, [])
+
+  const startHeadingWatch = useCallback(async () => {
     stopHeadingWatch()
-    smoothHeadingRef.current = null
-
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted") {
-        setErrorMsg("Location permission is needed to find Qiblah direction")
-        setLoading(false)
-        return
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.BestForNavigation,
-      })
-      const { latitude, longitude } = location.coords
-
-      const bearing = calculateQiblahBearing(latitude, longitude)
-      setQiblahBearing(bearing)
-      setDistance(Math.round(haversineKm(latitude, longitude, KAABA_LAT, KAABA_LNG)))
-
       headingSubRef.current = await Location.watchHeadingAsync(data => {
         const raw = pickHeading(data)
         if (raw === null) return
@@ -154,13 +193,74 @@ export default function QiblahScreen() {
         setHeading(smoothed)
         animateDialTo(smoothed)
       })
-
-      setLoading(false)
     } catch {
-      setErrorMsg("Could not get your location. Please try again.")
-      setLoading(false)
+      // Compass may be unavailable on some simulators — still show bearing UI
     }
   }, [animateDialTo, stopHeadingWatch])
+
+  const setupQiblah = useCallback(async () => {
+    setLoading(true)
+    setErrorMsg(null)
+    stopHeadingWatch()
+    smoothHeadingRef.current = null
+
+    try {
+      // Instant offline path: reuse last saved coords while permission / GPS catch up
+      const cached = await readCachedLocation()
+      if (cached) {
+        applyLocation(cached.latitude, cached.longitude, true)
+        setLoading(false)
+        void startHeadingWatch()
+      }
+
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== "granted") {
+        if (!cached) {
+          setErrorMsg(
+            t("qiblaPermissionNeeded", {
+              defaultValue: "Location permission is needed to find Qiblah direction",
+            })
+          )
+        }
+        setLoading(false)
+        return
+      }
+
+      const coords = await getLocationFast()
+      if (coords) {
+        const isSameCache =
+          cached &&
+          Math.abs(cached.latitude - coords.latitude) < 0.0001 &&
+          Math.abs(cached.longitude - coords.longitude) < 0.0001
+        applyLocation(coords.latitude, coords.longitude, !!cached && !!isSameCache)
+        setLoading(false)
+        await startHeadingWatch()
+        return
+      }
+
+      if (!cached) {
+        setErrorMsg(
+          t("qiblaLocationFailed", {
+            defaultValue: "Could not get your location. Please try again.",
+          })
+        )
+      }
+      setLoading(false)
+    } catch {
+      const cachedFallback = await readCachedLocation()
+      if (cachedFallback) {
+        applyLocation(cachedFallback.latitude, cachedFallback.longitude, true)
+        void startHeadingWatch()
+      } else {
+        setErrorMsg(
+          t("qiblaLocationFailed", {
+            defaultValue: "Could not get your location. Please try again.",
+          })
+        )
+      }
+      setLoading(false)
+    }
+  }, [applyLocation, startHeadingWatch, stopHeadingWatch, t])
 
   useEffect(() => {
     setupQiblah()
@@ -169,7 +269,6 @@ export default function QiblahScreen() {
     }
   }, [setupQiblah, stopHeadingWatch])
 
-  // Hysteresis so the "Facing Qiblah" badge doesn't flicker
   useEffect(() => {
     if (qiblahBearing === null) return
     const diff = Math.abs(angleDelta(heading, qiblahBearing))
@@ -208,13 +307,13 @@ export default function QiblahScreen() {
       </View>
 
       <View style={styles.content}>
-        {loading && (
+        {loading && qiblahBearing === null && (
           <Text style={[styles.statusText, { color: theme.textSecondary }]}>
             Finding your location...
           </Text>
         )}
 
-        {errorMsg && (
+        {errorMsg && qiblahBearing === null && (
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={32} color="#C9A84C" />
             <Text style={[styles.errorText, { color: theme.text }]}>{errorMsg}</Text>
@@ -224,8 +323,14 @@ export default function QiblahScreen() {
           </View>
         )}
 
-        {!loading && !errorMsg && qiblahBearing !== null && (
+        {qiblahBearing !== null && (
           <>
+            {usingCachedLocation && (
+              <Text style={[styles.cacheHint, { color: theme.textSecondary }]}>
+                Using last known location (works offline)
+              </Text>
+            )}
+
             {aligned ? (
               <View style={styles.alignedBadge}>
                 <Ionicons name="checkmark-circle" size={18} color="#fff" />
@@ -241,7 +346,6 @@ export default function QiblahScreen() {
             )}
 
             <View style={styles.compassWrapper}>
-              {/* Fixed phone-up marker */}
               <View style={styles.topPointer}>
                 <Ionicons name="caret-down" size={22} color="#C9A84C" />
               </View>
@@ -281,14 +385,13 @@ export default function QiblahScreen() {
                     )
                   })}
 
-                  {/* Kaaba sits at the Qiblah bearing on the rose */}
                   <View
                     style={[
                       styles.kaabaArm,
                       { transform: [{ rotate: `${qiblahBearing}deg` }] },
                     ]}
                   >
-                    <Text style={styles.kaabaIcon}>🕋</Text>
+                    <AppIcon name="kaaba" size={22} color={ICON_GOLD} />
                     <View style={styles.needleLine} />
                   </View>
                 </Animated.View>
@@ -360,6 +463,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
 
   statusText: { fontSize: 14 },
+  cacheHint: { fontSize: 12, marginBottom: 10, fontStyle: "italic" },
 
   errorBox: { alignItems: "center", gap: 12, padding: 24 },
   errorText: { fontSize: 14, textAlign: "center" },
@@ -431,7 +535,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingTop: 28,
   },
-  kaabaIcon: { fontSize: 32 },
   needleLine: {
     width: 3,
     height: 78,

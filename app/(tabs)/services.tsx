@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { FLIGHT_PLATFORMS } from "@/lib/flights"
 import { Ionicons } from "@expo/vector-icons"
@@ -11,16 +12,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
 const APP_SERVICES = [
-  { id: "hotels", emoji: "🏨", titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", icon: "bed-outline" },
-  { id: "restaurants", emoji: "🍽️", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", icon: "restaurant-outline" },
-  { id: "agents", emoji: "🤝", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", icon: "people-outline" },
-  { id: "hospitals", emoji: "🏥", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", icon: "medkit-outline" },
+  { id: "hotels", icon: "bed" as AppIconKey, titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", ionIcon: "bed-outline" },
+  { id: "restaurants", icon: "restaurant" as AppIconKey, titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", ionIcon: "restaurant-outline" },
+  { id: "agents", icon: "handshake" as AppIconKey, titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", ionIcon: "people-outline" },
+  { id: "hospitals", icon: "medkit" as AppIconKey, titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", ionIcon: "medkit-outline" },
 ] as const
 
 const HARAMAIN_STATIONS = [
   {
     id: "makkah",
-    emoji: "🚄",
+    icon: "train" as AppIconKey,
     titleKey: "makkahStation",
     addressKey: "makkahStationAddress",
     lat: 21.4536,
@@ -28,7 +29,7 @@ const HARAMAIN_STATIONS = [
   },
   {
     id: "madinah",
-    emoji: "🚄",
+    icon: "train" as AppIconKey,
     titleKey: "madinahStation",
     addressKey: "madinahStationAddress",
     lat: 24.5489,
@@ -42,16 +43,16 @@ const HARAM_LAT = 21.4225
 const HARAM_LNG = 39.8262
 
 const SHOPPING = [
-  { id: "abraj", emoji: "🛍️", titleKey: "abrajMall", subKey: "abrajSub", lat: 21.4183, lng: 39.8260 },
-  { id: "zal", emoji: "🪬", titleKey: "souqZal", subKey: "souqZalSub", lat: 21.4157, lng: 39.8198 },
-  { id: "madinah-mall", emoji: "🏬", titleKey: "madinahMall", subKey: "madinahMallSub", lat: 24.4672, lng: 39.6150 },
-  { id: "ansar", emoji: "🛒", titleKey: "ansarMall", subKey: "ansarMallSub", lat: 24.4698, lng: 39.6118 },
+  { id: "abraj", icon: "bag" as AppIconKey, titleKey: "abrajMall", subKey: "abrajSub", lat: 21.4183, lng: 39.8260 },
+  { id: "zal", icon: "storefront" as AppIconKey, titleKey: "souqZal", subKey: "souqZalSub", lat: 21.4157, lng: 39.8198 },
+  { id: "madinah-mall", icon: "storefront" as AppIconKey, titleKey: "madinahMall", subKey: "madinahMallSub", lat: 24.4672, lng: 39.6150 },
+  { id: "ansar", icon: "cart" as AppIconKey, titleKey: "ansarMall", subKey: "ansarMallSub", lat: 24.4698, lng: 39.6118 },
 ] as const
 
 const COMING_SOON = [
-  { id: "booking", emoji: "📅", titleKey: "booking", subKey: "bookingSub" },
-  { id: "pharmacy", emoji: "💊", titleKey: "pharmacy", subKey: "pharmacySub" },
-  { id: "sim", emoji: "📱", titleKey: "simCards", subKey: "simCardsSub" },
+  { id: "booking", icon: "calendar" as AppIconKey, titleKey: "booking", subKey: "bookingSub" },
+  { id: "pharmacy", icon: "medical" as AppIconKey, titleKey: "pharmacy", subKey: "pharmacySub" },
+  { id: "sim", icon: "phone" as AppIconKey, titleKey: "simCards", subKey: "simCardsSub" },
 ] as const
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -135,11 +136,11 @@ export default function ServicesScreen() {
               style={[styles.gridCard, { backgroundColor: theme.card, borderColor: theme.border }]}
               onPress={() => router.push(s.route as any)}
             >
-              <Text style={styles.emoji}>{s.emoji}</Text>
+              <AppIcon name={s.icon} size={28} style={{ marginBottom: 8 }} />
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
               <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
               <View style={styles.cardFooter}>
-                <Ionicons name={s.icon as any} size={16} color="#C9A84C" />
+                <Ionicons name={s.ionIcon as any} size={16} color={getIconColor(s.icon)} />
                 <Ionicons name="chevron-forward" size={16} color="#C9A84C" />
               </View>
             </TouchableOpacity>
@@ -147,9 +148,12 @@ export default function ServicesScreen() {
         </View>
 
         {/* ── FLIGHTS ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          {t("flights")} ✈️
-        </Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
+            {t("flights")}
+          </Text>
+          <AppIcon name="airplane" size={18} />
+        </View>
         <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
           {t("flightsSub")}
         </Text>
@@ -172,7 +176,7 @@ export default function ServicesScreen() {
           >
             <View style={styles.expandHeader}>
               <View style={[styles.flightIcon, { backgroundColor: `${platform.brandColor}18` }]}>
-                <Text style={styles.listEmoji}>{platform.emoji}</Text>
+                <AppIcon name={platform.icon} size={26} color={platform.brandColor} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.listTitle, { color: theme.text }]}>{platform.name}</Text>
@@ -199,7 +203,7 @@ export default function ServicesScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.expandHeader}>
-              <Text style={styles.listEmoji}>{station.emoji}</Text>
+              <AppIcon name={station.icon} size={26} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.listTitle, { color: theme.text }]}>{t(station.titleKey)}</Text>
                 <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(station.addressKey)}</Text>
@@ -214,7 +218,7 @@ export default function ServicesScreen() {
 
         <View style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.expandHeader}>
-            <Text style={styles.listEmoji}>🚌</Text>
+            <AppIcon name="bus" size={26} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.listTitle, { color: theme.text }]}>{t("saptcoBuses")}</Text>
               <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("saptcoSub")}</Text>
@@ -237,7 +241,7 @@ export default function ServicesScreen() {
 
         <View style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.expandHeader}>
-            <Text style={styles.listEmoji}>🚗</Text>
+            <AppIcon name="car" size={26} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.listTitle, { color: theme.text }]}>{t("uber")}</Text>
               <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("uberSub")}</Text>
@@ -258,7 +262,7 @@ export default function ServicesScreen() {
             style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           >
             <View style={styles.expandHeader}>
-              <Text style={styles.listEmoji}>{s.emoji}</Text>
+              <AppIcon name={s.icon} size={26} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.listTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
                 <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
@@ -281,7 +285,7 @@ export default function ServicesScreen() {
             key={s.id}
             style={[styles.listCard, { backgroundColor: theme.card, borderColor: theme.border, opacity: 0.5 }]}
           >
-            <Text style={styles.listEmoji}>{s.emoji}</Text>
+            <AppIcon name={s.icon} size={26} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.listTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
               <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
@@ -305,12 +309,12 @@ const styles = StyleSheet.create({
   subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
   content: { padding: 16 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 4 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 4 },
   sectionSub: { fontSize: 12, marginBottom: 12 },
   groupLabel: { fontSize: 12, fontWeight: "600", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
   gridCard: { width: "47%", borderRadius: 16, padding: 16, borderWidth: 0.5, minHeight: 130 },
-  emoji: { fontSize: 28, marginBottom: 8 },
   cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 4 },
   cardSub: { fontSize: 11, flex: 1 },
   cardFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
@@ -318,7 +322,6 @@ const styles = StyleSheet.create({
   listCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 0.5, marginBottom: 10 },
   expandCard: { borderRadius: 14, borderWidth: 0.5, marginBottom: 10, padding: 14 },
   expandHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  listEmoji: { fontSize: 26 },
   listTitle: { fontSize: 14, fontWeight: "600" },
   listSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
   coords: { fontSize: 10, marginTop: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },

@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { getRestaurantById, openRestaurantDirections } from "@/lib/restaurants"
 import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
@@ -124,10 +125,13 @@ export default function RestaurantDetailScreen() {
           <Text style={[styles.meta, { color: theme.textSecondary }]}>
             {restaurant.city} · {restaurant.distance} · {restaurant.cuisine}
           </Text>
-          <Text style={styles.rating}>
-            ★ {restaurant.rating} · {restaurant.priceRange} ·{" "}
-            {restaurant.isOpen ? t("open") : t("closed")} · Halal
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+            <AppIcon name="star" size={14} color="#C9A84C" />
+            <Text style={styles.rating}>
+              {restaurant.rating} · {restaurant.priceRange} ·{" "}
+              {restaurant.isOpen ? t("open") : t("closed")} · Halal
+            </Text>
+          </View>
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 

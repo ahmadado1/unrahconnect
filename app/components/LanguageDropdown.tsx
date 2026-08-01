@@ -6,17 +6,26 @@ import { useTranslation } from "react-i18next"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 export const LANGUAGES = [
-  { code: "en", label: "🇬🇧 English", native: "English" },
-  { code: "ar", label: "🇸🇦 العربية", native: "العربية" },
-  { code: "bn", label: "🇧🇩 বাংলা", native: "বাংলা" },
-  { code: "fr", label: "🇫🇷 Français", native: "Français" },
-  { code: "ur", label: "🇵🇰 اردو", native: "اردو" },
-  { code: "tr", label: "🇹🇷 Türkçe", native: "Türkçe" },
+  { code: "en", label: "English", native: "English" },
+  { code: "ar", label: "العربية", native: "العربية" },
+  { code: "bn", label: "বাংলা", native: "বাংলা" },
+  { code: "fr", label: "Français", native: "Français" },
+  { code: "ur", label: "اردو", native: "اردو" },
+  { code: "tr", label: "Türkçe", native: "Türkçe" },
 ] as const
 
 export function getLanguageLabel(code: string) {
   const base = (code || "en").split("-")[0].toLowerCase()
-  return LANGUAGES.find(l => l.code === base)?.label ?? LANGUAGES[0].label
+  const lang = LANGUAGES.find(l => l.code === base) ?? LANGUAGES[0]
+  return lang.label
+}
+
+function LanguageCodeBadge({ code }: { code: string }) {
+  return (
+    <View style={styles.codeBadge}>
+      <Text style={styles.codeBadgeText}>{code.toUpperCase()}</Text>
+    </View>
+  )
 }
 
 type LanguageDropdownProps = {
@@ -29,6 +38,7 @@ type LanguageDropdownProps = {
 export default function LanguageDropdown({ value, onChange, open, onToggle }: LanguageDropdownProps) {
   const { theme } = useTheme()
   const { t } = useTranslation()
+  const selected = LANGUAGES.find(l => l.code === value.split("-")[0].toLowerCase()) ?? LANGUAGES[0]
 
   const selectLanguage = async (code: string) => {
     onChange(code)
@@ -51,11 +61,9 @@ export default function LanguageDropdown({ value, onChange, open, onToggle }: La
         activeOpacity={0.85}
       >
         <View style={styles.triggerLeft}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="language" size={18} color="#C9A84C" />
-          </View>
+          <LanguageCodeBadge code={selected.code} />
           <View>
-            <Text style={[styles.triggerValue, { color: theme.text }]}>{getLanguageLabel(value)}</Text>
+            <Text style={[styles.triggerValue, { color: theme.text }]}>{selected.label}</Text>
             <Text style={[styles.triggerHint, { color: theme.textSecondary }]}>{t("choosePreferredLanguage")}</Text>
           </View>
         </View>
@@ -65,7 +73,7 @@ export default function LanguageDropdown({ value, onChange, open, onToggle }: La
       {open && (
         <View style={[styles.menu, { backgroundColor: theme.card, borderColor: theme.border }]}>
           {LANGUAGES.map((lang, index) => {
-            const selected = value === lang.code
+            const isSelected = value === lang.code
             return (
               <TouchableOpacity
                 key={lang.code}
@@ -73,13 +81,16 @@ export default function LanguageDropdown({ value, onChange, open, onToggle }: La
                   styles.option,
                   { borderBottomColor: theme.border },
                   index === LANGUAGES.length - 1 && styles.optionLast,
-                  selected && styles.optionSelected,
+                  isSelected && styles.optionSelected,
                 ]}
                 onPress={() => selectLanguage(lang.code)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.optionLabel, { color: theme.text }]}>{lang.label}</Text>
-                {selected && <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />}
+                <View style={styles.optionLeft}>
+                  <LanguageCodeBadge code={lang.code} />
+                  <Text style={[styles.optionLabel, { color: theme.text }]}>{lang.label}</Text>
+                </View>
+                {isSelected && <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />}
               </TouchableOpacity>
             )
           })}
@@ -101,14 +112,15 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   triggerLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(201,168,76,0.15)",
+  codeBadge: {
+    backgroundColor: "rgba(30,58,95,0.1)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 36,
     alignItems: "center",
-    justifyContent: "center",
   },
+  codeBadgeText: { fontSize: 11, fontWeight: "700", color: "#1E3A5F" },
   triggerValue: { fontSize: 15, fontWeight: "600" },
   triggerHint: { fontSize: 12, marginTop: 2 },
   menu: {
@@ -125,6 +137,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 0.5,
   },
+  optionLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   optionLast: { borderBottomWidth: 0 },
   optionSelected: { backgroundColor: "rgba(201,168,76,0.08)" },
   optionLabel: { fontSize: 15 },

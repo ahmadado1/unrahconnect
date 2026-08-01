@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import {
@@ -137,10 +138,7 @@ export default function HotelDetailScreen() {
               </TouchableOpacity>
             </View>
             <Text style={[styles.heroName, isLogo && styles.heroTextOnLight]}>{hotel.name}</Text>
-            <Text style={styles.heroStars}>
-              {"★".repeat(hotel.stars)}
-              {"☆".repeat(5 - hotel.stars)}
-            </Text>
+            <StarRating count={hotel.stars} size={18} color={GOLD} style={{ marginBottom: 6 }} />
             <Text style={[styles.heroMeta, isLogo && styles.heroMetaOnLight]}>
               {hotel.city} · {hotel.distanceLabel}
             </Text>
@@ -275,7 +273,6 @@ const styles = StyleSheet.create({
   },
   heroName: { color: "#fff", fontSize: 24, fontWeight: "bold", lineHeight: 30 },
   heroTextOnLight: { color: NAVY },
-  heroStars: { color: GOLD, fontSize: 16, marginTop: 8 },
   heroMeta: { color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 6 },
   heroMetaOnLight: { color: "rgba(30,58,95,0.75)" },
   content: { padding: 20 },

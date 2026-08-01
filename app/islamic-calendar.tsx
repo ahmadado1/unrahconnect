@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
   fetchAndCacheIslamicEvents,
@@ -133,7 +134,7 @@ function EventCard({ event, theme }: { event: IslamicEvent; theme: any }) {
       <View style={styles.eventTop}>
         <View style={styles.eventLeft}>
           <View style={[styles.eventEmojiBg, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-            <Text style={styles.eventEmoji}>{event.emoji}</Text>
+            <AppIcon name={event.icon} size={22} color={colors.text} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.eventName, { color: theme.text }]}>{event.name}</Text>
@@ -367,7 +368,10 @@ export default function IslamicCalendarScreen() {
           <View style={styles.nextEventBanner}>
             <View style={styles.nextEventLeft}>
               <Text style={styles.nextEventLabel}>NEXT ISLAMIC EVENT</Text>
-              <Text style={styles.nextEventName}>{nextEvent.emoji} {nextEvent.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <AppIcon name={nextEvent.icon} size={20} color={ICON_GOLD} />
+                <Text style={styles.nextEventName}>{nextEvent.name}</Text>
+              </View>
               <Text style={styles.nextEventDate}>{nextEvent.gregorianDate}</Text>
             </View>
             <View style={styles.nextEventRight}>
@@ -475,7 +479,6 @@ const styles = StyleSheet.create({
   eventTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   eventLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1, marginRight: 8 },
   eventEmojiBg: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 0.5, flexShrink: 0 },
-  eventEmoji: { fontSize: 22 },
   eventName: { fontSize: 14, fontWeight: "600", marginBottom: 3 },
   eventHijri: { fontSize: 11, color: "#C9A84C" },
   eventRight: { alignItems: "flex-end", gap: 6 },

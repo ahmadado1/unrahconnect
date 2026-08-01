@@ -1,3 +1,4 @@
+import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { getFlightPlatformById } from "@/lib/flights"
 import { Ionicons } from "@expo/vector-icons"
@@ -58,7 +59,7 @@ export default function FlightDetailScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.heroEmoji}>{platform.emoji}</Text>
+          <AppIcon name={platform.icon} size={48} color="#fff" style={{ marginBottom: 8 }} />
           <Text style={styles.heroName}>{platform.name}</Text>
           <Text style={styles.heroTagline}>{platform.tagline}</Text>
           <Text style={styles.heroSite}>{platform.websiteLabel}</Text>

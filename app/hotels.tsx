@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import { HOTELS, type Hotel } from "@/lib/hotels"
@@ -115,14 +116,14 @@ const nearNabawiHotels = HOTELS.filter(h => h.city === "Madinah" && h.walkMinute
 const clockTowerHotels = HOTELS.filter(h => CLOCK_TOWER_IDS.has(h.id))
 const familyHotels = HOTELS.filter(h => FAMILY_FRIENDLY_IDS.has(h.id))
 
-const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; title: string; hotels: Hotel[] }[] =
+const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; icon: AppIconKey; title: string; hotels: Hotel[] }[] =
   [
-    { key: "Recommended", title: "✨ Recommended", hotels: recommendedHotels },
-    { key: "Budget Friendly", title: "💰 Budget Friendly", hotels: budgetFriendlyHotels },
-    { key: "Near Haram", title: "🕋 Closest to Haram", hotels: nearHaramHotels },
-    { key: "Near Nabawi", title: "🕌 Closest to Nabawi", hotels: nearNabawiHotels },
-    { key: "Clock Tower", title: "🏢 Clock Tower", hotels: clockTowerHotels },
-    { key: "Family", title: "👨‍👩‍👧 Family Friendly", hotels: familyHotels },
+    { key: "Recommended", icon: "sparkles", title: "Recommended", hotels: recommendedHotels },
+    { key: "Budget Friendly", icon: "cash", title: "Budget Friendly", hotels: budgetFriendlyHotels },
+    { key: "Near Haram", icon: "kaaba", title: "Closest to Haram", hotels: nearHaramHotels },
+    { key: "Near Nabawi", icon: "mosque", title: "Closest to Nabawi", hotels: nearNabawiHotels },
+    { key: "Clock Tower", icon: "business", title: "Clock Tower", hotels: clockTowerHotels },
+    { key: "Family", icon: "people", title: "Family Friendly", hotels: familyHotels },
   ]
 
 
@@ -206,6 +207,7 @@ export default function HotelsScreen() {
 
     return sections
       .map(section => ({
+        icon: section.icon,
         title: section.title,
         hotels: filterHotelsList(section.hotels),
       }))
@@ -217,7 +219,6 @@ export default function HotelsScreen() {
     const isFavorited = favoriteHotelIds.has(hotel.id)
     const isFeatured = FEATURED_IDS.has(hotel.id)
     const category = hotel.stars === 5 ? "5 Star" : "4 Star"
-    const starsDisplay = "★".repeat(hotel.stars)
     const isLogo = hotel.imageType === "logo"
     const [imageUri, setImageUri] = useState(hotel.image)
 
@@ -335,11 +336,16 @@ export default function HotelsScreen() {
           </Text>
           <View style={cardStyles.footer}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={[cardStyles.price, { color: theme.text }]}>
-                {starsDisplay} ·{" "}
-                <Text style={{ color: "#2D6A4F" }}>● {hotel.walkMinutes} min walk</Text>
-              </Text>
-              <Text style={cardStyles.rating}>★ {hotel.stars}.0</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <StarRating count={hotel.stars} size={12} color="#C9A84C" />
+                <Text style={{ color: "#2D6A4F", fontSize: 13, fontWeight: "600" }}>
+                  ● {hotel.walkMinutes} min walk
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <AppIcon name="star" size={12} color="#C9A84C" />
+                <Text style={cardStyles.rating}>{hotel.stars}.0</Text>
+              </View>
             </View>
             <TouchableOpacity
               style={[
@@ -436,7 +442,10 @@ export default function HotelsScreen() {
           {visibleSections.map(section => (
             <View key={section.title} style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                  <AppIcon name={section.icon} size={20} />
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
+                </View>
                 <Text style={styles.seeAll}>{section.hotels.length}</Text>
               </View>
               <ScrollView

@@ -1,3 +1,4 @@
+import { getIonIconColor } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,7 @@ export default function MeScreen() {
     { icon: "person-outline", labelKey: "profile", route: "/profile" },
     { icon: "heart-outline", labelKey: "favorites", route: "/favorites" },
     { icon: "briefcase-outline", labelKey: "agentDashboard", route: "/agent/dashboard", agentOnly: true },
+    { icon: "notifications-outline", labelKey: "notifications", route: "/notifications" },
     { icon: "settings-outline", labelKey: "settings", route: "/settings" },
     { icon: "information-circle-outline", labelKey: "aboutUs", route: "/about" },
     { icon: "call-outline", labelKey: "contactUs", route: "/contact" },
@@ -108,12 +110,12 @@ export default function MeScreen() {
             >
               <View style={[
                 styles.menuIconBg,
-                { backgroundColor: item.danger ? "rgba(226,75,74,0.1)" : item.labelKey === "agentDashboard" ? "rgba(201,168,76,0.1)" : "rgba(30,58,95,0.08)" }
+                { backgroundColor: `${getIonIconColor(item.icon)}18` },
               ]}>
                 <Ionicons
                   name={item.icon}
                   size={20}
-                  color={item.danger ? "#E24B4A" : item.labelKey === "agentDashboard" ? "#C9A84C" : theme.text}
+                  color={getIonIconColor(item.icon)}
                 />
               </View>
               <Text style={[styles.menuText, { color: item.danger ? "#E24B4A" : theme.text }]}>

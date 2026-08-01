@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -23,7 +24,7 @@ type Dua = {
 type Category = {
   id: string
   label: string
-  emoji: string
+  icon: AppIconKey
   duas: Dua[]
 }
 
@@ -33,7 +34,7 @@ const CATEGORIES: Category[] = [
   {
     id: "umrah",
     label: "Umrah",
-    emoji: "🕋",
+    icon: "kaaba",
     duas: [
       {
         id: "u1",
@@ -96,7 +97,7 @@ const CATEGORIES: Category[] = [
   {
     id: "prayer",
     label: "Prayer",
-    emoji: "🕌",
+    icon: "mosque",
     duas: [
       {
         id: "p1",
@@ -143,7 +144,7 @@ const CATEGORIES: Category[] = [
   {
     id: "daily",
     label: "Daily",
-    emoji: "🌙",
+    icon: "moon",
     duas: [
       {
         id: "d1",
@@ -198,7 +199,7 @@ const CATEGORIES: Category[] = [
   {
     id: "travel",
     label: "Travel",
-    emoji: "✈️",
+    icon: "airplane",
     duas: [
       {
         id: "t1",
@@ -237,7 +238,7 @@ const CATEGORIES: Category[] = [
   {
     id: "zikr",
     label: "Zikr",
-    emoji: "📿",
+    icon: "beads",
     duas: [
       {
         id: "z1",
@@ -308,7 +309,7 @@ const CATEGORIES: Category[] = [
   {
     id: "quran",
     label: "Quranic",
-    emoji: "📖",
+    icon: "book",
     duas: [
       {
         id: "q1",
@@ -440,7 +441,11 @@ export default function DuasScreen() {
               style={[styles.pill, activeCategory === cat.id && styles.pillActive]}
               onPress={() => setActiveCategory(cat.id)}
             >
-              <Text style={styles.pillEmoji}>{cat.emoji}</Text>
+              <AppIcon
+                name={cat.icon}
+                size={16}
+                color={activeCategory === cat.id ? getIconColor(cat.icon) : "#fff"}
+              />
               <Text style={[styles.pillText, activeCategory === cat.id && styles.pillTextActive]}>
                 {cat.label}
               </Text>
@@ -456,7 +461,7 @@ export default function DuasScreen() {
       >
         {/* Category header */}
         <View style={styles.catHeader}>
-          <Text style={styles.catEmoji}>{currentCategory.emoji}</Text>
+          <AppIcon name={currentCategory.icon} size={28} color={ICON_GOLD} />
           <View>
             <Text style={[styles.catTitle, { color: theme.text }]}>{currentCategory.label}</Text>
             <Text style={[styles.catCount, { color: theme.textSecondary }]}>
@@ -496,7 +501,6 @@ const styles = StyleSheet.create({
   pillsContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 16 },
   pill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)" },
   pillActive: { backgroundColor: "#C9A84C" },
-  pillEmoji: { fontSize: 14 },
   pillText: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "500" },
   pillTextActive: { color: "#1E3A5F", fontWeight: "700" },
 
@@ -505,7 +509,6 @@ const styles = StyleSheet.create({
 
   // Category header
   catHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 6 },
-  catEmoji: { fontSize: 36 },
   catTitle: { fontSize: 20, fontWeight: "bold" },
   catCount: { fontSize: 13, marginTop: 2 },
   tapHint: { fontSize: 12, marginBottom: 16, fontStyle: "italic" },

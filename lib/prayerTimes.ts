@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Location from "expo-location"
 
 export const PRAYER_TIMES_CACHE_KEY = "cached_prayer_times"
+const LOCATION_TIMEOUT_MS = 5000
 
 export type CachedPrayerTimes = {
   Fajr: string
@@ -16,6 +17,20 @@ export type CachedPrayerTimes = {
   hijriMonth: string
   hijriYear: string
   city: string
+  /** Device-local calendar day these timings were fetched for (YYYY-M-D) */
+  gregorianDate?: string
+  latitude?: number
+  longitude?: number
+}
+
+export function getLocalGregorianDateKey(d = new Date()) {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+export function isPrayerTimesCacheFresh(times: CachedPrayerTimes | null, d = new Date()) {
+  if (!times?.Fajr || !times?.Dhuhr) return false
+  if (!times.gregorianDate) return false
+  return times.gregorianDate === getLocalGregorianDateKey(d)
 }
 
 /** Parse "05:30", "05:30:00", or "05:30 (GMT+3)" into hour/minute. */
@@ -73,31 +88,81 @@ export async function readCachedPrayerTimes(): Promise<CachedPrayerTimes | null>
   }
 }
 
-export async function fetchAndCachePrayerTimes(): Promise<CachedPrayerTimes | null> {
+async function resolveCoordinates(): Promise<{
+  lat: number
+  lng: number
+  city: string
+}> {
+  // Defaults: Makkah (Kaaba area) if permission / GPS unavailable
+  let lat = 21.4225
+  let lng = 39.8262
+  let city = "Makkah"
+
   try {
     const { status } = await Location.requestForegroundPermissionsAsync()
-    let lat = 21.3891
-    let lng = 39.8579
-    let city = "Makkah"
+    if (status !== "granted") return { lat, lng, city }
 
-    if (status === "granted") {
-      const location = await Location.getCurrentPositionAsync({})
-      lat = location.coords.latitude
-      lng = location.coords.longitude
+    // Instant offline-friendly path
+    try {
+      const last = await Location.getLastKnownPositionAsync()
+      if (last?.coords) {
+        lat = last.coords.latitude
+        lng = last.coords.longitude
+      }
+    } catch {}
+
+    try {
+      const location = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<null>(resolve => setTimeout(() => resolve(null), LOCATION_TIMEOUT_MS)),
+      ])
+      if (location?.coords) {
+        lat = location.coords.latitude
+        lng = location.coords.longitude
+      }
+    } catch {}
+
+    try {
       const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
-      city = geocode[0]?.city || geocode[0]?.region || "Your location"
+      city = geocode[0]?.city || geocode[0]?.region || city
+    } catch {}
+  } catch {}
+
+  return { lat, lng, city }
+}
+
+export async function fetchAndCachePrayerTimes(
+  opts?: { force?: boolean }
+): Promise<CachedPrayerTimes | null> {
+  try {
+    if (!opts?.force) {
+      const existing = await readCachedPrayerTimes()
+      if (isPrayerTimesCacheFresh(existing)) {
+        // Still refresh notifications in case they were cancelled
+        await syncPrayerNotifications(existing!)
+        return existing
+      }
     }
+
+    const { lat, lng, city } = await resolveCoordinates()
 
     const today = new Date()
     const inSaudiArabia = lat >= 16.0 && lat <= 32.0 && lng >= 36.0 && lng <= 56.0
     const method = inSaudiArabia ? 4 : 5
+    const day = today.getDate()
+    const month = today.getMonth() + 1
+    const year = today.getFullYear()
 
     const res = await fetch(
-      `https://api.aladhan.com/v1/timings/${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}?latitude=${lat}&longitude=${lng}&method=${method}`
+      `https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=${lat}&longitude=${lng}&method=${method}`
     )
     const data = await res.json()
 
-    if (data.code !== 200) return readCachedPrayerTimes()
+    if (data.code !== 200) {
+      const fallback = await readCachedPrayerTimes()
+      if (fallback) await syncPrayerNotifications(fallback)
+      return fallback
+    }
 
     const timings = data.data.timings
     const hijriDate = data.data.date.hijri
@@ -109,16 +174,21 @@ export async function fetchAndCachePrayerTimes(): Promise<CachedPrayerTimes | nu
       Isha: timings.Isha,
       date: `${hijriDate.day} ${hijriDate.month.en} ${hijriDate.year} AH`,
       hijri: hijriDate.month.en,
-      hijriDay: hijriDate.day,
+      hijriDay: String(hijriDate.day),
       hijriMonth: hijriDate.month.en,
-      hijriYear: hijriDate.year,
+      hijriYear: String(hijriDate.year),
       city,
+      gregorianDate: getLocalGregorianDateKey(today),
+      latitude: lat,
+      longitude: lng,
     }
 
     await AsyncStorage.setItem(PRAYER_TIMES_CACHE_KEY, JSON.stringify(times))
     await syncPrayerNotifications(times)
     return times
   } catch {
-    return readCachedPrayerTimes()
+    const fallback = await readCachedPrayerTimes()
+    if (fallback) await syncPrayerNotifications(fallback).catch(() => {})
+    return fallback
   }
 }

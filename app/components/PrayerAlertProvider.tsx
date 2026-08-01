@@ -8,18 +8,22 @@ import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/p
 import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
 import {
   fetchAndCachePrayerTimes,
+  getLocalGregorianDateKey,
+  isPrayerTimesCacheFresh,
   readCachedPrayerTimes,
   timeToMinutes,
   type CachedPrayerTimes,
 } from "@/lib/prayerTimes"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useRef, useState } from "react"
+import { AppState, type AppStateStatus } from "react-native"
 
 const SHOWN_POPUPS_KEY = "prayer_popups_shown_date"
+/** How long after prayer time we still auto-trigger in-app Adhan */
+const PRAYER_CATCHUP_MINUTES = 20
 
 function getTodayKey() {
-  const now = new Date()
-  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+  return getLocalGregorianDateKey()
 }
 
 async function areNotificationsEnabled() {
@@ -45,7 +49,6 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     const alreadyShown = shownPopupsRef.current.has(prayerName)
 
     if (alreadyShown && !options.forceShow) {
-      // Prayer already alerted — never restart from 0; only keep audio going if needed.
       if (options.playSound) {
         void playAdhan(prayerName, {
           forceRestart: false,
@@ -84,7 +87,6 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       if (!(await areNotificationsEnabled())) return
       const options = normalizePrayerAlertOptions(rawOptions)
       if (shownPopupsRef.current.has(name) && !options.forceShow) {
-        // Don't start a second adhan — only continue if already playing / ensure playing without restart.
         if (options.playSound) {
           showPrayerAlertRef.current(name, {
             ...options,
@@ -129,7 +131,6 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   }, [])
 
   useEffect(() => {
-    // Don't wipe persisted "shown today" list before hydrate finishes.
     if (!shownHydratedRef.current) return
     const today = getTodayKey()
     AsyncStorage.setItem(SHOWN_POPUPS_KEY, today)
@@ -139,20 +140,30 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
   useEffect(() => {
     let cancelled = false
 
-    const loadTimes = async () => {
+    const loadTimes = async (force = false) => {
       const cached = await readCachedPrayerTimes()
       if (cached && !cancelled) setPrayerTimes(cached)
 
-      const fresh = await fetchAndCachePrayerTimes()
+      const needForce = force || !isPrayerTimesCacheFresh(cached)
+      const fresh = await fetchAndCachePrayerTimes({ force: needForce })
       if (fresh && !cancelled) setPrayerTimes(fresh)
     }
 
     loadTimes()
-    const refreshTimer = setInterval(loadTimes, 6 * 60 * 60 * 1000)
+    const refreshTimer = setInterval(() => loadTimes(true), 6 * 60 * 60 * 1000)
+
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active") {
+        void configureAdhanAudioMode().catch(() => {})
+        void loadTimes(false)
+      }
+    }
+    const sub = AppState.addEventListener("change", onAppState)
 
     return () => {
       cancelled = true
       clearInterval(refreshTimer)
+      sub.remove()
     }
   }, [])
 
@@ -160,6 +171,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     if (!prayerTimes) return
 
     const checkPrayer = async () => {
+      if (!shownHydratedRef.current) return
       if (!(await areNotificationsEnabled())) return
 
       const now = new Date()
@@ -167,7 +179,12 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
       for (const name of PRAYER_NAMES) {
         const prayerMin = timeToMinutes(prayerTimes[name])
-        if (nowMinutes >= prayerMin && nowMinutes <= prayerMin + 10 && !shownPopupsRef.current.has(name)) {
+        if (prayerMin < 0) continue
+        if (
+          nowMinutes >= prayerMin &&
+          nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
+          !shownPopupsRef.current.has(name)
+        ) {
           showPrayerAlertRef.current(name, true)
           break
         }
@@ -190,6 +207,10 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
         setShownPopups(new Set())
         AsyncStorage.setItem(SHOWN_POPUPS_KEY, getTodayKey())
         AsyncStorage.setItem("prayer_popups_shown_list", "[]")
+        // New day → force fresh timings + notification schedule
+        void fetchAndCachePrayerTimes({ force: true }).then(fresh => {
+          if (fresh) setPrayerTimes(fresh)
+        })
         scheduleMidnightClear()
       }, msUntilMidnight + 500)
     }

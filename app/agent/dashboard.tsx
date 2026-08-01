@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon } from "@/components/AppIcon"
 import * as Clipboard from "expo-clipboard"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
@@ -131,9 +133,12 @@ export default function AgentDashboard() {
 
         {agentData?.referral_code && (
             <View style={[styles.card, { backgroundColor: "#1E3A5F", borderColor: "rgba(201,168,76,0.3)" }]}>
-              <Text style={{ color: "#C9A84C", fontWeight: "bold", fontSize: 13, marginBottom: 8 }}>
-                🔑 {t("yourAgentCode")}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <AppIcon name="key" size={16} color="#C9A84C" />
+                <Text style={{ color: "#C9A84C", fontWeight: "bold", fontSize: 13 }}>
+                  {t("yourAgentCode")}
+                </Text>
+              </View>
               <Text style={styles.codeText}>{agentData.referral_code}</Text>
               <View style={styles.codeActions}>
                 <TouchableOpacity style={styles.copyBtn} onPress={copyAgentCode}>
@@ -224,7 +229,7 @@ export default function AgentDashboard() {
 
             {pilgrims.length === 0 ? (
               <View style={{ alignItems: "center", paddingVertical: 20 }}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🕋</Text>
+                <AnimatedHeroIcon name="kaaba" size={36} accent="gold" style={{ marginBottom: 8 }} />
                 <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center" }}>
                   No pilgrims yet. Share your agent code to get started.
                 </Text>

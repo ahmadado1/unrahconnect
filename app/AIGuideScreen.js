@@ -1,11 +1,12 @@
 import { useAIGuide } from "@/context/AIGuideContext"
+import { useTheme } from "@/context/themeContext"
 import { isNetworkError } from "@/lib/networkError"
 import { getUmrahProgress, supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase"
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ActivityIndicator,
@@ -53,41 +54,45 @@ const SUGGESTED_QUESTIONS = [
   "Fajr prayer steps",
 ]
 
-const MARKDOWN_STYLES = {
-  body: { color: NAVY, fontSize: 15, lineHeight: 22 },
-  paragraph: { color: NAVY, fontSize: 15, lineHeight: 22, marginTop: 0, marginBottom: 8 },
-  heading1: { color: NAVY, fontWeight: "bold", fontSize: 18, marginBottom: 6 },
-  heading2: { color: NAVY, fontWeight: "bold", fontSize: 16, marginBottom: 6 },
-  heading3: { color: NAVY, fontWeight: "600", fontSize: 15, marginBottom: 4 },
-  strong: { color: NAVY, fontWeight: "bold" },
-  em: { color: NAVY, fontStyle: "italic" },
-  hr: { backgroundColor: "#E0E0E0", height: 1, marginVertical: 8 },
-  bullet_list: { marginLeft: 8, marginBottom: 6 },
-  ordered_list: { marginLeft: 8, marginBottom: 6 },
-  list_item: { color: NAVY, fontSize: 15, lineHeight: 22 },
-  blockquote: {
-    backgroundColor: "#F5F0E8",
-    borderLeftColor: GOLD,
-    borderLeftWidth: 3,
-    paddingLeft: 8,
-    paddingVertical: 4,
-    marginVertical: 6,
-  },
-  code_inline: {
-    backgroundColor: "#F5F0E8",
-    color: NAVY,
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    fontSize: 13,
-  },
-  fence: {
-    backgroundColor: "#F5F0E8",
-    color: NAVY,
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 13,
-  },
-  link: { color: GOLD },
+function buildMarkdownStyles(theme) {
+  const text = theme.text
+  const mutedBg = theme.inputBg
+  return {
+    body: { color: text, fontSize: 15, lineHeight: 22 },
+    paragraph: { color: text, fontSize: 15, lineHeight: 22, marginTop: 0, marginBottom: 8 },
+    heading1: { color: text, fontWeight: "bold", fontSize: 18, marginBottom: 6 },
+    heading2: { color: text, fontWeight: "bold", fontSize: 16, marginBottom: 6 },
+    heading3: { color: text, fontWeight: "600", fontSize: 15, marginBottom: 4 },
+    strong: { color: text, fontWeight: "bold" },
+    em: { color: text, fontStyle: "italic" },
+    hr: { backgroundColor: theme.border, height: 1, marginVertical: 8 },
+    bullet_list: { marginLeft: 8, marginBottom: 6 },
+    ordered_list: { marginLeft: 8, marginBottom: 6 },
+    list_item: { color: text, fontSize: 15, lineHeight: 22 },
+    blockquote: {
+      backgroundColor: mutedBg,
+      borderLeftColor: GOLD,
+      borderLeftWidth: 3,
+      paddingLeft: 8,
+      paddingVertical: 4,
+      marginVertical: 6,
+    },
+    code_inline: {
+      backgroundColor: mutedBg,
+      color: text,
+      borderRadius: 4,
+      paddingHorizontal: 4,
+      fontSize: 13,
+    },
+    fence: {
+      backgroundColor: mutedBg,
+      color: text,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 13,
+    },
+    link: { color: GOLD },
+  }
 }
 
 const LINK_MARKER_RE = /\[LINK:\s*([^|\]]+?)\s*\|\s*([^\]]+?)\]/gi
@@ -202,7 +207,7 @@ function detectSurahLinks(text) {
   if (numMatch) {
     const n = Number(numMatch[1])
     if (n >= 1 && n <= 114) {
-      links.push({ id: `surah-${n}`, label: `📖 Surah ${n}`, route: `/quran/${n}` })
+      links.push({ id: `surah-${n}`, label: `Surah ${n}`, route: `/quran/${n}` })
     }
   }
 
@@ -211,7 +216,7 @@ function detectSurahLinks(text) {
     if (s.names.some((name) => lower.includes(name))) {
       links.push({
         id: `surah-${s.n}`,
-        label: `📖 Read Surah ${s.n}`,
+        label: `Read Surah ${s.n}`,
         route: `/quran/${s.n}`,
       })
     }
@@ -224,55 +229,55 @@ function detectSurahLinks(text) {
 const DEEP_LINK_RULES = [
   {
     id: "tawaf",
-    label: "✅ Tawaf Guide",
+    label: "Tawaf Guide",
     route: "/umrah/4",
     patterns: [/\btawaf\b/i, /طواف/],
   },
   {
     id: "sai",
-    label: "✅ Sa'i Step",
+    label: "Sa'i Step",
     route: "/umrah/5",
     patterns: [/\bsa['’]?i\b/i, /سعي/],
   },
   {
     id: "ihram",
-    label: "✅ Ihram Step",
+    label: "Ihram Step",
     route: "/umrah/2",
     patterns: [/\bihram\b/i, /إحرام/, /احرام/],
   },
   {
     id: "halq",
-    label: "✅ Halq / Taqsir",
+    label: "Halq / Taqsir",
     route: "/umrah/6",
     patterns: [/\bhalq\b/i, /\btaqsir\b/i, /حلق/, /تقصير/],
   },
   {
     id: "hajj-arafah",
-    label: "🕋 Day of Arafah",
+    label: "Day of Arafah",
     route: "/hajj/4",
     patterns: [/\barafah\b/i, /\barafat\b/i, /عرفة/],
   },
   {
     id: "hajj-muzdalifah",
-    label: "🕋 Muzdalifah",
+    label: "Muzdalifah",
     route: "/hajj/5",
     patterns: [/\bmuzdalifah\b/i, /مزدلفة/],
   },
   {
     id: "hajj-jamarat",
-    label: "🕋 Jamarat",
+    label: "Jamarat",
     route: "/hajj/6",
     patterns: [/\bjamarat\b/i, /\bstoning\b/i, /جمرات/],
   },
   {
     id: "hajj",
-    label: "🕋 Open Hajj Guide",
+    label: "Open Hajj Guide",
     route: "/hajj",
     patterns: [/\bhajj\b/i, /حج/],
   },
   {
     id: "madinah-map",
-    label: "🗺 Madinah Map",
+    label: "Madinah Map",
     route: "/maps/nabawi",
     patterns: [
       /\bmadinah\b/i,
@@ -289,43 +294,43 @@ const DEEP_LINK_RULES = [
   },
   {
     id: "makkah-map",
-    label: "🗺 Makkah Map",
+    label: "Makkah Map",
     route: "/maps/haram",
     patterns: [/\bmakkah\b/i, /\bmecca\b/i, /\bkaaba\b/i, /\bharam\b/i, /مكة/, /الكعبة/, /الحرم/],
   },
   {
     id: "zamzam",
-    label: "💧 Zamzam",
+    label: "Zamzam",
     route: "/maps/zamzam",
     patterns: [/\bzamzam\b/i, /زمزم/],
   },
   {
     id: "safa",
-    label: "🚶 Safa & Marwah",
+    label: "Safa & Marwah",
     route: "/maps/safa",
     patterns: [/\bsafa\b/i, /\bmarwa\b/i, /\bmarwah\b/i, /صفا/, /مروة/],
   },
   {
     id: "mina",
-    label: "⛺ Mina Map",
+    label: "Mina Map",
     route: "/maps/mina",
     patterns: [/\bmina\b/i, /منى/],
   },
   {
     id: "umrah",
-    label: "✅ Open Umrah Guide",
+    label: "Open Umrah Guide",
     route: "/umrah-guide",
     patterns: [/\bumrah\b/i, /عمرة/],
   },
   {
     id: "checklist",
-    label: "✅ My Checklist",
+    label: "My Checklist",
     route: "/umrah-guide",
     patterns: [/\bchecklist\b/i, /\bnext step\b/i, /\bumrah step\b/i],
   },
   {
     id: "prayer",
-    label: "🕌 Prayer Times",
+    label: "Prayer Times",
     route: "/(tabs)",
     patterns: [
       /\bprayer\b/i,
@@ -344,43 +349,43 @@ const DEEP_LINK_RULES = [
   },
   {
     id: "quran",
-    label: "📖 Open Quran",
+    label: "Open Quran",
     route: "/quran",
     patterns: [/\bquran\b/i, /\bverse\b/i, /\bsurah\b/i, /\bayah\b/i, /\baya\b/i, /قرآن/, /سورة/, /آية/],
   },
   {
     id: "qibla",
-    label: "🧭 Open Qibla",
+    label: "Open Qibla",
     route: "/qiblah",
     patterns: [/\bqibla\b/i, /\bqiblah\b/i, /قبلة/, /قبلہ/],
   },
   {
     id: "hotels",
-    label: "🏨 Hotels",
+    label: "Hotels",
     route: "/hotels",
     patterns: [/\bhotel\b/i, /\baccommodation\b/i, /\bstay\b/i],
   },
   {
     id: "restaurants",
-    label: "🍽 Restaurants",
+    label: "Restaurants",
     route: "/restaurants",
     patterns: [/\brestaurant\b/i, /\bfood\b/i, /\beat\b/i, /\bdine\b/i],
   },
   {
     id: "hospitals",
-    label: "🏥 Hospitals",
+    label: "Hospitals",
     route: "/maps/hospital-makkah",
     patterns: [/\bhospital\b/i, /\bmedical\b/i, /مستشفى/],
   },
   {
     id: "transport",
-    label: "🚌 Transport",
+    label: "Transport",
     route: "/(tabs)/services",
     patterns: [/\btransport\b/i, /\bbus\b/i, /\btrain\b/i, /\buber\b/i, /\bharamain\b/i, /\bsaptco\b/i],
   },
   {
     id: "maps",
-    label: "🗺 Open Maps",
+    label: "Open Maps",
     route: "/(tabs)/maps",
     patterns: [/\bmap\b/i, /\bmaps\b/i, /\bdirections\b/i, /\bnavigate\b/i, /\blandmark\b/i],
   },
@@ -550,6 +555,7 @@ async function streamAiGuide({ body, onText, signal }) {
 export default function AIGuideScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { theme, isDark } = useTheme()
   const { i18n, t } = useTranslation()
   const listRef = useRef(null)
   const abortRef = useRef(null)
@@ -567,6 +573,8 @@ export default function AIGuideScreen() {
   const personalizedWelcomeRef = useRef(false)
 
   const language = LANGUAGE_NAMES[i18n.language?.split("-")[0]] ?? "English"
+  const markdownStyles = useMemo(() => buildMarkdownStyles(theme), [theme])
+  const headerBg = isDark ? theme.header : NAVY
 
   useEffect(() => {
     let cancelled = false
@@ -780,21 +788,34 @@ export default function AIGuideScreen() {
 
     return (
       <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-        <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+        <View
+          style={[
+            styles.bubble,
+            isUser
+              ? [styles.userBubble, { backgroundColor: headerBg }]
+              : [
+                  styles.assistantBubble,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ],
+          ]}
+        >
           {isUser ? (
             <Text style={[styles.bubbleText, styles.userBubbleText]}>{item.content}</Text>
           ) : showTyping ? (
             <View style={styles.typingRow}>
               <ActivityIndicator size="small" color={GOLD} />
-              <Text style={styles.typingText}>Thinking…</Text>
+              <Text style={[styles.typingText, { color: theme.textSecondary }]}>Thinking…</Text>
             </View>
           ) : item.streaming ? (
-            <Text style={styles.bubbleText}>
+            <Text style={[styles.bubbleText, { color: theme.text }]}>
               {item.content}
               <Text style={styles.cursor}> ▍</Text>
             </Text>
           ) : (
-            <Markdown style={MARKDOWN_STYLES}>{item.content || " "}</Markdown>
+            <Markdown style={markdownStyles}>{item.content || " "}</Markdown>
           )}
         </View>
 
@@ -803,11 +824,18 @@ export default function AIGuideScreen() {
             {links.map((link) => (
               <TouchableOpacity
                 key={`${item.id}-${link.id}`}
-                style={styles.linkChip}
+                style={[
+                  styles.linkChip,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(201,168,76,0.12)"
+                      : "rgba(201,168,76,0.08)",
+                  },
+                ]}
                 onPress={() => openLink(link.route)}
                 activeOpacity={0.75}
               >
-                <Text style={styles.linkChipText}>{link.label}</Text>
+                <Text style={[styles.linkChipText, { color: theme.text }]}>{link.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -817,10 +845,10 @@ export default function AIGuideScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
@@ -844,7 +872,7 @@ export default function AIGuideScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.chipsSection}>
+        <View style={[styles.chipsSection, { backgroundColor: headerBg }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -876,11 +904,27 @@ export default function AIGuideScreen() {
           keyboardDismissMode="interactive"
         />
 
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View
+          style={[
+            styles.inputBar,
+            {
+              backgroundColor: theme.card,
+              borderTopColor: theme.border,
+              paddingBottom: Math.max(insets.bottom, 12),
+            },
+          ]}
+        >
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBg,
+                color: theme.text,
+                borderColor: theme.border,
+              },
+            ]}
             placeholder="Ask about Umrah, Hajj, Islam, or the app..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.textMuted}
             value={input}
             onChangeText={setInput}
             multiline
@@ -907,10 +951,9 @@ export default function AIGuideScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F5F0E8" },
+  screen: { flex: 1 },
   flex: { flex: 1 },
   header: {
-    backgroundColor: NAVY,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -928,7 +971,6 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
   headerSub: { color: GOLD, fontSize: 12, marginTop: 2 },
   chipsSection: {
-    backgroundColor: NAVY,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(201,168,76,0.25)",
@@ -953,19 +995,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   assistantBubble: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#E0D9CE",
     borderTopLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: NAVY,
     borderTopRightRadius: 4,
   },
-  bubbleText: { color: NAVY, fontSize: 15, lineHeight: 22 },
+  bubbleText: { fontSize: 15, lineHeight: 22 },
   userBubbleText: { color: "#fff" },
   typingRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
-  typingText: { color: "#64748B", fontSize: 14, fontStyle: "italic" },
+  typingText: { fontSize: 14, fontStyle: "italic" },
   cursor: { color: GOLD, fontSize: 16, lineHeight: 18, marginTop: -4 },
   linkRow: {
     flexDirection: "row",
@@ -977,13 +1016,11 @@ const styles = StyleSheet.create({
   linkChip: {
     borderWidth: 1.5,
     borderColor: GOLD,
-    backgroundColor: "rgba(201,168,76,0.08)",
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   linkChipText: {
-    color: NAVY,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -992,23 +1029,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 12,
     paddingTop: 10,
-    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#E0D9CE",
     gap: 8,
   },
   input: {
     flex: 1,
     minHeight: 44,
     maxHeight: 120,
-    backgroundColor: "#F5F0E8",
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: NAVY,
     borderWidth: 1,
-    borderColor: "#E0D9CE",
   },
   sendBtn: {
     width: 44,

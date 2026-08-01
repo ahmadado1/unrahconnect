@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon, AppIconKey, ICON_GOLD, ICON_NAVY } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -142,7 +144,7 @@ const WRISTBAND_TIPS = [
 const SITE_INFO: Record<string, {
   nameKey: string
   arabic: string
-  emoji: string
+  icon: AppIconKey
   descriptionKey: string
   lat: number
   lng: number
@@ -152,7 +154,7 @@ const SITE_INFO: Record<string, {
   haram: {
     nameKey: "masjidAlHaram",
     arabic: "المسجد الحرام",
-    emoji: "🕋",
+    icon: "kaaba",
     descriptionKey: "siteHaramDesc",
     lat: 21.4225,
     lng: 39.8262,
@@ -162,7 +164,7 @@ const SITE_INFO: Record<string, {
   nabawi: {
     nameKey: "masjidNabawi",
     arabic: "المسجد النبوي",
-    emoji: "🕌",
+    icon: "mosque",
     descriptionKey: "siteNabawiDesc",
     lat: 24.4672,
     lng: 39.6111,
@@ -172,7 +174,7 @@ const SITE_INFO: Record<string, {
   mina: {
     nameKey: "mina",
     arabic: "منى",
-    emoji: "⛺",
+    icon: "camp",
     descriptionKey: "siteMinaDesc",
     lat: 21.4133,
     lng: 39.8930,
@@ -182,7 +184,7 @@ const SITE_INFO: Record<string, {
   arafah: {
     nameKey: "arafah",
     arabic: "جبل عرفات",
-    emoji: "⛰️",
+    icon: "mountain",
     descriptionKey: "siteArafahDesc",
     lat: 21.3549,
     lng: 39.9845,
@@ -192,7 +194,7 @@ const SITE_INFO: Record<string, {
   zamzam: {
     nameKey: "zamzamWell",
     arabic: "بئر زمزم",
-    emoji: "💧",
+    icon: "water",
     descriptionKey: "siteZamzamDesc",
     lat: 21.4228,
     lng: 39.8261,
@@ -202,7 +204,7 @@ const SITE_INFO: Record<string, {
   safa: {
     nameKey: "safaMarwah",
     arabic: "الصفا والمروة",
-    emoji: "🚶",
+    icon: "walk",
     descriptionKey: "siteSafaDesc",
     lat: 21.4221,
     lng: 39.8268,
@@ -212,7 +214,7 @@ const SITE_INFO: Record<string, {
   "hospital-makkah": {
     nameKey: "siteHospitalsTitle",
     arabic: "مستشفيات مكة والمدينة",
-    emoji: "🏥",
+    icon: "hospital",
     descriptionKey: "siteHospitalsDesc",
     lat: 21.4225,
     lng: 39.8262,
@@ -222,7 +224,7 @@ const SITE_INFO: Record<string, {
   "lost-found": {
     nameKey: "lostAndFound",
     arabic: "مركز المفقودات",
-    emoji: "🔍",
+    icon: "search",
     descriptionKey: "siteLostFoundDesc",
     lat: 21.4225,
     lng: 39.8262,
@@ -260,7 +262,7 @@ export default function SiteDetailScreen() {
           <Text style={styles.headerTitle}>{siteName}</Text>
           <Text style={styles.headerArabic}>{info.arabic}</Text>
         </View>
-        <Text style={styles.emoji}>{info.emoji}</Text>
+        <AnimatedHeroIcon name={info.icon} size={40} accent="gold" />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -370,7 +372,7 @@ export default function SiteDetailScreen() {
               >
                 <View style={styles.gateLeft}>
                   <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
-                    <Text style={{ fontSize: 16 }}>🏥</Text>
+                    <AppIcon name="hospital" size={18} color={ICON_GOLD} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.gateName, { color: theme.text }]}>{t(hospital.nameKey)}</Text>
@@ -400,7 +402,7 @@ export default function SiteDetailScreen() {
               >
                 <View style={styles.gateLeft}>
                   <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
-                    <Text style={{ fontSize: 16 }}>🏥</Text>
+                    <AppIcon name="hospital" size={18} color={ICON_GOLD} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.gateName, { color: theme.text }]}>{t(hospital.nameKey)}</Text>
@@ -450,7 +452,7 @@ export default function SiteDetailScreen() {
             >
               <View style={styles.gateLeft}>
                 <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
-                  <Text style={{ fontSize: 16 }}>🕋</Text>
+                  <AppIcon name="kaaba" size={18} color={ICON_GOLD} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.gateName, { color: theme.text }]}>{t("makkahLostCenterName")}</Text>
@@ -468,7 +470,7 @@ export default function SiteDetailScreen() {
             >
               <View style={styles.gateLeft}>
                 <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
-                  <Text style={{ fontSize: 16 }}>🕌</Text>
+                  <AppIcon name="mosque" size={18} color={ICON_GOLD} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.gateName, { color: theme.text }]}>{t("madinahLostCenterName")}</Text>
@@ -535,7 +537,7 @@ export default function SiteDetailScreen() {
             >
               <View style={styles.gateLeft}>
                 <View style={[styles.gateNum, { backgroundColor: "#1E3A5F" }]}>
-                  <Text style={{ fontSize: 16 }}>🕌</Text>
+                  <AppIcon name="mosque" size={18} color={ICON_GOLD} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.gateName, { color: theme.text }]}>{t("wristbandMadinahName")}</Text>
@@ -559,7 +561,6 @@ const styles = StyleSheet.create({
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 6 },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   headerArabic: { color: "#C9A84C", fontSize: 13, marginTop: 2 },
-  emoji: { fontSize: 36 },
   card: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16, borderWidth: 0.5 },
   description: { fontSize: 14, lineHeight: 22 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginHorizontal: 16, marginTop: 20, marginBottom: 4 },

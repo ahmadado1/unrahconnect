@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
   arabicGrills,
@@ -79,16 +80,19 @@ export default function RestaurantsScreen() {
 
   const visibleSections = useMemo(
     () =>
-      [
-        { title: "✨ " + t("recommended"), restaurants: recommendedRestaurants },
-        { title: "🕋 " + t("nearHaram"), restaurants: nearHaramRestaurants },
-        { title: "🕌 Near Nabawi", restaurants: nearNabawiRestaurants },
-        { title: "🍖 " + t("arabicGrills"), restaurants: arabicGrills },
-        { title: "🏆 Saudi Favourites", restaurants: saudiChains },
-        { title: "🌍 " + t("international"), restaurants: internationalChains },
-        { title: "☕ Cafes & Hotel Dining", restaurants: cafesAndDesserts },
-      ]
+      (
+        [
+          { icon: "sparkles" as AppIconKey, title: t("recommended"), restaurants: recommendedRestaurants },
+          { icon: "kaaba" as AppIconKey, title: t("nearHaram"), restaurants: nearHaramRestaurants },
+          { icon: "mosque" as AppIconKey, title: "Near Nabawi", restaurants: nearNabawiRestaurants },
+          { icon: "meat" as AppIconKey, title: t("arabicGrills"), restaurants: arabicGrills },
+          { icon: "award" as AppIconKey, title: "Saudi Favourites", restaurants: saudiChains },
+          { icon: "globe" as AppIconKey, title: t("international"), restaurants: internationalChains },
+          { icon: "coffee" as AppIconKey, title: "Cafes & Hotel Dining", restaurants: cafesAndDesserts },
+        ] as const
+      )
         .map(section => ({
+          icon: section.icon,
           title: section.title,
           restaurants: filterRestaurants(section.restaurants),
         }))
@@ -207,7 +211,10 @@ export default function RestaurantsScreen() {
                   ● {restaurant.isOpen ? t("open") : t("closed")}
                 </Text>
               </Text>
-              <Text style={cardStyles.rating}>★ {restaurant.rating} · Halal</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                <AppIcon name="star" size={12} color="#C9A84C" />
+                <Text style={cardStyles.rating}>{restaurant.rating} · Halal</Text>
+              </View>
             </View>
             <TouchableOpacity
               style={[cardStyles.btn, !isHero && cardStyles.btnExternal]}
@@ -274,7 +281,10 @@ export default function RestaurantsScreen() {
           {visibleSections.map(section => (
             <View key={section.title} style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                  <AppIcon name={section.icon} size={20} />
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
+                </View>
                 <Text style={styles.seeAll}>{section.restaurants.length}</Text>
               </View>
               <ScrollView

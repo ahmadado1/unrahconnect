@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
@@ -10,13 +11,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 
 const LOCATIONS = [
-  { id: "haram", emoji: "🕋", nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },
-  { id: "nabawi", emoji: "🕌", nameKey: "masjidNabawi", subKey: "madinah", query: "Masjid Nabawi, Madinah, Saudi Arabia" },
-  { id: "mina", emoji: "⛺", nameKey: "mina", subKey: "hajjSite", query: "Mina, Makkah, Saudi Arabia" },
-  { id: "arafah", emoji: "🏔️", nameKey: "arafah", subKey: "hajjSite", query: "Mount Arafah, Makkah, Saudi Arabia" },
-  { id: "zamzam", emoji: "💧", nameKey: "zamzamWell", subKey: "makkah", query: "Zamzam Well, Makkah, Saudi Arabia" },
-  { id: "safa", emoji: "🚶", nameKey: "safaMarwah", subKey: "makkah", query: "Safa and Marwah, Makkah, Saudi Arabia" },
-  { id: "lost-found", emoji: "🔍", nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
+  { id: "haram", icon: "kaaba" as AppIconKey, nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },
+  { id: "nabawi", icon: "mosque" as AppIconKey, nameKey: "masjidNabawi", subKey: "madinah", query: "Masjid Nabawi, Madinah, Saudi Arabia" },
+  { id: "mina", icon: "camp" as AppIconKey, nameKey: "mina", subKey: "hajjSite", query: "Mina, Makkah, Saudi Arabia" },
+  { id: "arafah", icon: "mountain" as AppIconKey, nameKey: "arafah", subKey: "hajjSite", query: "Mount Arafah, Makkah, Saudi Arabia" },
+  { id: "zamzam", icon: "water" as AppIconKey, nameKey: "zamzamWell", subKey: "makkah", query: "Zamzam Well, Makkah, Saudi Arabia" },
+  { id: "safa", icon: "walk" as AppIconKey, nameKey: "safaMarwah", subKey: "makkah", query: "Safa and Marwah, Makkah, Saudi Arabia" },
+  { id: "lost-found", icon: "search" as AppIconKey, nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
 ] as const
 
 export default function MapsScreen() {
@@ -85,7 +86,7 @@ export default function MapsScreen() {
             onPress={() => router.push(`/maps/${loc.id}` as any)}
             // ↑ THIS IS THE KEY CHANGE — goes to detail screen, not Google Maps directly
           >
-            <Text style={styles.emoji}>{loc.emoji}</Text>
+            <AppIcon name={loc.icon} size={28} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.locationName, { color: theme.text }]}>{t(loc.nameKey)}</Text>
               <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(loc.subKey)}</Text>
@@ -120,7 +121,6 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 14,
     padding: 16, borderRadius: 14, borderWidth: 0.5, marginBottom: 10,
   },
-  emoji: { fontSize: 28 },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },
 })

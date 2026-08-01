@@ -1,7 +1,7 @@
 export type FlightPlatform = {
   id: string
   name: string
-  emoji: string
+  icon: "airplane"
   tagline: string
   description: string
   pilgrimTip: string
@@ -16,7 +16,7 @@ export const FLIGHT_PLATFORMS: FlightPlatform[] = [
   {
     id: "saudia",
     name: "Saudia Airlines",
-    emoji: "🟢",
+    icon: "airplane",
     tagline: "Official Saudi carrier — direct to Jeddah & Madinah",
     description:
       "Saudi Arabia’s national airline with direct flights into Jeddah (King Abdulaziz) and Madinah (Prince Mohammad Bin Abdulaziz) — ideal for Umrah and Hajj journeys.",
@@ -30,7 +30,7 @@ export const FLIGHT_PLATFORMS: FlightPlatform[] = [
   {
     id: "kayak",
     name: "Kayak",
-    emoji: "🟠",
+    icon: "airplane",
     tagline: "Compare hundreds of flight sites at once",
     description:
       "Kayak searches airlines and travel sites side by side so you can compare prices, stops, and times for flights toward Jeddah and Madinah.",
@@ -44,7 +44,7 @@ export const FLIGHT_PLATFORMS: FlightPlatform[] = [
   {
     id: "skyscanner",
     name: "Skyscanner",
-    emoji: "🔵",
+    icon: "airplane",
     tagline: "Find the best flight deals worldwide",
     description:
       "Skyscanner helps you discover flexible dates and competitive fares worldwide — useful when comparing routes into Jeddah or Madinah.",

@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { useTheme } from "@/context/themeContext";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
@@ -290,7 +291,7 @@ const handleGoogleSignIn = async () => {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.logo}>🌙</Text>
+            <AnimatedHeroIcon name="moon" size={60} accent="gold" style={{ marginBottom: 12 }} />
             <Text style={[styles.title, { color: theme.text }]}>UmrahConnect</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
               {isSignUp ? t("createAccount") : t("welcomeBackAuth")}
@@ -323,8 +324,8 @@ const handleGoogleSignIn = async () => {
                   placeholder={t("gender")}
                   value={gender}
                   options={[
-                    { id: "male", label: t("male"), prefix: "♂" },
-                    { id: "female", label: t("female"), prefix: "♀" },
+                    { id: "male", label: t("male"), icon: "male" },
+                    { id: "female", label: t("female"), icon: "female" },
                   ]}
                   onChange={id => setGender(id as "male" | "female")}
                   variant="menu"
@@ -454,7 +455,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { flex: 1, padding: 24 },
   header: { alignItems: "center", marginBottom: 40 },
-  logo: { fontSize: 60, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 6 },
   subtitle: { fontSize: 15 },
   genderRow: { flexDirection: "row", gap: 12 },

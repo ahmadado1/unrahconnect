@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
 import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
@@ -164,7 +165,7 @@ export default function BookmarksScreen() {
       ) : bookmarks.length === 0 ? (
         // Empty state
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>🔖</Text>
+          <AnimatedHeroIcon name="bookmark" size={48} accent="gold" style={{ marginBottom: 8 }} />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>No bookmarks yet</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
             Tap the bookmark icon on any verse to save it here
@@ -209,7 +210,6 @@ const styles = StyleSheet.create({
 
   // Empty state
   emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 32 },
-  emptyEmoji: { fontSize: 48 },
   emptyTitle: { fontSize: 18, fontWeight: "bold" },
   emptyText: { fontSize: 14, textAlign: "center", lineHeight: 20 },
 })

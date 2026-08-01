@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { useTheme } from "@/context/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -153,7 +154,7 @@ export default function BookingScreen() {
       }
 
       Alert.alert(
-        "Booking Confirmed! 🎉",
+        "Booking Confirmed!",
         emailSent ? "Your booking request has been sent..." : "Your booking was saved...",
         [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
       )
@@ -362,7 +363,7 @@ export default function BookingScreen() {
       <Modal transparent animationType="fade" visible={showSuccess}>
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <View style={{ backgroundColor: "#1E3A5F", borderRadius: 24, padding: 28, alignItems: "center", width: "100%" }}>
-            <Text style={{ fontSize: 56, marginBottom: 16 }}>🎉</Text>
+            <AnimatedHeroIcon name="checkmarkCircle" size={56} accent="gold" style={{ marginBottom: 16 }} />
             <Text style={{ color: "#C9A84C", fontSize: 22, fontWeight: "bold", marginBottom: 8 }}>{t("bookingConfirmed")}</Text>
             <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 8 }}>
               {t("bookingReceivedAt", { hotel: hotelName })}

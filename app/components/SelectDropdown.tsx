@@ -1,3 +1,4 @@
+import { AppIcon, AppIconKey, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useMemo, useState } from "react"
@@ -16,8 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 export type SelectOption = {
   id: string
   label: string
-  /** Optional leading emoji / flag */
+  /** Optional leading text badge (e.g. country code "EG") */
   prefix?: string
+  /** Optional vector icon beside label */
+  icon?: AppIconKey
 }
 
 type SelectDropdownProps = {
@@ -50,9 +53,19 @@ export default function SelectDropdown({
   const [query, setQuery] = useState("")
 
   const selected = options.find(o => o.id === value)
-  const display = selected
-    ? `${selected.prefix ? `${selected.prefix} ` : ""}${selected.label}`
-    : placeholder
+
+  const renderOptionLabel = (opt: SelectOption, selectedStyle?: boolean) => (
+    <View style={styles.optionLabelRow}>
+      {opt.icon ? (
+        <AppIcon name={opt.icon} size={18} color={selectedStyle ? ICON_GOLD : undefined} />
+      ) : opt.prefix ? (
+        <View style={styles.prefixBadge}>
+          <Text style={styles.prefixBadgeText}>{opt.prefix}</Text>
+        </View>
+      ) : null}
+      <Text style={[styles.optionLabel, { color: theme.text }]}>{opt.label}</Text>
+    </View>
+  )
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -92,14 +105,13 @@ export default function SelectDropdown({
           activeOpacity={0.85}
           disabled={disabled}
         >
-          <Text
-            style={[
-              styles.menuValue,
-              { color: selected ? theme.text : theme.textSecondary },
-            ]}
-          >
-            {display}
-          </Text>
+          {selected ? (
+            renderOptionLabel(selected, true)
+          ) : (
+            <Text style={[styles.menuValue, { color: theme.textSecondary }]}>
+              {placeholder}
+            </Text>
+          )}
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
             size={18}
@@ -123,10 +135,7 @@ export default function SelectDropdown({
                   onPress={() => pick(opt.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.optionLabel, { color: theme.text }]}>
-                    {opt.prefix ? `${opt.prefix}  ` : ""}
-                    {opt.label}
-                  </Text>
+                  {renderOptionLabel(opt)}
                   {isSelected && (
                     <Ionicons name="checkmark" size={18} color="#C9A84C" />
                   )}
@@ -155,15 +164,16 @@ export default function SelectDropdown({
         activeOpacity={0.85}
         disabled={disabled}
       >
-        <Text
-          style={[
-            styles.sheetValue,
-            { color: selected ? theme.text : theme.textSecondary },
-          ]}
-          numberOfLines={1}
-        >
-          {display}
-        </Text>
+        {selected ? (
+          renderOptionLabel(selected, true)
+        ) : (
+          <Text
+            style={[styles.sheetValue, { color: theme.textSecondary }]}
+            numberOfLines={1}
+          >
+            {placeholder}
+          </Text>
+        )}
         <Ionicons name="chevron-down" size={18} color={theme.textSecondary} />
       </TouchableOpacity>
 
@@ -224,10 +234,7 @@ export default function SelectDropdown({
                   onPress={() => pick(item.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.optionLabel, { color: theme.text }]}>
-                    {item.prefix ? `${item.prefix}  ` : ""}
-                    {item.label}
-                  </Text>
+                  {renderOptionLabel(item)}
                   {isSelected && (
                     <Ionicons name="checkmark-circle" size={22} color="#C9A84C" />
                   )}
@@ -329,6 +336,16 @@ const styles = StyleSheet.create({
   },
   optionLast: { borderBottomWidth: 0 },
   optionSelected: { backgroundColor: "rgba(201,168,76,0.08)" },
+  optionLabelRow: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   optionLabel: { fontSize: 15, flex: 1 },
+  prefixBadge: {
+    backgroundColor: "rgba(30,58,95,0.1)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 28,
+    alignItems: "center",
+  },
+  prefixBadgeText: { fontSize: 11, fontWeight: "700", color: "#1E3A5F" },
   empty: { textAlign: "center", paddingVertical: 28, fontSize: 14 },
 })

@@ -1,5 +1,8 @@
+import { AppIcon, ICON_GOLD } from '@/components/AppIcon';
+import { useTheme } from '@/context/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -18,6 +21,7 @@ const DHIKR_OPTIONS = [
     const STORAGE_KEY_DATE = 'tasbih_date';
 
     export default function TasbihCounter() {
+        const { theme } = useTheme();
         const [expanded, setExpanded] = useState(false);
         const [count, setCount] = useState(0);
         const [dailyTotal, setDailyTotal] = useState(0);
@@ -93,24 +97,31 @@ const DHIKR_OPTIONS = [
                   };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.card }]}>
             <TouchableOpacity
                 style={styles.header}
                 onPress={() => setExpanded(!expanded)}
                 activeOpacity={0.7}
             >
-                <Text style={styles.headerIcon}>📿</Text>
-                <Text style={styles.headerTitle}>Tasbih Counter</Text>
-                <Text style={styles.chip}>{count}/{CYCLE_TARGET}</Text>
-                <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+                <AppIcon name="beads" size={20} color={ICON_GOLD} style={{ marginRight: 10 }} />
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Tasbih Counter</Text>
+                <Text style={[styles.chip, { backgroundColor: theme.inputBg, color: theme.text }]}>
+                  {count}/{CYCLE_TARGET}
+                </Text>
+                <Ionicons
+                  name={expanded ? "chevron-up" : "chevron-down"}
+                  size={14}
+                  color={theme.textSecondary}
+                  style={{ marginLeft: 4 }}
+                />
             </TouchableOpacity>
 
             {expanded && (
             <View style={styles.expandedContent}>
             <View style={styles.dhikrLabel}>
-                <Text style={styles.arabicText}>{dhikr.arabic}</Text>
+                <Text style={[styles.arabicText, { color: theme.text }]}>{dhikr.arabic}</Text>
                 <Text style={styles.translitText}>{dhikr.translit}</Text>
-                <Text style={styles.meaningText}>{dhikr.meaning}</Text>
+                <Text style={[styles.meaningText, { color: theme.textSecondary }]}>{dhikr.meaning}</Text>
             </View>
 
             <TouchableOpacity onPress={handleTap} activeOpacity={0.85}>
@@ -125,6 +136,7 @@ const DHIKR_OPTIONS = [
                 key={i}
                 style={[
                   styles.dot,
+                  { backgroundColor: theme.border },
                   i < count && styles.dotFilled,
                 ]}
               />
@@ -132,15 +144,18 @@ const DHIKR_OPTIONS = [
           </View>
 
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleReset}>
-              <Text style={styles.actionButtonText}>Reset</Text>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: theme.inputBg }]}
+              onPress={handleReset}
+            >
+              <Text style={[styles.actionButtonText, { color: theme.text }]}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButtonPrimary} onPress={handleChangeDhikr}>
               <Text style={styles.actionButtonPrimaryText}>Change Dhikr</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.dailyTotal}>Today: {dailyTotal}</Text>
+          <Text style={[styles.dailyTotal, { color: theme.textSecondary }]}>Today: {dailyTotal}</Text>
         </View>
       )}
     </View>
@@ -149,7 +164,6 @@ const DHIKR_OPTIONS = [
 
 const styles = StyleSheet.create({
     container: {
-      backgroundColor: '#fff',
       borderRadius: 16,
       marginHorizontal: 16,
       marginVertical: 12,
@@ -165,29 +179,19 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       padding: 16,
     },
-    headerIcon: {
-      fontSize: 20,
-      marginRight: 10,
-    },
     headerTitle: {
       flex: 1,
       fontSize: 16,
       fontWeight: '600',
-      color: '#1E3A5F',
     },
     chip: {
-      backgroundColor: '#f0f4f8',
-      color: '#1E3A5F',
       fontSize: 13,
       fontWeight: '600',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 12,
       marginRight: 10,
-    },
-    chevron: {
-      fontSize: 12,
-      color: '#999',
+      overflow: 'hidden',
     },
     expandedContent: {
       paddingHorizontal: 20,
@@ -200,7 +204,6 @@ const styles = StyleSheet.create({
     },
     arabicText: {
       fontSize: 28,
-      color: '#1E3A5F',
       marginBottom: 4,
     },
     translitText: {
@@ -210,7 +213,6 @@ const styles = StyleSheet.create({
     },
     meaningText: {
       fontSize: 13,
-      color: '#999',
       marginTop: 2,
     },
     counterCircle: {
@@ -238,7 +240,6 @@ const styles = StyleSheet.create({
       width: 10,
       height: 10,
       borderRadius: 5,
-      backgroundColor: '#eee',
       margin: 4,
     },
     dotFilled: {
@@ -253,10 +254,8 @@ const styles = StyleSheet.create({
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 20,
-      backgroundColor: '#f0f4f8',
     },
     actionButtonText: {
-      color: '#1E3A5F',
       fontWeight: '600',
       fontSize: 14,
     },
@@ -273,6 +272,5 @@ const styles = StyleSheet.create({
     },
     dailyTotal: {
       fontSize: 13,
-      color: '#999',
     },
   });

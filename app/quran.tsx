@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
@@ -264,7 +265,7 @@ export default function QuranScreen() {
   </View>
 ) : error ? (
   <View style={styles.loadingContainer}>
-    <Text style={{ fontSize: 40 }}>📡</Text>
+    <AnimatedHeroIcon name="cloudOffline" size={48} accent="gold" />
     <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
       No internet connection
     </Text>
@@ -296,8 +297,7 @@ export default function QuranScreen() {
                     if (surahData) goToSurah(surahData)
                   }}
                 >
-                  {/* Book emoji */}
-                  <Text style={styles.continueEmoji}>📖</Text>
+                  <AnimatedHeroIcon name="book" size={36} accent="gold" />
 
                   <View style={styles.continueInfo}>
                     {/* Label */}
@@ -350,7 +350,7 @@ export default function QuranScreen() {
 
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>📖</Text>
+              <AnimatedHeroIcon name="book" size={48} accent="gold" style={{ marginBottom: 12 }} />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 No surahs found for "{search}"
               </Text>
@@ -378,7 +378,6 @@ const styles = StyleSheet.create({
 
   // Continue Reading card
   continueCard: { margin: 16, marginBottom: 8, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(201,168,76,0.1)", borderWidth: 1 },
-  continueEmoji: { fontSize: 32 },
   continueInfo: { flex: 1 },
   continueLabel: { color: "#C9A84C", fontSize: 10, fontWeight: "600", letterSpacing: 0.8, marginBottom: 4 },
   continueArabic: { fontSize: 20, color: "#1E3A5F", marginBottom: 2 },
@@ -408,7 +407,6 @@ const styles = StyleSheet.create({
 
   // Empty search state
   emptyContainer: { alignItems: "center", paddingTop: 60, gap: 12 },
-  emptyEmoji: { fontSize: 40 },
   emptyText: { fontSize: 14 },
 
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },

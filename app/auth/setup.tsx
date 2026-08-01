@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { Ionicons } from "@expo/vector-icons"
@@ -17,13 +18,12 @@ import { supabase } from "../../lib/supabase"
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
   id: n.id,
   label: n.label,
-  prefix: n.flag,
 }))
 
 const COUNTRY_OPTIONS = COUNTRY_DIALS.map(c => ({
   id: c.name,
   label: c.name,
-  prefix: c.flag,
+  prefix: c.code,
 }))
 
 
@@ -177,7 +177,7 @@ export default function SetupScreen() {
               ]}
               onPress={() => setUserType("pilgrim")}
             >
-              <Text style={styles.typeEmoji}>🕋</Text>
+              <AppIcon name="kaaba" size={36} color={ICON_GOLD} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.typeTitle, { color: theme.text }]}>{t("pilgrim")}</Text>
                 <Text style={[styles.typeSub, { color: theme.textSecondary }]}>
@@ -197,7 +197,7 @@ export default function SetupScreen() {
               ]}
               onPress={() => setUserType("agent")}
             >
-              <Text style={styles.typeEmoji}>🏢</Text>
+              <AppIcon name="business" size={36} color={ICON_GOLD} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.typeTitle, { color: theme.text }]}>{t("travelAgent")}</Text>
                 <Text style={[styles.typeSub, { color: theme.textSecondary }]}>
@@ -257,8 +257,8 @@ export default function SetupScreen() {
                   placeholder={t("gender")}
                   value={gender}
                   options={[
-                    { id: "male", label: t("male"), prefix: "♂" },
-                    { id: "female", label: t("female"), prefix: "♀" },
+                    { id: "male", label: t("male"), icon: "male" },
+                    { id: "female", label: t("female"), icon: "female" },
                   ]}
                   onChange={id => setGender(id as "male" | "female")}
                   variant="menu"
@@ -343,7 +343,6 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 13, fontWeight: "600", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 },
   typeCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 16, borderWidth: 0.5, marginBottom: 12 },
   typeCardActive: { borderColor: "#C9A84C", borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.05)" },
-  typeEmoji: { fontSize: 36 },
   typeTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
   typeSub: { fontSize: 12, lineHeight: 18 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 16 },

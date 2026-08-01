@@ -1,3 +1,4 @@
+import { AppIcon } from "@/components/AppIcon"
 import { PRAYER_INFO, type PrayerName } from "@/lib/prayerConstants"
 import { readCachedPrayerTimes } from "@/lib/prayerTimes"
 import {
@@ -57,10 +58,10 @@ function formatPrayerClock(time: string | undefined) {
 
 function StatusGlyph({ status }: { status: DayPrayerStatus }) {
   if (status === "completed") {
-    return <Text style={[styles.statusGlyph, { color: "#3DDC84" }]}>✓</Text>
+    return <AppIcon name="checkmark" size={14} color="#3DDC84" />
   }
   if (status === "missed") {
-    return <Text style={[styles.statusGlyph, { color: "#FF6B6B" }]}>✗</Text>
+    return <AppIcon name="close" size={14} color="#FF6B6B" />
   }
   if (status === "today") {
     return (
@@ -185,9 +186,10 @@ export default function PrayerPopupModal({
                 {marking ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.markPillText}>
-                    {alreadyMarked ? `✓ ${t("markAsPrayed")}` : t("markAsPrayed")}
-                  </Text>
+                  <View style={styles.markPillContent}>
+                    {alreadyMarked && <AppIcon name="checkmark" size={14} color="#fff" />}
+                    <Text style={styles.markPillText}>{t("markAsPrayed")}</Text>
+                  </View>
                 )}
               </TouchableOpacity>
             </View>
@@ -289,6 +291,11 @@ const styles = StyleSheet.create({
   },
   markPillDone: {
     backgroundColor: "rgba(46,158,91,0.55)",
+  },
+  markPillContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   markPillText: {
     color: "#FFFFFF",

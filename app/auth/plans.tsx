@@ -10,7 +10,7 @@ const PLANS = [
   {
     id: "basic",
     nameKey: "planBasicName",
-    price: "$49",
+    price: "$39.99",
     periodKey: "perMonth",
     descriptionKey: "planBasicDesc",
     featureKeys: ["planBasicFeature1", "planBasicFeature2", "planBasicFeature3", "planBasicFeature4", "planBasicFeature5"],
@@ -20,7 +20,7 @@ const PLANS = [
   {
     id: "pro",
     nameKey: "planProName",
-    price: "$99",
+    price: "$79.99",
     periodKey: "perMonth",
     descriptionKey: "planProDesc",
     featureKeys: ["planProFeature1", "planProFeature2", "planProFeature3", "planProFeature4", "planProFeature5", "planProFeature6"],

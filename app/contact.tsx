@@ -1,10 +1,12 @@
-import { useTheme } from "@/context/themeContext";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useTranslation } from "react-i18next";
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { useTheme } from "@/context/themeContext"
+import { INFO_EMAIL, SUPPORT_EMAIL } from "@/lib/contactEmails"
+import { Ionicons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
+import { StatusBar } from "expo-status-bar"
+import { useTranslation } from "react-i18next"
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ContactScreen() {
   const router = useRouter()
@@ -14,7 +16,10 @@ export default function ContactScreen() {
 
   const phone = "+201222151335"
   const whatsapp = "+201222151335"
-  const email = "ahmadado6002@gmail.com"
+  const emails = [
+    { label: "Info", address: INFO_EMAIL },
+    { label: "Support", address: SUPPORT_EMAIL },
+  ]
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -33,7 +38,7 @@ export default function ContactScreen() {
 
         {/* Top section — always navy */}
         <View style={[styles.topSection, { backgroundColor: theme.header }]}>
-          <Text style={styles.topEmoji}>📞</Text>
+          <AnimatedHeroIcon name="call" size={50} accent="gold" style={{ marginBottom: 12 }} />
           <Text style={styles.topTitle}>{t("getInTouch")}</Text>
           <Text style={styles.topSub}>{t("getInTouchSub")}</Text>
         </View>
@@ -72,20 +77,30 @@ export default function ContactScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
 
-          {/* Email */}
-          <TouchableOpacity
-            style={[styles.contactBtn, { borderBottomColor: theme.border }]}
-            onPress={() => Linking.openURL(`mailto:${email}`)}
-          >
-            <View style={[styles.contactIcon, { backgroundColor: "#C9A84C" }]}>
-              <Ionicons name="mail" size={22} color="#1E3A5F" />
-            </View>
-            <View style={styles.contactInfo}>
-              <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{t("email")}</Text>
-              <Text style={[styles.contactValue, { color: theme.text }]}>{email}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.gold} />
-          </TouchableOpacity>
+          {emails.map((item, index) => (
+            <TouchableOpacity
+              key={item.address}
+              style={[
+                styles.contactBtn,
+                {
+                  borderBottomColor: theme.border,
+                  borderBottomWidth: index === emails.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                },
+              ]}
+              onPress={() => Linking.openURL(`mailto:${item.address}`)}
+            >
+              <View style={[styles.contactIcon, { backgroundColor: "#C9A84C" }]}>
+                <Ionicons name="mail" size={22} color="#1E3A5F" />
+              </View>
+              <View style={styles.contactInfo}>
+                <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.contactValue, { color: theme.text }]}>{item.address}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+            </TouchableOpacity>
+          ))}
 
         </View>
 
@@ -127,7 +142,6 @@ const styles = StyleSheet.create({
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8 },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   topSection: { alignItems: "center", padding: 28 },
-  topEmoji: { fontSize: 50, marginBottom: 12 },
   topTitle: { color: "#fff", fontSize: 22, fontWeight: "bold", marginBottom: 6 },
   topSub: { color: "rgba(255,255,255,0.6)", fontSize: 13, textAlign: "center" },
   section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 18, borderWidth: 0.5 },

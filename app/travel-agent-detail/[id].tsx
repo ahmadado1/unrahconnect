@@ -1,16 +1,21 @@
+import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
-  getTravelAgentById,
+  GET_FEATURED_URL,
   getTravelAgentCountry,
+  loadAgentById,
   toTelHref,
   toWhatsAppNumber,
   TRAVEL_AGENT_CONTACT_EMAIL,
+  type TravelAgent,
 } from "@/lib/travelAgents"
 import { Ionicons } from "@expo/vector-icons"
-import { useLocalSearchParams, useRouter } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  ActivityIndicator,
   Linking,
   ScrollView,
   StyleSheet,
@@ -29,8 +34,46 @@ export default function TravelAgentDetailScreen() {
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const agent = getTravelAgentById(id)
+  const [agent, setAgent] = useState<TravelAgent | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useFocusEffect(
+    useCallback(() => {
+      const key = Array.isArray(id) ? id[0] : id
+      if (!key) {
+        setAgent(null)
+        setLoading(false)
+        return
+      }
+
+      let active = true
+      setLoading(true)
+
+      void loadAgentById(key, cached => {
+        if (!active) return
+        setAgent(cached)
+        if (cached) setLoading(false)
+      }).then(fresh => {
+        if (!active) return
+        setAgent(fresh)
+        setLoading(false)
+      })
+
+      return () => {
+        active = false
+      }
+    }, [id])
+  )
+
   const country = agent ? getTravelAgentCountry(agent.countryId) : null
+
+  if (loading && !agent) {
+    return (
+      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
+        <ActivityIndicator color={GOLD} />
+      </View>
+    )
+  }
 
   if (!agent) {
     return (
@@ -49,7 +92,7 @@ export default function TravelAgentDetailScreen() {
   }
 
   const whatsapp = () => {
-    const digits = toWhatsAppNumber(agent.phone)
+    const digits = toWhatsAppNumber(agent.whatsapp || agent.phone)
     if (digits) Linking.openURL(`https://wa.me/${digits}`)
   }
 
@@ -78,7 +121,7 @@ export default function TravelAgentDetailScreen() {
             </View>
           ) : null}
           <Text style={styles.heroMeta}>
-            {country ? `${country.flag} ${country.name}` : ""} · {agent.city}
+            {country ? country.name : ""} · {agent.city}
           </Text>
         </View>
 
@@ -86,8 +129,10 @@ export default function TravelAgentDetailScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
           <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.infoRow}>
-              <Text style={styles.emoji}>📍</Text>
-              <Text style={[styles.infoText, { color: theme.text }]}>{agent.address}</Text>
+              <AppIcon name="location" size={18} color={GOLD} />
+              <Text style={[styles.infoText, { color: theme.text }]}>
+                {agent.address || agent.city}
+              </Text>
             </View>
           </View>
 
@@ -95,7 +140,7 @@ export default function TravelAgentDetailScreen() {
           <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             {agent.phone ? (
               <TouchableOpacity style={styles.infoRow} onPress={() => call(agent.phone)}>
-                <Text style={styles.emoji}>📞</Text>
+                <AppIcon name="call" size={18} color={GOLD} />
                 <Text style={[styles.infoText, { color: theme.text }]}>{agent.phone}</Text>
               </TouchableOpacity>
             ) : (
@@ -106,14 +151,23 @@ export default function TravelAgentDetailScreen() {
                 style={[styles.infoRow, { marginTop: 12 }]}
                 onPress={() => call(agent.phone2 ?? null)}
               >
-                <Text style={styles.emoji}>📞</Text>
+                <AppIcon name="call" size={18} color={GOLD} />
                 <Text style={[styles.infoText, { color: theme.text }]}>{agent.phone2}</Text>
               </TouchableOpacity>
             ) : null}
             {agent.email ? (
               <TouchableOpacity style={[styles.infoRow, { marginTop: 12 }]} onPress={email}>
-                <Text style={styles.emoji}>📧</Text>
+                <AppIcon name="mail" size={18} color={GOLD} />
                 <Text style={[styles.infoText, { color: theme.text }]}>{agent.email}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {agent.website ? (
+              <TouchableOpacity
+                style={[styles.infoRow, { marginTop: 12 }]}
+                onPress={() => Linking.openURL(agent.website!)}
+              >
+                <AppIcon name="globe" size={18} color={GOLD} />
+                <Text style={[styles.infoText, { color: theme.text }]}>{agent.website}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -128,12 +182,21 @@ export default function TravelAgentDetailScreen() {
             ))}
           </View>
 
-          <TouchableOpacity
-            style={styles.featureLink}
-            onPress={() => Linking.openURL(`mailto:${TRAVEL_AGENT_CONTACT_EMAIL}`)}
-          >
-            <Text style={styles.featureLinkText}>Want to be featured? Contact us</Text>
-          </TouchableOpacity>
+          {!agent.featured ? (
+            <TouchableOpacity
+              style={styles.getFeaturedBtn}
+              onPress={() => Linking.openURL(GET_FEATURED_URL)}
+            >
+              <Text style={styles.getFeaturedText}>Get Featured</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.featureLink}
+              onPress={() => Linking.openURL(`mailto:${TRAVEL_AGENT_CONTACT_EMAIL}`)}
+            >
+              <Text style={styles.featureLinkText}>Want your agency listed? Contact us</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -153,15 +216,25 @@ export default function TravelAgentDetailScreen() {
             <Text style={styles.barCallText}>Call</Text>
           </TouchableOpacity>
         ) : null}
-        {agent.phone ? (
+        {agent.phone || agent.whatsapp ? (
           <TouchableOpacity style={styles.barWa} onPress={whatsapp}>
-            <Text style={styles.barCallText}>💬 WhatsApp</Text>
+            <AppIcon name="whatsapp" size={16} color="#fff" />
+            <Text style={styles.barCallText}>WhatsApp</Text>
           </TouchableOpacity>
         ) : null}
         {agent.email ? (
           <TouchableOpacity style={styles.barEmail} onPress={email}>
             <Ionicons name="mail-outline" size={16} color={NAVY} />
             <Text style={styles.barEmailText}>Email</Text>
+          </TouchableOpacity>
+        ) : null}
+        {agent.website ? (
+          <TouchableOpacity
+            style={styles.barEmail}
+            onPress={() => Linking.openURL(agent.website!)}
+          >
+            <Ionicons name="globe-outline" size={16} color={NAVY} />
+            <Text style={styles.barEmailText}>Website</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -219,7 +292,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10, marginTop: 6 },
   infoCard: { borderRadius: 14, borderWidth: 0.5, padding: 14, marginBottom: 18 },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  emoji: { fontSize: 16 },
   infoText: { flex: 1, fontSize: 14, lineHeight: 20 },
   tags: { gap: 8 },
   tag: {
@@ -232,6 +304,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   tagText: { fontSize: 14, fontWeight: "600" },
+  getFeaturedBtn: {
+    marginTop: 22,
+    alignSelf: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GOLD,
+  },
+  getFeaturedText: { color: GOLD, fontSize: 13, fontWeight: "700" },
   featureLink: { marginTop: 22, alignItems: "center" },
   featureLinkText: { color: GOLD, fontSize: 14, fontWeight: "700" },
   actionBar: {

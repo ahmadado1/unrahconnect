@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider } from "@/context/themeContext";
 import "@/i18n";
@@ -230,6 +231,7 @@ const checkAuth = async () => {
               <Stack.Screen name="about" />
               <Stack.Screen name="contact" />
               <Stack.Screen name="settings" />
+              <Stack.Screen name="notifications" />
               <Stack.Screen name="privacy" />
               <Stack.Screen name="terms" />
               <Stack.Screen name="booking" />
@@ -266,7 +268,7 @@ const checkAuth = async () => {
                   zIndex: 100,
                 }}
               >
-                <Text style={{ fontSize: 60 }}>🌙</Text>
+                <AnimatedHeroIcon name="moon" size={60} accent="gold" />
                 <ActivityIndicator color="#C9A84C" style={{ marginTop: 20 }} />
               </View>
             )}

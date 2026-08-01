@@ -1,3 +1,4 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
 import { getHaramainStation, HARAMAIN_PHONE_DISPLAY } from "@/lib/haramainStations"
 import { Ionicons } from "@expo/vector-icons"
@@ -92,7 +93,7 @@ export default function HaramainStationScreen() {
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={styles.heroContent}>
-            <Text style={styles.heroEmoji}>{station.emoji}</Text>
+            <AnimatedHeroIcon name={station.icon} size={48} accent="gold" style={{ marginBottom: 8 }} />
             <Text style={styles.heroTitle}>{t(station.titleKey)}</Text>
             <Text style={styles.heroArabic}>{t(station.arabicNameKey)}</Text>
             <Text style={styles.heroSub}>{t("haramainRailway")}</Text>
@@ -184,7 +185,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   heroContent: { padding: 20, paddingBottom: 24 },
-  heroEmoji: { fontSize: 36, marginBottom: 8 },
   heroTitle: { color: "#fff", fontSize: 26, fontWeight: "bold" },
   heroArabic: { color: "#C9A84C", fontSize: 16, marginTop: 4 },
   heroSub: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 6 },

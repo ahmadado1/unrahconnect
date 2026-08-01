@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import type { AppIconKey } from "../components/AppIcon"
 
 export const EVENTS_CACHE_KEY = "islamic_events_cache"
 export const EVENTS_CACHE_DATE_KEY = "islamic_events_cache_date"
@@ -23,7 +24,7 @@ export type IslamicEventCategory = "pilgrimage" | "celebration" | "observance" |
 export type IslamicEventDefinition = {
   id: string
   name: string
-  emoji: string
+  icon: AppIconKey
   hijriDay: number
   hijriMonth: number
   description: string
@@ -36,7 +37,7 @@ export type IslamicEvent = {
   id: string
   baseId: string
   name: string
-  emoji: string
+  icon: AppIconKey
   hijriDate: string
   gregorianDate: string
   gregorianYear: number
@@ -51,7 +52,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "new-year",
     name: "Islamic New Year",
-    emoji: "🌙",
+    icon: "moon",
     hijriDay: 1,
     hijriMonth: 1,
     description:
@@ -62,7 +63,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "ashura",
     name: "Day of Ashura",
-    emoji: "🕯️",
+    icon: "flame",
     hijriDay: 10,
     hijriMonth: 1,
     description:
@@ -73,7 +74,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "mawlid",
     name: "Mawlid an-Nabi",
-    emoji: "🌟",
+    icon: "star",
     hijriDay: 12,
     hijriMonth: 3,
     description:
@@ -84,7 +85,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "isra",
     name: "Isra wal Mi'raj",
-    emoji: "✨",
+    icon: "sparkles",
     hijriDay: 27,
     hijriMonth: 7,
     description:
@@ -95,7 +96,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "ramadan",
     name: "Ramadan Begins",
-    emoji: "🌙",
+    icon: "moon",
     hijriDay: 1,
     hijriMonth: 9,
     description:
@@ -106,7 +107,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "laylatul-qadr",
     name: "Laylatul Qadr",
-    emoji: "⭐",
+    icon: "star",
     hijriDay: 27,
     hijriMonth: 9,
     description:
@@ -117,7 +118,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "eid-fitr",
     name: "Eid al-Fitr",
-    emoji: "🎉",
+    icon: "gift",
     hijriDay: 1,
     hijriMonth: 10,
     description:
@@ -128,7 +129,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "arafah",
     name: "Day of Arafah",
-    emoji: "🕋",
+    icon: "kaaba",
     hijriDay: 9,
     hijriMonth: 12,
     description:
@@ -139,7 +140,7 @@ export const ISLAMIC_EVENTS_HIJRI: IslamicEventDefinition[] = [
   {
     id: "eid-adha",
     name: "Eid al-Adha",
-    emoji: "🐑",
+    icon: "sheep",
     hijriDay: 10,
     hijriMonth: 12,
     description:
@@ -153,9 +154,8 @@ function eventDefById(baseId: string) {
   return ISLAMIC_EVENTS_HIJRI.find(e => e.id === baseId)
 }
 
-export function getEventNotificationCopy(event: Pick<IslamicEvent, "baseId" | "name" | "emoji" | "description">, kind: "day" | "eve") {
+export function getEventNotificationCopy(event: Pick<IslamicEvent, "baseId" | "name" | "description">, kind: "day" | "eve") {
   const name = event.name
-  const emoji = event.emoji
 
   if (kind === "eve") {
     const bodies: Record<string, string> = {
@@ -170,7 +170,7 @@ export function getEventNotificationCopy(event: Pick<IslamicEvent, "baseId" | "n
       "new-year": "Islamic New Year begins tomorrow. Renew your intentions for the year ahead.",
     }
     return {
-      title: `${emoji} ${name} tomorrow`,
+      title: `${name} tomorrow`,
       body: bodies[event.baseId] ?? `${name} is tomorrow. Open UmrahConnect for details.`,
     }
   }
@@ -188,7 +188,7 @@ export function getEventNotificationCopy(event: Pick<IslamicEvent, "baseId" | "n
   }
 
   return {
-    title: `${emoji} ${name}`,
+    title: name,
     body: bodies[event.baseId] ?? `${name} is today. ${event.description}`,
   }
 }
@@ -212,7 +212,7 @@ function normalizeCachedEvent(raw: any): IslamicEvent | null {
     id: String(raw.id ?? `${baseId}-${parsed.getFullYear()}`),
     baseId: baseId || def?.id || "event",
     name: String(raw.name),
-    emoji: String(raw.emoji ?? def?.emoji ?? "🌙"),
+    icon: (raw.icon ?? def?.icon ?? "moon") as AppIconKey,
     hijriDate: String(raw.hijriDate ?? ""),
     gregorianDate: raw.gregorianDate,
     gregorianYear: raw.gregorianYear ?? parsed.getFullYear(),
@@ -283,7 +283,7 @@ export async function fetchAndCacheIslamicEvents(force = false): Promise<Islamic
             id: `${event.id}-${hijriYear}`,
             baseId: event.id,
             name: event.name,
-            emoji: event.emoji,
+            icon: event.icon,
             hijriDate: `${event.hijriDay} ${HIJRI_MONTHS[event.hijriMonth - 1]} ${hijriYear} AH`,
             gregorianDate: gregorianDateStr,
             gregorianYear: year,

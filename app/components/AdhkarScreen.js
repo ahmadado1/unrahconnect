@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { getAdhkarList } from "@/lib/adhkarData"
 import { useTheme } from "@/context/themeContext"
 import {
@@ -118,9 +119,9 @@ export default function AdhkarScreen({ period }) {
   const titleAr = period === "evening" ? "أذكار المساء" : "أذكار الصباح"
   const titleEn =
     period === "evening" ? t("eveningAdhkar") : t("morningAdhkar")
-  const headerEmoji = period === "evening" ? "🌙" : "🌅"
+  const headerIcon = period === "evening" ? "moon" : "sunny"
 
-  if (!fontsLoaded || !remaining) {
+  if (!remaining) {
     return (
       <View style={[styles.screen, styles.centered, { backgroundColor: theme.background }]}>
         <ActivityIndicator color={GOLD} />
@@ -138,7 +139,7 @@ export default function AdhkarScreen({ period }) {
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerEmoji}>{headerEmoji}</Text>
+            <AppIcon name={headerIcon} size={22} color={ICON_GOLD} style={{ marginBottom: 2 }} />
             <Text style={styles.headerTitleAr}>{titleAr}</Text>
             <Text style={styles.headerTitleEn}>{titleEn}</Text>
           </View>
@@ -197,15 +198,21 @@ export default function AdhkarScreen({ period }) {
                 </Text>
 
                 <Text style={styles.source}>{item.source}</Text>
-                <Text style={[styles.benefit, { color: theme.textSecondary }]}>
-                  {item.benefit}
-                </Text>
-                <Text style={[styles.translit, { color: theme.textSecondary }]}>
-                  {item.transliteration}
-                </Text>
-                <Text style={[styles.translation, { color: theme.text }]}>
-                  {item.translation}
-                </Text>
+                {!!item.benefit && (
+                  <Text style={[styles.benefit, { color: theme.textSecondary }]}>
+                    {item.benefit}
+                  </Text>
+                )}
+                {!!item.transliteration && (
+                  <Text style={[styles.translit, { color: theme.textSecondary }]}>
+                    {item.transliteration}
+                  </Text>
+                )}
+                {!!item.translation && (
+                  <Text style={[styles.translation, { color: theme.text }]}>
+                    {item.translation}
+                  </Text>
+                )}
 
                 <View style={styles.cardFooter}>
                   <Text style={[styles.doneLabel, { color: done ? GREEN : theme.textSecondary }]}>
@@ -260,7 +267,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerCenter: { flex: 1, alignItems: "center" },
-  headerEmoji: { fontSize: 22, marginBottom: 2 },
   headerTitleAr: {
     color: "#fff",
     fontSize: 22,
@@ -340,12 +346,13 @@ const styles = StyleSheet.create({
   },
   translit: {
     fontSize: 13,
-    marginBottom: 4,
-    lineHeight: 18,
+    marginBottom: 8,
+    lineHeight: 20,
+    fontStyle: "italic",
   },
   translation: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
     marginBottom: 14,
   },
   cardFooter: {

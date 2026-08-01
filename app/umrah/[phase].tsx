@@ -1,3 +1,5 @@
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import PhaseStepsSection from "@/app/components/PhaseStepsSection"
 import MadinahPlacesSection from "@/app/components/MadinahPlacesSection"
 import { useTheme } from "@/context/themeContext"
@@ -101,7 +103,10 @@ export default function PhaseDetailScreen() {
             <Text style={[styles.phaseNumText, { color: data.textColor }]}>{data.id}</Text>
           </View>
           <Text style={styles.headerTitle}>{data.title}</Text>
-          <Text style={styles.headerDuration}>⏱ {data.duration}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <AppIcon name="timer" size={16} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.headerDuration}>{data.duration}</Text>
+          </View>
         </View>
 
         <View style={styles.content}>
@@ -164,11 +169,17 @@ export default function PhaseDetailScreen() {
                       </Text>
                     ) : null}
                     {tip.citation ? (
-                      <Text style={styles.tipCitation}>📖 {tip.citation}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                        <AppIcon name="book" size={12} color="#C9A84C" />
+                        <Text style={styles.tipCitation}>{tip.citation}</Text>
+                      </View>
                     ) : null}
                   </View>
                 ) : tip.citation ? (
-                  <Text style={styles.tipCitation}>📖 {tip.citation}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                    <AppIcon name="book" size={12} color="#C9A84C" />
+                    <Text style={styles.tipCitation}>{tip.citation}</Text>
+                  </View>
                 ) : null}
               </View>
             </View>
@@ -190,7 +201,7 @@ export default function PhaseDetailScreen() {
             </TouchableOpacity>
           ) : (
             <View style={styles.completionBox}>
-              <Text style={styles.completionEmoji}>🎉</Text>
+              <AnimatedHeroIcon name="trophy" size={48} accent="gold" style={{ marginBottom: 8 }} />
               <Text style={styles.completionTitle}>{t("umrahComplete")}</Text>
               <Text style={styles.completionText}>{t("umrahCompleteMsg")}</Text>
             </View>
@@ -268,7 +279,6 @@ const styles = StyleSheet.create({
   nextBtnLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "600", marginBottom: 4 },
   nextBtnTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   completionBox: { backgroundColor: "#1E3A5F", borderRadius: 14, padding: 24, alignItems: "center" },
-  completionEmoji: { fontSize: 48, marginBottom: 12 },
   completionTitle: { color: "#C9A84C", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
   completionText: { color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22 },
 })

@@ -1,3 +1,4 @@
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
 import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes } from "@/lib/prayerTimes";
@@ -149,11 +150,23 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
 
 // ─── QUICK ACCESS ITEM ───────────────────────────────────────────────────────
 
-function QuickItem({ icon, label, onPress, theme }: { icon: any; label: string; onPress: () => void; theme: any }) {
+function QuickItem({
+  icon,
+  label,
+  onPress,
+  theme,
+  color,
+}: {
+  icon: any
+  label: string
+  onPress: () => void
+  theme: any
+  color: string
+}) {
   return (
     <TouchableOpacity style={[qaStyles.item, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress}>
-      <View style={qaStyles.iconBox}>
-        <Ionicons name={icon} size={24} color="#1E3A5F" />
+      <View style={[qaStyles.iconBox, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon} size={24} color={color} />
       </View>
       <Text style={[qaStyles.label, { color: theme.text }]}>{label}</Text>
     </TouchableOpacity>
@@ -539,7 +552,7 @@ export default function HomeScreen() {
             <View style={styles.headerBar}>
               <View style={styles.logoRow}>
                 <View style={styles.logoCircle}>
-                  <Text style={{ fontSize: 22 }}>🌙</Text>
+                  <AppIcon name="moon" size={22} color={ICON_GOLD} />
                 </View>
                 <View>
                   <Text style={styles.logoName}>{t("appName")}</Text>
@@ -627,7 +640,7 @@ export default function HomeScreen() {
             activeOpacity={0.85}
           >
             <View style={[styles.adhkarHomeIcon, { backgroundColor: "rgba(201,168,76,0.18)" }]}>
-              <Text style={styles.adhkarHomeEmoji}>🌅</Text>
+              <AppIcon name="sunny" size={22} color={ICON_GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.adhkarHomeTitle, { color: theme.text }]}>{t("morningAdhkarTitle")}</Text>
@@ -643,7 +656,7 @@ export default function HomeScreen() {
             activeOpacity={0.85}
           >
             <View style={[styles.adhkarHomeIcon, { backgroundColor: "rgba(30,58,95,0.12)" }]}>
-              <Text style={styles.adhkarHomeEmoji}>🌙</Text>
+              <AppIcon name="moon" size={22} color={ICON_GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.adhkarHomeTitle, { color: theme.text }]}>{t("eveningAdhkarTitle")}</Text>
@@ -682,12 +695,12 @@ export default function HomeScreen() {
           <TouchableOpacity><Text style={styles.qaViewAll}>{t("seeAll")}</Text></TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaRow}>
-          <QuickItem icon="cube-outline" label={t("umrahGuide")} onPress={() => router.push("/umrah-guide" as any)} theme={theme} />
-          <QuickItem icon="moon-outline" label={t("hajj")} onPress={() => router.push("/hajj" as any)} theme={theme} />
-          <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} />
-          <QuickItem icon="hand-left-outline" label={t("duas")} onPress={() => router.push("/duas" as any)} theme={theme} />
-          <QuickItem icon="book-outline" label={t("quran")} onPress={() => router.push("/quran" as any)} theme={theme} />
-          <QuickItem icon="bus-outline" label={t("services")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} />
+          <QuickItem icon="cube-outline" label={t("umrahGuide")} onPress={() => router.push("/umrah-guide" as any)} theme={theme} color="#B45309" />
+          <QuickItem icon="moon-outline" label={t("hajj")} onPress={() => router.push("/hajj" as any)} theme={theme} color="#C9A84C" />
+          <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} color="#E11D48" />
+          <QuickItem icon="hand-left-outline" label={t("duas")} onPress={() => router.push("/duas" as any)} theme={theme} color="#0D9488" />
+          <QuickItem icon="book-outline" label={t("quran")} onPress={() => router.push("/quran" as any)} theme={theme} color="#0F766E" />
+          <QuickItem icon="bus-outline" label={t("services")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} color="#0284C7" />
         </ScrollView>
 
         {/* ── MAIDABO FOUNDATION ── */}
@@ -844,7 +857,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  adhkarHomeEmoji: { fontSize: 22 },
   adhkarHomeTitle: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
   adhkarHomeSub: { fontSize: 12, lineHeight: 16 },
 
