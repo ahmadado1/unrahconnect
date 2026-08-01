@@ -2,6 +2,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { supabase } from "@/lib/supabase"
+import seedRows from "@/lib/travelAgentsSeed.json"
 
 export type TravelAgentCountry = {
   id: string
@@ -97,6 +98,11 @@ function mapRow(row: TravelAgentRow): TravelAgent {
   }
 }
 
+/** Bundled directory used until Supabase `travel_agents` is created & seeded. */
+function getSeedAgents(): TravelAgent[] {
+  return (seedRows as TravelAgentRow[]).map(mapRow)
+}
+
 export function sortAgents(agents: TravelAgent[]): TravelAgent[] {
   return agents.slice().sort(
     (a, b) =>
@@ -126,15 +132,17 @@ async function writeDiskCache(agents: TravelAgent[]) {
   }
 }
 
-/** Instant cache (memory → disk). Does not hit the network. */
+/** Instant cache (memory → disk → bundled seed). Does not hit the network. */
 export async function getCachedAgents(): Promise<TravelAgent[]> {
   if (memoryCache) return memoryCache
   const disk = await readDiskCache()
-  if (disk) {
+  if (disk && disk.length > 0) {
     memoryCache = disk
     return disk
   }
-  return []
+  const seed = getSeedAgents()
+  memoryCache = seed
+  return seed
 }
 
 export async function getCachedAgentsForCountry(countryId: string): Promise<TravelAgent[]> {
@@ -171,11 +179,19 @@ export async function loadAgentsForCountry(
 
   try {
     const fresh = await fetchAgentsFromSupabase()
+    if (fresh.length === 0) {
+      // Table exists but empty — keep seed/cache so the directory still shows.
+      return cached.length ? cached : sortAgents(getSeedAgents().filter(a => a.countryId === countryId))
+    }
     memoryCache = fresh
     await writeDiskCache(fresh)
     return sortAgents(fresh.filter(a => a.countryId === countryId))
   } catch {
-    return cached
+    // Table missing / offline — serve cache or bundled seed.
+    if (cached.length) return cached
+    const seed = sortAgents(getSeedAgents().filter(a => a.countryId === countryId))
+    memoryCache = getSeedAgents()
+    return seed
   }
 }
 
@@ -195,7 +211,9 @@ export async function loadAgentById(
       .maybeSingle()
 
     if (error) throw error
-    if (!data) return fromCache
+    if (!data) {
+      return fromCache ?? getSeedAgents().find(a => a.id === id) ?? null
+    }
 
     const agent = mapRow(data as TravelAgentRow)
     // Merge into cache
@@ -205,7 +223,7 @@ export async function loadAgentById(
     await writeDiskCache(next)
     return agent
   } catch {
-    return fromCache
+    return fromCache ?? getSeedAgents().find(a => a.id === id) ?? null
   }
 }
 

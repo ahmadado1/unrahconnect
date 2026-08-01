@@ -1,5 +1,6 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
+import JourneyHelpLinks from "@/app/components/JourneyHelpLinks"
 import PhaseStepsSection from "@/app/components/PhaseStepsSection"
 import MadinahPlacesSection from "@/app/components/MadinahPlacesSection"
 import { useTheme } from "@/context/themeContext"
@@ -184,6 +185,13 @@ export default function PhaseDetailScreen() {
               </View>
             </View>
           ))}
+
+          {phaseId ? (
+            <>
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              <JourneyHelpLinks journey="umrah" phaseId={phaseId} />
+            </>
+          ) : null}
         </View>
 
         <View style={[styles.divider, { backgroundColor: theme.border }]} />
