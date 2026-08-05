@@ -1,13 +1,22 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
+import QuranReadModeModal from "@/app/components/QuranReadModeModal"
+import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
+import {
+  getQuranReadMode,
+  setQuranReadMode,
+  toggleQuranReadMode,
+  type QuranReadMode,
+} from "@/lib/quranReadMode"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../lib/supabase"
@@ -36,6 +45,7 @@ type LastRead = {
 export default function QuranScreen() {
   const router = useRouter()
   const { theme, isDark } = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
 
   const [surahs, setSurahs] = useState<Surah[]>([])
@@ -49,6 +59,10 @@ export default function QuranScreen() {
   // Last read position — shown in Continue Reading card
   const [lastRead, setLastRead] = useState<LastRead | null>(null)
 
+  const [readMode, setReadMode] = useState<QuranReadMode | null>(null)
+  const [modeReady, setModeReady] = useState(false)
+  const [showModeModal, setShowModeModal] = useState(false)
+
   const [fontsLoaded] = useFonts({
     ScheherazadeNew_400Regular,
     ScheherazadeNew_700Bold,
@@ -60,11 +74,29 @@ export default function QuranScreen() {
     useCallback(() => {
       fetchLastRead()
       fetchBookmarkCount()
+      getQuranReadMode().then(mode => {
+        setReadMode(mode)
+        setModeReady(true)
+        setShowModeModal(mode === null)
+      })
     }, [])
   )
   useEffect(() => {
     fetchSurahs()
   }, [])
+
+  const handleSelectReadMode = async (mode: QuranReadMode) => {
+    await setQuranReadMode(mode)
+    setReadMode(mode)
+    setShowModeModal(false)
+  }
+
+  const handleToggleReadMode = async () => {
+    if (!readMode) return
+    const next = toggleQuranReadMode(readMode)
+    setReadMode(next)
+    await setQuranReadMode(next)
+  }
 
   // Filter surahs when search changes
   useEffect(() => {
@@ -173,16 +205,18 @@ export default function QuranScreen() {
 
   // ─── NAVIGATE TO SURAH ─────────────────────────────────────────────────────
 
-  const goToSurah = (item: Surah) => {
+  const goToSurah = (item: Surah, options?: { resume?: boolean }) => {
     router.push({
       pathname: "/quran/[surah]",
       params: {
-        surah: item.number,
+        surah: String(item.number),
         name: item.englishName,
         arabicName: item.name,
-        verses: item.numberOfAyahs,
-        type: item.revelationType
-      }
+        verses: String(item.numberOfAyahs),
+        type: item.revelationType,
+        // List selection opens at ayah 1; Continue Reading resumes last verse
+        resume: options?.resume ? "1" : "0",
+      },
     })
   }
 
@@ -227,16 +261,25 @@ export default function QuranScreen() {
         </TouchableOpacity>
 
         <View style={styles.titleRow}>
-        <View>
-            <Text style={styles.title}>Quran</Text>
-            <Text style={styles.subtitle}>114 surahs · Arabic & translation</Text>
-        </View>
-        <TouchableOpacity
-            style={styles.bookmarkBtn}
-            onPress={() => router.push("/quran/bookmark")}
-        >
-            <Ionicons name="bookmark" size={20} color="#C9A84C" />
-        </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{t("quran")}</Text>
+            <Text style={styles.subtitle}>
+              {readMode === "arabic_only"
+                ? t("quranReadModeSubtitleArabic")
+                : t("quranReadModeSubtitleBoth")}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            {modeReady && readMode ? (
+              <QuranReadModeToggle mode={readMode} onToggle={handleToggleReadMode} />
+            ) : null}
+            <TouchableOpacity
+              style={styles.bookmarkBtn}
+              onPress={() => router.push("/quran/bookmark")}
+            >
+              <Ionicons name="bookmark" size={20} color="#C9A84C" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search bar */}
@@ -294,7 +337,7 @@ export default function QuranScreen() {
                   onPress={() => {
                     // Find the full surah data so we can pass all params
                     const surahData = surahs.find(s => s.number === lastRead.surah_number)
-                    if (surahData) goToSurah(surahData)
+                    if (surahData) goToSurah(surahData, { resume: true })
                   }}
                 >
                   <AnimatedHeroIcon name="book" size={36} accent="gold" />
@@ -358,6 +401,8 @@ export default function QuranScreen() {
           )}
         />
       )}
+
+      <QuranReadModeModal visible={showModeModal} onSelect={handleSelectReadMode} />
     </View>
   )
 }
@@ -409,6 +454,7 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: "center", paddingTop: 60, gap: 12 },
   emptyText: { fontSize: 14 },
 
-  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-bookmarkBtn: { backgroundColor: "rgba(201,168,76,0.15)", padding: 10, borderRadius: 12 },
+  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  bookmarkBtn: { backgroundColor: "rgba(201,168,76,0.15)", padding: 10, borderRadius: 12 },
 })

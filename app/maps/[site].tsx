@@ -287,6 +287,45 @@ export default function SiteDetailScreen() {
           </View>
         )}
 
+        {site === "nabawi" && (
+          <>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("nabawiHelpServices")}</Text>
+            <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
+              {t("nabawiHelpServicesSub")}
+            </Text>
+
+            <View style={[styles.helpCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.helpIconWrap}>
+                <Ionicons name="information-circle" size={24} color="#C9A84C" />
+              </View>
+              <View style={styles.helpBody}>
+                <Text style={[styles.helpTitle, { color: theme.text }]}>{t("nabawiInfoStations")}</Text>
+                <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                  {t("nabawiInfoStationsLoc")}
+                </Text>
+                <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                  {t("nabawiInfoStationsDesc")}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.helpCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={styles.helpIconWrap}>
+                <Ionicons name="bag-handle" size={24} color="#C9A84C" />
+              </View>
+              <View style={styles.helpBody}>
+                <Text style={[styles.helpTitle, { color: theme.text }]}>{t("nabawiLostFound")}</Text>
+                <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                  {t("nabawiLostFoundLoc")}
+                </Text>
+                <Text style={[styles.helpText, { color: theme.textSecondary }]}>
+                  {t("nabawiLostFoundDesc")}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
+
         <TouchableOpacity
           style={[styles.navBtn, { backgroundColor: "#1E3A5F" }]}
           onPress={() => setShowMap(!showMap)}
@@ -580,4 +619,26 @@ const styles = StyleSheet.create({
   gateDesc: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   specialBadge: { backgroundColor: "rgba(201,168,76,0.2)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   specialBadgeText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
+  helpCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 0.5,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  helpIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#1E3A5F",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  helpBody: { flex: 1, gap: 4 },
+  helpTitle: { fontSize: 15, fontWeight: "700" },
+  helpText: { fontSize: 13, lineHeight: 19 },
 })

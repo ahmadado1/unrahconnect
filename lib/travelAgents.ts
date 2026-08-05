@@ -94,7 +94,7 @@ function mapRow(row: TravelAgentRow): TravelAgent {
     website: row.website ?? null,
     whatsapp,
     services: [...DEFAULT_AGENT_SERVICES],
-    featured: !!row.featured,
+    featured: row.featured === true,
   }
 }
 

@@ -1,7 +1,9 @@
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { playAdhan } from "@/lib/adhanAudio"
 import {
   cancelAllNotifications,
+  getNotificationAdhanSound,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
   scheduleDailyDhikrReminders,
@@ -10,6 +12,7 @@ import {
   scheduleTestAdhanNotification,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications"
+import { DEFAULT_ADHAN_ID } from "@/lib/prayerConstants"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
@@ -322,11 +325,67 @@ export default function NotificationsScreen() {
             onSwitch={onPrayerChange}
           />
           <TouchableOpacity
+            style={[styles.row, { borderBottomColor: theme.border }]}
+            onPress={async () => {
+              try {
+                await playAdhan("Dhuhr", {
+                  forceRestart: true,
+                  continueIfPlaying: false,
+                })
+                Alert.alert(
+                  t("playAdhanNowTitle", { defaultValue: "Adhan playing" }),
+                  t("playAdhanNowBody", {
+                    defaultValue: "Full Adhan is playing now. Tap Stop Adhan in the Guide tab if you need to stop it.",
+                  })
+                )
+              } catch (e) {
+                console.log("Play Adhan now failed:", e)
+                Alert.alert(
+                  t("playAdhanNowFailedTitle", { defaultValue: "Could not play Adhan" }),
+                  t("playAdhanNowFailedBody", {
+                    defaultValue: "Check that media volume is up and try again.",
+                  })
+                )
+              }
+            }}
+          >
+            <View style={[styles.iconWrap, { backgroundColor: "#0E7490" }]}>
+              <Ionicons name="play" size={18} color="#fff" />
+            </View>
+            <View style={styles.info}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                {t("playAdhanNow", { defaultValue: "Play Adhan now" })}
+              </Text>
+              <Text style={[styles.sub, { color: theme.textSecondary }]}>
+                {t("playAdhanNowSub", {
+                  defaultValue: "Plays the full Adhan immediately (in-app)",
+                })}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.row, { borderBottomColor: theme.border, borderBottomWidth: 0 }]}
             onPress={async () => {
-              const ok = await scheduleTestAdhanNotification(60)
+              // Ensure prayer alerts stay on for a meaningful lock-screen test
+              await AsyncStorage.setItem("notifications_enabled", "true")
+              await AsyncStorage.setItem("prayer_alerts_enabled", "true")
+              setMaster(true)
+              setPrayerAlerts(true)
+              await reschedulePrayerNotificationsFromCache().catch(console.log)
+
+              const selected =
+                (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
+              const soundName = getNotificationAdhanSound(selected, false)
+              const ok = await scheduleTestAdhanNotification(15)
               if (ok) {
-                Alert.alert(t("testAdhanScheduledTitle"), t("testAdhanScheduledBody"))
+                Alert.alert(
+                  t("testAdhanScheduledTitle"),
+                  t("testAdhanScheduledBodyShort", {
+                    defaultValue: `Lock your phone now. In about 15 seconds you should hear the Adhan notification sound (${soundName}). Requires a native build (not Expo Go).`,
+                    sound: soundName,
+                  })
+                )
               } else {
                 Alert.alert(t("testAdhanPermissionTitle"), t("testAdhanPermissionBody"))
               }
@@ -338,7 +397,9 @@ export default function NotificationsScreen() {
             <View style={styles.info}>
               <Text style={[styles.label, { color: theme.text }]}>{t("testAdhanAlert")}</Text>
               <Text style={[styles.sub, { color: theme.textSecondary }]}>
-                {t("testAdhanAlertSub")}
+                {t("testAdhanAlertSubShort", {
+                  defaultValue: "Lock-screen sound in ~15 seconds (native build)",
+                })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />

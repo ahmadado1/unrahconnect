@@ -5,6 +5,10 @@ export type HaramainStationInfo = {
   icon: "train"
   titleKey: string
   arabicNameKey: string
+  /** Display / Maps pin label */
+  mapsName: string
+  /** Google Maps search query for accurate pin placement */
+  mapsQuery: string
   lat: number
   lng: number
   addressKey: string
@@ -23,7 +27,8 @@ export type HaramainStationInfo = {
   tipKeys: string[]
 }
 
-export const HARAMAIN_BOOK_URL = "https://www.haramainrailway.sa"
+export const HARAMAIN_BOOK_URL = "https://sar.hhr.sa"
+export const HARAMAIN_BOOK_URL_MADINAH = "https://sar.hhr.sa/-/madinah"
 export const HARAMAIN_PHONE = "920004433"
 export const HARAMAIN_PHONE_DISPLAY = "920 004 433"
 
@@ -33,8 +38,10 @@ export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> =
     icon: "train",
     titleKey: "makkahStation",
     arabicNameKey: "hhrMakkahArabic",
-    lat: 21.4536,
-    lng: 39.8018,
+    mapsName: "Haramain High Speed Railway Station",
+    mapsQuery: "Haramain High Speed Railway Station Makkah",
+    lat: 21.4177,
+    lng: 39.787151,
     addressKey: "makkahStationAddress",
     distanceKey: "hhrMakkahDistance",
     hoursKey: "hhrMakkahHours",
@@ -55,8 +62,10 @@ export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> =
     icon: "train",
     titleKey: "madinahStation",
     arabicNameKey: "hhrMadinahArabic",
-    lat: 24.5489,
-    lng: 39.7392,
+    mapsName: "Haramain High Speed Railway Station",
+    mapsQuery: "Haramain High Speed Railway Station Madinah",
+    lat: 24.470975,
+    lng: 39.699685,
     addressKey: "madinahStationAddress",
     distanceKey: "hhrMadinahDistance",
     hoursKey: "hhrMadinahHours",
@@ -64,7 +73,7 @@ export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> =
     priceEconomyKey: "hhrMadinahPriceEconomy",
     priceBusinessKey: "hhrMadinahPriceBusiness",
     phone: HARAMAIN_PHONE,
-    bookUrl: HARAMAIN_BOOK_URL,
+    bookUrl: HARAMAIN_BOOK_URL_MADINAH,
     image: "https://images.unsplash.com/photo-1515169067865-5387ec6ff214?w=800",
     overviewKeys: ["hhrMadinahOverview1", "hhrMadinahOverview2"],
     gettingThereKeys: ["hhrMadinahGetting1", "hhrMadinahGetting2", "hhrMadinahGetting3"],
@@ -77,4 +86,12 @@ export const HARAMAIN_STATIONS: Record<HaramainStationId, HaramainStationInfo> =
 export function getHaramainStation(id: string | undefined): HaramainStationInfo | null {
   if (id === "makkah" || id === "madinah") return HARAMAIN_STATIONS[id]
   return null
+}
+
+/** Google Maps URL pinned to station coords with the official place query as the label. */
+export function haramainStationMapsUrl(
+  station: Pick<HaramainStationInfo, "lat" | "lng" | "mapsQuery">
+): string {
+  const label = encodeURIComponent(station.mapsQuery)
+  return `https://maps.google.com/?q=${station.lat},${station.lng}(${label})`
 }

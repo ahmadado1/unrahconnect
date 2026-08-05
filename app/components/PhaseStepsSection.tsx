@@ -80,6 +80,7 @@ export default function PhaseStepsSection({
               badgeColor={data.textColor}
               crucial={meta.crucial}
               menOnly={meta.menOnly}
+              womenOnly={meta.womenOnly}
               noteKey={meta.noteKey}
               arabic={detail?.arabic}
               transliteration={detail?.transliteration}

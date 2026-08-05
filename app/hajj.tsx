@@ -1,18 +1,24 @@
-import { useTheme } from "@/context/themeContext";
-import { scheduleJourneyReminder } from '@/lib/notifications';
-import { getHajjProgress } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
-import * as Notifications from 'expo-notifications';
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState, } from "react";
-import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/context/themeContext"
+import phaseStructure from "@/app/data/phaseStructure.json"
+import { getPhaseHeaderImage } from "@/lib/phaseHeaderImages"
+import { scheduleJourneyReminder } from "@/lib/notifications"
+import { getHajjProgress } from "@/lib/supabase"
+import { Ionicons } from "@expo/vector-icons"
+import * as Notifications from "expo-notifications"
+import { useFocusEffect, useRouter } from "expo-router"
+import { useCallback, useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-
-
-
-
+const HAJJ_PHASE_META = phaseStructure.hajj
 
 export default function HajjGuideScreen() {
   const insets = useSafeAreaInsets()
@@ -22,18 +28,18 @@ export default function HajjGuideScreen() {
   const { t } = useTranslation()
 
   const phases = [
-  { id: "1", title: t("phase_hajj_1_title"), subtitle: t("phase_hajj_1_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "1 day" },
-  { id: "2", title: t("phase_hajj_2_title"), subtitle: t("phase_hajj_2_sub"), color: "#E1F5EE", textColor: "#085041", duration: "1 day" },
-  { id: "3", title: t("phase_hajj_3_title"), subtitle: t("phase_hajj_3_sub"), color: "#FAEEDA", textColor: "#633806", duration: "1 day" },
-  { id: "4", title: t("phase_hajj_4_title"), subtitle: t("phase_hajj_4_sub"), color: "#FAECE7", textColor: "#712B13", duration: "1 day" },
-  { id: "5", title: t("phase_hajj_5_title"), subtitle: t("phase_hajj_5_sub"), color: "#EEEDFE", textColor: "#3C3489", duration: "1 night" },
-  { id: "6", title: t("phase_hajj_6_title"), subtitle: t("phase_hajj_6_sub"), color: "#FBEAF0", textColor: "#72243E", duration: "1 day" },
-  { id: "7", title: t("phase_hajj_7_title"), subtitle: t("phase_hajj_7_sub"), color: "#FAECE7", textColor: "#712B13", duration: "2-3 days" },
-  { id: "8", title: t("phase_hajj_8_title"), subtitle: t("phase_hajj_8_sub"), color: "#E1F5EE", textColor: "#085041", duration: "Few hours" },
-  { id: "9", title: t("phase_hajj_9_title"), subtitle: t("phase_hajj_9_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "Done!" },
-]
+    { id: "1", title: t("phase_hajj_1_title"), subtitle: t("phase_hajj_1_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "1 day" },
+    { id: "2", title: t("phase_hajj_2_title"), subtitle: t("phase_hajj_2_sub"), color: "#E1F5EE", textColor: "#085041", duration: "1 day" },
+    { id: "3", title: t("phase_hajj_3_title"), subtitle: t("phase_hajj_3_sub"), color: "#FAEEDA", textColor: "#633806", duration: "1 day" },
+    { id: "4", title: t("phase_hajj_4_title"), subtitle: t("phase_hajj_4_sub"), color: "#FAECE7", textColor: "#712B13", duration: "1 day" },
+    { id: "5", title: t("phase_hajj_5_title"), subtitle: t("phase_hajj_5_sub"), color: "#EEEDFE", textColor: "#3C3489", duration: "1 night" },
+    { id: "6", title: t("phase_hajj_6_title"), subtitle: t("phase_hajj_6_sub"), color: "#FBEAF0", textColor: "#72243E", duration: "1 day" },
+    { id: "7", title: t("phase_hajj_7_title"), subtitle: t("phase_hajj_7_sub"), color: "#FAECE7", textColor: "#712B13", duration: "2-3 days" },
+    { id: "8", title: t("phase_hajj_8_title"), subtitle: t("phase_hajj_8_sub"), color: "#E1F5EE", textColor: "#085041", duration: "Few hours" },
+    { id: "9", title: t("phase_hajj_9_title"), subtitle: t("phase_hajj_9_sub"), color: "#E6F1FB", textColor: "#0C447C", duration: "Done!" },
+  ]
 
-    const loadProgress = async () => {
+  const loadProgress = async () => {
     const progress = await getHajjProgress()
     setCompletedPhases(progress)
 
@@ -41,26 +47,22 @@ export default function HajjGuideScreen() {
     const total = 9
 
     if (completedCount < total) {
-      const nextPhaseTitle = phases[completedCount]?.title ?? 'your next phase'
-      await scheduleJourneyReminder(nextPhaseTitle, 'hajj')
+      const nextPhaseTitle = phases[completedCount]?.title ?? "your next phase"
+      await scheduleJourneyReminder(nextPhaseTitle, "hajj")
     } else {
-      await Notifications.cancelScheduledNotificationAsync('journey-reminder')
+      await Notifications.cancelScheduledNotificationAsync("journey-reminder")
     }
   }
   useFocusEffect(useCallback(() => { loadProgress() }, []))
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      {/* Dynamic island — always navy */}
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Header — always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={styles.title}>{t("hajjGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeHajj")}</Text>
         </View>
 
-        {/* Progress bar */}
         {completedPhases.length > 0 && (
           <View style={[styles.progressCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.progressHeader}>
@@ -73,24 +75,27 @@ export default function HajjGuideScreen() {
           </View>
         )}
 
-        {/* Section label */}
         <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t("yourJourney")}</Text>
 
-        {/* Phases list */}
         {phases.map((phase) => {
           const isCompleted = completedPhases.includes(phase.id)
+          const headerKey = HAJJ_PHASE_META.find((p) => p.id === phase.id)?.headerImage
+          const thumb = getPhaseHeaderImage(headerKey)
           return (
             <TouchableOpacity
               key={phase.id}
               style={[
                 styles.phaseCard,
                 { backgroundColor: theme.card, borderColor: theme.border },
-                isCompleted && styles.phaseCardCompleted
+                isCompleted && styles.phaseCardCompleted,
               ]}
               onPress={() => router.push(`/hajj/${phase.id}`)}
+              activeOpacity={0.85}
             >
+              {thumb ? (
+                <Image source={thumb} style={styles.phaseThumb} resizeMode="cover" />
+              ) : null}
               <View style={styles.phaseRow}>
-                {/* Phase number — gold with checkmark if completed */}
                 <View style={[styles.phaseNum, { backgroundColor: isCompleted ? "#C9A84C" : phase.color }]}>
                   {isCompleted ? (
                     <Ionicons name="checkmark" size={18} color="#1E3A5F" />
@@ -120,10 +125,9 @@ export default function HajjGuideScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  safeTop: { backgroundColor: "#1E3A5F" },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 34 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 40 },
-  subtitle: { color: "#C9A84C", fontSize: 13, },
+  subtitle: { color: "#C9A84C", fontSize: 13 },
   phaseCardCompleted: { borderColor: "#C9A84C", borderWidth: 1 },
   progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 35, borderWidth: 0.5 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
@@ -132,7 +136,17 @@ const styles = StyleSheet.create({
   progressTrack: { height: 8, borderRadius: 8, overflow: "hidden" },
   progressFill: { height: 8, backgroundColor: "#C9A84C", borderRadius: 4 },
   sectionLabel: { fontSize: 11, fontWeight: "500", paddingHorizontal: 16, marginBottom: 8, marginTop: 8, letterSpacing: 0.5 },
-  phaseCard: { marginHorizontal: 16, marginBottom: 10, borderRadius: 12, borderWidth: 0.5 },
+  phaseCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    overflow: "hidden",
+  },
+  phaseThumb: {
+    width: "100%",
+    height: 88,
+  },
   phaseRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
   phaseNum: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   phaseNumText: { fontSize: 15, fontWeight: "bold" },

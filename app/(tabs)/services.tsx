@@ -1,6 +1,7 @@
 import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { FLIGHT_PLATFORMS } from "@/lib/flights"
+import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
@@ -18,24 +19,17 @@ const APP_SERVICES = [
   { id: "hospitals", icon: "medkit" as AppIconKey, titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", ionIcon: "medkit-outline" },
 ] as const
 
-const HARAMAIN_STATIONS = [
-  {
-    id: "makkah",
-    icon: "train" as AppIconKey,
-    titleKey: "makkahStation",
-    addressKey: "makkahStationAddress",
-    lat: 21.4536,
-    lng: 39.8018,
-  },
-  {
-    id: "madinah",
-    icon: "train" as AppIconKey,
-    titleKey: "madinahStation",
-    addressKey: "madinahStationAddress",
-    lat: 24.5489,
-    lng: 39.7392,
-  },
-] as const
+const HARAMAIN_STATIONS = (["makkah", "madinah"] as const).map((id) => {
+  const station = HARAMAIN_STATION_MAP[id]
+  return {
+    id: station.id,
+    icon: station.icon as AppIconKey,
+    titleKey: station.titleKey,
+    addressKey: station.addressKey,
+    lat: station.lat,
+    lng: station.lng,
+  }
+})
 
 const SAPTCO_URL = "https://www.saptco.com.sa"
 const UBER_FALLBACK_URL = "https://www.uber.com"

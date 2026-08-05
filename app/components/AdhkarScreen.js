@@ -27,6 +27,25 @@ const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 const GREEN = "#2D6A4F"
 
+/** Split Arabic so each ۝ + Arabic-Indic digits run can compose inside Scheherazade. */
+const AYAH_MARK_SPLIT = /(۝[٠-٩]+)/
+const AYAH_MARK_ONE = /^۝[٠-٩]+$/
+
+function renderArabicWithAyahMarks(arabic, markStyle) {
+  return String(arabic)
+    .split(AYAH_MARK_SPLIT)
+    .filter(Boolean)
+    .map((part, i) =>
+      AYAH_MARK_ONE.test(part) ? (
+        <Text key={`m-${i}`} style={markStyle}>
+          {part}
+        </Text>
+      ) : (
+        <Text key={`t-${i}`}>{part}</Text>
+      ),
+    )
+}
+
 function todayKey() {
   return new Date().toDateString()
 }
@@ -191,10 +210,16 @@ export default function AdhkarScreen({ period }) {
                   style={[
                     styles.arabic,
                     { color: theme.text },
-                    fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+                    // Regular matches Quran reader — composes U+06DD + digits inside the ornament
+                    fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
                   ]}
                 >
-                  {item.arabic}
+                  {renderArabicWithAyahMarks(
+                    item.arabic,
+                    fontsLoaded
+                      ? { fontFamily: "ScheherazadeNew_400Regular" }
+                      : null,
+                  )}
                 </Text>
 
                 <Text style={styles.source}>{item.source}</Text>

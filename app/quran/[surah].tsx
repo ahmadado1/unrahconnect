@@ -1,11 +1,18 @@
+import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
+import {
+  getQuranReadMode,
+  setQuranReadMode,
+  toggleQuranReadMode,
+  type QuranReadMode,
+} from "@/lib/quranReadMode"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
@@ -135,10 +142,16 @@ function MushafTextFlow({
   items,
   fontsLoaded,
   surahNames,
+  targetSurah,
+  pageScrollRef,
+  didScrollToSurah,
 }: {
   items: FlowItem[]
   fontsLoaded: boolean
   surahNames: Record<number, string>
+  targetSurah?: number
+  pageScrollRef: RefObject<ScrollView | null>
+  didScrollToSurah: MutableRefObject<boolean>
 }) {
   return (
     <View style={mStyles.textFlow}>
@@ -146,7 +159,25 @@ function MushafTextFlow({
         if (item.type === "surahStart") {
           const { surahNumber } = item
           return (
-            <View key={item.key} style={mStyles.flowSurahBlock}>
+            <View
+              key={item.key}
+              style={mStyles.flowSurahBlock}
+              onLayout={e => {
+                if (!targetSurah || surahNumber !== targetSurah || didScrollToSurah.current) return
+                didScrollToSurah.current = true
+                const node = e.target as unknown as {
+                  measureInWindow?: (cb: (x: number, y: number) => void) => void
+                }
+                node.measureInWindow?.((x, y) => {
+                  pageScrollRef.current?.measureInWindow((sx, sy) => {
+                    pageScrollRef.current?.scrollTo({
+                      y: Math.max(0, y - sy - 4),
+                      animated: false,
+                    })
+                  })
+                })
+              }}
+            >
               <SurahBanner
                 name={surahNames[surahNumber] ?? ""}
                 fontsLoaded={fontsLoaded}
@@ -195,20 +226,24 @@ function MushafPageContent({
   pageNumber,
   fontsLoaded,
   surahNames,
+  targetSurah,
 }: {
   pageNumber: number
   fontsLoaded: boolean
   surahNames: Record<number, string>
+  targetSurah?: number
 }) {
   const scrollRef = useRef<ScrollView>(null)
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const didScrollToSurah = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(false)
+    didScrollToSurah.current = false
 
     fetchMushafPage(pageNumber)
       .then(data => {
@@ -231,7 +266,8 @@ function MushafPageContent({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false })
-  }, [pageNumber])
+    didScrollToSurah.current = false
+  }, [pageNumber, targetSurah])
 
   if (loading) {
     return (
@@ -254,7 +290,7 @@ function MushafPageContent({
   }
 
   const primarySurah = parseInt(pageData.verses[0]?.verse_key.split(":")[0] ?? "1", 10)
-  const primarySurahName = surahNames[primarySurah] ?? ""
+  const primarySurahName = surahNames[targetSurah ?? primarySurah] ?? surahNames[primarySurah] ?? ""
   const flowItems = buildPageFlow(pageData.verses)
 
   return (
@@ -286,6 +322,9 @@ function MushafPageContent({
                 items={flowItems}
                 fontsLoaded={fontsLoaded}
                 surahNames={surahNames}
+                targetSurah={targetSurah}
+                pageScrollRef={scrollRef}
+                didScrollToSurah={didScrollToSurah}
               />
 
               <View style={mStyles.ornamentBottom}>
@@ -307,6 +346,7 @@ function MushafView({
   router,
   setViewMode,
   fontsLoaded,
+  targetSurah,
 }: {
   currentPage: number
   setCurrentPage: (p: number) => void
@@ -314,10 +354,12 @@ function MushafView({
   router: any
   setViewMode: (v: "text" | "mushaf") => void
   fontsLoaded: boolean
+  targetSurah?: number
 }) {
   const flatListRef = useRef<FlatList>(null)
   const pages = useRef(Array.from({ length: MUSHAF_PAGE_COUNT }, (_, i) => i + 1)).current
   const [surahNames, setSurahNames] = useState<Record<number, string>>({})
+  const pageIndex = Math.min(Math.max(currentPage - 1, 0), MUSHAF_PAGE_COUNT - 1)
 
   useEffect(() => {
     const loadSurahNames = async () => {
@@ -347,12 +389,16 @@ function MushafView({
     loadSurahNames()
   }, [])
 
+  // Jump the mushaf pager to the selected surah's page once ready
   useEffect(() => {
-    flatListRef.current?.scrollToIndex({
-      index: currentPage - 1,
-      animated: true,
-    })
-  }, [currentPage])
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToIndex({
+        index: pageIndex,
+        animated: false,
+      })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [pageIndex, targetSurah])
 
   return (
     <GestureHandlerRootView style={mStyles.mushafRoot}>
@@ -375,7 +421,7 @@ function MushafView({
         pagingEnabled
         nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
-        initialScrollIndex={currentPage - 1}
+        initialScrollIndex={pageIndex}
         keyExtractor={item => item.toString()}
         style={mStyles.mushafPager}
         getItemLayout={(_, index) => ({
@@ -392,15 +438,14 @@ function MushafView({
             pageNumber={item}
             fontsLoaded={fontsLoaded}
             surahNames={surahNames}
+            targetSurah={targetSurah}
           />
         )}
         onScrollToIndexFailed={info => {
-          setTimeout(() => {
-            flatListRef.current?.scrollToIndex({
-              index: info.index,
-              animated: false,
-            })
-          }, 300)
+          flatListRef.current?.scrollToOffset({
+            offset: SCREEN_WIDTH * info.index,
+            animated: false,
+          })
         }}
       />
 
@@ -441,16 +486,19 @@ export default function SurahScreen() {
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const [initialIndex, setInitialIndex] = useState(0)
+  const [scrollToVerseIndex, setScrollToVerseIndex] = useState<number | null>(null)
   const listRef = useRef<FlatList>(null)
+  const didScrollForSurahRef = useRef<string | null>(null)
   const [viewMode, setViewMode] = useState<"text" | "mushaf">("text")
-  const { surah, name, arabicName, verses, type } = useLocalSearchParams<{
+  const { surah, name, arabicName, verses, type, resume } = useLocalSearchParams<{
     surah: string
     name: string
     arabicName: string
     verses: string
     type: string
+    resume?: string
   }>()
+  const shouldResume = resume === "1"
 
   const initialLang = normalizeReadLanguage(i18n.language)
   const initialSurahNum = surah ? Number(surah) : 0
@@ -460,29 +508,51 @@ export default function SurahScreen() {
   const [verseList, setVerseList] = useState<Verse[]>(() => initialCached ?? [])
   const [loading, setLoading] = useState(() => !initialCached?.length)
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
+  const [readMode, setReadMode] = useState<QuranReadMode>("with_translation")
   const saveTimer = useRef<any>(null)
   const loadRequestRef = useRef(0)
+  const showTranslation = readMode === "with_translation"
 
   const [fontsLoaded] = useFonts({
     ScheherazadeNew_400Regular,
     ScheherazadeNew_700Bold,
   })
 
-  const applyReadingProgress = async (verses: Verse[]) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+  useEffect(() => {
+    getQuranReadMode().then(mode => {
+      if (mode) setReadMode(mode)
+    })
+  }, [])
 
-    const { data: progress } = await supabase
-      .from("quran_progress")
-      .select("verse_number")
-      .eq("user_id", session.user.id)
-      .eq("surah_number", Number(surah))
-      .maybeSingle()
+  const handleToggleReadMode = async () => {
+    const next = toggleQuranReadMode(readMode)
+    setReadMode(next)
+    await setQuranReadMode(next)
+  }
 
-    if (progress?.verse_number) {
-      const idx = verses.findIndex(v => v.number === progress.verse_number)
-      if (idx >= 0) setInitialIndex(idx)
+  const resolveScrollTarget = async (loaded: Verse[]): Promise<number> => {
+    // Surah list → always open at the first ayah of that surah
+    if (!shouldResume) return 0
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return 0
+
+      const { data: progress } = await supabase
+        .from("quran_progress")
+        .select("verse_number")
+        .eq("user_id", session.user.id)
+        .eq("surah_number", Number(surah))
+        .maybeSingle()
+
+      if (progress?.verse_number) {
+        const idx = loaded.findIndex(v => v.number === progress.verse_number)
+        if (idx >= 0) return idx
+      }
+    } catch {
+      // fall through to ayah 1
     }
+    return 0
   }
 
   const fetchBookmarks = async () => {
@@ -500,12 +570,15 @@ export default function SurahScreen() {
     }
   }
 
-  const applyLoadedVerses = (verses: Verse[]) => {
-    setVerseList(verses)
-    setCurrentPage(verses[0]?.page || 1)
+  const applyLoadedVerses = async (loaded: Verse[], requestId: number) => {
+    setVerseList(loaded)
+    setCurrentPage(loaded[0]?.page || 1)
     setLoading(false)
-    void applyReadingProgress(verses)
     void fetchBookmarks()
+
+    const target = await resolveScrollTarget(loaded)
+    if (loadRequestRef.current !== requestId) return
+    setScrollToVerseIndex(target)
   }
 
   useEffect(() => {
@@ -514,12 +587,14 @@ export default function SurahScreen() {
     const requestId = ++loadRequestRef.current
     const surahNum = Number(surah)
     const lang = normalizeReadLanguage(i18n.language)
+    didScrollForSurahRef.current = null
+    setScrollToVerseIndex(null)
 
     const load = async () => {
       const instant = peekCachedSurah(surahNum, lang)
       if (instant?.length) {
         if (loadRequestRef.current !== requestId) return
-        applyLoadedVerses(instant)
+        await applyLoadedVerses(instant, requestId)
         return
       }
 
@@ -528,12 +603,12 @@ export default function SurahScreen() {
       if (loadRequestRef.current !== requestId) return
 
       if (cached?.length) {
-        applyLoadedVerses(cached)
-        // Soft-refresh preferred language in background if missing
+        await applyLoadedVerses(cached, requestId)
+        // Soft-refresh preferred language in background (don't re-trigger scroll)
         void fetchAndCacheSurah(surahNum, lang).then(fresh => {
           if (loadRequestRef.current !== requestId || !fresh?.length) return
           if (normalizeReadLanguage(i18n.language) === lang) {
-            applyLoadedVerses(fresh)
+            setVerseList(fresh)
           }
         })
         return
@@ -548,7 +623,7 @@ export default function SurahScreen() {
         if (loadRequestRef.current !== requestId) return
 
         if (combined?.length) {
-          applyLoadedVerses(combined)
+          await applyLoadedVerses(combined, requestId)
         } else {
           setLoading(false)
         }
@@ -561,19 +636,33 @@ export default function SurahScreen() {
     }
 
     load()
-  }, [surah, i18n.language])
+  }, [surah, i18n.language, shouldResume])
 
+  // Jump to the selected surah's ayah once verses are ready (index 0 = first ayah)
   useEffect(() => {
-    if (initialIndex > 0 && verseList.length > 0 && !loading) {
-      setTimeout(() => {
+    if (loading || scrollToVerseIndex === null || verseList.length === 0) return
+    if (viewMode !== "text") return
+
+    const surahKey = `${surah}:${scrollToVerseIndex}`
+    if (didScrollForSurahRef.current === surahKey) return
+
+    const index = Math.min(Math.max(scrollToVerseIndex, 0), verseList.length - 1)
+
+    const timer = setTimeout(() => {
+      if (index <= 0) {
+        listRef.current?.scrollToOffset({ offset: 0, animated: false })
+      } else {
         listRef.current?.scrollToIndex({
-          index: initialIndex,
+          index,
           animated: false,
           viewPosition: 0,
         })
-      }, 500)
-    }
-  }, [initialIndex, verseList, loading])
+      }
+      didScrollForSurahRef.current = surahKey
+    }, 50)
+
+    return () => clearTimeout(timer)
+  }, [loading, scrollToVerseIndex, verseList.length, surah, viewMode])
 
 
   // ─── FETCH WITH RETRY ──────────────────────────────────────────────────────
@@ -665,13 +754,23 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           />
         </TouchableOpacity>
       </View>
-      <Text style={[styles.verseArabic, fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" }]}>
+      <Text
+        style={[
+          styles.verseArabic,
+          fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+          !showTranslation && { marginBottom: 0 },
+        ]}
+      >
         {item.text}
       </Text>
-      <View style={styles.verseDivider} />
-      <Text style={[styles.verseTranslation, { color: theme.textSecondary }]}>
-        {item.translation}
-      </Text>
+      {showTranslation ? (
+        <>
+          <View style={styles.verseDivider} />
+          <Text style={[styles.verseTranslation, { color: theme.textSecondary }]}>
+            {item.translation}
+          </Text>
+        </>
+      ) : null}
     </View>
   )
 
@@ -689,14 +788,18 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         router={router}
         setViewMode={setViewMode}
         fontsLoaded={fontsLoaded}
+        targetSurah={Number(surah) || undefined}
       />
     ) : (
       <>
         <View style={[styles.header, { paddingTop: insets.top }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-            <Text style={styles.backText}>Quran</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#fff" />
+              <Text style={styles.backText}>Quran</Text>
+            </TouchableOpacity>
+            <QuranReadModeToggle mode={readMode} onToggle={handleToggleReadMode} />
+          </View>
           <Text style={[styles.headerArabic, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }]}>
             {arabicName}
           </Text>
@@ -727,19 +830,25 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         ) : (
           <FlatList
             ref={listRef}
+            key={`surah-verses-${surah}`}
             data={verseList}
-            keyExtractor={item => item.number.toString()}
+            keyExtractor={item => `${surah}-${item.number}`}
             renderItem={renderVerse}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.readList}
-            onScrollToIndexFailed={(info) => {
+            initialNumToRender={Math.min(verseList.length, 12)}
+            onScrollToIndexFailed={info => {
+              listRef.current?.scrollToOffset({
+                offset: Math.max(0, info.averageItemLength * info.index),
+                animated: false,
+              })
               setTimeout(() => {
                 listRef.current?.scrollToIndex({
                   index: info.index,
                   animated: false,
                   viewPosition: 0,
                 })
-              }, 500)
+              }, 250)
             }}
             onViewableItemsChanged={({ viewableItems }) => {
               if (viewableItems.length > 0) {
@@ -755,9 +864,11 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                   <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }, { color: theme.text }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
-                  <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
-                    In the name of Allah, the Most Gracious, the Most Merciful
-                  </Text>
+                  {showTranslation ? (
+                    <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
+                      In the name of Allah, the Most Gracious, the Most Merciful
+                    </Text>
+                  ) : null}
                 </View>
               )
             }}
@@ -781,7 +892,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 16 },
-  backBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12 },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  backBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   backText: { color: "rgba(255,255,255,0.6)", fontSize: 14 },
   headerArabic: { fontSize: 32, color: "#C9A84C", textAlign: "center", marginBottom: 4 },
   headerEnglish: { fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 4 },

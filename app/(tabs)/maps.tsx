@@ -1,4 +1,5 @@
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
+import ZoomableImage from "@/app/components/ZoomableImage"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
@@ -6,13 +7,19 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import {
+  ImageSourcePropType,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-
 
 const LOCATIONS = [
   { id: "haram", icon: "kaaba" as AppIconKey, nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },
-  { id: "nabawi", icon: "mosque" as AppIconKey, nameKey: "masjidNabawi", subKey: "madinah", query: "Masjid Nabawi, Madinah, Saudi Arabia" },
   { id: "mina", icon: "camp" as AppIconKey, nameKey: "mina", subKey: "hajjSite", query: "Mina, Makkah, Saudi Arabia" },
   { id: "arafah", icon: "mountain" as AppIconKey, nameKey: "arafah", subKey: "hajjSite", query: "Mount Arafah, Makkah, Saudi Arabia" },
   { id: "zamzam", icon: "water" as AppIconKey, nameKey: "zamzamWell", subKey: "makkah", query: "Zamzam Well, Makkah, Saudi Arabia" },
@@ -20,25 +27,104 @@ const LOCATIONS = [
   { id: "lost-found", icon: "search" as AppIconKey, nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
 ] as const
 
+/** Madinah holy sites with local photos (Maps → Holy Sites). */
+const MADINAH_HOLY_SITES: {
+  id: string
+  nameKey: string
+  subKey: string
+  image?: ImageSourcePropType
+  route?: string
+  mapsQuery?: string
+}[] = [
+  {
+    id: "nabawi",
+    nameKey: "masjidNabawi",
+    subKey: "madinah",
+    image: require("../../assets/photos/masjid-nabawi.jpg"),
+    route: "/maps/nabawi",
+  },
+  {
+    id: "riyad-al-jannah",
+    nameKey: "madinahPlace2Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/riyad-al-jannah.jpg"),
+    route: "/maps/nabawi",
+  },
+  {
+    id: "prophet-grave",
+    nameKey: "madinahPlace3Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/prophet-grave.jpg"),
+    route: "/maps/nabawi",
+  },
+  {
+    id: "jannat-al-baqi",
+    nameKey: "madinahPlace4Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/jannat-al-baqi.jpg"),
+    mapsQuery: "Jannat al-Baqi, Madinah, Saudi Arabia",
+  },
+  {
+    id: "masjid-quba",
+    nameKey: "madinahPlace5Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/masjid-quba.jpg"),
+    mapsQuery: "Masjid Quba, Madinah, Saudi Arabia",
+  },
+  {
+    id: "masjid-qiblatayn",
+    nameKey: "madinahPlace6Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/masjid-qiblatayn.jpg"),
+    mapsQuery: "Masjid al-Qiblatayn, Madinah, Saudi Arabia",
+  },
+  {
+    id: "uhud-mountain",
+    nameKey: "madinahPlace7Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/uhud-mountain.png"),
+    mapsQuery: "Mount Uhud, Madinah, Saudi Arabia",
+  },
+  {
+    id: "seven-mosques",
+    nameKey: "madinahPlace8Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/seven-mosques.jpg"),
+    mapsQuery: "Seven Mosques, Madinah, Saudi Arabia",
+  },
+  {
+    id: "jabal-ayr",
+    nameKey: "madinahPlace10Title",
+    subKey: "madinah",
+    image: require("../../assets/photos/jabal-ayr.png"),
+    mapsQuery: "Jabal Ayr, Madinah, Saudi Arabia",
+  },
+  {
+    id: "dar-al-madinah-museum",
+    nameKey: "madinahPlace9Title",
+    subKey: "madinah",
+    mapsQuery: "Dar Al Madinah Museum, Madinah, Saudi Arabia",
+  },
+]
+
 export default function MapsScreen() {
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const router = useRouter() // ← used to navigate to detail screen
+  const router = useRouter()
   const [locationLabel, setLocationLabel] = useState<string | null>(null)
-  const [showMap, setShowMap] = useState(false)
 
-  // Get user's current location on mount
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status !== "granted") return
-      Location.getCurrentPositionAsync({}).then((pos) => {
-        setLocationLabel(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)
-      }).catch(() => {})
+      Location.getCurrentPositionAsync({})
+        .then(pos => {
+          setLocationLabel(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)
+        })
+        .catch(() => {})
     })
   }, [])
 
-  // Opens Google Maps at user's current location
   const openMyLocation = () => {
     if (locationLabel) {
       Linking.openURL(`https://maps.google.com/?q=${locationLabel}`)
@@ -47,19 +133,26 @@ export default function MapsScreen() {
     }
   }
 
+  const openMadinahSite = (site: (typeof MADINAH_HOLY_SITES)[number]) => {
+    if (site.route) {
+      router.push(site.route as any)
+      return
+    }
+    if (site.mapsQuery) {
+      Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(site.mapsQuery)}`)
+    }
+  }
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      {/* ── HEADER ── */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Text style={styles.title}>{t("maps")}</Text>
         <Text style={styles.subtitle}>{t("mapsSub")}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-
-        {/* ── MY LOCATION CARD ── opens Google Maps at user location */}
         <TouchableOpacity
           style={[styles.myLocationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={openMyLocation}
@@ -76,22 +169,51 @@ export default function MapsScreen() {
           <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
         </TouchableOpacity>
 
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("madinahHolySites")}</Text>
+        <Text style={[styles.sectionHint, { color: theme.textSecondary }]}>{t("madinah")}</Text>
+
+        {MADINAH_HOLY_SITES.map(site => (
+          <View
+            key={site.id}
+            style={[styles.photoCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          >
+            {site.image ? (
+              <ZoomableImage
+                source={site.image}
+                style={styles.photoFrame}
+                imageStyle={styles.photo}
+                accessibilityLabel={`${t(site.nameKey)} — tap to zoom`}
+              />
+            ) : null}
+            <TouchableOpacity
+              style={styles.photoMeta}
+              onPress={() => openMadinahSite(site)}
+              activeOpacity={0.85}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.locationName, { color: theme.text }]} numberOfLines={2}>
+                  {t(site.nameKey)}
+                </Text>
+                <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(site.subKey)}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+            </TouchableOpacity>
+          </View>
+        ))}
+
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
 
-        {/* ── HOLY SITES LIST ── each card navigates to detail screen */}
-        {LOCATIONS.map((loc) => (
+        {LOCATIONS.map(loc => (
           <TouchableOpacity
             key={loc.id}
             style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => router.push(`/maps/${loc.id}` as any)}
-            // ↑ THIS IS THE KEY CHANGE — goes to detail screen, not Google Maps directly
           >
             <AppIcon name={loc.icon} size={28} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.locationName, { color: theme.text }]}>{t(loc.nameKey)}</Text>
               <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(loc.subKey)}</Text>
             </View>
-            {/* Arrow icon — indicates it goes deeper, not to external app */}
             <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
           </TouchableOpacity>
         ))}
@@ -108,18 +230,60 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
   subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
   content: { padding: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 4 },
+  sectionHint: { fontSize: 12, marginBottom: 12 },
   myLocationCard: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    padding: 16, borderRadius: 14, borderWidth: 0.5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 0.5,
   },
   myLocationIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: "#C9A84C", alignItems: "center", justifyContent: "center",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#C9A84C",
+    alignItems: "center",
+    justifyContent: "center",
   },
   locationCard: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    padding: 16, borderRadius: 14, borderWidth: 0.5, marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    marginBottom: 10,
+  },
+  photoCard: {
+    borderRadius: 14,
+    borderWidth: 0.5,
+    marginBottom: 12,
+    overflow: "hidden",
+    // Subtle elevation without multi-layer shadow clutter
+    shadowColor: "#1E3A5F",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  photoFrame: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "rgba(30,58,95,0.08)",
+  },
+  photo: {
+    width: "100%",
+    height: "100%",
+  },
+  photoMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },

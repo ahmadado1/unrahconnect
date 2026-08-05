@@ -3,6 +3,7 @@ export type StepVariant = "default" | "talbiyah-stop" | "black-stone" | "yamani-
 export type PhaseStepMeta = {
   crucial?: boolean
   menOnly?: boolean
+  womenOnly?: boolean
   noteKey?: string
   variant?: StepVariant
 }
@@ -32,7 +33,7 @@ export const PHASE_STEP_META: Record<
     },
     "6": {
       1: { menOnly: true },
-      3: { menOnly: true },
+      3: { womenOnly: true },
       4: { crucial: true },
     },
     "7": {

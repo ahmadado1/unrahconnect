@@ -4,6 +4,7 @@ export type PhaseStructure = {
   id: string
   color: string
   textColor: string
+  headerImage?: string
   durationKey: string
   descriptionKey: string
   stepsKeys: string[]
@@ -33,6 +34,7 @@ export type ResolvedPhase = {
   id: string
   color: string
   textColor: string
+  headerImage?: string
   title: string
   duration: string
   description: string
@@ -68,6 +70,7 @@ export function resolvePhase(
     id: phase.id,
     color: phase.color,
     textColor: phase.textColor,
+    headerImage: phase.headerImage,
     title: t(titleKey),
     duration: t(phase.durationKey),
     description: t(phase.descriptionKey),

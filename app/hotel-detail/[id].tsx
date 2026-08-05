@@ -5,7 +5,6 @@ import {
   formatPhoneDisplay,
   getHotelById,
   openHotelDirections,
-  openHotelDirectionsApple,
 } from "@/lib/hotels"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -17,7 +16,6 @@ import {
   Alert,
   Image,
   Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -96,18 +94,7 @@ export default function HotelDetailScreen() {
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, isLogo && styles.logoHero]}>
-          {isLogo ? (
-            <View style={styles.logoHeroInner}>
-              <View style={styles.logoBox}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                  onError={handleImageError}
-                />
-              </View>
-            </View>
-          ) : (
+          {!isLogo && (
             <>
               <Image
                 source={{ uri: imageUri }}
@@ -118,7 +105,13 @@ export default function HotelDetailScreen() {
               <View style={styles.heroOverlay} />
             </>
           )}
-          <View style={[styles.heroContent, { paddingTop: insets.top + 8 }]}>
+          <View
+            style={[
+              styles.heroContent,
+              isLogo && styles.logoHeroContent,
+              { paddingTop: insets.top + 8 },
+            ]}
+          >
             <View style={styles.heroTop}>
               <TouchableOpacity
                 style={[styles.circleBtn, isLogo && styles.circleBtnOnLight]}
@@ -137,11 +130,32 @@ export default function HotelDetailScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.heroName, isLogo && styles.heroTextOnLight]}>{hotel.name}</Text>
-            <StarRating count={hotel.stars} size={18} color={GOLD} style={{ marginBottom: 6 }} />
-            <Text style={[styles.heroMeta, isLogo && styles.heroMetaOnLight]}>
-              {hotel.city} · {hotel.distanceLabel}
-            </Text>
+
+            {isLogo ? (
+              <View style={styles.logoHeroBody}>
+                <View style={styles.logoBox}>
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                    onError={handleImageError}
+                  />
+                </View>
+                <Text style={[styles.heroName, styles.heroTextOnLight]}>{hotel.name}</Text>
+                <StarRating count={hotel.stars} size={18} color={GOLD} style={{ marginBottom: 6 }} />
+                <Text style={[styles.heroMeta, styles.heroMetaOnLight]}>
+                  {hotel.city} · {hotel.distanceLabel}
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.heroName}>{hotel.name}</Text>
+                <StarRating count={hotel.stars} size={18} color={GOLD} style={{ marginBottom: 6 }} />
+                <Text style={styles.heroMeta}>
+                  {hotel.city} · {hotel.distanceLabel}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -198,13 +212,12 @@ export default function HotelDetailScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionPrimary}
-          onPress={() =>
-            openUrl(
-              Platform.OS === "ios"
-                ? openHotelDirectionsApple(hotel)
-                : openHotelDirections(hotel)
-            )
-          }
+          onPress={() => {
+            // Linking (not in-app browser) so Google Maps app opens on iOS/Android
+            Linking.openURL(openHotelDirections(hotel)).catch(() => {
+              Alert.alert("Unable to open", "Could not open Google Maps.")
+            })
+          }}
         >
           <Ionicons name="navigate" size={16} color={GOLD} />
           <Text style={styles.actionPrimaryText}>{t("getDirections")}</Text>
@@ -226,21 +239,19 @@ const styles = StyleSheet.create({
   },
   logoHero: {
     backgroundColor: "#E8EEF5",
-  },
-  logoHeroInner: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 48,
+    minHeight: 0,
   },
   logoBox: {
-    width: 160,
-    height: 160,
-    borderRadius: 24,
+    width: 120,
+    height: 120,
+    borderRadius: 20,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    marginBottom: 16,
+    borderWidth: 0.5,
+    borderColor: "rgba(30,58,95,0.12)",
   },
   logoImage: { width: "80%", height: "80%" },
   heroImage: {
@@ -259,7 +270,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minHeight: 280,
   },
-  heroTop: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
+  logoHeroContent: {
+    minHeight: 0,
+    justifyContent: "flex-start",
+    gap: 8,
+  },
+  logoHeroBody: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    paddingBottom: 8,
+  },
+  heroTop: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
   circleBtn: {
     width: 40,
     height: 40,

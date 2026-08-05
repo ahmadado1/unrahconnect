@@ -1,6 +1,10 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
-import { getHaramainStation, HARAMAIN_PHONE_DISPLAY } from "@/lib/haramainStations"
+import {
+  getHaramainStation,
+  haramainStationMapsUrl,
+  HARAMAIN_PHONE_DISPLAY,
+} from "@/lib/haramainStations"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -16,10 +20,6 @@ import {
   View,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-
-function openDirections(lat: number, lng: number) {
-  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`)
-}
 
 function callStation(phone: string) {
   Linking.openURL(`tel:+966${phone}`)
@@ -142,7 +142,7 @@ export default function HaramainStationScreen() {
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionPrimary}
-              onPress={() => openDirections(station.lat, station.lng)}
+              onPress={() => Linking.openURL(haramainStationMapsUrl(station))}
             >
               <Ionicons name="navigate" size={18} color="#C9A84C" />
               <Text style={styles.actionPrimaryText}>{t("getDirections")}</Text>

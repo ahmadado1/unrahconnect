@@ -10,11 +10,21 @@ import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { LinearGradient } from "expo-linear-gradient"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import {
+  BackHandler,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native"
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { getPhaseHeaderImage, photoHeaderHeight } from "@/lib/phaseHeaderImages"
 
 const hajjPhases = phaseStructure.hajj
 const phaseOrder = hajjPhases.map((p) => ({
@@ -24,16 +34,19 @@ const phaseOrder = hajjPhases.map((p) => ({
 
 export default function HajjPhaseDetailScreen() {
   const { hajj } = useLocalSearchParams<{ hajj?: string | string[] }>()
-  const phaseId = Array.isArray(hajj) ? hajj[0] : hajj
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { height: windowHeight } = useWindowDimensions()
   const { theme } = useTheme()
   const { t } = useTranslation()
+  const phaseId = Array.isArray(hajj) ? hajj[0] : hajj
   const rawPhase = hajjPhases.find((p) => p.id === phaseId)
   const data = useMemo(
     () => rawPhase ? resolvePhase(rawPhase, t, `phase_hajj_${rawPhase.id}_title`) : null,
     [rawPhase, t],
   )
+  const headerImageSource = getPhaseHeaderImage(data?.headerImage)
+  const imageHeaderHeight = photoHeaderHeight(windowHeight)
   const currentIndex = phaseOrder.findIndex((p) => p.id === phaseId)
   const nextPhase = phaseOrder[currentIndex + 1]
   const [isCompleted, setIsCompleted] = useState(false)
@@ -95,17 +108,48 @@ export default function HajjPhaseDetailScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: data.textColor }]}>
-          <TouchableOpacity onPress={goToHajjGuide} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={[styles.phaseNumBig, { backgroundColor: data.color }]}>
-            <Text style={[styles.phaseNumText, { color: data.textColor }]}>{data.id}</Text>
-          </View>
-          <Text style={styles.headerTitle}>{data.title}</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <AppIcon name="timer" size={16} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.headerDuration}>{data.duration}</Text>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+              backgroundColor: data.textColor,
+              ...(headerImageSource ? { height: imageHeaderHeight } : null),
+            },
+          ]}
+        >
+          {headerImageSource ? (
+            <>
+              <ImageBackground
+                source={headerImageSource}
+                style={StyleSheet.absoluteFillObject}
+                imageStyle={styles.headerImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={["rgba(0,0,0,0.65)", "rgba(0,0,0,0.25)", "transparent"]}
+                locations={[0, 0.45, 1]}
+                style={styles.headerGradient}
+                pointerEvents="none"
+              />
+            </>
+          ) : null}
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={goToHajjGuide} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleBlock}>
+              <View style={[styles.phaseNumBig, { backgroundColor: data.color }]}>
+                <Text style={[styles.phaseNumText, { color: data.textColor }]}>{data.id}</Text>
+              </View>
+              <View style={styles.headerTitleText}>
+                <Text style={styles.headerTitle} numberOfLines={2}>{data.title}</Text>
+                <View style={styles.headerDurationRow}>
+                  <AppIcon name="timer" size={15} color="rgba(255,255,255,0.92)" />
+                  <Text style={styles.headerDuration}>{data.duration}</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -232,12 +276,72 @@ export default function HajjPhaseDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { padding: 20, paddingBottom: 28 },
-  backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 8, alignSelf: "flex-start", marginBottom: 16 },
-  phaseNumBig: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  phaseNumText: { fontSize: 22, fontWeight: "bold" },
-  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "bold", marginBottom: 4 },
-  headerDuration: { color: "rgba(255,255,255,0.7)", fontSize: 13 },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    overflow: "hidden",
+    justifyContent: "flex-start",
+  },
+  headerContent: {
+    position: "relative",
+    zIndex: 1,
+    alignSelf: "stretch",
+  },
+  /** Top-biased cover so Kaaba + pilgrim stay in the shorter header band */
+  headerImage: {
+    width: "100%",
+    height: "155%",
+    top: 0,
+    left: 0,
+  },
+  headerGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "40%",
+    zIndex: 0,
+  },
+  backBtn: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 20,
+    padding: 8,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  headerTitleBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerTitleText: {
+    flex: 1,
+    gap: 2,
+  },
+  phaseNumBig: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  phaseNumText: { fontSize: 18, fontWeight: "bold" },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+    textShadowColor: "rgba(0,0,0,0.55)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  headerDurationRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  headerDuration: {
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 13,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
   content: { padding: 20 },
   description: { fontSize: 15, lineHeight: 24, marginBottom: 4 },
   divider: { height: 0.5, marginVertical: 20 },

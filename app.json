@@ -63,16 +63,16 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio1/azan1_lock.mp3",
-        "./assets/audio1/azan2_lock.mp3",
-        "./assets/audio1/azan3_lock.mp3",
-        "./assets/audio1/azan4_lock.mp3",
-        "./assets/audio1/azan5_lock.mp3",
-        "./assets/audio1/azan1_fajr_lock.mp3",
-        "./assets/audio1/azan2_fajr_lock.mp3",
-        "./assets/audio1/azan3_fajr_lock.mp3",
-        "./assets/audio1/azan4_fajr_lock.mp3",
-        "./assets/audio1/azan5_fajr_lock.mp3"
+        "./assets/audio1/azan1_lock.wav",
+        "./assets/audio1/azan2_lock.wav",
+        "./assets/audio1/azan3_lock.wav",
+        "./assets/audio1/azan4_lock.wav",
+        "./assets/audio1/azan5_lock.wav",
+        "./assets/audio1/azan1_fajr_lock.wav",
+        "./assets/audio1/azan2_fajr_lock.wav",
+        "./assets/audio1/azan3_fajr_lock.wav",
+        "./assets/audio1/azan4_fajr_lock.wav",
+        "./assets/audio1/azan5_fajr_lock.wav"
       ]
     },
     "plugins": [
@@ -105,16 +105,16 @@
       "icon": "./assets/images/logo.jpg",
       "color": "#1E3A5F",
       "sounds": [
-        "./assets/audio1/azan1_lock.mp3",
-        "./assets/audio1/azan2_lock.mp3",
-        "./assets/audio1/azan3_lock.mp3",
-        "./assets/audio1/azan4_lock.mp3",
-        "./assets/audio1/azan5_lock.mp3",
-        "./assets/audio1/azan1_fajr_lock.mp3",
-        "./assets/audio1/azan2_fajr_lock.mp3",
-        "./assets/audio1/azan3_fajr_lock.mp3",
-        "./assets/audio1/azan4_fajr_lock.mp3",
-        "./assets/audio1/azan5_fajr_lock.mp3"
+        "./assets/audio1/azan1_lock.wav",
+        "./assets/audio1/azan2_lock.wav",
+        "./assets/audio1/azan3_lock.wav",
+        "./assets/audio1/azan4_lock.wav",
+        "./assets/audio1/azan5_lock.wav",
+        "./assets/audio1/azan1_fajr_lock.wav",
+        "./assets/audio1/azan2_fajr_lock.wav",
+        "./assets/audio1/azan3_fajr_lock.wav",
+        "./assets/audio1/azan4_fajr_lock.wav",
+        "./assets/audio1/azan5_fajr_lock.wav"
       ]
     }
   ],

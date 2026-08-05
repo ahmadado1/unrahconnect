@@ -23,6 +23,7 @@ type Props = {
   badgeColor: string
   crucial?: boolean
   menOnly?: boolean
+  womenOnly?: boolean
   noteKey?: string
   arabic?: string
   transliteration?: string
@@ -40,6 +41,7 @@ export default function PhaseStepCard({
   badgeColor,
   crucial,
   menOnly,
+  womenOnly,
   noteKey,
   arabic,
   transliteration,
@@ -96,7 +98,7 @@ export default function PhaseStepCard({
           <Text style={styles.badgeText}>{number}</Text>
         </View>
         <View style={styles.body}>
-          {(title || badgeLabel || crucial || menOnly) ? (
+          {(title || badgeLabel || crucial || menOnly || womenOnly) ? (
             <View style={styles.titleRow}>
               {title ? (
                 <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
@@ -104,6 +106,11 @@ export default function PhaseStepCard({
               {menOnly ? (
                 <View style={styles.menPill}>
                   <Text style={styles.menPillText}>{t("tawafMenOnly")}</Text>
+                </View>
+              ) : null}
+              {womenOnly ? (
+                <View style={styles.womenPill}>
+                  <Text style={styles.womenPillText}>{t("halqWomenOnly")}</Text>
                 </View>
               ) : null}
               {badgeLabel ? (
@@ -185,6 +192,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     color: "#1E3A5F",
+    textTransform: "uppercase",
+  },
+  womenPill: {
+    backgroundColor: "rgba(159, 18, 57, 0.1)",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  womenPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9F1239",
     textTransform: "uppercase",
   },
   crucialPill: {

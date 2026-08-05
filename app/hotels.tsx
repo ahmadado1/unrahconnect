@@ -1,7 +1,7 @@
 import { AppIcon, AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
-import { HOTELS, type Hotel } from "@/lib/hotels"
+import { groupHotelsIntoSections, HOTELS, type Hotel } from "@/lib/hotels"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
@@ -60,9 +60,7 @@ const BUDGET_FRIENDLY_IDS = new Set([
   "dallah-taibah",
   "saja-madinah",
   "al-shohada",
-  "anwar-al-madinah",
   "millennium-naseem",
-  "makkah-millennium",
   "le-meridien-towers",
 ])
 
@@ -90,7 +88,6 @@ const FAMILY_FRIENDLY_IDS = new Set([
   "anjum-makkah",
   "radisson-blu-makkah",
   "al-shohada",
-  "anwar-al-madinah",
 ])
 
 /** Closest / flagship hotels get the gold Featured badge */
@@ -200,12 +197,17 @@ export default function HotelsScreen() {
   )
 
   const visibleSections = useMemo(() => {
-    const sections =
-      activeCategory === "All"
-        ? CATEGORY_SECTIONS
-        : CATEGORY_SECTIONS.filter(section => section.key === activeCategory)
+    // "All" shows each hotel once (by city/stars). Category pills can overlap on purpose.
+    if (activeCategory === "All") {
+      return groupHotelsIntoSections(filterHotelsList(HOTELS)).map(section => ({
+        icon: (section.city === "Makkah" ? "kaaba" : "mosque") as AppIconKey,
+        title: section.title,
+        hotels: section.hotels,
+      }))
+    }
 
-    return sections
+    return CATEGORY_SECTIONS
+      .filter(section => section.key === activeCategory)
       .map(section => ({
         icon: section.icon,
         title: section.title,
@@ -335,17 +337,13 @@ export default function HotelsScreen() {
             {category} · {hotel.distanceLabel}
           </Text>
           <View style={cardStyles.footer}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <StarRating count={hotel.stars} size={12} color="#C9A84C" />
-                <Text style={{ color: "#2D6A4F", fontSize: 13, fontWeight: "600" }}>
-                  ● {hotel.walkMinutes} min walk
-                </Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <AppIcon name="star" size={12} color="#C9A84C" />
-                <Text style={cardStyles.rating}>{hotel.stars}.0</Text>
-              </View>
+            <View style={cardStyles.ratingRow}>
+              <StarRating count={hotel.stars} size={12} color="#C9A84C" />
+              <Text style={cardStyles.walkText}>● {hotel.walkMinutes} min walk</Text>
+            </View>
+            <View style={cardStyles.scoreRow}>
+              <AppIcon name="star" size={12} color="#C9A84C" />
+              <Text style={cardStyles.rating}>{hotel.stars}.0</Text>
             </View>
             <TouchableOpacity
               style={[
@@ -520,10 +518,29 @@ const cardStyles = StyleSheet.create({
   info: { padding: 14 },
   name: { fontSize: 15, fontWeight: "bold", marginBottom: 4 },
   meta: { fontSize: 12, marginBottom: 10 },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footer: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 8,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  walkText: { color: "#2D6A4F", fontSize: 13, fontWeight: "600" },
+  scoreRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   price: { fontSize: 13, fontWeight: "bold" },
-  rating: { color: "#C9A84C", fontSize: 12, marginTop: 2 },
-  btn: { backgroundColor: "#1E3A5F", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  rating: { color: "#C9A84C", fontSize: 12 },
+  btn: {
+    alignSelf: "flex-start",
+    backgroundColor: "#1E3A5F",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 2,
+  },
   btnExternal: { backgroundColor: "#C9A84C" },
   btnText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
   btnTextExternal: { color: "#1E3A5F" },

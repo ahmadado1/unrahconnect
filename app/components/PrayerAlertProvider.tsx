@@ -26,9 +26,11 @@ function getTodayKey() {
   return getLocalGregorianDateKey()
 }
 
-async function areNotificationsEnabled() {
-  const val = await AsyncStorage.getItem("notifications_enabled")
-  return val !== "false"
+async function arePrayerAlertsEnabled() {
+  const master = await AsyncStorage.getItem("notifications_enabled")
+  if (master === "false") return false
+  const prayer = await AsyncStorage.getItem("prayer_alerts_enabled")
+  return prayer !== "false"
 }
 
 export default function PrayerAlertProvider({ children }: { children: React.ReactNode }) {
@@ -84,7 +86,9 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     return registerPrayerAlertHandler(async (name, rawOptions) => {
-      if (!(await areNotificationsEnabled())) return
+      if (!(await arePrayerAlertsEnabled())) return
+      // Ensure AV session is ready before any Adhan starts from a notification.
+      await configureAdhanAudioMode().catch(() => {})
       const options = normalizePrayerAlertOptions(rawOptions)
       if (shownPopupsRef.current.has(name) && !options.forceShow) {
         if (options.playSound) {
@@ -172,7 +176,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
     const checkPrayer = async () => {
       if (!shownHydratedRef.current) return
-      if (!(await areNotificationsEnabled())) return
+      if (!(await arePrayerAlertsEnabled())) return
 
       const now = new Date()
       const nowMinutes = now.getHours() * 60 + now.getMinutes()

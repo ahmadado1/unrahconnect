@@ -69,6 +69,12 @@ export const MADINAH_PLACES: MadinahPlace[] = [
   },
   {
     number: "9",
+    titleKey: "madinahPlace10Title",
+    descriptionKey: "madinahPlace10Desc",
+    citationKey: "madinahPlace10Citation",
+  },
+  {
+    number: "10",
     titleKey: "madinahPlace9Title",
     descriptionKey: "madinahPlace9Desc",
     subItems: [

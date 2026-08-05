@@ -64,7 +64,9 @@
         null,
         null,
         null,
-        { "citationKey": "phaseUmrah1Tip7Citation" }
+        {
+          "citationKey": "phaseUmrah1Tip7Citation"
+        }
       ],
       "femaleNoteKey": "phaseUmrah1FemaleNote"
     },
@@ -72,6 +74,7 @@
       "id": "2",
       "color": "#E1F5EE",
       "textColor": "#085041",
+      "headerImage": "ihram-header",
       "durationKey": "phaseUmrah2Duration",
       "descriptionKey": "phaseUmrah2Description",
       "stepsKeys": [
@@ -141,7 +144,9 @@
         null,
         null,
         null,
-        { "citationKey": "phaseUmrah2Tip7Citation" }
+        {
+          "citationKey": "phaseUmrah2Tip7Citation"
+        }
       ],
       "femaleNoteKey": "phaseUmrah2FemaleNote"
     },
@@ -239,6 +244,7 @@
       "id": "4",
       "color": "#FAECE7",
       "textColor": "#712B13",
+      "headerImage": "tawaf-header",
       "durationKey": "phaseUmrah4Duration",
       "descriptionKey": "phaseUmrah4Description",
       "stepsKeys": [
@@ -330,7 +336,9 @@
         null,
         null,
         null,
-        { "citationKey": "phaseUmrah4Tip9Citation" }
+        {
+          "citationKey": "phaseUmrah4Tip9Citation"
+        }
       ],
       "femaleNoteKey": "phaseUmrah4FemaleNote"
     },
@@ -338,6 +346,7 @@
       "id": "5",
       "color": "#EEEDFE",
       "textColor": "#3C3489",
+      "headerImage": "sai-header",
       "durationKey": "phaseUmrah5Duration",
       "descriptionKey": "phaseUmrah5Description",
       "stepsKeys": [
@@ -471,12 +480,16 @@
         "phaseUmrah6Tip7"
       ],
       "tipsSupplements": [
-        { "citationKey": "phaseUmrah6Tip1Citation" },
+        {
+          "citationKey": "phaseUmrah6Tip1Citation"
+        },
         null,
         null,
         null,
         null,
-        { "citationKey": "phaseUmrah2Tip7Citation" },
+        {
+          "citationKey": "phaseUmrah2Tip7Citation"
+        },
         null
       ],
       "femaleNoteKey": "phaseUmrah6FemaleNote"
@@ -561,7 +574,9 @@
         null,
         null,
         null,
-        { "citationKey": "phaseUmrah7Tip7Citation" },
+        {
+          "citationKey": "phaseUmrah7Tip7Citation"
+        },
         null,
         null
       ],
@@ -573,6 +588,7 @@
       "id": "1",
       "color": "#E6F1FB",
       "textColor": "#0C447C",
+      "headerImage": "ihram-header",
       "durationKey": "phaseHajj1Duration",
       "descriptionKey": "phaseHajj1Description",
       "stepsKeys": [
@@ -644,6 +660,7 @@
       "id": "2",
       "color": "#E1F5EE",
       "textColor": "#085041",
+      "headerImage": "tawaf-header",
       "durationKey": "phaseHajj2Duration",
       "descriptionKey": "phaseHajj2Description",
       "stepsKeys": [
@@ -707,6 +724,7 @@
       "id": "3",
       "color": "#FAEEDA",
       "textColor": "#633806",
+      "headerImage": "mina-header",
       "durationKey": "phaseHajj3Duration",
       "descriptionKey": "phaseHajj3Description",
       "stepsKeys": [
@@ -775,6 +793,7 @@
       "id": "4",
       "color": "#FAECE7",
       "textColor": "#712B13",
+      "headerImage": "arafah-header",
       "durationKey": "phaseHajj4Duration",
       "descriptionKey": "phaseHajj4Description",
       "stepsKeys": [
@@ -863,6 +882,7 @@
       "id": "5",
       "color": "#EEEDFE",
       "textColor": "#3C3489",
+      "headerImage": "muzdalifah-header",
       "durationKey": "phaseHajj5Duration",
       "descriptionKey": "phaseHajj5Description",
       "stepsKeys": [
@@ -932,6 +952,7 @@
       "id": "6",
       "color": "#FBEAF0",
       "textColor": "#72243E",
+      "headerImage": "jamarat-header",
       "durationKey": "phaseHajj6Duration",
       "descriptionKey": "phaseHajj6Description",
       "stepsKeys": [
@@ -1088,6 +1109,7 @@
       "id": "8",
       "color": "#E1F5EE",
       "textColor": "#085041",
+      "headerImage": "tawaf-header",
       "durationKey": "phaseHajj8Duration",
       "descriptionKey": "phaseHajj8Description",
       "stepsKeys": [

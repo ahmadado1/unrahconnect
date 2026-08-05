@@ -389,25 +389,6 @@ export const HOTELS: Hotel[] = [
       "Comfortable Millennium hotel in Al Naseem on the 3rd Ring Road.",
     amenities: ["Restaurants", "Parking", "Meeting rooms", "Free WiFi"],
   },
-  {
-    id: "makkah-millennium",
-    name: "Makkah Millennium Hotel",
-    city: "Makkah",
-    stars: 4,
-    walkMinutes: 10,
-    distanceLabel: "10 min walk · Ajyad area",
-    address: "Ajyad Street area, near Abraj Al Bait, Makkah 24231",
-    phone: "+966125727888",
-    website: "https://www.millenniumhotels.com/en/destination/saudi-arabia/makkah/",
-    lat: 21.4165,
-    lng: 39.8278,
-    ...hotelLogo(HOTEL_BRAND_LOGOS.millennium),
-    brandAccent: "#1E3A5F",
-    description:
-      "Millennium Hotels property serving pilgrims with convenient access toward Masjid al-Haram.",
-    amenities: ["Restaurants", "Parking", "Free WiFi"],
-  },
-
   // ═══════════════════════════════════════════
   // MADINAH · 5-Star
   // ═══════════════════════════════════════════
@@ -650,24 +631,6 @@ export const HOTELS: Hotel[] = [
     amenities: ["Restaurant", "Prayer facilities", "Family rooms", "Free WiFi"],
   },
   {
-    id: "anwar-al-madinah",
-    name: "Anwar Al Madinah Hotel",
-    city: "Madinah",
-    stars: 4,
-    walkMinutes: 3,
-    distanceLabel: "3 min walk to Masjid al-Nabawi",
-    address: "Central Zone, Al Khalidiya, Madinah 42311",
-    phone: "+966148220000",
-    website: "https://movenpick.accor.com/en/middle-east/saudi-arabia/madinah/hotel-madinah-anwar.html",
-    lat: 24.4670,
-    lng: 39.6108,
-    ...hotelLogo(HOTEL_BRAND_LOGOS.movenpick),
-    brandAccent: "#E85D04",
-    description:
-      "Central-zone hotel near the Anwar Al Madinah complex and Masjid al-Nabawi.",
-    amenities: ["Restaurant", "Shopping nearby", "Free WiFi"],
-  },
-  {
     id: "saja-madinah",
     name: "Saja Al Madinah Hotel",
     city: "Madinah",
@@ -734,20 +697,20 @@ export function groupHotelsIntoSections(hotels: Hotel[]): HotelSection[] {
   return sections.filter(s => s.hotels.length > 0)
 }
 
-/** Prefer place name + address so Maps resolves the real venue (not a nearby approximate pin). */
-function hotelPlaceQuery(hotel: Hotel) {
-  const parts = [hotel.name, hotel.address || hotel.city, "Saudi Arabia"].filter(Boolean)
-  return parts.join(", ")
+/** Place name Google Maps can resolve (name + city beats a fuzzy address pin). */
+export function hotelMapsQuery(hotel: Hotel) {
+  return `${hotel.name}, ${hotel.city}, Saudi Arabia`
 }
 
+/**
+ * Always Google Maps (never Apple Maps).
+ * Pins by coordinates and labels/resolves by hotel name.
+ */
 export function openHotelDirections(hotel: Hotel) {
-  const query = hotelPlaceQuery(hotel)
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}&travelmode=walking`
-}
-
-export function openHotelDirectionsApple(hotel: Hotel) {
-  const query = hotelPlaceQuery(hotel)
-  return `http://maps.apple.com/?daddr=${encodeURIComponent(query)}&dirflg=w`
+  const destination = encodeURIComponent(
+    `${hotel.lat},${hotel.lng} (${hotelMapsQuery(hotel)})`
+  )
+  return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=walking`
 }
 
 export function formatPhoneDisplay(phone: string) {
