@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as FileSystem from "expo-file-system/legacy"
 import { fetchWithTimeout } from "./fetchWithTimeout"
+import { resolveJuzNumber } from "./mushafJuz"
 
 export const TOTAL_MUSHAF_PAGES = 604
 export const QURAN_DOWNLOAD_FLAG_KEY = "quran_fully_cached_v2"
@@ -43,13 +44,19 @@ export function pageApiUrl(page: number) {
   return `${PAGE_API}/${page}?words=true&word_fields=text_uthmani,line_number,page_number&fields=juz_number`
 }
 
-export function extractJuzNumber(verses: MushafVerse[]): number {
-  const juz = verses[0]?.juz_number
-  if (typeof juz === "number" && juz >= 1 && juz <= 30) return juz
-  return 1
+export function extractJuzNumber(verses: MushafVerse[], pageHint?: number): number {
+  const pageFromWords = verses[0]?.words?.find(
+    w => typeof w.page_number === "number",
+  )?.page_number
+  const page = pageHint ?? pageFromWords
+  for (const verse of verses) {
+    const n = Number(verse.juz_number)
+    if (Number.isInteger(n) && n >= 1 && n <= 30) return n
+  }
+  return resolveJuzNumber(undefined, page)
 }
 
-export function slimPageDataFromJson(json: { verses?: any[] }): MushafPageData {
+export function slimPageDataFromJson(json: { verses?: any[] }, pageHint?: number): MushafPageData {
   const verses: MushafVerse[] = (json.verses ?? []).map(verse => ({
     verse_number: verse.verse_number,
     verse_key: verse.verse_key,
@@ -65,7 +72,7 @@ export function slimPageDataFromJson(json: { verses?: any[] }): MushafPageData {
 
   return {
     verses,
-    juzNumber: extractJuzNumber(verses),
+    juzNumber: extractJuzNumber(verses, pageHint),
   }
 }
 
@@ -103,7 +110,7 @@ export async function readCachedPage(page: number): Promise<MushafPageData | nul
       await FileSystem.deleteAsync(path, { idempotent: true }).catch(() => {})
       return null
     }
-    return { ...parsed, juzNumber: extractJuzNumber(parsed.verses) }
+    return { ...parsed, juzNumber: extractJuzNumber(parsed.verses, page) }
   } catch {
     return null
   }
@@ -123,7 +130,7 @@ export async function fetchAndCachePage(page: number): Promise<MushafPageData | 
     if (!res.ok) return null
 
     const json = await res.json()
-    const data = slimPageDataFromJson(json)
+    const data = slimPageDataFromJson(json, page)
     if (!data.verses.length) return null
 
     try {

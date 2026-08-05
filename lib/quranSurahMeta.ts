@@ -1,0 +1,148 @@
+/**
+ * Offline surah metadata for jump picker (ayah counts + display names).
+ * Page of a specific ayah comes from cached surah verses when available.
+ */
+
+export type SurahMeta = {
+  number: number
+  englishName: string
+  arabicName: string
+  ayahCount: number
+  revelationType: "Meccan" | "Medinan"
+}
+
+/** Ayah counts for all 114 surahs (index 0 unused). */
+export const SURAH_AYAH_COUNTS = [
+  0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128,
+  111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54,
+  45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62,
+  55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28,
+  20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15,
+  21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6,
+] as const
+
+export const SURAH_META: SurahMeta[] = [
+  { number: 1, englishName: "Al-Fatihah", arabicName: "الفاتحة", ayahCount: 7, revelationType: "Meccan" },
+  { number: 2, englishName: "Al-Baqarah", arabicName: "البقرة", ayahCount: 286, revelationType: "Medinan" },
+  { number: 3, englishName: "Ali 'Imran", arabicName: "آل عمران", ayahCount: 200, revelationType: "Medinan" },
+  { number: 4, englishName: "An-Nisa", arabicName: "النساء", ayahCount: 176, revelationType: "Medinan" },
+  { number: 5, englishName: "Al-Ma'idah", arabicName: "المائدة", ayahCount: 120, revelationType: "Medinan" },
+  { number: 6, englishName: "Al-An'am", arabicName: "الأنعام", ayahCount: 165, revelationType: "Meccan" },
+  { number: 7, englishName: "Al-A'raf", arabicName: "الأعراف", ayahCount: 206, revelationType: "Meccan" },
+  { number: 8, englishName: "Al-Anfal", arabicName: "الأنفال", ayahCount: 75, revelationType: "Medinan" },
+  { number: 9, englishName: "At-Tawbah", arabicName: "التوبة", ayahCount: 129, revelationType: "Medinan" },
+  { number: 10, englishName: "Yunus", arabicName: "يونس", ayahCount: 109, revelationType: "Meccan" },
+  { number: 11, englishName: "Hud", arabicName: "هود", ayahCount: 123, revelationType: "Meccan" },
+  { number: 12, englishName: "Yusuf", arabicName: "يوسف", ayahCount: 111, revelationType: "Meccan" },
+  { number: 13, englishName: "Ar-Ra'd", arabicName: "الرعد", ayahCount: 43, revelationType: "Medinan" },
+  { number: 14, englishName: "Ibrahim", arabicName: "إبراهيم", ayahCount: 52, revelationType: "Meccan" },
+  { number: 15, englishName: "Al-Hijr", arabicName: "الحجر", ayahCount: 99, revelationType: "Meccan" },
+  { number: 16, englishName: "An-Nahl", arabicName: "النحل", ayahCount: 128, revelationType: "Meccan" },
+  { number: 17, englishName: "Al-Isra", arabicName: "الإسراء", ayahCount: 111, revelationType: "Meccan" },
+  { number: 18, englishName: "Al-Kahf", arabicName: "الكهف", ayahCount: 110, revelationType: "Meccan" },
+  { number: 19, englishName: "Maryam", arabicName: "مريم", ayahCount: 98, revelationType: "Meccan" },
+  { number: 20, englishName: "Taha", arabicName: "طه", ayahCount: 135, revelationType: "Meccan" },
+  { number: 21, englishName: "Al-Anbya", arabicName: "الأنبياء", ayahCount: 112, revelationType: "Meccan" },
+  { number: 22, englishName: "Al-Hajj", arabicName: "الحج", ayahCount: 78, revelationType: "Medinan" },
+  { number: 23, englishName: "Al-Mu'minun", arabicName: "المؤمنون", ayahCount: 118, revelationType: "Meccan" },
+  { number: 24, englishName: "An-Nur", arabicName: "النور", ayahCount: 64, revelationType: "Medinan" },
+  { number: 25, englishName: "Al-Furqan", arabicName: "الفرقان", ayahCount: 77, revelationType: "Meccan" },
+  { number: 26, englishName: "Ash-Shu'ara", arabicName: "الشعراء", ayahCount: 227, revelationType: "Meccan" },
+  { number: 27, englishName: "An-Naml", arabicName: "النمل", ayahCount: 93, revelationType: "Meccan" },
+  { number: 28, englishName: "Al-Qasas", arabicName: "القصص", ayahCount: 88, revelationType: "Meccan" },
+  { number: 29, englishName: "Al-'Ankabut", arabicName: "العنكبوت", ayahCount: 69, revelationType: "Meccan" },
+  { number: 30, englishName: "Ar-Rum", arabicName: "الروم", ayahCount: 60, revelationType: "Meccan" },
+  { number: 31, englishName: "Luqman", arabicName: "لقمان", ayahCount: 34, revelationType: "Meccan" },
+  { number: 32, englishName: "As-Sajdah", arabicName: "السجدة", ayahCount: 30, revelationType: "Meccan" },
+  { number: 33, englishName: "Al-Ahzab", arabicName: "الأحزاب", ayahCount: 73, revelationType: "Medinan" },
+  { number: 34, englishName: "Saba", arabicName: "سبإ", ayahCount: 54, revelationType: "Meccan" },
+  { number: 35, englishName: "Fatir", arabicName: "فاطر", ayahCount: 45, revelationType: "Meccan" },
+  { number: 36, englishName: "Ya-Sin", arabicName: "يس", ayahCount: 83, revelationType: "Meccan" },
+  { number: 37, englishName: "As-Saffat", arabicName: "الصافات", ayahCount: 182, revelationType: "Meccan" },
+  { number: 38, englishName: "Sad", arabicName: "ص", ayahCount: 88, revelationType: "Meccan" },
+  { number: 39, englishName: "Az-Zumar", arabicName: "الزمر", ayahCount: 75, revelationType: "Meccan" },
+  { number: 40, englishName: "Ghafir", arabicName: "غافر", ayahCount: 85, revelationType: "Meccan" },
+  { number: 41, englishName: "Fussilat", arabicName: "فصلت", ayahCount: 54, revelationType: "Meccan" },
+  { number: 42, englishName: "Ash-Shuraa", arabicName: "الشورى", ayahCount: 53, revelationType: "Meccan" },
+  { number: 43, englishName: "Az-Zukhruf", arabicName: "الزخرف", ayahCount: 89, revelationType: "Meccan" },
+  { number: 44, englishName: "Ad-Dukhan", arabicName: "الدخان", ayahCount: 59, revelationType: "Meccan" },
+  { number: 45, englishName: "Al-Jathiyah", arabicName: "الجاثية", ayahCount: 37, revelationType: "Meccan" },
+  { number: 46, englishName: "Al-Ahqaf", arabicName: "الأحقاف", ayahCount: 35, revelationType: "Meccan" },
+  { number: 47, englishName: "Muhammad", arabicName: "محمد", ayahCount: 38, revelationType: "Medinan" },
+  { number: 48, englishName: "Al-Fath", arabicName: "الفتح", ayahCount: 29, revelationType: "Medinan" },
+  { number: 49, englishName: "Al-Hujurat", arabicName: "الحجرات", ayahCount: 18, revelationType: "Medinan" },
+  { number: 50, englishName: "Qaf", arabicName: "ق", ayahCount: 45, revelationType: "Meccan" },
+  { number: 51, englishName: "Adh-Dhariyat", arabicName: "الذاريات", ayahCount: 60, revelationType: "Meccan" },
+  { number: 52, englishName: "At-Tur", arabicName: "الطور", ayahCount: 49, revelationType: "Meccan" },
+  { number: 53, englishName: "An-Najm", arabicName: "النجم", ayahCount: 62, revelationType: "Meccan" },
+  { number: 54, englishName: "Al-Qamar", arabicName: "القمر", ayahCount: 55, revelationType: "Meccan" },
+  { number: 55, englishName: "Ar-Rahman", arabicName: "الرحمن", ayahCount: 78, revelationType: "Medinan" },
+  { number: 56, englishName: "Al-Waqi'ah", arabicName: "الواقعة", ayahCount: 96, revelationType: "Meccan" },
+  { number: 57, englishName: "Al-Hadid", arabicName: "الحديد", ayahCount: 29, revelationType: "Medinan" },
+  { number: 58, englishName: "Al-Mujadila", arabicName: "المجادلة", ayahCount: 22, revelationType: "Medinan" },
+  { number: 59, englishName: "Al-Hashr", arabicName: "الحشر", ayahCount: 24, revelationType: "Medinan" },
+  { number: 60, englishName: "Al-Mumtahanah", arabicName: "الممتحنة", ayahCount: 13, revelationType: "Medinan" },
+  { number: 61, englishName: "As-Saf", arabicName: "الصف", ayahCount: 14, revelationType: "Medinan" },
+  { number: 62, englishName: "Al-Jumu'ah", arabicName: "الجمعة", ayahCount: 11, revelationType: "Medinan" },
+  { number: 63, englishName: "Al-Munafiqun", arabicName: "المنافقون", ayahCount: 11, revelationType: "Medinan" },
+  { number: 64, englishName: "At-Taghabun", arabicName: "التغابن", ayahCount: 18, revelationType: "Medinan" },
+  { number: 65, englishName: "At-Talaq", arabicName: "الطلاق", ayahCount: 12, revelationType: "Medinan" },
+  { number: 66, englishName: "At-Tahrim", arabicName: "التحريم", ayahCount: 12, revelationType: "Medinan" },
+  { number: 67, englishName: "Al-Mulk", arabicName: "الملك", ayahCount: 30, revelationType: "Meccan" },
+  { number: 68, englishName: "Al-Qalam", arabicName: "القلم", ayahCount: 52, revelationType: "Meccan" },
+  { number: 69, englishName: "Al-Haqqah", arabicName: "الحاقة", ayahCount: 52, revelationType: "Meccan" },
+  { number: 70, englishName: "Al-Ma'arij", arabicName: "المعارج", ayahCount: 44, revelationType: "Meccan" },
+  { number: 71, englishName: "Nuh", arabicName: "نوح", ayahCount: 28, revelationType: "Meccan" },
+  { number: 72, englishName: "Al-Jinn", arabicName: "الجن", ayahCount: 28, revelationType: "Meccan" },
+  { number: 73, englishName: "Al-Muzzammil", arabicName: "المزمل", ayahCount: 20, revelationType: "Meccan" },
+  { number: 74, englishName: "Al-Muddaththir", arabicName: "المدثر", ayahCount: 56, revelationType: "Meccan" },
+  { number: 75, englishName: "Al-Qiyamah", arabicName: "القيامة", ayahCount: 40, revelationType: "Meccan" },
+  { number: 76, englishName: "Al-Insan", arabicName: "الانسان", ayahCount: 31, revelationType: "Medinan" },
+  { number: 77, englishName: "Al-Mursalat", arabicName: "المرسلات", ayahCount: 50, revelationType: "Meccan" },
+  { number: 78, englishName: "An-Naba", arabicName: "النبإ", ayahCount: 40, revelationType: "Meccan" },
+  { number: 79, englishName: "An-Nazi'at", arabicName: "النازعات", ayahCount: 46, revelationType: "Meccan" },
+  { number: 80, englishName: "'Abasa", arabicName: "عبس", ayahCount: 42, revelationType: "Meccan" },
+  { number: 81, englishName: "At-Takwir", arabicName: "التكوير", ayahCount: 29, revelationType: "Meccan" },
+  { number: 82, englishName: "Al-Infitar", arabicName: "الإنفطار", ayahCount: 19, revelationType: "Meccan" },
+  { number: 83, englishName: "Al-Mutaffifin", arabicName: "المطففين", ayahCount: 36, revelationType: "Meccan" },
+  { number: 84, englishName: "Al-Inshiqaq", arabicName: "الإنشقاق", ayahCount: 25, revelationType: "Meccan" },
+  { number: 85, englishName: "Al-Buruj", arabicName: "البروج", ayahCount: 22, revelationType: "Meccan" },
+  { number: 86, englishName: "At-Tariq", arabicName: "الطارق", ayahCount: 17, revelationType: "Meccan" },
+  { number: 87, englishName: "Al-A'la", arabicName: "الأعلى", ayahCount: 19, revelationType: "Meccan" },
+  { number: 88, englishName: "Al-Ghashiyah", arabicName: "الغاشية", ayahCount: 26, revelationType: "Meccan" },
+  { number: 89, englishName: "Al-Fajr", arabicName: "الفجر", ayahCount: 30, revelationType: "Meccan" },
+  { number: 90, englishName: "Al-Balad", arabicName: "البلد", ayahCount: 20, revelationType: "Meccan" },
+  { number: 91, englishName: "Ash-Shams", arabicName: "الشمس", ayahCount: 15, revelationType: "Meccan" },
+  { number: 92, englishName: "Al-Layl", arabicName: "الليل", ayahCount: 21, revelationType: "Meccan" },
+  { number: 93, englishName: "Ad-Duhaa", arabicName: "الضحى", ayahCount: 11, revelationType: "Meccan" },
+  { number: 94, englishName: "Ash-Sharh", arabicName: "الشرح", ayahCount: 8, revelationType: "Meccan" },
+  { number: 95, englishName: "At-Tin", arabicName: "التين", ayahCount: 8, revelationType: "Meccan" },
+  { number: 96, englishName: "Al-'Alaq", arabicName: "العلق", ayahCount: 19, revelationType: "Meccan" },
+  { number: 97, englishName: "Al-Qadr", arabicName: "القدر", ayahCount: 5, revelationType: "Meccan" },
+  { number: 98, englishName: "Al-Bayyinah", arabicName: "البينة", ayahCount: 8, revelationType: "Medinan" },
+  { number: 99, englishName: "Az-Zalzalah", arabicName: "الزلزلة", ayahCount: 8, revelationType: "Medinan" },
+  { number: 100, englishName: "Al-'Adiyat", arabicName: "العاديات", ayahCount: 11, revelationType: "Meccan" },
+  { number: 101, englishName: "Al-Qari'ah", arabicName: "القارعة", ayahCount: 11, revelationType: "Meccan" },
+  { number: 102, englishName: "At-Takathur", arabicName: "التكاثر", ayahCount: 8, revelationType: "Meccan" },
+  { number: 103, englishName: "Al-'Asr", arabicName: "العصر", ayahCount: 3, revelationType: "Meccan" },
+  { number: 104, englishName: "Al-Humazah", arabicName: "الهمزة", ayahCount: 9, revelationType: "Meccan" },
+  { number: 105, englishName: "Al-Fil", arabicName: "الفيل", ayahCount: 5, revelationType: "Meccan" },
+  { number: 106, englishName: "Quraysh", arabicName: "قريش", ayahCount: 4, revelationType: "Meccan" },
+  { number: 107, englishName: "Al-Ma'un", arabicName: "الماعون", ayahCount: 7, revelationType: "Meccan" },
+  { number: 108, englishName: "Al-Kawthar", arabicName: "الكوثر", ayahCount: 3, revelationType: "Meccan" },
+  { number: 109, englishName: "Al-Kafirun", arabicName: "الكافرون", ayahCount: 6, revelationType: "Meccan" },
+  { number: 110, englishName: "An-Nasr", arabicName: "النصر", ayahCount: 3, revelationType: "Medinan" },
+  { number: 111, englishName: "Al-Masad", arabicName: "المسد", ayahCount: 5, revelationType: "Meccan" },
+  { number: 112, englishName: "Al-Ikhlas", arabicName: "الإخلاص", ayahCount: 4, revelationType: "Meccan" },
+  { number: 113, englishName: "Al-Falaq", arabicName: "الفلق", ayahCount: 5, revelationType: "Meccan" },
+  { number: 114, englishName: "An-Nas", arabicName: "الناس", ayahCount: 6, revelationType: "Meccan" },
+]
+
+export function getSurahMeta(number: number): SurahMeta | undefined {
+  return SURAH_META[number - 1]
+}
+
+export function ayahCountForSurah(number: number): number {
+  if (number < 1 || number > 114) return 1
+  return SURAH_AYAH_COUNTS[number] ?? 1
+}
