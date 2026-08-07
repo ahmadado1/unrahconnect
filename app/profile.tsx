@@ -310,6 +310,28 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("legal")}</Text>
+
+        <TouchableOpacity
+          style={[styles.accountBtn, { borderBottomColor: theme.border }]}
+          onPress={() => router.push("/privacy")}
+        >
+          <Ionicons name="shield-checkmark-outline" size={20} color={theme.text} />
+          <Text style={[styles.accountBtnText, { color: theme.text }]}>{t("privacyPolicy")}</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.accountBtn, { borderBottomWidth: 0 }]}
+          onPress={() => router.push("/terms")}
+        >
+          <Ionicons name="document-text-outline" size={20} color={theme.text} />
+          <Text style={[styles.accountBtnText, { color: theme.text }]}>{t("termsOfService")}</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+        </TouchableOpacity>
+      </View>
+
       <View style={{ height: 60 }} />
 
       <Modal

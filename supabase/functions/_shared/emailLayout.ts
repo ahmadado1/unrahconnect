@@ -18,7 +18,7 @@ export const LOGO_URL =
   "https://cdn.jsdelivr.net/gh/ahmadado1/unrahconnect@main/assets/images/logo.jpg"
 
 export const SITE_URL = "https://myumrahconnect.com"
-export const INFO_EMAIL = "infom@myumrahconnect.com"
+export const INFO_EMAIL = "info@myumrahconnect.com"
 export const SUPPORT_EMAIL = "support@myumrahconnect.com"
 export const FROM_EMAIL = "UmrahConnect <noreply@myumrahconnect.com>"
 

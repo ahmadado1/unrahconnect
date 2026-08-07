@@ -42,7 +42,7 @@ export type TravelAgent = {
   featured: boolean
 }
 
-export const TRAVEL_AGENT_CONTACT_EMAIL = "infom@myumrahconnect.com"
+export const TRAVEL_AGENT_CONTACT_EMAIL = "info@myumrahconnect.com"
 export const GET_FEATURED_URL = "https://myumrahconnect.com/advertise"
 
 export const DEFAULT_AGENT_SERVICES = [

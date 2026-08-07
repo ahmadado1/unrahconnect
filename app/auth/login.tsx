@@ -1,4 +1,5 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
+import LegalAgreementText from "@/app/components/LegalAgreementText";
 import { useTheme } from "@/context/themeContext";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
@@ -406,6 +407,10 @@ const handleGoogleSignIn = async () => {
               </Text>
             </TouchableOpacity>
 
+            {isSignUp ? (
+              <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
+            ) : null}
+
             {/* Divider */}
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
@@ -434,6 +439,9 @@ const handleGoogleSignIn = async () => {
                   onPress={handleAppleSignIn}
                 />
               )}
+
+            {/* Applies to Google / Apple account creation as well */}
+            <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
 
             {/* Toggle sign up / login */}
             <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError("") }}>
@@ -471,9 +479,10 @@ const styles = StyleSheet.create({
   fieldHint: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
   agentCodeError: { color: "#E24B4A", fontSize: 12, marginTop: 6 },
   error: { color: "#E24B4A", fontSize: 13, marginBottom: 16, textAlign: "center" },
-  btn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginBottom: 16, marginTop: 8 },
+  btn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginBottom: 12, marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  legalText: { marginBottom: 16, paddingHorizontal: 8 },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 16 },
   forgotText: { color: "#C9A84C", fontSize: 13 },
   toggle: { color: "#C9A84C", fontSize: 14, textAlign: "center", marginTop: 8, marginBottom: 40 },
