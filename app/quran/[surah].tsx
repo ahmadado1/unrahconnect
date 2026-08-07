@@ -18,12 +18,13 @@ import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 import {
   fetchAndCachePage,
   getFirstVerseOnPage,
+  preloadAdjacentPages,
   type MushafPageData,
   type MushafVerse,
 } from "../../lib/quranPageCache"
@@ -316,6 +317,8 @@ function MushafPageContent({
         contentContainerStyle={mStyles.pageScrollContent}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
+        directionalLockEnabled
+        scrollEventThrottle={16}
       >
         <View style={mStyles.pageFrameOuter}>
           <View style={mStyles.pageFrameInner}>
@@ -368,11 +371,24 @@ function MushafView({
   onSwitchToVerses: () => void
 }) {
   const { t } = useTranslation()
-  const flatListRef = useRef<FlatList>(null)
-  const pages = useRef(Array.from({ length: MUSHAF_PAGE_COUNT }, (_, i) => i + 1)).current
+  const flatListRef = useRef<GestureFlatList<number>>(null)
+  /**
+   * RTL mushaf order: index 0 = page 604 … last = page 1.
+   * Swipe right (lower index) → higher page number, as in a printed Arabic mushaf.
+   */
+  const pages = useRef(
+    Array.from({ length: MUSHAF_PAGE_COUNT }, (_, i) => MUSHAF_PAGE_COUNT - i),
+  ).current
+  const pageToIndex = (page: number) => MUSHAF_PAGE_COUNT - page
+  const indexToPage = (index: number) => MUSHAF_PAGE_COUNT - index
+
   const [surahNames, setSurahNames] = useState<Record<number, string>>({})
   const [jumpOpen, setJumpOpen] = useState(false)
-  const pageIndex = Math.min(Math.max(currentPage - 1, 0), MUSHAF_PAGE_COUNT - 1)
+  const pageIndex = pageToIndex(
+    Math.min(Math.max(currentPage, 1), MUSHAF_PAGE_COUNT),
+  )
+  const pageFromSwipeRef = useRef(false)
+  const hasSyncedPagerRef = useRef(false)
 
   useEffect(() => {
     const loadSurahNames = async () => {
@@ -402,12 +418,23 @@ function MushafView({
     loadSurahNames()
   }, [])
 
-  // Jump the mushaf pager to the selected surah's page once ready
+  // Prefetch current ±1 so swipe doesn't hit a loading spinner
   useEffect(() => {
+    preloadAdjacentPages(currentPage)
+  }, [currentPage])
+
+  // Sync pager when page changes via Prev/Next / jump (not from swipe itself)
+  useEffect(() => {
+    if (pageFromSwipeRef.current) {
+      pageFromSwipeRef.current = false
+      return
+    }
+    const animated = hasSyncedPagerRef.current
+    hasSyncedPagerRef.current = true
     const timer = setTimeout(() => {
       flatListRef.current?.scrollToIndex({
         index: pageIndex,
-        animated: false,
+        animated,
       })
     }, 50)
     return () => clearTimeout(timer)
@@ -449,7 +476,7 @@ function MushafView({
         initialAyah={targetAyah}
       />
 
-      <FlatList
+      <GestureFlatList
         ref={flatListRef}
         data={pages}
         horizontal
@@ -459,13 +486,19 @@ function MushafView({
         initialScrollIndex={pageIndex}
         keyExtractor={item => item.toString()}
         style={mStyles.mushafPager}
+        windowSize={5}
+        maxToRenderPerBatch={3}
+        initialNumToRender={3}
         getItemLayout={(_, index) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * index,
           index,
         })}
         onMomentumScrollEnd={e => {
-          const newPage = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH) + 1
+          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH)
+          const newPage = indexToPage(index)
+          if (newPage < 1 || newPage > MUSHAF_PAGE_COUNT || newPage === currentPage) return
+          pageFromSwipeRef.current = true
           setCurrentPage(newPage)
         }}
         renderItem={({ item }) => (

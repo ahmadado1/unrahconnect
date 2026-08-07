@@ -156,6 +156,16 @@ export async function fetchAndCachePage(page: number): Promise<MushafPageData | 
   }
 }
 
+/** Warm current ±1 so mushaf swipe feels instant. */
+export function preloadAdjacentPages(page: number): void {
+  const targets = [page - 1, page, page + 1].filter(
+    p => p >= 1 && p <= TOTAL_MUSHAF_PAGES,
+  )
+  for (const p of targets) {
+    void fetchAndCachePage(p)
+  }
+}
+
 export async function getMissingPageNumbers(): Promise<number[]> {
   try {
     await ensureCacheDir()
