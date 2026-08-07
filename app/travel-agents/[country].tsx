@@ -229,7 +229,7 @@ export default function CountryAgentsScreen() {
           <Text style={[styles.noteText, { color: theme.textSecondary }]}>
             {t("wantAgencyListed", {
               defaultValue:
-                "Want your agency listed here? Contact us at info@myumrahconnect.com",
+                "Want your agency listed here? Contact us at infom@myumrahconnect.com",
             })}
           </Text>
         </View>

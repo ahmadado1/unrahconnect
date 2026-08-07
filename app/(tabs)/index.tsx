@@ -669,14 +669,14 @@ export default function HomeScreen() {
         {/* ── TODAY'S DHIKR ── */}
         <View style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <ImageBackground
-            source={{ uri: "https://images.unsplash.com/photo-1585036156171-384164a8c675?w=400" }}
+            source={require("../../assets/images/prayer-mosque.jpg")}
             style={StyleSheet.absoluteFillObject}
-            imageStyle={{ opacity: 0.06, borderRadius: 20 }}
+            imageStyle={{ opacity: 0.08, borderRadius: 20 }}
           />
           <View style={styles.dhikrHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View style={styles.dhikrIconBox}>
-                <Ionicons name="hand-left-outline" size={16} color="#fff" />
+                <AppIcon name="mosque" size={16} color="#fff" />
               </View>
               <Text style={[styles.dhikrLabel, { color: theme.text }]}>Today's Dhikr</Text>
             </View>
