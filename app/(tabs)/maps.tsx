@@ -19,87 +19,6 @@ const LOCATIONS = [
   { id: "lost-found", icon: "search" as AppIconKey, nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
 ] as const
 
-/** Madinah sites as a simple list (photos live only in MadinahPlacesSection). */
-const MADINAH_HOLY_SITES: {
-  id: string
-  icon: AppIconKey
-  nameKey: string
-  subKey: string
-  route?: string
-  mapsQuery?: string
-}[] = [
-  {
-    id: "nabawi",
-    icon: "mosque",
-    nameKey: "masjidNabawi",
-    subKey: "madinah",
-    route: "/maps/nabawi",
-  },
-  {
-    id: "riyad-al-jannah",
-    icon: "mosque",
-    nameKey: "madinahPlace2Title",
-    subKey: "madinah",
-    route: "/maps/nabawi",
-  },
-  {
-    id: "prophet-grave",
-    icon: "mosque",
-    nameKey: "madinahPlace3Title",
-    subKey: "madinah",
-    route: "/maps/nabawi",
-  },
-  {
-    id: "jannat-al-baqi",
-    icon: "walk",
-    nameKey: "madinahPlace4Title",
-    subKey: "madinah",
-    mapsQuery: "Jannat al-Baqi, Madinah, Saudi Arabia",
-  },
-  {
-    id: "masjid-quba",
-    icon: "mosque",
-    nameKey: "madinahPlace5Title",
-    subKey: "madinah",
-    mapsQuery: "Masjid Quba, Madinah, Saudi Arabia",
-  },
-  {
-    id: "masjid-qiblatayn",
-    icon: "mosque",
-    nameKey: "madinahPlace6Title",
-    subKey: "madinah",
-    mapsQuery: "Masjid al-Qiblatayn, Madinah, Saudi Arabia",
-  },
-  {
-    id: "uhud-mountain",
-    icon: "mountain",
-    nameKey: "madinahPlace7Title",
-    subKey: "madinah",
-    mapsQuery: "Mount Uhud, Madinah, Saudi Arabia",
-  },
-  {
-    id: "seven-mosques",
-    icon: "mosque",
-    nameKey: "madinahPlace8Title",
-    subKey: "madinah",
-    mapsQuery: "Seven Mosques, Madinah, Saudi Arabia",
-  },
-  {
-    id: "jabal-ayr",
-    icon: "mountain",
-    nameKey: "madinahPlace10Title",
-    subKey: "madinah",
-    mapsQuery: "Jabal Ayr, Madinah, Saudi Arabia",
-  },
-  {
-    id: "dar-al-madinah-museum",
-    icon: "search",
-    nameKey: "madinahPlace9Title",
-    subKey: "madinah",
-    mapsQuery: "Dar Al Madinah Museum, Madinah, Saudi Arabia",
-  },
-]
-
 export default function MapsScreen() {
   const { theme } = useTheme()
   const { t } = useTranslation()
@@ -123,16 +42,6 @@ export default function MapsScreen() {
       Linking.openURL(`https://maps.google.com/?q=${locationLabel}`)
     } else {
       Linking.openURL("https://maps.google.com/?q=Mecca,Saudi+Arabia")
-    }
-  }
-
-  const openMadinahSite = (site: (typeof MADINAH_HOLY_SITES)[number]) => {
-    if (site.route) {
-      router.push(site.route as any)
-      return
-    }
-    if (site.mapsQuery) {
-      Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(site.mapsQuery)}`)
     }
   }
 
@@ -161,27 +70,6 @@ export default function MapsScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
         </TouchableOpacity>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("madinahHolySites")}</Text>
-        <Text style={[styles.sectionHint, { color: theme.textSecondary }]}>{t("madinah")}</Text>
-
-        {MADINAH_HOLY_SITES.map(site => (
-          <TouchableOpacity
-            key={site.id}
-            style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => openMadinahSite(site)}
-            activeOpacity={0.85}
-          >
-            <AppIcon name={site.icon} size={28} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.locationName, { color: theme.text }]} numberOfLines={2}>
-                {t(site.nameKey)}
-              </Text>
-              <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(site.subKey)}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
-          </TouchableOpacity>
-        ))}
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
 
@@ -212,8 +100,7 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
   subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
   content: { padding: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 4 },
-  sectionHint: { fontSize: 12, marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 12 },
   myLocationCard: {
     flexDirection: "row",
     alignItems: "center",
