@@ -27,32 +27,34 @@ export default function QuranReadModeModal({ visible, onSelect }: Props) {
           <TouchableOpacity
             style={styles.option}
             activeOpacity={0.85}
-            onPress={() => onSelect("arabic_only")}
+            onPress={() => onSelect("mushaf")}
           >
             <View style={styles.optionIcon}>
-              <Ionicons name="text" size={24} color={GOLD} />
+              <Ionicons name="book-outline" size={24} color={GOLD} />
             </View>
             <View style={styles.optionText}>
-              <Text style={styles.optionTitle}>{t("quranReadModeArabicOnly")}</Text>
-              <Text style={styles.optionDesc}>{t("quranReadModeArabicOnlyDesc")}</Text>
+              <Text style={styles.optionTitle}>{t("quranReadModeMushaf")}</Text>
+              <Text style={styles.optionDesc}>{t("quranReadModeMushafDesc")}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={GOLD} />
+            <Ionicons name="chevron-forward" size={18} color={GOLD} style={styles.chevron} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.option}
+            style={[styles.option, styles.optionLast]}
             activeOpacity={0.85}
-            onPress={() => onSelect("with_translation")}
+            onPress={() => onSelect("verses")}
           >
             <View style={styles.optionIcon}>
-              <Ionicons name="globe-outline" size={24} color={GOLD} />
+              <Ionicons name="list-outline" size={24} color={GOLD} />
             </View>
             <View style={styles.optionText}>
-              <Text style={styles.optionTitle}>{t("quranReadModeWithTranslation")}</Text>
-              <Text style={styles.optionDesc}>{t("quranReadModeWithTranslationDesc")}</Text>
+              <Text style={styles.optionTitle}>{t("quranReadModeVerses")}</Text>
+              <Text style={styles.optionDesc}>{t("quranReadModeVersesDesc")}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={GOLD} />
+            <Ionicons name="chevron-forward" size={18} color={GOLD} style={styles.chevron} />
           </TouchableOpacity>
+
+          <Text style={styles.footnote}>{t("quranReadModeSwitchLater")}</Text>
         </View>
       </View>
     </Modal>
@@ -108,6 +110,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  optionLast: {
+    marginBottom: 14,
+  },
+  footnote: {
+    color: "rgba(30,58,95,0.55)",
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+  },
   optionIcon: {
     width: 48,
     height: 48,
@@ -115,17 +126,27 @@ const styles = StyleSheet.create({
     backgroundColor: NAVY,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  optionText: { flex: 1 },
+  optionText: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
   optionTitle: {
     color: NAVY,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 4,
+    flexShrink: 1,
   },
   optionDesc: {
     color: "rgba(30,58,95,0.65)",
     fontSize: 13,
     lineHeight: 18,
+    flexShrink: 1,
+  },
+  chevron: {
+    flexShrink: 0,
   },
 })

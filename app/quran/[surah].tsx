@@ -4,17 +4,18 @@ import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { juzForPage } from "@/lib/mushafJuz"
 import {
+  getCachedQuranReadMode,
   getQuranReadMode,
   setQuranReadMode,
-  toggleQuranReadMode,
   type QuranReadMode,
 } from "@/lib/quranReadMode"
+import { getSurahMeta } from "@/lib/quranSurahMeta"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useLocalSearchParams, useRouter } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 import {
   fetchAndCachePage,
+  getFirstVerseOnPage,
   type MushafPageData,
   type MushafVerse,
 } from "../../lib/quranPageCache"
@@ -349,22 +351,23 @@ function MushafView({
   setCurrentPage,
   insets,
   router,
-  setViewMode,
   fontsLoaded,
   targetSurah,
   targetAyah,
   onJump,
+  onSwitchToVerses,
 }: {
   currentPage: number
   setCurrentPage: (p: number) => void
   insets: any
   router: any
-  setViewMode: (v: "text" | "mushaf") => void
   fontsLoaded: boolean
   targetSurah?: number
   targetAyah?: number
   onJump: (target: QuranJumpTarget) => void
+  onSwitchToVerses: () => void
 }) {
+  const { t } = useTranslation()
   const flatListRef = useRef<FlatList>(null)
   const pages = useRef(Array.from({ length: MUSHAF_PAGE_COUNT }, (_, i) => i + 1)).current
   const [surahNames, setSurahNames] = useState<Record<number, string>>({})
@@ -424,12 +427,16 @@ function MushafView({
             style={mStyles.mushafToggleBtn}
             accessibilityLabel="Go to surah and ayah"
           >
-            <Ionicons name="navigate-outline" size={16} color="#C9A84C" />
+            <Ionicons name="search-outline" size={16} color="#C9A84C" />
             <Text style={mStyles.mushafToggleText}>Go to</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setViewMode("text")} style={mStyles.mushafToggleBtn}>
+          <TouchableOpacity
+            onPress={onSwitchToVerses}
+            style={mStyles.mushafToggleBtn}
+            accessibilityLabel="Switch to verse view"
+          >
             <Ionicons name="list-outline" size={16} color="#C9A84C" />
-            <Text style={mStyles.mushafToggleText}>Verses</Text>
+            <Text style={mStyles.mushafToggleText}>{t("quranReadModeVersesShort")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -529,10 +536,16 @@ export default function SurahScreen() {
   }>()
   const shouldResume = resume === "1"
   const requestedAyah = ayah ? Number(ayah) : NaN
-  const [viewMode, setViewMode] = useState<"text" | "mushaf">(
-    () => (mode === "mushaf" ? "mushaf" : "text"),
-  )
+
+  const resolveInitialMode = (): QuranReadMode => {
+    if (mode === "mushaf" || mode === "verses") return mode
+    if (mode === "text") return "verses" // legacy param
+    return getCachedQuranReadMode() ?? "verses"
+  }
+
+  const [viewMode, setViewMode] = useState<QuranReadMode>(resolveInitialMode)
   const [jumpOpen, setJumpOpen] = useState(false)
+  const [visibleVerseNumber, setVisibleVerseNumber] = useState(1)
 
   const initialLang = normalizeReadLanguage(i18n.language)
   const initialSurahNum = surah ? Number(surah) : 0
@@ -548,14 +561,14 @@ export default function SurahScreen() {
   const [verseList, setVerseList] = useState<Verse[]>(() => initialCached ?? [])
   const [loading, setLoading] = useState(() => !initialCached?.length)
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
-  const [readMode, setReadMode] = useState<QuranReadMode>("with_translation")
   const saveTimer = useRef<any>(null)
   const loadRequestRef = useRef(0)
-  const showTranslation = readMode === "with_translation"
+  const switchingRef = useRef(false)
 
-  // Keep view mode from jump params (e.g. mushaf → other surah)
+  // Keep view mode from jump / navigation params
   useEffect(() => {
-    if (mode === "mushaf" || mode === "text") setViewMode(mode)
+    if (mode === "mushaf" || mode === "verses") setViewMode(mode)
+    else if (mode === "text") setViewMode("verses")
   }, [mode, surah])
 
   const [fontsLoaded] = useFonts({
@@ -563,16 +576,87 @@ export default function SurahScreen() {
     ScheherazadeNew_700Bold,
   })
 
-  useEffect(() => {
-    getQuranReadMode().then(mode => {
-      if (mode) setReadMode(mode)
-    })
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      let active = true
+      getQuranReadMode().then(storedMode => {
+        // Don't override an explicit navigation param mid-session
+        if (!active || !storedMode) return
+        if (!mode) setViewMode(storedMode)
+      })
+      return () => {
+        active = false
+      }
+    }, [mode]),
+  )
 
-  const handleToggleReadMode = async () => {
-    const next = toggleQuranReadMode(readMode)
-    setReadMode(next)
+  const persistViewMode = async (next: QuranReadMode) => {
+    setViewMode(next)
     await setQuranReadMode(next)
+  }
+
+  /** Mushaf → Verse: land on the first ayah of the current page (may change surah). */
+  const switchToVerses = async () => {
+    if (switchingRef.current) return
+    switchingRef.current = true
+    try {
+      const first = await getFirstVerseOnPage(currentPage)
+      await persistViewMode("verses")
+
+      if (!first) {
+        didScrollForSurahRef.current = null
+        setScrollToVerseIndex(0)
+        return
+      }
+
+      if (first.surah === Number(surah)) {
+        const idx = verseList.findIndex(v => v.number === first.ayah)
+        didScrollForSurahRef.current = null
+        setScrollToVerseIndex(idx >= 0 ? idx : 0)
+        setVisibleVerseNumber(first.ayah)
+        return
+      }
+
+      const meta = getSurahMeta(first.surah)
+      if (!meta) return
+      router.replace({
+        pathname: "/quran/[surah]",
+        params: {
+          surah: String(meta.number),
+          name: meta.englishName,
+          arabicName: meta.arabicName,
+          verses: String(meta.ayahCount),
+          type: meta.revelationType,
+          resume: "0",
+          ayah: String(first.ayah),
+          mode: "verses",
+        },
+      })
+    } finally {
+      switchingRef.current = false
+    }
+  }
+
+  /** Verse → Mushaf: open the page containing the verse currently on screen. */
+  const switchToMushaf = async () => {
+    if (switchingRef.current) return
+    switchingRef.current = true
+    try {
+      const ayahNum =
+        visibleVerseNumber ||
+        (scrollToVerseIndex != null ? verseList[scrollToVerseIndex]?.number : undefined) ||
+        verseList[0]?.number ||
+        1
+      const page =
+        verseList.find(v => v.number === ayahNum)?.page ||
+        verseList[0]?.page ||
+        currentPage ||
+        1
+      setCurrentPage(page)
+      await persistViewMode("mushaf")
+    } finally {
+      switchingRef.current = false
+    }
   }
 
   const resolveScrollTarget = async (loaded: Verse[]): Promise<number> => {
@@ -627,7 +711,7 @@ export default function SurahScreen() {
         type: target.surah.revelationType,
         resume: "0",
         ayah: String(target.ayah),
-        mode: viewMode,
+        mode: viewMode === "mushaf" ? "mushaf" : "verses",
       },
     })
   }
@@ -719,7 +803,7 @@ export default function SurahScreen() {
   // Jump to the selected surah's ayah once verses are ready (index 0 = first ayah)
   useEffect(() => {
     if (loading || scrollToVerseIndex === null || verseList.length === 0) return
-    if (viewMode !== "text") return
+    if (viewMode !== "verses") return
 
     const surahKey = `${surah}:${scrollToVerseIndex}`
     if (didScrollForSurahRef.current === surahKey) return
@@ -737,6 +821,8 @@ export default function SurahScreen() {
         })
       }
       didScrollForSurahRef.current = surahKey
+      const verseNum = verseList[index]?.number
+      if (verseNum) setVisibleVerseNumber(verseNum)
     }, 50)
 
     return () => clearTimeout(timer)
@@ -836,12 +922,11 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         style={[
           styles.verseArabic,
           fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-          !showTranslation && { marginBottom: 0 },
         ]}
       >
         {item.text}
       </Text>
-      {showTranslation ? (
+      {item.translation ? (
         <>
           <View style={styles.verseDivider} />
           <Text style={[styles.verseTranslation, { color: theme.textSecondary }]}>
@@ -864,11 +949,11 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         setCurrentPage={setCurrentPage}
         insets={insets}
         router={router}
-        setViewMode={setViewMode}
         fontsLoaded={fontsLoaded}
         targetSurah={Number(surah) || undefined}
         targetAyah={Number.isFinite(requestedAyah) ? requestedAyah : scrollToVerseIndex != null ? verseList[scrollToVerseIndex]?.number : 1}
         onJump={handleJump}
+        onSwitchToVerses={switchToVerses}
       />
     ) : (
       <>
@@ -884,9 +969,10 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                 style={styles.jumpBtn}
                 accessibilityLabel="Go to surah and ayah"
               >
-                <Ionicons name="navigate-outline" size={18} color="#C9A84C" />
+                <Ionicons name="search-outline" size={18} color="#C9A84C" />
+                <Text style={styles.jumpBtnLabel}>Go to</Text>
               </TouchableOpacity>
-              <QuranReadModeToggle mode={readMode} onToggle={handleToggleReadMode} />
+              <QuranReadModeToggle mode="verses" onToggle={switchToMushaf} />
             </View>
           </View>
           <Text style={[styles.headerArabic, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }]}>
@@ -894,12 +980,6 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           </Text>
           <Text style={styles.headerEnglish}>{name}</Text>
           <Text style={styles.headerMeta}>{verses} verses · {type}</Text>
-          <TouchableOpacity
-            onPress={() => setViewMode("mushaf")}
-            style={styles.toggleBtn}
-          >
-            <Ionicons name="book-outline" size={20} color="#C9A84C" />
-          </TouchableOpacity>
         </View>
 
         <QuranJumpPicker
@@ -955,8 +1035,10 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
             }}
             onViewableItemsChanged={({ viewableItems }) => {
               if (viewableItems.length > 0) {
-                const last = viewableItems[viewableItems.length - 1]
-                if (last.item) saveProgress(last.item.number)
+                const first = viewableItems[0]?.item
+                const last = viewableItems[viewableItems.length - 1]?.item
+                if (first?.number) setVisibleVerseNumber(first.number)
+                if (last?.number) saveProgress(last.number)
               }
             }}
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
@@ -967,11 +1049,9 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                   <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }, { color: theme.text }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
-                  {showTranslation ? (
-                    <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
-                      In the name of Allah, the Most Gracious, the Most Merciful
-                    </Text>
-                  ) : null}
+                  <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
+                    In the name of Allah, the Most Gracious, the Most Merciful
+                  </Text>
                 </View>
               )
             }}
@@ -1007,19 +1087,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   jumpBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    minHeight: 36,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: "rgba(201,168,76,0.15)",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
+  },
+  jumpBtnLabel: {
+    color: "#C9A84C",
+    fontSize: 12,
+    fontWeight: "700",
   },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   backText: { color: "rgba(255,255,255,0.6)", fontSize: 14 },
   headerArabic: { fontSize: 32, color: "#C9A84C", textAlign: "center", marginBottom: 4 },
   headerEnglish: { fontSize: 18, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 4 },
   headerMeta: { fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center" },
-  toggleBtn: { position: "absolute", right: 20, bottom: 16, backgroundColor: "rgba(201,168,76,0.15)", padding: 8, borderRadius: 10 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   loadingText: { fontSize: 14 },
   readList: { padding: 16, paddingBottom: 100, gap: 12 },

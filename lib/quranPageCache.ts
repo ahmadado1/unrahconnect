@@ -121,6 +121,18 @@ export async function writeCachedPage(page: number, data: MushafPageData): Promi
   await FileSystem.writeAsStringAsync(pageFilePath(page), JSON.stringify(data))
 }
 
+/** First verse on a Madani mushaf page (for Mushaf → Verse view handoff). */
+export async function getFirstVerseOnPage(
+  page: number,
+): Promise<{ surah: number; ayah: number } | null> {
+  const data = await fetchAndCachePage(page)
+  const key = data?.verses?.[0]?.verse_key
+  if (!key) return null
+  const [surah, ayah] = key.split(":").map(Number)
+  if (!surah || !ayah) return null
+  return { surah, ayah }
+}
+
 export async function fetchAndCachePage(page: number): Promise<MushafPageData | null> {
   const cached = await readCachedPage(page)
   if (cached) return cached

@@ -5,6 +5,7 @@ import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
 import {
+  getCachedQuranReadMode,
   getQuranReadMode,
   setQuranReadMode,
   toggleQuranReadMode,
@@ -59,8 +60,10 @@ export default function QuranScreen() {
   // Last read position — shown in Continue Reading card
   const [lastRead, setLastRead] = useState<LastRead | null>(null)
 
-  const [readMode, setReadMode] = useState<QuranReadMode | null>(null)
-  const [modeReady, setModeReady] = useState(false)
+  const cachedMode = getCachedQuranReadMode()
+  const [readMode, setReadMode] = useState<QuranReadMode | null>(() => cachedMode)
+  const [modeReady, setModeReady] = useState(() => cachedMode !== null)
+  // Don't open until storage has been checked — avoids a flash when a preference already exists
   const [showModeModal, setShowModeModal] = useState(false)
 
   const [fontsLoaded] = useFonts({
@@ -68,19 +71,28 @@ export default function QuranScreen() {
     ScheherazadeNew_700Bold,
   })
 
+  const hydrateReadMode = useCallback(async () => {
+    const mode = await getQuranReadMode()
+    setReadMode(mode)
+    setModeReady(true)
+    // Only prompt when the user has never chosen a mode
+    setShowModeModal(mode === null)
+  }, [])
+
   // Fetch surahs and last read position on mount
   // Refresh last read every time screen is focused
   useFocusEffect(
     useCallback(() => {
       fetchLastRead()
       fetchBookmarkCount()
-      getQuranReadMode().then(mode => {
-        setReadMode(mode)
-        setModeReady(true)
-        setShowModeModal(mode === null)
-      })
-    }, [])
+      void hydrateReadMode()
+    }, [hydrateReadMode])
   )
+
+  // Hydrate persisted mode as early as possible on cold start
+  useEffect(() => {
+    void hydrateReadMode()
+  }, [hydrateReadMode])
   useEffect(() => {
     fetchSurahs()
   }, [])
@@ -216,6 +228,7 @@ export default function QuranScreen() {
         type: item.revelationType,
         // List selection opens at ayah 1; Continue Reading resumes last verse
         resume: options?.resume ? "1" : "0",
+        mode: readMode ?? "verses",
       },
     })
   }
@@ -264,9 +277,9 @@ export default function QuranScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{t("quran")}</Text>
             <Text style={styles.subtitle}>
-              {readMode === "arabic_only"
-                ? t("quranReadModeSubtitleArabic")
-                : t("quranReadModeSubtitleBoth")}
+              {readMode === "mushaf"
+                ? t("quranReadModeSubtitleMushaf")
+                : t("quranReadModeSubtitleVerses")}
             </Text>
           </View>
           <View style={styles.headerActions}>

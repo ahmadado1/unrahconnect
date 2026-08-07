@@ -1,5 +1,4 @@
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
-import ZoomableImage from "@/app/components/ZoomableImage"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
@@ -7,19 +6,12 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  ImageSourcePropType,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const LOCATIONS = [
   { id: "haram", icon: "kaaba" as AppIconKey, nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },
+  { id: "nabawi", icon: "mosque" as AppIconKey, nameKey: "masjidNabawi", subKey: "madinah", query: "Masjid Nabawi, Madinah, Saudi Arabia" },
   { id: "mina", icon: "camp" as AppIconKey, nameKey: "mina", subKey: "hajjSite", query: "Mina, Makkah, Saudi Arabia" },
   { id: "arafah", icon: "mountain" as AppIconKey, nameKey: "arafah", subKey: "hajjSite", query: "Mount Arafah, Makkah, Saudi Arabia" },
   { id: "zamzam", icon: "water" as AppIconKey, nameKey: "zamzamWell", subKey: "makkah", query: "Zamzam Well, Makkah, Saudi Arabia" },
@@ -27,80 +19,81 @@ const LOCATIONS = [
   { id: "lost-found", icon: "search" as AppIconKey, nameKey: "lostAndFound", subKey: "lostAndFoundSub", query: "Civil Defense Makkah Saudi Arabia" },
 ] as const
 
-/** Madinah holy sites with local photos (Maps → Holy Sites). */
+/** Madinah sites as a simple list (photos live only in MadinahPlacesSection). */
 const MADINAH_HOLY_SITES: {
   id: string
+  icon: AppIconKey
   nameKey: string
   subKey: string
-  image?: ImageSourcePropType
   route?: string
   mapsQuery?: string
 }[] = [
   {
     id: "nabawi",
+    icon: "mosque",
     nameKey: "masjidNabawi",
     subKey: "madinah",
-    image: require("../../assets/photos/masjid-nabawi.jpg"),
     route: "/maps/nabawi",
   },
   {
     id: "riyad-al-jannah",
+    icon: "mosque",
     nameKey: "madinahPlace2Title",
     subKey: "madinah",
-    image: require("../../assets/photos/riyad-al-jannah.jpg"),
     route: "/maps/nabawi",
   },
   {
     id: "prophet-grave",
+    icon: "mosque",
     nameKey: "madinahPlace3Title",
     subKey: "madinah",
-    image: require("../../assets/photos/prophet-grave.jpg"),
     route: "/maps/nabawi",
   },
   {
     id: "jannat-al-baqi",
+    icon: "walk",
     nameKey: "madinahPlace4Title",
     subKey: "madinah",
-    image: require("../../assets/photos/jannat-al-baqi.jpg"),
     mapsQuery: "Jannat al-Baqi, Madinah, Saudi Arabia",
   },
   {
     id: "masjid-quba",
+    icon: "mosque",
     nameKey: "madinahPlace5Title",
     subKey: "madinah",
-    image: require("../../assets/photos/masjid-quba.jpg"),
     mapsQuery: "Masjid Quba, Madinah, Saudi Arabia",
   },
   {
     id: "masjid-qiblatayn",
+    icon: "mosque",
     nameKey: "madinahPlace6Title",
     subKey: "madinah",
-    image: require("../../assets/photos/masjid-qiblatayn.jpg"),
     mapsQuery: "Masjid al-Qiblatayn, Madinah, Saudi Arabia",
   },
   {
     id: "uhud-mountain",
+    icon: "mountain",
     nameKey: "madinahPlace7Title",
     subKey: "madinah",
-    image: require("../../assets/photos/uhud-mountain.png"),
     mapsQuery: "Mount Uhud, Madinah, Saudi Arabia",
   },
   {
     id: "seven-mosques",
+    icon: "mosque",
     nameKey: "madinahPlace8Title",
     subKey: "madinah",
-    image: require("../../assets/photos/seven-mosques.jpg"),
     mapsQuery: "Seven Mosques, Madinah, Saudi Arabia",
   },
   {
     id: "jabal-ayr",
+    icon: "mountain",
     nameKey: "madinahPlace10Title",
     subKey: "madinah",
-    image: require("../../assets/photos/jabal-ayr.png"),
     mapsQuery: "Jabal Ayr, Madinah, Saudi Arabia",
   },
   {
     id: "dar-al-madinah-museum",
+    icon: "search",
     nameKey: "madinahPlace9Title",
     subKey: "madinah",
     mapsQuery: "Dar Al Madinah Museum, Madinah, Saudi Arabia",
@@ -173,32 +166,21 @@ export default function MapsScreen() {
         <Text style={[styles.sectionHint, { color: theme.textSecondary }]}>{t("madinah")}</Text>
 
         {MADINAH_HOLY_SITES.map(site => (
-          <View
+          <TouchableOpacity
             key={site.id}
-            style={[styles.photoCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => openMadinahSite(site)}
+            activeOpacity={0.85}
           >
-            {site.image ? (
-              <ZoomableImage
-                source={site.image}
-                style={styles.photoFrame}
-                imageStyle={styles.photo}
-                accessibilityLabel={`${t(site.nameKey)} — tap to zoom`}
-              />
-            ) : null}
-            <TouchableOpacity
-              style={styles.photoMeta}
-              onPress={() => openMadinahSite(site)}
-              activeOpacity={0.85}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.locationName, { color: theme.text }]} numberOfLines={2}>
-                  {t(site.nameKey)}
-                </Text>
-                <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(site.subKey)}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
-            </TouchableOpacity>
-          </View>
+            <AppIcon name={site.icon} size={28} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.locationName, { color: theme.text }]} numberOfLines={2}>
+                {t(site.nameKey)}
+              </Text>
+              <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(site.subKey)}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+          </TouchableOpacity>
         ))}
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
@@ -256,34 +238,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 0.5,
     marginBottom: 10,
-  },
-  photoCard: {
-    borderRadius: 14,
-    borderWidth: 0.5,
-    marginBottom: 12,
-    overflow: "hidden",
-    // Subtle elevation without multi-layer shadow clutter
-    shadowColor: "#1E3A5F",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  photoFrame: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-    backgroundColor: "rgba(30,58,95,0.08)",
-  },
-  photo: {
-    width: "100%",
-    height: "100%",
-  },
-  photoMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
   },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },
