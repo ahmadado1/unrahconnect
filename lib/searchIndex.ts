@@ -2,6 +2,7 @@ import type { AppIconKey } from "@/components/AppIcon"
 import { HOTELS } from "@/lib/hotels"
 import { ISLAMIC_EVENTS_HIJRI } from "@/lib/islamicEvents"
 import { MADINAH_PLACES } from "@/lib/madinahPlaces"
+import { MAKKAH_PLACES } from "@/lib/makkahPlaces"
 import { RESTAURANTS } from "@/lib/restaurants"
 import { TRAVEL_AGENT_COUNTRIES } from "@/lib/travelAgents"
 
@@ -350,6 +351,39 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       target: "/maps/hospital-makkah",
       keywords: kw("hospital", "hospitals", "medical", "emergency", "clinic", "doctor", "ambulance"),
       boost: 12,
+    }),
+    item({
+      id: "pharmacy",
+      title: t("pharmacy", { defaultValue: "Pharmacy" }),
+      subtitle: t("pharmacySub", { defaultValue: "Near holy sites" }),
+      icon: "medical",
+      category: "Services",
+      action: "navigate",
+      target: "/maps/hospital-makkah",
+      keywords: kw("pharmacy", "pharmacies", "nahdi", "النهدي", "medicine", "drugstore"),
+      boost: 11,
+    }),
+    item({
+      id: "nahdi",
+      title: t("pharmacyNahdiName", { defaultValue: "Nahdi Pharmacy" }),
+      subtitle: t("pharmaciesSectionSub", { defaultValue: "Near Al Masjid al-Haram" }),
+      icon: "medical",
+      category: "Services",
+      action: "navigate",
+      target: "/maps/hospital-makkah",
+      keywords: kw("nahdi", "النهدي", "pharmacy", "ibrahim al khaleel", "haram pharmacy"),
+      boost: 12,
+    }),
+    item({
+      id: "makkah-places",
+      title: t("makkahPlacesTitle", { defaultValue: "Places to See" }),
+      subtitle: t("makkahPlacesSub", { defaultValue: "Landmarks in Makkah" }),
+      icon: "mountain",
+      category: "Maps",
+      action: "navigate",
+      target: "/makkah-places",
+      keywords: kw("places to see", "makkah", "ziyarat", "landmarks", "sightseeing", "clock tower museum"),
+      boost: 11,
     })
   )
 
@@ -721,6 +755,25 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
         target: `/hajj/${p.id}`,
         keywords: kw(title, subtitle, "hajj", ...p.keywords),
         boost: 7,
+      })
+    )
+  }
+
+  // ── Makkah places to see ─────────────────────────────────────────────────
+  for (const place of MAKKAH_PLACES) {
+    const title = t(place.titleKey, { defaultValue: place.titleKey })
+    const desc = t(place.descriptionKey, { defaultValue: "" })
+    items.push(
+      item({
+        id: `makkah-place-${place.id}`,
+        title,
+        subtitle: t("makkahPlacesTitle", { defaultValue: "Places to See" }),
+        icon: place.id === "taneem" || place.id.includes("museum") ? "mosque" : "mountain",
+        category: "Maps",
+        action: "navigate",
+        target: `/makkah-place/${place.id}`,
+        keywords: kw(title, place.arabic, desc.slice(0, 120), "makkah", "mecca", "ziyarat", place.moreInfoQuery),
+        boost: place.id === "clock-tower-museum" ? 12 : 9,
       })
     )
   }

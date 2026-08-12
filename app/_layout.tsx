@@ -6,6 +6,7 @@ import {
   handlePrayerNotificationOpen,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
+  scheduleAlKahfReminder,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
@@ -57,6 +58,12 @@ export default function RootLayout() {
       }
     } else if (identifier === "daily-verse") {
       router.push("/quran")
+    } else if (
+      identifier === "al-kahf-friday" ||
+      data?.screen === "al-kahf" ||
+      data?.route === "/quran/18"
+    ) {
+      router.push("/quran/18" as any)
     } else if (
       identifier === "adhkar-reminder-morning" ||
       identifier === "dhikr-reminder-morning" ||
@@ -121,6 +128,7 @@ export default function RootLayout() {
         await scheduleDailyVerseNotification().catch(console.log)
         await scheduleDailyDhikrReminders().catch(console.log)
         await scheduleIslamicDateReminders().catch(console.log)
+        await scheduleAlKahfReminder().catch(console.log)
       }
     })
 
@@ -245,6 +253,8 @@ const checkAuth = async () => {
               <Stack.Screen name="duas" />
               <Stack.Screen name="islamic-calendar" />
               <Stack.Screen name="maps/[site]" />
+              <Stack.Screen name="makkah-places" />
+              <Stack.Screen name="makkah-place/[id]" />
               <Stack.Screen name="haramain/[station]" />
               <Stack.Screen name="auth/setup" />
               <Stack.Screen name="auth/plans" />

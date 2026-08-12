@@ -6,6 +6,7 @@ import {
   getNotificationAdhanSound,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
+  scheduleAlKahfReminder,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
@@ -129,6 +130,7 @@ export default function NotificationsScreen() {
     await scheduleDailyVerseNotification().catch(console.log)
     await scheduleDailyDhikrReminders().catch(console.log)
     await scheduleIslamicDateReminders().catch(console.log)
+    await scheduleAlKahfReminder().catch(console.log)
     return true
   }
 

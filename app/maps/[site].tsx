@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import RawdahVisitCard from "../components/RawdahVisitCard"
 import SiteMapView from "../components/SiteMapView"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -129,6 +129,21 @@ const HOSPITALS = [
     lat: 24.4889,
     lng: 39.6289,
     city: "madinah",
+  },
+] as const
+
+/** Pharmacies near the Haram — replace nahdi-logo.png with the official asset when ready. */
+const PHARMACIES = [
+  {
+    id: "nahdi",
+    nameKey: "pharmacyNahdiName",
+    arabic: "النهدي",
+    noteKey: "pharmacyNahdiNote",
+    categoryKey: "pharmacy",
+    lat: 21.4195,
+    lng: 39.8255,
+    city: "makkah" as const,
+    logo: require("../../assets/images/nahdi-logo.png"),
   },
 ] as const
 
@@ -463,6 +478,40 @@ export default function SiteDetailScreen() {
               </View>
             ))}
 
+            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
+              {t("pharmaciesSection")}
+            </Text>
+            <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
+              {t("pharmaciesSectionSub")}
+            </Text>
+            {PHARMACIES.filter(p => p.city === "makkah").map(pharmacy => (
+              <View
+                key={pharmacy.id}
+                style={[styles.gateCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={styles.gateLeft}>
+                  <View style={[styles.pharmacyLogoWrap, { backgroundColor: "#fff" }]}>
+                    <Image source={pharmacy.logo} style={styles.pharmacyLogo} resizeMode="contain" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.gateName, { color: theme.text }]}>{t(pharmacy.nameKey)}</Text>
+                    <Text style={styles.gateArabic}>{pharmacy.arabic}</Text>
+                    <Text style={[styles.pharmacyCategory, { color: theme.gold }]}>
+                      {t(pharmacy.categoryKey)}
+                    </Text>
+                    <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 4 }]}>
+                      {t(pharmacy.noteKey)}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigateTo(pharmacy.lat, pharmacy.lng, t(pharmacy.nameKey))}
+                >
+                  <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
+                </TouchableOpacity>
+              </View>
+            ))}
+
             <View style={[styles.card, { backgroundColor: "#1E3A5F", borderColor: "rgba(201,168,76,0.3)", marginTop: 16 }]}>
               <Text style={{ color: "#C9A84C", fontWeight: "bold", marginBottom: 8 }}>{t("emergencyNumbersTitle")}</Text>
               <Text style={{ color: "#fff", fontSize: 13, marginBottom: 4 }}>{t("ambulance911")}</Text>
@@ -641,4 +690,17 @@ const styles = StyleSheet.create({
   helpBody: { flex: 1, gap: 4 },
   helpTitle: { fontSize: 15, fontWeight: "700" },
   helpText: { fontSize: 13, lineHeight: 19 },
+  pharmacyLogoWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  pharmacyLogo: { width: 36, height: 36 },
+  pharmacyCategory: { fontSize: 11, fontWeight: "700", marginTop: 4, letterSpacing: 0.2 },
 })

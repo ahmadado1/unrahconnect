@@ -224,56 +224,81 @@ const handleGoogleSignIn = async () => {
 
   // ─── Apple Sign In ────────────────────────────────────────────────────────────────
   const handleAppleSignIn = async () => {
-  try {
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-    })
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      })
 
-    const { identityToken } = credential
+      // Apple only returns name/email on first authorization — persist immediately.
+      const givenName = credential.fullName?.givenName?.trim() || ""
+      const familyName = credential.fullName?.familyName?.trim() || ""
+      const appleFullName = [givenName, familyName].filter(Boolean).join(" ")
 
-    if (identityToken) {
+      const { identityToken } = credential
+      if (!identityToken) {
+        setError(t("appleSignInFailed"))
+        return
+      }
+
       const { error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: identityToken,
       })
-      if (error) setError(isNetworkError(error) ? t("networkError") : error.message)
-    else {
-       const { data: { user } } = await supabase.auth.getUser()
-       const profileComplete = user?.user_metadata?.profile_complete
-       if (!profileComplete) {
-         const code = normalizeReferralCode(agentCode)
-         if (code) await saveReferralCode(code)
-         fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-           method: "POST",
-           headers: { 
-             "Content-Type": "application/json",
-             "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
-           },
-           body: JSON.stringify({
-             guest_name: user?.user_metadata?.full_name || "Pilgrim",
-             guest_email: user?.email || "",
-           })
-         }).catch(e => console.log("Welcome email error:", e))
-         router.replace("/auth/setup" as any)
-       } else {
-         const code = normalizeReferralCode(agentCode)
-         if (code) await linkPilgrimToAgent(code)
-         router.replace("/(tabs)")
-       }
-       }}
-  } catch (e: any) {
-    if (e.code === "ERR_REQUEST_CANCELED") {
-      // User cancelled — do nothing
-    } else if (isNetworkError(e)) {
-      setError(t("networkError"))
-    } else {
-      setError(t("appleSignInFailed"))
+      if (error) {
+        setError(isNetworkError(error) ? t("networkError") : error.message)
+        return
+      }
+
+      const {
+        data: { user: signedInUser },
+      } = await supabase.auth.getUser()
+      const existingName = (signedInUser?.user_metadata?.full_name || "").trim()
+      if (appleFullName && !existingName) {
+        await supabase.auth.updateUser({ data: { full_name: appleFullName } }).catch(e =>
+          console.log("Apple name save error:", e),
+        )
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      const profileComplete = user?.user_metadata?.profile_complete
+      const resolvedName = user?.user_metadata?.full_name || appleFullName || "Pilgrim"
+
+      if (!profileComplete) {
+        const code = normalizeReferralCode(agentCode)
+        if (code) await saveReferralCode(code)
+        fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ",
+          },
+          body: JSON.stringify({
+            guest_name: resolvedName,
+            guest_email: user?.email || "",
+          }),
+        }).catch(e => console.log("Welcome email error:", e))
+        router.replace("/auth/setup" as any)
+      } else {
+        const code = normalizeReferralCode(agentCode)
+        if (code) await linkPilgrimToAgent(code)
+        router.replace("/(tabs)")
+      }
+    } catch (e: any) {
+      if (e.code === "ERR_REQUEST_CANCELED") {
+        // User cancelled — do nothing
+      } else if (isNetworkError(e)) {
+        setError(t("networkError"))
+      } else {
+        setError(t("appleSignInFailed"))
+      }
     }
   }
-}
 
 
 

@@ -1,5 +1,6 @@
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { AL_KAHF_SURAH_NUMBER, isAlKahfReminderWindow } from "@/lib/alKahfWindow"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Audio } from "expo-av"
@@ -7,12 +8,13 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { AppState, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
+import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
@@ -34,12 +36,39 @@ export default function GuideScreen() {
   const previewSoundRef = useRef<Audio.Sound | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previewBusyRef = useRef(false)
+  const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
+  const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     AsyncStorage.getItem("selected_adhan").then(id => {
       if (id && ADHAN_OPTIONS.some(opt => opt.id === id)) setSelectedAdhan(id)
     })
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const cached = await readCachedPrayerTimes()
+      if (mounted && cached) setPrayerTimes(cached)
+      const fresh = await fetchAndCachePrayerTimes()
+      if (mounted && fresh) setPrayerTimes(fresh)
+    }
+    void load()
+    const tick = setInterval(() => setNow(new Date()), 60_000)
+    const sub = AppState.addEventListener("change", state => {
+      if (state === "active") {
+        setNow(new Date())
+        void load()
+      }
+    })
+    return () => {
+      mounted = false
+      clearInterval(tick)
+      sub.remove()
+    }
+  }, [])
+
+  const showAlKahfCard = isAlKahfReminderWindow(prayerTimes, now)
 
   useEffect(() => {
     return () => {
@@ -207,6 +236,31 @@ export default function GuideScreen() {
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
 
+          {showAlKahfCard ? (
+            <TouchableOpacity
+              style={[
+                styles.guideCard,
+                styles.alKahfCard,
+                { backgroundColor: theme.card, borderColor: theme.gold },
+              ]}
+              onPress={() => router.push(`/quran/${AL_KAHF_SURAH_NUMBER}` as any)}
+            >
+              <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+                <AppIcon name="book" size={28} />
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>
+                  {t("alKahfCardTitle")}
+                </Text>
+                <Text style={styles.cardSub}>{t("alKahfCardSub")}</Text>
+                <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                  {t("alKahfCardDesc")}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity
             style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => router.push("/AIGuideScreen")}
@@ -273,7 +327,7 @@ export default function GuideScreen() {
               {t("adhanPickerSub")}
             </Text>
             <Text style={[styles.fajrNote, { color: theme.textSecondary }]}>
-              Fajr uses a special adhan with «الصلاة خير من النوم»
+              {t("adhanFajrNote")}
             </Text>
 
             <ScrollView
@@ -308,30 +362,38 @@ export default function GuideScreen() {
                     {adhan.name}
                   </Text>
                   <Text style={[styles.fajrMeta, { color: theme.textSecondary }]}>
-                    Fajr: {adhan.fajrLabel}
+                    {t("fajrAdhanMeta", { label: adhan.fajrLabel })}
                   </Text>
                 </View>
 
                 <TouchableOpacity
                   style={styles.previewBtn}
                   onPress={() => void handlePreview(adhan.id, false)}
+                  accessibilityLabel={t("adhanPreviewRegular")}
                 >
                   <Ionicons
                     name={previewId === adhan.id && !previewFajr ? "pause-circle" : "play-circle"}
                     size={26}
                     color="#C9A84C"
                   />
+                  <Text style={[styles.previewLabel, { color: theme.textSecondary }]}>
+                    {t("adhanPreviewRegular")}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.previewBtn}
                   onPress={() => void handlePreview(adhan.id, true)}
+                  accessibilityLabel={t("adhanPreviewFajr")}
                 >
                   <Ionicons
                     name={previewId === adhan.id && previewFajr ? "moon" : "moon-outline"}
                     size={22}
                     color="#C9A84C"
                   />
+                  <Text style={[styles.previewLabel, { color: theme.textSecondary }]}>
+                    {t("adhanPreviewFajr")}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -374,6 +436,7 @@ const styles = StyleSheet.create({
 
   content: { padding: 16, gap: 12 },
   guideCard: { borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 0.5 },
+  alKahfCard: { borderWidth: 1 },
   cardIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 2 },
@@ -400,7 +463,8 @@ const styles = StyleSheet.create({
   adhanName: { fontSize: 14 },
   fajrMeta: { fontSize: 11, marginTop: 2 },
   fajrNote: { fontSize: 12, paddingHorizontal: 4, marginBottom: 12, lineHeight: 17 },
-  previewBtn: { padding: 4 },
+  previewBtn: { padding: 4, alignItems: "center", minWidth: 44, gap: 2 },
+  previewLabel: { fontSize: 9, fontWeight: "600" },
   selectBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: "#C9A84C" },
   selectBtnActive: { backgroundColor: "#C9A84C" },
   selectBtnText: { fontSize: 12, color: "#C9A84C", fontWeight: "500" },

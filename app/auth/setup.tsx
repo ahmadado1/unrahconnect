@@ -37,9 +37,10 @@ export default function SetupScreen() {
   const [userType, setUserType] = useState<"pilgrim" | "agent" | null>(null)
 
   const [fullName, setFullName] = useState("")
+  const [nameFromProvider, setNameFromProvider] = useState(false)
   const [phone, setPhone] = useState("")
   const [nationality, setNationality] = useState("")
-  const [gender, setGender] = useState<"male" | "female">("male")
+  const [gender, setGender] = useState<"male" | "female" | "">("")
 
   const [agencyName, setAgencyName] = useState("")
   const [agencyCountry, setAgencyCountry] = useState("")
@@ -53,11 +54,27 @@ export default function SetupScreen() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      const saved = user?.user_metadata?.language
+      if (!user) return
+
+      const saved = user.user_metadata?.language
       if (saved && typeof saved === "string") {
         setSelectedLang(saved)
         i18n.changeLanguage(saved)
       }
+
+      // Prefill Apple/Google name if already stored — don't force re-entry.
+      const savedName = (user.user_metadata?.full_name || "").trim()
+      if (savedName) {
+        setFullName(savedName)
+        setNameFromProvider(true)
+      }
+
+      const savedPhone = (user.user_metadata?.phone || "").trim()
+      if (savedPhone) setPhone(savedPhone)
+      const savedNationality = (user.user_metadata?.nationality || "").trim()
+      if (savedNationality) setNationality(savedNationality)
+      const savedGender = user.user_metadata?.gender
+      if (savedGender === "male" || savedGender === "female") setGender(savedGender)
     })
   }, [])
 
@@ -67,19 +84,11 @@ export default function SetupScreen() {
     })
   }, [])
 
-  const handleContinue = async () => {
-    if (!fullName || !phone || !nationality) {
-      setError(t("pleaseFillAll"))
-      return
-    }
-    if (userType === "agent" && !agencyName) {
-      setError(t("pleaseEnterAgencyName"))
-      return
-    }
-
+  const finishSetup = async () => {
     setError("")
     setReferralError("")
 
+    // Only validate agent code when the user typed one — never block empty form.
     if (userType === "pilgrim") {
       const code = normalizeReferralCode(referralCode)
       if (code) {
@@ -97,40 +106,49 @@ export default function SetupScreen() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      const existingName = (user.user_metadata?.full_name || "").trim()
+      const resolvedName = fullName.trim() || existingName
+
+      const code = userType === "pilgrim" ? normalizeReferralCode(referralCode) : ""
+
       await supabase.auth.updateUser({
         data: {
-          full_name: fullName,
-          phone,
-          nationality,
-          gender,
+          ...(resolvedName ? { full_name: resolvedName } : {}),
+          ...(phone.trim() ? { phone: phone.trim() } : {}),
+          ...(nationality.trim() ? { nationality: nationality.trim() } : {}),
+          ...(gender ? { gender } : {}),
+          ...(code ? { agent_code: code } : {}),
           language: selectedLang,
           user_type: userType,
-          agency_name: userType === "agent" ? agencyName : null,
-          agency_country: userType === "agent" ? agencyCountry : null,
+          ...(userType === "agent" && agencyName.trim()
+            ? { agency_name: agencyName.trim() }
+            : {}),
+          ...(userType === "agent" && agencyCountry.trim()
+            ? { agency_country: agencyCountry.trim() }
+            : {}),
           profile_complete: true,
-        }
+        },
       })
 
       if (userType === "agent") {
-        const { data: { user: freshUser } } = await supabase.auth.getUser()
-        const { error: insertError } = await supabase.from("agents").insert({
-          user_id: freshUser?.id,
-          agency_name: agencyName,
-          owner_name: fullName,
-          phone,
-          email: freshUser?.email,
-          nationality,
-          country: agencyCountry,
-          plan: "trial",
-        })
-        if (insertError) {
-          console.log("Agent insert error:", insertError.message)
-        } else {
-          console.log("Agent inserted successfully")
+        if (agencyName.trim()) {
+          const { data: { user: freshUser } } = await supabase.auth.getUser()
+          const { error: insertError } = await supabase.from("agents").insert({
+            user_id: freshUser?.id,
+            agency_name: agencyName.trim(),
+            owner_name: resolvedName || "Agent",
+            phone: phone.trim() || null,
+            email: freshUser?.email,
+            nationality: nationality.trim() || null,
+            country: agencyCountry.trim() || null,
+            plan: "trial",
+          })
+          if (insertError) {
+            console.log("Agent insert error:", insertError.message)
+          }
         }
         router.replace("/auth/plans" as any)
       } else {
-        const code = normalizeReferralCode(referralCode)
         if (code) {
           await linkPilgrimToAgent(code)
         }
@@ -152,7 +170,7 @@ export default function SetupScreen() {
           {step === 1 ? t("welcomeSetup") : userType === "agent" ? t("agencySetup") : t("yourProfile")}
         </Text>
         <Text style={styles.headerSub}>
-          {step === 1 ? t("tellUsWhoYouAre") : t("justFewDetails")}
+          {step === 1 ? t("tellUsWhoYouAre") : t("setupOptionalHint")}
         </Text>
       </View>
 
@@ -224,15 +242,20 @@ export default function SetupScreen() {
 
         {step === 2 && (
           <>
-            <Text style={[styles.label, { color: theme.text }]}>{t("fullName")}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-              placeholder={t("enterFullName")}
-              placeholderTextColor={theme.textSecondary}
-              value={fullName}
-              onChangeText={setFullName}
-              autoCapitalize="words"
-            />
+            {/* Hide Full Name when Apple/Google already provided it */}
+            {!nameFromProvider ? (
+              <>
+                <Text style={[styles.label, { color: theme.text }]}>{t("fullName")}</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
+                  placeholder={t("enterFullName")}
+                  placeholderTextColor={theme.textSecondary}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                />
+              </>
+            ) : null}
 
             <PhoneInput
               label={t("phoneNumber")}
@@ -314,12 +337,24 @@ export default function SetupScreen() {
 
             <TouchableOpacity
               style={[styles.btn, loading && { opacity: 0.6 }]}
-              onPress={handleContinue}
+              onPress={finishSetup}
               disabled={loading}
             >
               <Text style={styles.btnText}>
-                {loading ? t("saving") : userType === "agent" ? t("seeplans") : t("startJourney")}
+                {loading
+                  ? t("saving")
+                  : userType === "agent"
+                    ? t("seeplans")
+                    : t("startJourney")}
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.skipBtn}
+              onPress={finishSetup}
+              disabled={loading}
+            >
+              <Text style={styles.skipText}>{t("skipForNow")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)}>
@@ -354,6 +389,8 @@ const styles = StyleSheet.create({
   error: { color: "#E24B4A", fontSize: 13, marginTop: 8, textAlign: "center" },
   btn: { backgroundColor: "#C9A84C", borderRadius: 25, padding: 16, alignItems: "center", marginTop: 24 },
   btnText: { color: "#1E3A5F", fontSize: 16, fontWeight: "bold" },
+  skipBtn: { alignItems: "center", marginTop: 14 },
+  skipText: { color: "#C9A84C", fontSize: 14, fontWeight: "500" },
   backBtn: { alignItems: "center", marginTop: 16 },
   backText: { color: "#C9A84C", fontSize: 14 },
 })

@@ -19,6 +19,7 @@ import PhoneInput from "./components/PhoneInput"
 import SelectDropdown from "./components/SelectDropdown"
 import { sendAccountEmail } from "@/lib/accountEmails"
 import { isNetworkError } from "@/lib/networkError"
+import { isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { supabase } from "../lib/supabase"
 
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
@@ -36,7 +37,9 @@ export default function ProfileScreen() {
   const [nationality, setNationality] = useState("")
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [gender, setGender] = useState<"male" | "female">("male")
+  const [gender, setGender] = useState<"male" | "female" | "">("")
+  const [agentCode, setAgentCode] = useState("")
+  const [agentCodeError, setAgentCodeError] = useState("")
   const { t } = useTranslation()
 
   const [passwordModal, setPasswordModal] = useState(false)
@@ -59,7 +62,9 @@ export default function ProfileScreen() {
       setFullName(user.user_metadata?.full_name || "")
       setPhone(user.user_metadata?.phone || "")
       setNationality(user.user_metadata?.nationality || "")
-      setGender(user.user_metadata?.gender || "male")
+      const g = user.user_metadata?.gender
+      setGender(g === "male" || g === "female" ? g : "")
+      setAgentCode(user.user_metadata?.agent_code || "")
     }
   }
 
@@ -106,8 +111,26 @@ export default function ProfileScreen() {
 
   const saveProfile = async () => {
     setLoading(true)
+    setAgentCodeError("")
+
+    const code = normalizeReferralCode(agentCode)
+    if (code) {
+      const valid = await isValidReferralCode(code)
+      if (!valid) {
+        setAgentCodeError(t("agentCodeInvalid"))
+        setLoading(false)
+        return
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({
-      data: { full_name: fullName, phone, nationality, gender },
+      data: {
+        full_name: fullName.trim() || null,
+        phone: phone.trim() || null,
+        nationality: nationality.trim() || null,
+        gender: gender || null,
+        agent_code: code || null,
+      },
     })
     if (error) {
       console.log(error)
@@ -116,6 +139,9 @@ export default function ProfileScreen() {
         isNetworkError(error) ? t("networkError") : t("somethingWentWrong")
       )
     } else {
+      if (code) {
+        await linkPilgrimToAgent(code).catch(e => console.log("Agent link error:", e))
+      }
       setEditing(false)
       await getUser()
     }
@@ -169,7 +195,8 @@ export default function ProfileScreen() {
     }, 1600)
   }
 
-  const genderLabel = gender === "male" ? t("male") : t("female")
+  const genderLabel =
+    gender === "male" ? t("male") : gender === "female" ? t("female") : t("notSet")
 
   return (
     <ScrollView
@@ -268,7 +295,7 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={[styles.field, { borderBottomWidth: 0 }]}>
+        <View style={[styles.field, { borderBottomColor: theme.border }]}>
           <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("gender")}</Text>
           {editing ? (
             <SelectDropdown
@@ -284,6 +311,36 @@ export default function ProfileScreen() {
             />
           ) : (
             <Text style={[styles.fieldValue, { color: theme.text }]}>{genderLabel}</Text>
+          )}
+        </View>
+
+        <View style={[styles.field, { borderBottomWidth: 0 }]}>
+          <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            {t("agentCodeOptional")}
+          </Text>
+          {editing ? (
+            <>
+              <TextInput
+                style={[
+                  styles.fieldInput,
+                  { color: theme.text, borderColor: theme.gold, backgroundColor: theme.inputBg },
+                ]}
+                value={agentCode}
+                onChangeText={text => {
+                  setAgentCode(normalizeReferralCode(text))
+                  if (agentCodeError) setAgentCodeError("")
+                }}
+                placeholder={t("agentCodePlaceholder")}
+                placeholderTextColor={theme.textSecondary}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              {agentCodeError ? <Text style={styles.errorText}>{agentCodeError}</Text> : null}
+            </>
+          ) : (
+            <Text style={[styles.fieldValue, { color: theme.text }]}>
+              {agentCode || t("notSet")}
+            </Text>
           )}
         </View>
       </View>

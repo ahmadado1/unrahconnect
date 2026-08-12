@@ -32,7 +32,7 @@ export default function PhaseStepsSection({
   showIntro = false,
 }: Props) {
   const { theme } = useTheme()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   return (
     <View style={styles.container}>
@@ -65,8 +65,10 @@ export default function PhaseStepsSection({
 
           const meta = getStepMeta(journey, phaseId, index)
           const titleKey = stepTitleKey(stepKey)
-          const title = t(titleKey, { defaultValue: "" })
-          const badge = t(stepBadgeKey(stepKey), { defaultValue: "" })
+          const badgeKey = stepBadgeKey(stepKey)
+          // Never fall through to parseMissingKeyHandler humanized junk (e.g. "Phase Umrah2Step1Title").
+          const title = i18n.exists(titleKey) ? t(titleKey) : ""
+          const badge = i18n.exists(badgeKey) ? t(badgeKey) : ""
           const detail = data.stepDetails?.[index]
 
           return (

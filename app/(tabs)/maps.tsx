@@ -88,6 +88,19 @@ export default function MapsScreen() {
           </TouchableOpacity>
         ))}
 
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("makkah")}</Text>
+        <TouchableOpacity
+          style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => router.push("/makkah-places" as any)}
+        >
+          <AppIcon name="mountain" size={28} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.locationName, { color: theme.text }]}>{t("makkahPlacesTitle")}</Text>
+            <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t("makkahPlacesSub")}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+        </TouchableOpacity>
+
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>

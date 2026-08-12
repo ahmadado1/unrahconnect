@@ -7,6 +7,8 @@ const LOCATION_TIMEOUT_MS = 5000
 
 export type CachedPrayerTimes = {
   Fajr: string
+  /** Shuruq — end of Fajr window; not a prayer, shown for reference */
+  Sunrise: string
   Dhuhr: string
   Asr: string
   Maghrib: string
@@ -29,6 +31,8 @@ export function getLocalGregorianDateKey(d = new Date()) {
 
 export function isPrayerTimesCacheFresh(times: CachedPrayerTimes | null, d = new Date()) {
   if (!times?.Fajr || !times?.Dhuhr) return false
+  // Older caches omit Sunrise — refetch so Shuruq can appear in the widget.
+  if (!times.Sunrise) return false
   if (!times.gregorianDate) return false
   return times.gregorianDate === getLocalGregorianDateKey(d)
 }
@@ -168,6 +172,7 @@ export async function fetchAndCachePrayerTimes(
     const hijriDate = data.data.date.hijri
     const times: CachedPrayerTimes = {
       Fajr: timings.Fajr,
+      Sunrise: timings.Sunrise,
       Dhuhr: timings.Dhuhr,
       Asr: timings.Asr,
       Maghrib: timings.Maghrib,

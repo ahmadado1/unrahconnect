@@ -532,6 +532,49 @@ export async function scheduleDhikrReminder(_hour?: number, _minute?: number) {
   return scheduleDailyDhikrReminders()
 }
 
+/** Weekly Friday reminder to read Surah Al-Kahf (opens Quran surah 18). */
+export async function scheduleAlKahfReminder() {
+  await Notifications.cancelScheduledNotificationAsync("al-kahf-friday").catch(() => {})
+
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("quran-reminders", {
+      name: "Quran Reminders",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: "default",
+      vibrationPattern: [0, 200, 100, 200],
+      enableVibrate: true,
+    })
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: "al-kahf-friday",
+    content: {
+      title: i18n.t("alKahfNotifTitle", { defaultValue: "Surah Al-Kahf" }),
+      body: i18n.t("alKahfNotifBody", {
+        defaultValue: "It's Friday — take a moment to read Surah Al-Kahf.",
+      }),
+      sound: true,
+      data: {
+        screen: "al-kahf",
+        route: "/quran/18",
+        surah: 18,
+      },
+      ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+    },
+    trigger: {
+      // Expo: 1 = Sunday … 6 = Friday … 7 = Saturday
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 6,
+      hour: 9,
+      minute: 0,
+    },
+  })
+  return true
+}
+
 export async function scheduleJourneyReminder(phaseName: string, type: "umrah" | "hajj") {
   await Notifications.cancelScheduledNotificationAsync("journey-reminder")
 

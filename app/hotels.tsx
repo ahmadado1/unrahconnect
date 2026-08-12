@@ -31,7 +31,7 @@ type CategoryFilter =
   | "Budget Friendly"
   | "Near Haram"
   | "Near Nabawi"
-  | "Clock Tower"
+  | "Abraj Al Bait Mall"
   | "Family"
 
 function byIds(ids: string[]): Hotel[] {
@@ -64,8 +64,8 @@ const BUDGET_FRIENDLY_IDS = new Set([
   "le-meridien-towers",
 ])
 
-/** Abraj Al-Bait / Clock Tower complex */
-const CLOCK_TOWER_IDS = new Set([
+/** Abraj Al Bait Mall / hotel complex (formerly labeled Clock Tower) */
+const ABRAJ_AL_BAIT_IDS = new Set([
   "fairmont-clock",
   "swissotel-makkah",
   "pullman-zamzam",
@@ -110,7 +110,7 @@ const recommendedHotels = byIds(RECOMMENDED_IDS)
 const budgetFriendlyHotels = HOTELS.filter(h => BUDGET_FRIENDLY_IDS.has(h.id))
 const nearHaramHotels = HOTELS.filter(h => h.city === "Makkah" && h.walkMinutes <= 5)
 const nearNabawiHotels = HOTELS.filter(h => h.city === "Madinah" && h.walkMinutes <= 5)
-const clockTowerHotels = HOTELS.filter(h => CLOCK_TOWER_IDS.has(h.id))
+const abrajAlBaitHotels = HOTELS.filter(h => ABRAJ_AL_BAIT_IDS.has(h.id))
 const familyHotels = HOTELS.filter(h => FAMILY_FRIENDLY_IDS.has(h.id))
 
 const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; icon: AppIconKey; title: string; hotels: Hotel[] }[] =
@@ -119,7 +119,7 @@ const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; icon: AppIconKey
     { key: "Budget Friendly", icon: "cash", title: "Budget Friendly", hotels: budgetFriendlyHotels },
     { key: "Near Haram", icon: "kaaba", title: "Closest to Haram", hotels: nearHaramHotels },
     { key: "Near Nabawi", icon: "mosque", title: "Closest to Nabawi", hotels: nearNabawiHotels },
-    { key: "Clock Tower", icon: "business", title: "Clock Tower", hotels: clockTowerHotels },
+    { key: "Abraj Al Bait Mall", icon: "business", title: "Abraj Al Bait Mall", hotels: abrajAlBaitHotels },
     { key: "Family", icon: "people", title: "Family Friendly", hotels: familyHotels },
   ]
 
@@ -151,7 +151,7 @@ export default function HotelsScreen() {
     "Budget Friendly",
     "Near Haram",
     "Near Nabawi",
-    "Clock Tower",
+    "Abraj Al Bait Mall",
     "Family",
   ]
   const cityFilters: CityFilter[] = ["All", "Makkah", "Madinah"]
