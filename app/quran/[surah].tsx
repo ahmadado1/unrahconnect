@@ -519,12 +519,12 @@ function MushafView({
 
       <View style={[mStyles.navBar, { paddingBottom: insets.bottom + 6 }]}>
         <TouchableOpacity
-          onPress={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          onPress={() => setCurrentPage(Math.min(MUSHAF_PAGE_COUNT, currentPage + 1))}
           style={mStyles.navBtnRow}
-          disabled={currentPage <= 1}
+          disabled={currentPage >= MUSHAF_PAGE_COUNT}
         >
           <Ionicons name="chevron-back" size={18} color="#C9A84C" />
-          <Text style={mStyles.navLabel}>Prev</Text>
+          <Text style={mStyles.navLabel}>Next</Text>
         </TouchableOpacity>
 
         <View style={mStyles.navCenter}>
@@ -533,11 +533,11 @@ function MushafView({
         </View>
 
         <TouchableOpacity
-          onPress={() => setCurrentPage(Math.min(MUSHAF_PAGE_COUNT, currentPage + 1))}
+          onPress={() => setCurrentPage(Math.max(1, currentPage - 1))}
           style={mStyles.navBtnRow}
-          disabled={currentPage >= MUSHAF_PAGE_COUNT}
+          disabled={currentPage <= 1}
         >
-          <Text style={mStyles.navLabel}>Next</Text>
+          <Text style={mStyles.navLabel}>Prev</Text>
           <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </TouchableOpacity>
       </View>

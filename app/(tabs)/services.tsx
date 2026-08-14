@@ -17,7 +17,6 @@ const APP_SERVICES = [
   { id: "restaurants", icon: "restaurant" as AppIconKey, titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", ionIcon: "restaurant-outline" },
   { id: "agents", icon: "handshake" as AppIconKey, titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", ionIcon: "people-outline" },
   { id: "hospitals", icon: "medkit" as AppIconKey, titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", ionIcon: "medkit-outline" },
-  { id: "pharmacy", icon: "medical" as AppIconKey, titleKey: "pharmacy", subKey: "pharmacySub", route: "/maps/hospital-makkah", ionIcon: "medical-outline" },
 ] as const
 
 const HARAMAIN_STATIONS = (["makkah", "madinah"] as const).map((id) => {

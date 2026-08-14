@@ -132,7 +132,7 @@ const HOSPITALS = [
   },
 ] as const
 
-/** Pharmacies near the Haram — replace nahdi-logo.png with the official asset when ready. */
+/** Pharmacies shown in the same Makkah hospitals list (not a separate Services card). */
 const PHARMACIES = [
   {
     id: "nahdi",
@@ -143,9 +143,32 @@ const PHARMACIES = [
     lat: 21.4195,
     lng: 39.8255,
     city: "makkah" as const,
-    logo: require("../../assets/images/nahdi-logo.png"),
+    logoUri: "https://img.logokit.com/nahdi.sa",
   },
 ] as const
+
+function PharmacyLogo({ uri }: { uri: string }) {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    return (
+      <View style={[styles.pharmacyLogoWrap, { backgroundColor: "#1E3A5F" }]}>
+        <AppIcon name="medical" size={18} color={ICON_GOLD} />
+      </View>
+    )
+  }
+
+  return (
+    <View style={[styles.pharmacyLogoWrap, { backgroundColor: "#fff" }]}>
+      <Image
+        source={{ uri }}
+        style={styles.pharmacyLogo}
+        resizeMode="contain"
+        onError={() => setFailed(true)}
+      />
+    </View>
+  )
+}
 
 const WRISTBAND_TIPS = [
   "wristbandTip1",
@@ -448,6 +471,32 @@ export default function SiteDetailScreen() {
               </View>
             ))}
 
+            {PHARMACIES.filter(p => p.city === "makkah").map(pharmacy => (
+              <View
+                key={pharmacy.id}
+                style={[styles.gateCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              >
+                <View style={styles.gateLeft}>
+                  <PharmacyLogo uri={pharmacy.logoUri} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.gateName, { color: theme.text }]}>{t(pharmacy.nameKey)}</Text>
+                    <Text style={styles.gateArabic}>{pharmacy.arabic}</Text>
+                    <Text style={[styles.pharmacyCategory, { color: theme.gold }]}>
+                      {t(pharmacy.categoryKey)}
+                    </Text>
+                    <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 4 }]}>
+                      {t(pharmacy.noteKey)}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigateTo(pharmacy.lat, pharmacy.lng, t(pharmacy.nameKey))}
+                >
+                  <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
+                </TouchableOpacity>
+              </View>
+            ))}
+
             <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>{t("madinahHospitalSection")}</Text>
             {HOSPITALS.filter(h => h.city === "madinah").map(hospital => (
               <View
@@ -472,40 +521,6 @@ export default function SiteDetailScreen() {
                 </View>
                 <TouchableOpacity
                   onPress={() => navigateTo(hospital.lat, hospital.lng, t(hospital.nameKey))}
-                >
-                  <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
-              {t("pharmaciesSection")}
-            </Text>
-            <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
-              {t("pharmaciesSectionSub")}
-            </Text>
-            {PHARMACIES.filter(p => p.city === "makkah").map(pharmacy => (
-              <View
-                key={pharmacy.id}
-                style={[styles.gateCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-              >
-                <View style={styles.gateLeft}>
-                  <View style={[styles.pharmacyLogoWrap, { backgroundColor: "#fff" }]}>
-                    <Image source={pharmacy.logo} style={styles.pharmacyLogo} resizeMode="contain" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.gateName, { color: theme.text }]}>{t(pharmacy.nameKey)}</Text>
-                    <Text style={styles.gateArabic}>{pharmacy.arabic}</Text>
-                    <Text style={[styles.pharmacyCategory, { color: theme.gold }]}>
-                      {t(pharmacy.categoryKey)}
-                    </Text>
-                    <Text style={[styles.gateDesc, { color: theme.textSecondary, marginTop: 4 }]}>
-                      {t(pharmacy.noteKey)}
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  onPress={() => navigateTo(pharmacy.lat, pharmacy.lng, t(pharmacy.nameKey))}
                 >
                   <Ionicons name="navigate-outline" size={20} color="#C9A84C" />
                 </TouchableOpacity>
