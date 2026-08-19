@@ -12,7 +12,12 @@
           "package_name": "com.umrahconnect.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyArWUEO9yqtvv9OSOnC6guH4RC8ffaVkLg"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

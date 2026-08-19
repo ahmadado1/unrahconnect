@@ -54,7 +54,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (GoogleSignin) {
       GoogleSignin.configure({
-        webClientId: "960037449593-q9he07c18iunb1id0hfrmiab2tou45eq.apps.googleusercontent.com",
+        webClientId: "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
         iosClientId: "960037449593-nsmd655ofr73ln844jap3171d0s92o17.apps.googleusercontent.com",
       })
     }
