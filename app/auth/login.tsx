@@ -5,7 +5,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
@@ -207,14 +207,25 @@ const handleGoogleSignIn = async () => {
           }}
       }
     } catch (err: any) {
-      console.log("Google error full:", JSON.stringify(err))
-      console.log("Google error code:", err.code)
+      // TEMP debug — show raw Google Sign-In error on device (remove after diagnosing)
+      const raw = (() => {
+        try {
+          return JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
+        } catch {
+          return String(err)
+        }
+      })()
+      const detail =
+        `code: ${String(err?.code)}\n` +
+        `message: ${String(err?.message)}\n` +
+        `statusCode: ${String(err?.statusCode)}\n` +
+        `full:\n${raw}`
+      console.log("Google error full:", detail)
+      Alert.alert("Google Sign-In error (debug)", detail.slice(0, 3500))
       if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
         // User cancelled — do nothing
-      } else if (isNetworkError(err)) {
-        setError(t("networkError"))
       } else {
-        setError(t("googleSignInFailed"))
+        setError(detail.slice(0, 500))
       }
     }
   } else {
