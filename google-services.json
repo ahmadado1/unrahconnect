@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "655574174670-nifbaq31bgq3ltat1t9e36jns5ofsv3e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.umrahconnect.app",
+            "certificate_hash": "20fd51d0e583b9fd26ce00362c8e1cc7f31f1ad5"
+          }
+        },
+        {
           "client_id": "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
           "client_type": 3
         }
