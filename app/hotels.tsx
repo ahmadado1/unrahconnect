@@ -1,5 +1,9 @@
 import { AppIcon, AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import {
+  getFeaturedHotelsForCity,
+  type FeaturedHotel,
+} from "@/lib/featuredHotels"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import { groupHotelsIntoSections, HOTELS, type Hotel } from "@/lib/hotels"
 import { supabase, toggleFavorite } from "@/lib/supabase"
@@ -140,6 +144,18 @@ async function openWebsite(url: string) {
   }
 }
 
+async function openBookingUrl(url: string, hotelName: string) {
+  if (!url) {
+    Alert.alert("Unable to open", `No booking link for ${hotelName}.`)
+    return
+  }
+  try {
+    await Linking.openURL(url)
+  } catch {
+    Alert.alert("Unable to open", "Could not open the booking link.")
+  }
+}
+
 export default function HotelsScreen() {
   const router = useRouter()
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All")
@@ -216,6 +232,67 @@ export default function HotelsScreen() {
       .filter(section => section.hotels.length > 0)
   }, [activeCategory, filterHotelsList])
 
+  const featuredSections = useMemo(() => {
+    // Show featured booking cards on All / city views (not when a category pill is active)
+    if (activeCategory !== "All") return []
+    const q = searchQuery.trim().toLowerCase()
+    return getFeaturedHotelsForCity(activeFilter)
+      .map(section => ({
+        ...section,
+        hotels: section.hotels.filter(
+          h => !q || h.name.toLowerCase().includes(q) || h.description.toLowerCase().includes(q),
+        ),
+      }))
+      .filter(section => section.hotels.length > 0)
+  }, [activeCategory, activeFilter, searchQuery])
+
+  function FeaturedHotelCard({ hotel }: { hotel: FeaturedHotel }) {
+    const [imageUri, setImageUri] = useState(hotel.image)
+
+    useEffect(() => {
+      setImageUri(hotel.image)
+    }, [hotel.id, hotel.image])
+
+    return (
+      <View
+        style={[
+          cardStyles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+            borderBottomColor: "#C9A84C",
+            borderBottomWidth: 3,
+          },
+        ]}
+      >
+        <ImageBackground
+          source={{ uri: imageUri }}
+          style={cardStyles.image}
+          imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+          onError={() => setImageUri(HOTEL_IMAGE_PLACEHOLDER)}
+        >
+          <View style={[cardStyles.badge, { backgroundColor: "#1E3A5F" }]}>
+            <Text style={[cardStyles.badgeText, { color: "#C9A84C" }]}>{t("featured")}</Text>
+          </View>
+          <Text style={cardStyles.imageLabel}>{hotel.city}</Text>
+        </ImageBackground>
+        <View style={cardStyles.info}>
+          <Text style={[cardStyles.name, { color: theme.text }]} numberOfLines={2}>
+            {hotel.name}
+          </Text>
+          <Text style={[cardStyles.meta, { color: theme.textSecondary }]} numberOfLines={2}>
+            {hotel.description}
+          </Text>
+          <TouchableOpacity
+            style={[cardStyles.btn, { backgroundColor: "#C9A84C", alignSelf: "stretch" }]}
+            onPress={() => void openBookingUrl(hotel.bookingUrl, hotel.name)}
+          >
+            <Text style={[cardStyles.btnText, { color: "#1E3A5F" }]}>{t("bookNow")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
 
   function HotelCard({ hotel }: { hotel: Hotel }) {
     const isFavorited = favoriteHotelIds.has(hotel.id)
@@ -437,6 +514,42 @@ export default function HotelsScreen() {
         </View>
 
         <View key={`${activeCategory}-${activeFilter}`}>
+          {featuredSections.map(section => (
+            <View key={section.titleKey} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                  <AppIcon
+                    name={section.city === "Madinah" ? "mosque" : "kaaba"}
+                    size={20}
+                  />
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                    {t(section.titleKey)}
+                  </Text>
+                </View>
+                <Text style={styles.seeAll}>{section.hotels.length}</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+              >
+                {section.hotels.map(hotel => (
+                  <FeaturedHotelCard key={hotel.id} hotel={hotel} />
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={styles.budgetLink}
+                onPress={() => void openBookingUrl(section.budgetUrl, t(section.budgetLinkKey))}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.budgetLinkText, { color: theme.textSecondary }]}>
+                  {t(section.budgetLinkKey)}
+                </Text>
+                <Ionicons name="arrow-forward" size={14} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          ))}
+
           {visibleSections.map(section => (
             <View key={section.title} style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -458,7 +571,7 @@ export default function HotelsScreen() {
             </View>
           ))}
 
-          {visibleSections.length === 0 && (
+          {visibleSections.length === 0 && featuredSections.length === 0 && (
             <View style={styles.empty}>
               <Ionicons name="bed-outline" size={40} color={theme.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
@@ -578,6 +691,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 17, fontWeight: "bold" },
   seeAll: { color: "#C9A84C", fontSize: 13 },
+  budgetLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 2,
+    alignSelf: "flex-start",
+  },
+  budgetLinkText: { fontSize: 13, fontWeight: "500" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,7 +1,7 @@
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
-import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes } from "@/lib/prayerTimes";
+import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
+  AppState,
   Easing,
   Image,
   ImageBackground,
@@ -22,6 +23,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  type AppStateStatus,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -347,6 +349,7 @@ export default function HomeScreen() {
   const [ayah, setAyah] = useState('"And Allah intends for you ease and does not intend for you hardship."')
   const [ayahRef, setAyahRef] = useState("Quran 2:185")
   const [nextPrayer, setNextPrayer] = useState({ name: "—", time: "--:--" })
+  const [prayerTimesState, setPrayerTimesState] = useState<CachedPrayerTimes | null>(null)
   const [locationName, setLocationName] = useState("")
   const [minutesLeft, setMinutesLeft] = useState(0)
   const [umrahProgress, setUmrahProgress] = useState({ step: 1, phase: "", total: UMRAH_TOTAL_PHASES, percent: 0 })
@@ -390,28 +393,27 @@ export default function HomeScreen() {
     }
   }, [])
 
+  const applyPrayerTimes = useCallback((times: CachedPrayerTimes) => {
+    setPrayerTimesState(times)
+    const p = getNextPrayerFromTimes(times)
+    setNextPrayer(p)
+    setMinutesLeft(getMinutesUntilPrayer(p.time))
+    if (times.city) setLocationName(times.city)
+  }, [])
+
   const loadPrayer = useCallback(async (preferCacheFirst = true) => {
     try {
       if (preferCacheFirst) {
         const cached = await readCachedPrayerTimes()
-        if (cached) {
-          const p = getNextPrayerFromTimes(cached)
-          setNextPrayer(p)
-          setMinutesLeft(getMinutesUntilPrayer(p.time))
-          if (cached.city) setLocationName(cached.city)
-        }
+        if (cached) applyPrayerTimes(cached)
       }
-      const times = await fetchAndCachePrayerTimes()
-      if (times) {
-        const p = getNextPrayerFromTimes(times)
-        setNextPrayer(p)
-        setMinutesLeft(getMinutesUntilPrayer(p.time))
-        if (times.city) setLocationName(times.city)
-      }
+      // Pull-to-refresh forces a network/GPS refresh; otherwise location-aware cache applies.
+      const times = await fetchAndCachePrayerTimes({ force: !preferCacheFirst })
+      if (times) applyPrayerTimes(times)
     } catch (e) {
       if (!preferCacheFirst) throw e
     }
-  }, [])
+  }, [applyPrayerTimes])
 
   const loadUmrahProgress = useCallback(async () => {
     try {
@@ -481,20 +483,35 @@ export default function HomeScreen() {
     loadPrayer(true)
   }, [loadPrayer])
 
-  // ── Tick countdown every minute ──
+  // Advance to the next prayer as soon as the current time passes (not stuck on old name).
   useEffect(() => {
-    if (!nextPrayer.time || nextPrayer.time === "--:--") return
-    const tick = () => setMinutesLeft(getMinutesUntilPrayer(nextPrayer.time))
-    const interval = setInterval(tick, 60000)
+    if (!prayerTimesState) return
+    const tick = () => {
+      const p = getNextPrayerFromTimes(prayerTimesState)
+      setNextPrayer(p)
+      setMinutesLeft(getMinutesUntilPrayer(p.time))
+    }
+    tick()
+    const interval = setInterval(tick, 30000)
     return () => clearInterval(interval)
-  }, [nextPrayer.time])
+  }, [prayerTimesState])
+
+  // Refresh when returning to the app (picks up city / GPS changes).
+  useEffect(() => {
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active") void loadPrayer(true)
+    }
+    const sub = AppState.addEventListener("change", onAppState)
+    return () => sub.remove()
+  }, [loadPrayer])
 
   // ── Fetch Umrah progress (same source as umrah-guide) ──
   useFocusEffect(
     useCallback(() => {
       loadUmrahProgress()
+      void loadPrayer(true)
       setAdhkarWindow(getAdhkarWindow())
-    }, [loadUmrahProgress])
+    }, [loadUmrahProgress, loadPrayer])
   )
 
   // Keep Adhkar card in sync as the clock crosses window boundaries

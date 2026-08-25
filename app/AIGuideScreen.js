@@ -113,12 +113,20 @@ const LINK_ALIASES = {
   hotels: "/hotels",
   restaurants: "/restaurants",
   hospitals: "/maps/hospital-makkah",
+  pharmacy: "/maps/hospital-makkah",
+  pharmacies: "/maps/hospital-makkah",
+  nahdi: "/maps/hospital-makkah",
+  "makkah-places": "/makkah-places",
+  "places-to-see": "/makkah-places",
+  "clock-tower-museum": "/makkah-place/clock-tower-museum",
+  "abraj-mall": "/makkah-place/abraj-mall",
   "travel-agents": "/travel-agents",
   agents: "/travel-agents",
   "maps/makkah": "/maps/haram",
   "maps/madinah": "/maps/nabawi",
   "maps/rawdah": "/maps/nabawi",
   "maps/prophet": "/maps/nabawi",
+  "maps/hospital-makkah": "/maps/hospital-makkah",
   "umrah/tawaf": "/umrah/4",
   "umrah/sai": "/umrah/5",
   "umrah/sa'i": "/umrah/5",
@@ -148,6 +156,7 @@ function normalizeLinkTarget(raw) {
   if (/^umrah\/[1-7]$/i.test(path)) return `/${path}`
   if (/^hajj\/[1-9]$/i.test(path)) return `/${path}`
   if (/^maps\/[a-z0-9-]+$/i.test(path)) return `/${path}`
+  if (/^makkah-place\/[a-z0-9-]+$/i.test(path)) return `/${path}`
 
   return `/${path}`
 }
@@ -361,9 +370,33 @@ const DEEP_LINK_RULES = [
   },
   {
     id: "hotels",
-    label: "Hotels",
+    label: "Featured Hotels",
     route: "/hotels",
-    patterns: [/\bhotel\b/i, /\baccommodation\b/i, /\bstay\b/i],
+    patterns: [
+      /\bhotel\b/i,
+      /\bhotels\b/i,
+      /\baccommodation\b/i,
+      /\bstay\b/i,
+      /\bbooking\.com\b/i,
+      /\bbudget hotel\b/i,
+      /\bswissotel\b/i,
+      /\bpullman\b/i,
+      /\bfairmont\b/i,
+      /فندق/,
+    ],
+  },
+  {
+    id: "makkah-places",
+    label: "Places to See",
+    route: "/makkah-places",
+    patterns: [
+      /\bplaces to see\b/i,
+      /\bclock tower museum\b/i,
+      /\babraj\b/i,
+      /\babraj al bait\b/i,
+      /أبراج البيت/,
+      /متحف ساعة/,
+    ],
   },
   {
     id: "restaurants",
@@ -373,9 +406,24 @@ const DEEP_LINK_RULES = [
   },
   {
     id: "hospitals",
-    label: "Hospitals",
+    label: "Hospitals & Pharmacy",
     route: "/maps/hospital-makkah",
-    patterns: [/\bhospital\b/i, /\bmedical\b/i, /مستشفى/],
+    patterns: [
+      /\bhospital\b/i,
+      /\bmedical\b/i,
+      /\bpharmacy\b/i,
+      /\bpharmacies\b/i,
+      /\bnahdi\b/i,
+      /مستشفى/,
+      /صيدلية/,
+      /النهدي/,
+    ],
+  },
+  {
+    id: "alkahf",
+    label: "Surah Al-Kahf",
+    route: "/quran/18",
+    patterns: [/\bal-?kahf\b/i, /\bkahf\b/i, /سورة الكهف/, /الكهف/],
   },
   {
     id: "transport",

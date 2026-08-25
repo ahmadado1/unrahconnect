@@ -3,7 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Location from "expo-location"
 
 export const PRAYER_TIMES_CACHE_KEY = "cached_prayer_times"
-const LOCATION_TIMEOUT_MS = 5000
+const LOCATION_TIMEOUT_MS = 8000
+/** Refetch prayer times when the user moves farther than this from the cached coords. */
+const LOCATION_MOVE_KM = 15
 
 export type CachedPrayerTimes = {
   Fajr: string
@@ -29,12 +31,49 @@ export function getLocalGregorianDateKey(d = new Date()) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
 }
 
-export function isPrayerTimesCacheFresh(times: CachedPrayerTimes | null, d = new Date()) {
+/** Approximate great-circle distance in km. */
+export function distanceKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const R = 6371
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+export function isPrayerTimesCacheFresh(
+  times: CachedPrayerTimes | null,
+  d = new Date(),
+  coords?: { lat: number; lng: number } | null
+) {
   if (!times?.Fajr || !times?.Dhuhr) return false
   // Older caches omit Sunrise — refetch so Shuruq can appear in the widget.
   if (!times.Sunrise) return false
   if (!times.gregorianDate) return false
-  return times.gregorianDate === getLocalGregorianDateKey(d)
+  if (times.gregorianDate !== getLocalGregorianDateKey(d)) return false
+
+  // If we know where the user is now, stale location must invalidate the day cache.
+  if (
+    coords &&
+    typeof times.latitude === "number" &&
+    typeof times.longitude === "number"
+  ) {
+    if (
+      distanceKm(times.latitude, times.longitude, coords.lat, coords.lng) >
+      LOCATION_MOVE_KM
+    ) {
+      return false
+    }
+  }
+
+  return true
 }
 
 /** Parse "05:30", "05:30:00", or "05:30 (GMT+3)" into hour/minute. */
@@ -92,6 +131,12 @@ export async function readCachedPrayerTimes(): Promise<CachedPrayerTimes | null>
   }
 }
 
+export async function clearPrayerTimesCache(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(PRAYER_TIMES_CACHE_KEY)
+  } catch {}
+}
+
 async function resolveCoordinates(): Promise<{
   lat: number
   lng: number
@@ -106,25 +151,39 @@ async function resolveCoordinates(): Promise<{
     const { status } = await Location.requestForegroundPermissionsAsync()
     if (status !== "granted") return { lat, lng, city }
 
-    // Instant offline-friendly path
+    let lastKnown: { lat: number; lng: number } | null = null
     try {
       const last = await Location.getLastKnownPositionAsync()
       if (last?.coords) {
-        lat = last.coords.latitude
-        lng = last.coords.longitude
+        lastKnown = {
+          lat: last.coords.latitude,
+          lng: last.coords.longitude,
+        }
       }
     } catch {}
 
+    // Prefer a fresh fix so travel/city changes are not stuck on stale lastKnown.
+    let current: { lat: number; lng: number } | null = null
     try {
       const location = await Promise.race([
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         new Promise<null>(resolve => setTimeout(() => resolve(null), LOCATION_TIMEOUT_MS)),
       ])
       if (location?.coords) {
-        lat = location.coords.latitude
-        lng = location.coords.longitude
+        current = {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        }
       }
     } catch {}
+
+    if (current) {
+      lat = current.lat
+      lng = current.lng
+    } else if (lastKnown) {
+      lat = lastKnown.lat
+      lng = lastKnown.lng
+    }
 
     try {
       const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
@@ -139,16 +198,23 @@ export async function fetchAndCachePrayerTimes(
   opts?: { force?: boolean }
 ): Promise<CachedPrayerTimes | null> {
   try {
-    if (!opts?.force) {
-      const existing = await readCachedPrayerTimes()
-      if (isPrayerTimesCacheFresh(existing)) {
-        // Still refresh notifications in case they were cancelled
-        await syncPrayerNotifications(existing!)
-        return existing
-      }
-    }
-
     const { lat, lng, city } = await resolveCoordinates()
+    const existing = await readCachedPrayerTimes()
+
+    if (
+      !opts?.force &&
+      isPrayerTimesCacheFresh(existing, new Date(), { lat, lng })
+    ) {
+      // Still refresh notifications in case they were cancelled
+      await syncPrayerNotifications(existing!)
+      // Keep displayed city in sync if geocode improved but coords are the same
+      if (existing!.city !== city && city) {
+        const updated = { ...existing!, city }
+        await AsyncStorage.setItem(PRAYER_TIMES_CACHE_KEY, JSON.stringify(updated))
+        return updated
+      }
+      return existing
+    }
 
     const today = new Date()
     const inSaudiArabia = lat >= 16.0 && lat <= 32.0 && lng >= 36.0 && lng <= 56.0

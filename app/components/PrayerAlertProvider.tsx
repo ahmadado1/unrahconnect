@@ -9,7 +9,6 @@ import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
 import {
   fetchAndCachePrayerTimes,
   getLocalGregorianDateKey,
-  isPrayerTimesCacheFresh,
   readCachedPrayerTimes,
   timeToMinutes,
   type CachedPrayerTimes,
@@ -148,8 +147,8 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       const cached = await readCachedPrayerTimes()
       if (cached && !cancelled) setPrayerTimes(cached)
 
-      const needForce = force || !isPrayerTimesCacheFresh(cached)
-      const fresh = await fetchAndCachePrayerTimes({ force: needForce })
+      // Location-aware cache inside fetchAndCachePrayerTimes; force only for periodic / midnight.
+      const fresh = await fetchAndCachePrayerTimes({ force })
       if (fresh && !cancelled) setPrayerTimes(fresh)
     }
 
@@ -159,6 +158,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     const onAppState = (state: AppStateStatus) => {
       if (state === "active") {
         void configureAdhanAudioMode().catch(() => {})
+        // Re-check GPS so a city change after travel updates times without reinstall.
         void loadTimes(false)
       }
     }

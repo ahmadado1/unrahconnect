@@ -1,9 +1,10 @@
 import { PRAYER_ICONS, PRAYER_NAMES } from "@/lib/prayerConstants"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes"
 import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect } from "expo-router"
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
-import { StyleSheet, Text, View } from "react-native"
+import { useCallback, useEffect, useState } from "react"
+import { AppState, StyleSheet, Text, View, type AppStateStatus } from "react-native"
 import Svg, { Circle, Ellipse, G } from "react-native-svg"
 
 type PrayerTimes = CachedPrayerTimes
@@ -54,18 +55,37 @@ export default function PrayerWidget() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(async (preferCacheFirst = true) => {
+    if (preferCacheFirst) {
       const cached = await readCachedPrayerTimes()
-      if (cached) setPrayerTimes(cached)
-
-      const fresh = await fetchAndCachePrayerTimes()
-      if (fresh) setPrayerTimes(fresh)
-      setLoading(false)
+      if (cached) {
+        setPrayerTimes(cached)
+        setLoading(false)
+      }
     }
 
-    load()
+    const fresh = await fetchAndCachePrayerTimes()
+    if (fresh) setPrayerTimes(fresh)
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    void load(true)
+  }, [load])
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(true)
+    }, [load])
+  )
+
+  useEffect(() => {
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active") void load(true)
+    }
+    const sub = AppState.addEventListener("change", onAppState)
+    return () => sub.remove()
+  }, [load])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)

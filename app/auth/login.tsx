@@ -37,7 +37,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(true)
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
   const [agentCode, setAgentCode] = useState("")
@@ -335,6 +335,30 @@ const handleGoogleSignIn = async () => {
             </Text>
           </View>
 
+          {/* Sign up / Login switch — Login always one tap away */}
+          <View style={[styles.modeSwitch, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <TouchableOpacity
+              style={[styles.modeTab, isSignUp && styles.modeTabActive]}
+              onPress={() => { setIsSignUp(true); setError("") }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSignUp }}
+            >
+              <Text style={[styles.modeTabText, { color: theme.textSecondary }, isSignUp && styles.modeTabTextActive]}>
+                {t("signUp")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, !isSignUp && styles.modeTabActive]}
+              onPress={() => { setIsSignUp(false); setError("") }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: !isSignUp }}
+            >
+              <Text style={[styles.modeTabText, { color: theme.textSecondary }, !isSignUp && styles.modeTabTextActive]}>
+                {t("login")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Form */}
           <View style={styles.form}>
 
@@ -479,13 +503,6 @@ const handleGoogleSignIn = async () => {
             {/* Applies to Google / Apple account creation as well */}
             <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
 
-            {/* Toggle sign up / login */}
-            <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError("") }}>
-              <Text style={styles.toggle}>
-                {isSignUp ? t("haveAccount") : t("noAccount")}
-              </Text>
-            </TouchableOpacity>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -498,9 +515,33 @@ const handleGoogleSignIn = async () => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { flex: 1, padding: 24 },
-  header: { alignItems: "center", marginBottom: 40 },
+  header: { alignItems: "center", marginBottom: 24 },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 6 },
   subtitle: { fontSize: 15 },
+  modeSwitch: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 0.5,
+    padding: 4,
+    marginBottom: 28,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeTabActive: {
+    backgroundColor: "#1E3A5F",
+  },
+  modeTabText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  modeTabTextActive: {
+    color: "#fff",
+  },
   genderRow: { flexDirection: "row", gap: 12 },
   genderBtn: { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, alignItems: "center" },
   genderBtnActive: { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" },
@@ -521,7 +562,6 @@ const styles = StyleSheet.create({
   legalText: { marginBottom: 16, paddingHorizontal: 8 },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 16 },
   forgotText: { color: "#C9A84C", fontSize: 13 },
-  toggle: { color: "#C9A84C", fontSize: 14, textAlign: "center", marginTop: 8, marginBottom: 40 },
   divider: { flexDirection: "row", alignItems: "center", marginVertical: 20, gap: 12 },
   dividerLine: { flex: 1, height: 0.5 },
   dividerText: { fontSize: 13 },
