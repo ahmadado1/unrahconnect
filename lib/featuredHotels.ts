@@ -1,6 +1,7 @@
-import { HOTEL_IMAGE_PLACEHOLDER } from "./hotelImages"
+import { HOTEL_BRAND_LOGOS } from "./hotelImages"
 
 export type FeaturedHotelCity = "Makkah" | "Madinah"
+export type FeaturedHotelImageType = "logo" | "photo"
 
 export type FeaturedHotel = {
   id: string
@@ -8,10 +9,32 @@ export type FeaturedHotel = {
   city: FeaturedHotelCity
   /** Short line shown under the name */
   description: string
-  /** Remote image URL — placeholder until real photos are added */
   image: string
+  imageFallback: string
+  imageType: FeaturedHotelImageType
   /** Booking.com affiliate deep link (open via Linking.openURL) */
   bookingUrl: string
+}
+
+function accorPhoto(code: string, shot = "ho_00") {
+  return `https://www.ahstatic.com/photos/${code}_${shot}_p_1024x768.jpg`
+}
+
+function featuredAccor(code: string) {
+  return featuredPhoto(accorPhoto(code, "ho_00"), accorPhoto(code, "ho_01"))
+}
+
+function featuredPhoto(
+  url: string,
+  fallback: string,
+): Pick<FeaturedHotel, "image" | "imageFallback" | "imageType"> {
+  return { image: url, imageFallback: fallback, imageType: "photo" }
+}
+
+function featuredLogo(
+  logoUrl: string,
+): Pick<FeaturedHotel, "image" | "imageFallback" | "imageType"> {
+  return { image: logoUrl, imageFallback: logoUrl, imageType: "logo" }
 }
 
 /** Featured hotels near Masjid al-Haram (Makkah). */
@@ -21,7 +44,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Swissotel Al Maqam Makkah",
     city: "Makkah",
     description: "Direct access toward Masjid al-Haram · Abraj Al-Bait area",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("a7x4"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/swissotel-al-maqam-makkah.html?aid=4347392",
   },
@@ -30,7 +53,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Swissotel Makkah",
     city: "Makkah",
     description: "Steps from Masjid al-Haram · Abraj Al-Bait",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("a5b9"),
     bookingUrl: "https://www.booking.com/hotel/sa/swissotel-makkah.html?aid=4347392",
   },
   {
@@ -38,7 +61,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Pullman ZamZam Makkah",
     city: "Makkah",
     description: "Grand suites · Direct Haram access",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("6036"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/zamzam-grand-suites-managed-by-pullman.html?aid=4347392",
   },
@@ -47,7 +70,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Mövenpick Hotel & Residences Hajar Tower Makkah",
     city: "Makkah",
     description: "Clock Towers complex · Near Masjid al-Haram",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("b4l3"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/movenpick-residence-hajar-tower-makkah.html?aid=4347392",
   },
@@ -56,7 +79,10 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Makkah Marriott Hotel",
     city: "Makkah",
     description: "Short walk to Masjid al-Haram",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg",
+      HOTEL_BRAND_LOGOS.marriott,
+    ),
     bookingUrl: "https://www.booking.com/hotel/sa/makkah-marriott.html?aid=4347392",
   },
   {
@@ -64,7 +90,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Al Safwah Hotel",
     city: "Makkah",
     description: "Close to the Haram · Central Makkah",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredLogo(HOTEL_BRAND_LOGOS.alSafwah),
     bookingUrl: "https://www.booking.com/hotel/sa/al-safwah.html?aid=4347392",
   },
   {
@@ -72,7 +98,10 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Hyatt Regency Makkah",
     city: "Makkah",
     description: "Jabal Omar · Near Masjid al-Haram",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://cf.bstatic.com/xdata/images/hotel/square600/110318868.webp?k=22c56e8ddb868d285e68ba6d19a8d14c13e4f9822272efa997dce0aa6a8abf61&o=",
+      HOTEL_BRAND_LOGOS.hyatt,
+    ),
     bookingUrl:
       "https://www.booking.com/hotel/sa/hyatt-regency-makkah.html?aid=4347392",
   },
@@ -81,7 +110,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Makkah Clock Royal Tower, A Fairmont",
     city: "Makkah",
     description: "Iconic Clock Tower · Connected to Masjid al-Haram",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("a5f2"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/makkah-clock-royal-tower-a-fairmont.html?aid=4347392",
   },
@@ -90,7 +119,10 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     name: "Jabal Omar Jumeirah Makkah",
     city: "Makkah",
     description: "Luxury stay · Short walk to the Holy Mosque",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://cdn.jumeirah.com/api/public/content/51655c7cfa1e45d39f8c8e47cacd157b",
+      HOTEL_BRAND_LOGOS.jumeirah,
+    ),
     bookingUrl:
       "https://www.booking.com/hotel/sa/jabal-omar-jumeirah-makkah.html?aid=4347392",
   },
@@ -103,7 +135,10 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Al Manakha Rotana Madinah",
     city: "Madinah",
     description: "Steps from the Prophet's Mosque",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://media.rotana.com/images/almanakharotana/rc_177537323169_613.jpg",
+      HOTEL_BRAND_LOGOS.rotana,
+    ),
     bookingUrl:
       "https://www.booking.com/hotel/sa/al-manakha-rotana-madinah-madinah.html?aid=4347392",
   },
@@ -112,7 +147,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Anwar Al Madinah Mövenpick",
     city: "Madinah",
     description: "Direct access area · Al-Masjid an-Nabawi",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("b4m6"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/anwar-al-madinah-movenpick.html?aid=4347392",
   },
@@ -121,7 +156,10 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Madinah Hilton",
     city: "Madinah",
     description: "Short walk to the Prophet's Mosque",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
+      HOTEL_BRAND_LOGOS.hilton,
+    ),
     bookingUrl: "https://www.booking.com/hotel/sa/madinah-hilton.html?aid=4347392",
   },
   {
@@ -129,7 +167,10 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Dar Al Iman InterContinental Madinah",
     city: "Madinah",
     description: "Iconic hotel facing the Prophet's Mosque",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://cf.bstatic.com/xdata/images/hotel/max500/540226226.jpg?k=7daf802e5b5fd81814692800baa0a3ad4eef12b45ed47c18fbe1d70bfbcc9625&o=",
+      HOTEL_BRAND_LOGOS.ihg,
+    ),
     bookingUrl:
       "https://www.booking.com/hotel/sa/dar-al-iman-intercontinental.html?aid=4347392",
   },
@@ -138,7 +179,10 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Elaf Taiba",
     city: "Madinah",
     description: "Close to Al-Masjid an-Nabawi",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredPhoto(
+      "https://image-tc.galaxy.tf/wijpeg-e5t954b5drwhz62i6oe28y1ub/elaf-taiba-2-2562-hdr_standard.jpg?width=800",
+      HOTEL_BRAND_LOGOS.elafTaiba,
+    ),
     bookingUrl: "https://www.booking.com/hotel/sa/elaf-taiba.html?aid=4347392",
   },
   {
@@ -146,7 +190,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Pullman Zamzam Madina",
     city: "Madinah",
     description: "Steps from the Prophet's Mosque",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredAccor("9245"),
     bookingUrl:
       "https://www.booking.com/hotel/sa/pullman-zamzam-madina.html?aid=4347392",
   },
@@ -155,7 +199,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     name: "Mawaddah Al Salwa",
     city: "Madinah",
     description: "Near Al-Masjid an-Nabawi",
-    image: HOTEL_IMAGE_PLACEHOLDER,
+    ...featuredLogo(HOTEL_BRAND_LOGOS.mawaddah),
     bookingUrl:
       "https://www.booking.com/hotel/sa/mawadah-al-salwa.html?aid=4347392",
   },

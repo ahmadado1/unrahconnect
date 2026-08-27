@@ -3,15 +3,24 @@ import { useTheme } from "@/context/themeContext"
 import { AL_KAHF_SURAH_NUMBER, isAlKahfReminderWindow } from "@/lib/alKahfWindow"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { Audio } from "expo-av"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { AppState, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import {
+  AppState,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
+import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribeAdhanPlaying } from "@/lib/adhanAudio"
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
@@ -33,7 +42,6 @@ export default function GuideScreen() {
   const [selectedAdhan, setSelectedAdhan] = useState(DEFAULT_ADHAN_ID)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [previewFajr, setPreviewFajr] = useState(false)
-  const previewSoundRef = useRef<Audio.Sound | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previewBusyRef = useRef(false)
   const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
@@ -69,15 +77,7 @@ export default function GuideScreen() {
   }, [])
 
   const showAlKahfCard = isAlKahfReminderWindow(prayerTimes, now)
-
-  useEffect(() => {
-    return () => {
-      if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
-      const sound = previewSoundRef.current
-      previewSoundRef.current = null
-      if (sound) void sound.unloadAsync().catch(() => {})
-    }
-  }, [])
+  const stopPreviewRef = useRef<() => Promise<void>>(async () => {})
 
   const stopPreview = async () => {
     if (previewTimerRef.current) {
@@ -86,22 +86,24 @@ export default function GuideScreen() {
     }
     setPreviewId(null)
     setPreviewFajr(false)
-    const sound = previewSoundRef.current
-    previewSoundRef.current = null
-    if (sound) {
-      try {
-        await sound.stopAsync()
-      } catch {}
-      try {
-        await sound.unloadAsync()
-      } catch {}
-    }
-    // Restore background-capable session so prayer Adhan still works after preview
-    try {
-      const { configureAdhanAudioMode } = await import("@/lib/adhanAudio")
-      await configureAdhanAudioMode()
-    } catch {}
+    await stopAdhanPreview()
   }
+  stopPreviewRef.current = stopPreview
+
+  useEffect(() => {
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
+      void stopAdhanPreview()
+    }
+  }, [])
+
+  useEffect(() => {
+    return subscribeAdhanPlaying(isPlaying => {
+      if (isPlaying) {
+        void stopPreviewRef.current()
+      }
+    })
+  }, [])
 
   const closeAdhanPicker = () => {
     void stopPreview()
@@ -130,20 +132,16 @@ export default function GuideScreen() {
     previewBusyRef.current = true
     try {
       await stopPreview()
-      const { configureAdhanAudioMode } = await import("@/lib/adhanAudio")
       await configureAdhanAudioMode()
 
       const source = getAdhanFile(id, fajr ? "Fajr" : "Dhuhr")
-      const { sound } = await Audio.Sound.createAsync(source, {
-        shouldPlay: true,
-        volume: 1,
-        isLooping: false,
-      })
-      previewSoundRef.current = sound
+      const started = await startAdhanPreview(source)
+      if (!started) return
+
       setPreviewId(id)
       setPreviewFajr(fajr)
       previewTimerRef.current = setTimeout(() => {
-        void stopPreview()
+        void stopPreviewRef.current()
       }, PREVIEW_MS)
     } catch (e) {
       console.log("Adhan preview failed:", e)

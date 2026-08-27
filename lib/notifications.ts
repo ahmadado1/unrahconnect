@@ -5,7 +5,7 @@ import {
   ISLAMIC_EVENTS_HIJRI,
   type IslamicEvent,
 } from "@/lib/islamicEvents"
-import { isAdhanPlaying } from "@/lib/adhanAudio"
+import { isAdhanPlaying, isAdhanPlayingFor } from "@/lib/adhanAudio"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification } from "@/lib/prayerConstants"
 import { parsePrayerTimeHourMinute } from "@/lib/prayerTimes"
@@ -35,7 +35,7 @@ export function getPrayerChannelId(adhanId: string, isFajr = false) {
 
 /**
  * Must match basename of files in app.json → notification.sounds / plugin sounds.
- * Always .wav (iOS-safe). Full Adhan in-app still uses the long .mp3 via expo-av.
+ * Always .wav (iOS-safe). Full Adhan in-app still uses the long .mp3 via expo-audio.
  */
 export function getNotificationAdhanSound(adhanId: string, isFajr = false) {
   const id = ["1", "2", "3", "4", "5"].includes(String(adhanId))
@@ -121,15 +121,15 @@ Notifications.setNotificationHandler({
     if (isPrayer && !isTest) {
       const prayerName = prayerNameFromNotification(identifier, data)
       if (prayerName) {
-        // App open: full Adhan via expo-av (not the short notification clip).
+        // App open: full Adhan via expo-audio (not the short notification clip).
         const prayerAlerts =
           (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
         const master = (await AsyncStorage.getItem("notifications_enabled")) !== "false"
-        if (master && prayerAlerts) {
+        if (master && prayerAlerts && !isAdhanPlayingFor(prayerName)) {
           triggerPrayerAlert(prayerName, {
             playSound: true,
-            forceRestart: true,
-            continueIfPlaying: false,
+            forceRestart: false,
+            continueIfPlaying: true,
             forceShow: true,
           })
         }
@@ -138,7 +138,7 @@ Notifications.setNotificationHandler({
 
     return {
       shouldShowAlert: true,
-      // Foreground: suppress system sound for real prayer alerts — expo-av plays full track.
+      // Foreground: suppress system sound for real prayer alerts — expo-audio plays full track.
       // Test notification keeps system sound so we can verify the lock-screen WAV clip.
       shouldPlaySound: !isPrayer || isTest,
       shouldSetBadge: true,

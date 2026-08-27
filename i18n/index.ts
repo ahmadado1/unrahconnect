@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
+import { isDomAvailable, safeStorage } from "@/lib/safeStorage"
 
 import ar from "./ar.json"
 import bn from "./bn.json"
@@ -45,12 +45,14 @@ i18n.use(initReactI18next).init({
 })
 
 // Restore saved language after storage is available.
-AsyncStorage.getItem("language")
-  .then(savedLang => {
-    if (savedLang && savedLang !== i18n.language) {
-      return i18n.changeLanguage(savedLang)
-    }
-  })
-  .catch(console.warn)
+if (isDomAvailable()) {
+  safeStorage.getItem("language")
+    .then(savedLang => {
+      if (savedLang && savedLang !== i18n.language) {
+        return i18n.changeLanguage(savedLang)
+      }
+    })
+    .catch(() => {})
+}
 
 export default i18n

@@ -1,13 +1,14 @@
 import { getAdhanFile, DEFAULT_ADHAN_ID, type PrayerName } from "@/lib/prayerConstants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import {
-  Audio,
-  InterruptionModeAndroid,
-  InterruptionModeIOS,
-  type AVPlaybackStatus,
-} from "expo-av"
+  createAudioPlayer,
+  setAudioModeAsync,
+  setIsAudioActiveAsync,
+  type AudioPlayer,
+  type AudioStatus,
+} from "expo-audio"
 
-/** Short lock-screen / notification clips (≤30s) used when full Adhan audio fails. */
+/** Short clips used only if the full Adhan file fails to load. */
 const ADHAN_LOCK_FILES: Record<string, number> = {
   "1": require("../assets/audio1/azan1_lock.mp3"),
   "2": require("../assets/audio1/azan2_lock.mp3"),
@@ -34,14 +35,19 @@ export type PlayAdhanOptions = {
 
 type PlayingListener = (playing: boolean) => void
 
-let sound: Audio.Sound | null = null
+let player: AudioPlayer | null = null
+let statusSub: { remove: () => void } | null = null
 let currentSource: number | null = null
 let playing = false
+/** Prayer whose full Adhan is currently loaded / expected to play. */
+let currentPrayer: PrayerName | null = null
 /** True while we want Adhan to keep playing (resume after lock / interruption). */
 let expectPlaying = false
 /** True when user (or app) intentionally stopped — do not auto-resume. */
 let userStopped = false
-let resumeInFlight = false
+
+let previewPlayer: AudioPlayer | null = null
+let previewStatusSub: { remove: () => void } | null = null
 
 const listeners = new Set<PlayingListener>()
 
@@ -51,64 +57,62 @@ function notifyPlaying(next: boolean) {
   listeners.forEach(listener => listener(playing))
 }
 
-async function configureAdhanAudioMode() {
-  // Always re-apply before playback so iOS keeps the session when the screen locks.
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: false,
-    staysActiveInBackground: true,
-    playsInSilentModeIOS: true,
-    shouldDuckAndroid: true,
-    playThroughEarpieceAndroid: false,
-    interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-    interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+function lockScreenMetadata(prayerName: PrayerName | null) {
+  const name = prayerName ?? "Adhan"
+  return {
+    title: `Adhan - ${name}`,
+    artist: name,
+    albumTitle: "UmrahConnect",
+  }
+}
+
+function activateLockScreen(target: AudioPlayer, prayerName: PrayerName | null) {
+  target.setActiveForLockScreen(true, lockScreenMetadata(prayerName), {
+    showSeekForward: false,
+    showSeekBackward: false,
   })
 }
 
-function onPlaybackStatusUpdate(status: AVPlaybackStatus) {
-  if (!status.isLoaded) {
-    notifyPlaying(false)
-    return
+export async function configureAdhanAudioMode() {
+  try {
+    await setIsAudioActiveAsync(true)
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+      shouldRouteThroughEarpiece: false,
+    })
+  } catch (e) {
+    console.log("Adhan audio mode failed:", e)
   }
+}
 
+function onPlaybackStatusUpdate(status: AudioStatus) {
   if (status.didJustFinish) {
     expectPlaying = false
     userStopped = false
+    currentPrayer = null
     notifyPlaying(false)
-    void unloadSound({ keepExpectation: true })
+    void teardownPlayer({ keepExpectation: true })
     return
   }
 
-  notifyPlaying(status.isPlaying)
-
-  // iOS often pauses briefly on lock / interruption — resume if we still expect Adhan.
-  if (
-    !status.isPlaying &&
-    expectPlaying &&
-    !userStopped &&
-    !resumeInFlight &&
-    sound
-  ) {
-    resumeInFlight = true
-    void (async () => {
-      try {
-        await configureAdhanAudioMode()
-        if (!sound || userStopped || !expectPlaying) return
-        const current = await sound.getStatusAsync()
-        if (current.isLoaded && !current.isPlaying && !current.didJustFinish) {
-          await sound.playAsync()
-          notifyPlaying(true)
-        }
-      } catch (e) {
-        console.log("Adhan resume after interruption failed:", e)
-      } finally {
-        resumeInFlight = false
-      }
-    })()
-  }
+  notifyPlaying(status.playing)
 }
 
 export function isAdhanPlaying() {
   return playing
+}
+
+export function getPlayingAdhanPrayer(): PrayerName | null {
+  if (!playing && !expectPlaying) return null
+  return currentPrayer
+}
+
+/** True when this prayer's Adhan is already in progress (playing or resuming). */
+export function isAdhanPlayingFor(prayerName: PrayerName) {
+  return currentPrayer === prayerName && (playing || expectPlaying)
 }
 
 export function subscribeAdhanPlaying(listener: PlayingListener) {
@@ -119,27 +123,30 @@ export function subscribeAdhanPlaying(listener: PlayingListener) {
   }
 }
 
-export { configureAdhanAudioMode }
+export function isAdhanPreviewPlaying() {
+  return previewPlayer != null
+}
 
-async function unloadSound(opts?: { keepExpectation?: boolean }) {
-  if (!sound) {
-    if (!opts?.keepExpectation) {
-      expectPlaying = false
-    }
-    notifyPlaying(false)
-    return
-  }
-  try {
-    sound.setOnPlaybackStatusUpdate(null)
-    await sound.stopAsync()
-  } catch {}
-  try {
-    await sound.unloadAsync()
-  } catch {}
-  sound = null
+async function teardownPlayer(opts?: { keepExpectation?: boolean }) {
+  statusSub?.remove()
+  statusSub = null
+  const current = player
+  player = null
   currentSource = null
+  if (current) {
+    try {
+      current.pause()
+    } catch {}
+    try {
+      current.clearLockScreenControls()
+    } catch {}
+    try {
+      current.remove()
+    } catch {}
+  }
   if (!opts?.keepExpectation) {
     expectPlaying = false
+    currentPrayer = null
   }
   notifyPlaying(false)
 }
@@ -156,7 +163,6 @@ async function playSource(
   source: number,
   opts?: { seekSeconds?: number; forceRestart?: boolean; continueIfPlaying?: boolean }
 ): Promise<boolean> {
-  // Critical: configure session BEFORE any play/create call.
   await configureAdhanAudioMode()
 
   const continueIfPlaying = opts?.continueIfPlaying !== false
@@ -166,91 +172,67 @@ async function playSource(
   userStopped = false
   expectPlaying = true
 
-  // If Adhan is already playing (e.g. user opened notification mid-playback), never restart/seek.
-  if (sound && continueIfPlaying && !forceRestart) {
-    try {
-      const status = await sound.getStatusAsync()
-      if (status.isLoaded && status.isPlaying) {
-        notifyPlaying(true)
-        return true
-      }
-    } catch {}
+  if (player && continueIfPlaying && !forceRestart && player.playing) {
+    activateLockScreen(player, currentPrayer)
+    notifyPlaying(true)
+    return true
   }
 
-  if (sound && currentSource === source) {
-    const status = await sound.getStatusAsync()
-    if (status.isLoaded) {
-      if (status.isPlaying && continueIfPlaying && !forceRestart) {
-        notifyPlaying(true)
-        return true
-      }
-      if (typeof seekSeconds === "number" && Number.isFinite(seekSeconds) && seekSeconds > 0) {
-        await sound.setPositionAsync(Math.floor(seekSeconds * 1000))
-      } else if (forceRestart || !status.isPlaying) {
-        await sound.setPositionAsync(0)
-      }
-      await sound.setStatusAsync({
-        shouldPlay: true,
-        isLooping: false,
-        volume: 1.0,
-      })
-      await sound.playAsync()
+  if (player && currentSource === source) {
+    if (player.playing && continueIfPlaying && !forceRestart) {
+      activateLockScreen(player, currentPrayer)
       notifyPlaying(true)
       return true
     }
+    if (typeof seekSeconds === "number" && Number.isFinite(seekSeconds) && seekSeconds > 0) {
+      await player.seekTo(seekSeconds)
+    } else if (forceRestart || !player.playing) {
+      await player.seekTo(0)
+    }
+    activateLockScreen(player, currentPrayer)
+    player.play()
+    notifyPlaying(true)
+    return true
   }
 
-  await unloadSound({ keepExpectation: true })
+  await teardownPlayer({ keepExpectation: true })
   expectPlaying = true
   userStopped = false
 
-  const positionMillis =
-    typeof seekSeconds === "number" && Number.isFinite(seekSeconds) && seekSeconds > 0
-      ? Math.floor(seekSeconds * 1000)
-      : 0
-
-  const { sound: next } = await Audio.Sound.createAsync(
-    source,
-    {
-      shouldPlay: true,
-      isLooping: false,
-      volume: 1.0,
-      positionMillis,
-      progressUpdateIntervalMillis: 500,
-    },
-    onPlaybackStatusUpdate
-  )
-
-  sound = next
+  const next = createAudioPlayer(source, {
+    updateInterval: 500,
+    keepAudioSessionActive: true,
+  })
+  next.loop = false
+  next.volume = 1
+  statusSub = next.addListener("playbackStatusUpdate", onPlaybackStatusUpdate)
+  player = next
   currentSource = source
-  // Re-apply mode after create — some iOS versions reset session on Sound init.
-  await configureAdhanAudioMode()
-  try {
-    await sound.setStatusAsync({
-      shouldPlay: true,
-      isLooping: false,
-      volume: 1.0,
-    })
-    const status = await sound.getStatusAsync()
-    if (status.isLoaded && !status.isPlaying) {
-      await sound.playAsync()
-    }
-  } catch (e) {
-    console.log("Adhan playAsync after create failed:", e)
+
+  if (typeof seekSeconds === "number" && Number.isFinite(seekSeconds) && seekSeconds > 0) {
+    await next.seekTo(seekSeconds)
   }
 
+  // Start the Android media foreground service before play so lock/background keeps audio.
+  activateLockScreen(next, currentPrayer)
+  await configureAdhanAudioMode()
+  next.play()
   notifyPlaying(true)
   return true
 }
 
 /**
- * Play the full Adhan MP3 with a background-capable AVAudioSession.
- * Falls back to the short lock-screen clip if the full session fails.
+ * Play the full Adhan MP3 with a background-capable session + Android media FGS.
+ * Falls back to the short lock-screen clip if the full file fails.
  */
 export async function playAdhan(
   prayerName: PrayerName,
   opts?: PlayAdhanOptions
 ): Promise<boolean> {
+  currentPrayer = prayerName
+  expectPlaying = true
+  void stopAdhanPreview()
+
   const selected = (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
   const fullSource = getAdhanFile(selected, prayerName)
   const allowFallback = opts?.allowFallback !== false
@@ -261,6 +243,7 @@ export async function playAdhan(
     console.log("Full Adhan playback failed, trying short clip fallback:", e)
     if (!allowFallback) {
       expectPlaying = false
+      currentPrayer = null
       notifyPlaying(false)
       return false
     }
@@ -273,6 +256,7 @@ export async function playAdhan(
     } catch (fallbackError) {
       console.log("Adhan fallback clip also failed:", fallbackError)
       expectPlaying = false
+      currentPrayer = null
       notifyPlaying(false)
       return false
     }
@@ -282,18 +266,57 @@ export async function playAdhan(
 export async function stopAdhan() {
   userStopped = true
   expectPlaying = false
-  await unloadSound()
+  await teardownPlayer()
 }
 
 export async function pauseAdhan() {
   userStopped = true
   expectPlaying = false
-  if (!sound) {
+  if (!player) {
     notifyPlaying(false)
     return
   }
   try {
-    await sound.pauseAsync()
+    player.pause()
   } catch {}
   notifyPlaying(false)
+}
+
+/** 12s Guide-tab sample. Separate player so it cannot steal a live prayer Adhan session. */
+export async function startAdhanPreview(source: number): Promise<boolean> {
+  if (playing || expectPlaying) return false
+
+  await stopAdhanPreview()
+  await configureAdhanAudioMode()
+
+  const next = createAudioPlayer(source, {
+    updateInterval: 500,
+    keepAudioSessionActive: true,
+  })
+  next.loop = false
+  next.volume = 1
+  previewStatusSub = next.addListener("playbackStatusUpdate", status => {
+    if (status.didJustFinish) void stopAdhanPreview()
+  })
+  previewPlayer = next
+  next.play()
+  return true
+}
+
+export async function stopAdhanPreview() {
+  previewStatusSub?.remove()
+  previewStatusSub = null
+  const current = previewPlayer
+  previewPlayer = null
+  if (current) {
+    try {
+      current.pause()
+    } catch {}
+    try {
+      current.remove()
+    } catch {}
+  }
+  try {
+    await configureAdhanAudioMode()
+  } catch {}
 }

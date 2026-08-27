@@ -14,7 +14,7 @@ import {
   type CachedPrayerTimes,
 } from "@/lib/prayerTimes"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AppState, type AppStateStatus } from "react-native"
 
 const SHOWN_POPUPS_KEY = "prayer_popups_shown_date"
@@ -43,7 +43,9 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     (prayerName: PrayerName, options?: boolean | import("@/lib/prayerAlert").PrayerAlertOptions) => void
   >(() => {})
 
+  const prayerTimesRef = useRef<CachedPrayerTimes | null>(null)
   shownPopupsRef.current = shownPopups
+  prayerTimesRef.current = prayerTimes
 
   showPrayerAlertRef.current = (prayerName, rawOptions) => {
     const options = normalizePrayerAlertOptions(rawOptions)
@@ -104,6 +106,29 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     })
   }, [])
 
+  const checkPrayer = useCallback(async () => {
+    const times = prayerTimesRef.current
+    if (!times) return
+    if (!shownHydratedRef.current) return
+    if (!(await arePrayerAlertsEnabled())) return
+
+    const now = new Date()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+    for (const name of PRAYER_NAMES) {
+      const prayerMin = timeToMinutes(times[name])
+      if (prayerMin < 0) continue
+      if (
+        nowMinutes >= prayerMin &&
+        nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
+        !shownPopupsRef.current.has(name)
+      ) {
+        showPrayerAlertRef.current(name, true)
+        break
+      }
+    }
+  }, [])
+
   useEffect(() => {
     configureAdhanAudioMode().catch(console.log)
 
@@ -158,6 +183,8 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     const onAppState = (state: AppStateStatus) => {
       if (state === "active") {
         void configureAdhanAudioMode().catch(() => {})
+        // Catch up immediately — don't wait for the next 15s poll tick.
+        void checkPrayer()
         // Re-check GPS so a city change after travel updates times without reinstall.
         void loadTimes(false)
       }
@@ -169,36 +196,16 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       clearInterval(refreshTimer)
       sub.remove()
     }
-  }, [])
+  }, [checkPrayer])
 
   useEffect(() => {
     if (!prayerTimes) return
-
-    const checkPrayer = async () => {
-      if (!shownHydratedRef.current) return
-      if (!(await arePrayerAlertsEnabled())) return
-
-      const now = new Date()
-      const nowMinutes = now.getHours() * 60 + now.getMinutes()
-
-      for (const name of PRAYER_NAMES) {
-        const prayerMin = timeToMinutes(prayerTimes[name])
-        if (prayerMin < 0) continue
-        if (
-          nowMinutes >= prayerMin &&
-          nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
-          !shownPopupsRef.current.has(name)
-        ) {
-          showPrayerAlertRef.current(name, true)
-          break
-        }
-      }
-    }
-
-    checkPrayer()
-    const interval = setInterval(checkPrayer, 15000)
+    void checkPrayer()
+    const interval = setInterval(() => {
+      void checkPrayer()
+    }, 15000)
     return () => clearInterval(interval)
-  }, [prayerTimes, shownPopups])
+  }, [prayerTimes, shownPopups, checkPrayer])
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null

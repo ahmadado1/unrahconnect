@@ -31,9 +31,15 @@ export const HOTEL_BRAND_LOGOS = {
   oberoi: brandFavicon("oberoihotels.com"),
   millennium: brandFavicon("millenniumhotels.com"),
   elaf: brandFavicon("elafgroup.com"),
+  elafTaiba:
+    "https://image-tc.galaxy.tf/wipng-xqjlvsdx656ww6ehcye8874j/elaf-taiba.png?width=500",
   anjum: brandFavicon("anjumhotels.com"),
   shaza: brandFavicon("www.shazahotels.com"),
   dallah: brandFavicon("www.dallahhotels.com"),
   accor: brandFavicon("accor.com"),
+  jumeirah: brandFavicon("jumeirah.com"),
+  alSafwah:
+    "https://alsafwahorchid.com.sa/public/uploads/settings/company_logo.png",
+  mawaddah: brandFavicon("mawaddah.com"),
   generic: brandFavicon("booking.com"),
 } as const

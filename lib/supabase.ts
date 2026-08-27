@@ -1,14 +1,32 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import "react-native-url-polyfill/auto";
+import { isDomAvailable, safeStorage } from "./safeStorage";
 
 export const supabaseUrl = "https://yqabuipymbaylholmmoi.supabase.co"
 export const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDc3ODIsImV4cCI6MjA5MzcyMzc4Mn0.tJly9kx4fdBzuNcyaM11ELLbu51q3AI8d2Vnq2LkYr0"
 
+const canUseNativeStorage = isDomAvailable()
+
+// Metro evaluates this module in Node (no native WebSocket on Node 20).
+// React Native / browsers already provide WebSocket — only stub for Node bundling.
+if (typeof (globalThis as any).WebSocket === "undefined") {
+  ;(globalThis as any).WebSocket = class {
+    static CONNECTING = 0
+    static OPEN = 1
+    static CLOSING = 2
+    static CLOSED = 3
+    readyState = 3
+    close() {}
+    send() {}
+    addEventListener() {}
+    removeEventListener() {}
+  }
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
+    storage: safeStorage,
+    autoRefreshToken: canUseNativeStorage,
     persistSession: true,
     detectSessionInUrl: false,
   },
@@ -20,7 +38,7 @@ const isInvalidSessionError = (message: string) =>
   message.includes("JWT")
 
 export async function clearLocalAuth() {
-  await AsyncStorage.removeItem("cached_user")
+  await safeStorage.removeItem("cached_user")
   await supabase.auth.signOut({ scope: "local" })
 }
 
@@ -38,11 +56,13 @@ export async function getValidSession() {
 }
 
 // Clear stale tokens on startup before auto-refresh throws
-supabase.auth.getSession().then(({ error }) => {
-  if (error && isInvalidSessionError(error.message)) {
-    clearLocalAuth()
-  }
-}).catch(() => {})
+if (canUseNativeStorage) {
+  supabase.auth.getSession().then(({ error }) => {
+    if (error && isInvalidSessionError(error.message)) {
+      clearLocalAuth()
+    }
+  }).catch(() => {})
+}
 
 // Checks if a specific item is already in the user's favorites
 export const isFavorite = async (itemId: string, itemType: string) => {
@@ -189,8 +209,8 @@ export const markHajjPhaseComplete = async (phaseId: string) => {
 }
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
-    AsyncStorage.setItem("cached_user", JSON.stringify(session.user))
+    void safeStorage.setItem("cached_user", JSON.stringify(session.user))
   } else {
-    AsyncStorage.removeItem("cached_user")
+    void safeStorage.removeItem("cached_user")
   }
 })

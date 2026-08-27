@@ -326,6 +326,9 @@ export default function NotificationsScreen() {
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
           />
+          <Text style={[styles.sub, { color: theme.textSecondary, paddingLeft: 48, paddingBottom: 8 }]}>
+            {t("adhanOpenVsClosedNote")}
+          </Text>
           <TouchableOpacity
             style={[styles.row, { borderBottomColor: theme.border }]}
             onPress={async () => {

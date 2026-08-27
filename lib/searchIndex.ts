@@ -968,7 +968,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       icon: "heart",
       category: "Features",
       action: "link",
-      target: "https://maidabo.com",
+      target: "https://maidabofoundation.com/",
       keywords: kw("maidabo", "donate", "charity", "foundation"),
     })
   )

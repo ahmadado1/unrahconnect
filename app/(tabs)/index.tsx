@@ -2,12 +2,13 @@ import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
 import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
+import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -358,6 +359,11 @@ export default function HomeScreen() {
   const [bookings, setBookings] = useState<any[]>([])
   const [adhkarWindow, setAdhkarWindow] = useState<"morning" | "evening" | null>(() => getAdhkarWindow())
   const [refreshing, setRefreshing] = useState(false)
+  const hijriToday = gregorianToHijri()
+  const hijriMonthGrid = useMemo(
+    () => getHijriMonthGrid(hijriToday.year, hijriToday.month),
+    [hijriToday.year, hijriToday.month]
+  )
 
   const loadVerse = useCallback(async (forceNew = false) => {
     try {
@@ -706,6 +712,65 @@ export default function HomeScreen() {
           <Text style={[styles.dhikrMeaning, { color: theme.textSecondary }]}>({dhikr.meaning})</Text>
         </View>
 
+        {/* ── ISLAMIC (HIJRI) CALENDAR ── */}
+        <TouchableOpacity
+          style={[styles.hijriCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => router.push("/islamic-calendar")}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("islamicCalendarTitle")}, ${t(hijriMonthKey(hijriToday.month), { defaultValue: hijriToday.monthName })} ${hijriToday.day}`}
+        >
+          <View style={styles.hijriCardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hijriCardLabel, { color: theme.textSecondary }]}>
+                {t("islamicCalendarTitle")}
+              </Text>
+              <Text style={[styles.hijriMonthName, { color: theme.text }]} numberOfLines={1}>
+                {t(hijriMonthKey(hijriToday.month), { defaultValue: hijriToday.monthName })}{" "}
+                <Text style={styles.hijriYear}>{t("hijriAh", { year: hijriToday.year })}</Text>
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
+          </View>
+
+          <View pointerEvents="none">
+            <View style={styles.hijriWeekdayRow}>
+              {HIJRI_WEEKDAY_LABELS.map((d, i) => (
+                <Text key={`${d}-${i}`} style={styles.hijriWeekdayText}>
+                  {t(`hijriWeekday${i}`)}
+                </Text>
+              ))}
+            </View>
+            <View style={styles.hijriDaysGrid}>
+              {Array.from({ length: hijriMonthGrid.firstWeekday }).map((_, i) => (
+                <View key={`empty-${i}`} style={styles.hijriDayCell} />
+              ))}
+              {hijriMonthGrid.days.map(day => {
+                const isToday =
+                  day.hijriDay === hijriToday.day &&
+                  day.hijriMonth === hijriToday.month &&
+                  day.hijriYear === hijriToday.year
+                return (
+                  <View
+                    key={`${day.hijriYear}-${day.hijriMonth}-${day.hijriDay}`}
+                    style={[styles.hijriDayCell, isToday && styles.hijriDayCellToday]}
+                  >
+                    <Text
+                      style={[
+                        styles.hijriDayText,
+                        { color: isToday ? "#fff" : theme.text },
+                        isToday && styles.hijriDayTextToday,
+                      ]}
+                    >
+                      {day.hijriDay}
+                    </Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* ── QUICK ACCESS ── */}
         <View style={styles.qaHeader}>
           <Text style={[styles.qaTitle, { color: theme.text }]}>{t("quickAccess")}</Text>
@@ -738,7 +803,7 @@ export default function HomeScreen() {
           <View style={styles.donateBtnRow}>
             <TouchableOpacity
               style={styles.donateBtn}
-              onPress={() => Linking.openURL("https://maidabo.com")}
+              onPress={() => Linking.openURL("https://maidabofoundation.com/")}
             >
               <Ionicons name="heart" size={16} color="#fff" />
               <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
@@ -885,6 +950,47 @@ const styles = StyleSheet.create({
   dhikrArabic: { fontSize: 28, color: "#1E3A5F", textAlign: "center", lineHeight: 50, marginBottom: 8 },
   dhikrTranslit: { color: "#C9A84C", fontSize: 14, textAlign: "center", fontStyle: "italic", marginBottom: 4 },
   dhikrMeaning: { fontSize: 13, textAlign: "center" },
+
+  // Hijri calendar card (mini month preview)
+  hijriCard: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 0.5,
+  },
+  hijriCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 8,
+  },
+  hijriCardLabel: { fontSize: 12, fontWeight: "600", marginBottom: 2 },
+  hijriMonthName: { fontSize: 16, fontWeight: "700" },
+  hijriYear: { fontSize: 13, color: "#C9A84C", fontWeight: "600" },
+  hijriWeekdayRow: { flexDirection: "row", marginBottom: 4 },
+  hijriWeekdayText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 9,
+    fontWeight: "600",
+    color: "#C9A84C",
+  },
+  hijriDaysGrid: { flexDirection: "row", flexWrap: "wrap" },
+  hijriDayCell: {
+    width: "14.28%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  hijriDayCellToday: {
+    backgroundColor: "#1E3A5F",
+    borderWidth: 1.5,
+    borderColor: "#C9A84C",
+  },
+  hijriDayText: { fontSize: 12, fontWeight: "600" },
+  hijriDayTextToday: { color: "#fff", fontWeight: "700" },
 
   // Quick Access
   qaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 16, marginTop: 20, marginBottom: 12 },

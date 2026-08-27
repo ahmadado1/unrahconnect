@@ -248,10 +248,50 @@ export default function HotelsScreen() {
 
   function FeaturedHotelCard({ hotel }: { hotel: FeaturedHotel }) {
     const [imageUri, setImageUri] = useState(hotel.image)
+    const [showLogo, setShowLogo] = useState(hotel.imageType === "logo")
 
     useEffect(() => {
       setImageUri(hotel.image)
-    }, [hotel.id, hotel.image])
+      setShowLogo(hotel.imageType === "logo")
+    }, [hotel.id, hotel.image, hotel.imageType])
+
+    const handleImageError = () => {
+      if (imageUri !== hotel.imageFallback) {
+        setImageUri(hotel.imageFallback)
+        setShowLogo(true)
+      }
+    }
+
+    const badge = (
+      <View style={[cardStyles.badge, { backgroundColor: "#1E3A5F" }]}>
+        <Text style={[cardStyles.badgeText, { color: "#C9A84C" }]}>{t("featured")}</Text>
+      </View>
+    )
+
+    const media = showLogo ? (
+      <View style={cardStyles.logoWrap}>
+        <View style={cardStyles.logoBox}>
+          <Image
+            source={{ uri: imageUri }}
+            style={cardStyles.logo}
+            resizeMode="contain"
+            onError={handleImageError}
+          />
+        </View>
+        {badge}
+        <Text style={[cardStyles.imageLabel, cardStyles.imageLabelOnLight]}>{hotel.city}</Text>
+      </View>
+    ) : (
+      <ImageBackground
+        source={{ uri: imageUri }}
+        style={cardStyles.image}
+        imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+        onError={handleImageError}
+      >
+        {badge}
+        <Text style={cardStyles.imageLabel}>{hotel.city}</Text>
+      </ImageBackground>
+    )
 
     return (
       <View
@@ -265,17 +305,7 @@ export default function HotelsScreen() {
           },
         ]}
       >
-        <ImageBackground
-          source={{ uri: imageUri }}
-          style={cardStyles.image}
-          imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
-          onError={() => setImageUri(HOTEL_IMAGE_PLACEHOLDER)}
-        >
-          <View style={[cardStyles.badge, { backgroundColor: "#1E3A5F" }]}>
-            <Text style={[cardStyles.badgeText, { color: "#C9A84C" }]}>{t("featured")}</Text>
-          </View>
-          <Text style={cardStyles.imageLabel}>{hotel.city}</Text>
-        </ImageBackground>
+        {media}
         <View style={cardStyles.info}>
           <Text style={[cardStyles.name, { color: theme.text }]} numberOfLines={2}>
             {hotel.name}

@@ -1,6 +1,7 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import LegalAgreementText from "@/app/components/LegalAgreementText";
 import { useTheme } from "@/context/themeContext";
+import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
 import { isExpoGo } from "../../lib/runtime";
-import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
 import { errorMessageKey, isNetworkError } from "@/lib/networkError";
 
 // ─── GOOGLE SIGN IN ───────────────────────────────────────────────────────────
@@ -37,18 +37,10 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [isSignUp, setIsSignUp] = useState(true)
+  const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
-  const [agentCode, setAgentCode] = useState("")
-  const [agentCodeError, setAgentCodeError] = useState("")
   const { t } = useTranslation()
-
-  useEffect(() => {
-    getPendingReferral().then(code => {
-      if (code) setAgentCode(normalizeReferralCode(code))
-    })
-  }, [])
 
   // Configure Google Sign In on mount
   useEffect(() => {
@@ -87,31 +79,15 @@ export default function LoginScreen() {
 
   // ─── EMAIL AUTH ────────────────────────────────────────────────────────────
 
-  const validateAgentCodeInput = async () => {
-    const code = normalizeReferralCode(agentCode)
-    if (!code) return true
-    const valid = await isValidReferralCode(code)
-    if (!valid) {
-      setAgentCodeError(t("agentCodeInvalid"))
-      return false
-    }
-    setAgentCodeError("")
-    return true
-  }
-
   const handleAuth = async () => {
     if (!email || !password) { setError(t("fillAllFields")); return }
     if (isSignUp && !fullName) { setError(t("enterFullName")); return }
     if (password.length < 6) { setError(t("passwordMinLength")); return }
-    if (!(await validateAgentCodeInput())) return
     setLoading(true)
     setError("")
 
     try {
       if (isSignUp) {
-        const code = normalizeReferralCode(agentCode)
-        if (code) await saveReferralCode(code)
-
         const { error: signUpError } = await supabase.auth.signUp({
           email, password,
           options: { data: { full_name: fullName, gender } }
@@ -138,6 +114,7 @@ export default function LoginScreen() {
             })
           }).then(r => r.text()).then(txt => console.log("Welcome email response:", txt))
             .catch(e => console.log("Welcome email error:", e))
+          // Agent code is collected on the profile setup screen
           router.replace("/auth/setup" as any)
         }
       } else {
@@ -153,8 +130,6 @@ export default function LoginScreen() {
             setError(t(errorMessageKey(error)))
           }
         } else {
-          const code = normalizeReferralCode(agentCode)
-          if (code) await linkPilgrimToAgent(code)
           router.replace("/(tabs)")
         }
       }
@@ -186,8 +161,6 @@ const handleGoogleSignIn = async () => {
           const { data: { user } } = await supabase.auth.getUser()
           const profileComplete = user?.user_metadata?.profile_complete
           if (!profileComplete) {
-            const code = normalizeReferralCode(agentCode)
-            if (code) await saveReferralCode(code)
             fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
               method: "POST",
               headers: {
@@ -201,8 +174,6 @@ const handleGoogleSignIn = async () => {
             }).catch(e => console.log("Welcome email error:", e))
             router.replace("/auth/setup" as any)
           } else {
-            const code = normalizeReferralCode(agentCode)
-            if (code) await linkPilgrimToAgent(code)
             router.replace("/(tabs)")
           }}
       }
@@ -280,8 +251,6 @@ const handleGoogleSignIn = async () => {
       const resolvedName = user?.user_metadata?.full_name || appleFullName || "Pilgrim"
 
       if (!profileComplete) {
-        const code = normalizeReferralCode(agentCode)
-        if (code) await saveReferralCode(code)
         fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
           method: "POST",
           headers: {
@@ -296,8 +265,6 @@ const handleGoogleSignIn = async () => {
         }).catch(e => console.log("Welcome email error:", e))
         router.replace("/auth/setup" as any)
       } else {
-        const code = normalizeReferralCode(agentCode)
-        if (code) await linkPilgrimToAgent(code)
         router.replace("/(tabs)")
       }
     } catch (e: any) {
@@ -335,18 +302,8 @@ const handleGoogleSignIn = async () => {
             </Text>
           </View>
 
-          {/* Sign up / Login switch — Login always one tap away */}
+          {/* Login / Sign up switch — Login first and selected by default */}
           <View style={[styles.modeSwitch, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <TouchableOpacity
-              style={[styles.modeTab, isSignUp && styles.modeTabActive]}
-              onPress={() => { setIsSignUp(true); setError("") }}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSignUp }}
-            >
-              <Text style={[styles.modeTabText, { color: theme.textSecondary }, isSignUp && styles.modeTabTextActive]}>
-                {t("signUp")}
-              </Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeTab, !isSignUp && styles.modeTabActive]}
               onPress={() => { setIsSignUp(false); setError("") }}
@@ -355,6 +312,16 @@ const handleGoogleSignIn = async () => {
             >
               <Text style={[styles.modeTabText, { color: theme.textSecondary }, !isSignUp && styles.modeTabTextActive]}>
                 {t("login")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, isSignUp && styles.modeTabActive]}
+              onPress={() => { setIsSignUp(true); setError("") }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSignUp }}
+            >
+              <Text style={[styles.modeTabText, { color: theme.textSecondary }, isSignUp && styles.modeTabTextActive]}>
+                {t("signUp")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -422,30 +389,6 @@ const handleGoogleSignIn = async () => {
               />
             </View>
 
-            {/* Agent code */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.text }]}>{t("agentCodeOptional")}</Text>
-              <Text style={[styles.fieldHint, { color: theme.textSecondary }]}>{t("agentCodeHint")}</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: theme.card, borderColor: theme.border, color: theme.text },
-                  agentCode.length > 0 && styles.inputApplied,
-                  agentCodeError ? styles.inputError : null,
-                ]}
-                placeholder={t("agentCodePlaceholder")}
-                placeholderTextColor={theme.textSecondary}
-                value={agentCode}
-                onChangeText={text => {
-                  setAgentCode(normalizeReferralCode(text))
-                  if (agentCodeError) setAgentCodeError("")
-                }}
-                autoCapitalize="characters"
-                autoCorrect={false}
-              />
-              {agentCodeError ? <Text style={styles.agentCodeError}>{agentCodeError}</Text> : null}
-            </View>
-
             {/* Forgot password */}
             {!isSignUp && (
               <TouchableOpacity onPress={handleResetPassword} style={styles.forgotBtn}>
@@ -456,7 +399,7 @@ const handleGoogleSignIn = async () => {
             {/* Error */}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* Main button */}
+            {/* Primary email/password CTA */}
             <TouchableOpacity
               style={[styles.btn, loading && styles.btnDisabled]}
               onPress={handleAuth}
@@ -471,39 +414,48 @@ const handleGoogleSignIn = async () => {
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
             ) : null}
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <Text style={[styles.dividerText, { color: theme.textSecondary }]}>or</Text>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-            </View>
+            {/* Social sign-in — always visible (Impact-style: below primary CTA) */}
+            <View style={styles.socialSection}>
+              <View style={styles.divider}>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+                <Text style={[styles.dividerText, { color: theme.textSecondary }]}>
+                  {t("orContinueWith", { defaultValue: "or" })}
+                </Text>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              </View>
 
-            {/* Google Sign In */}
-            <TouchableOpacity
-              style={[styles.googleBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={handleGoogleSignIn}
-            >
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={[styles.googleBtnText, { color: theme.text }]}>
-                Continue with Google
-              </Text>
-            </TouchableOpacity>
-
-            {/* Apple Sign In — only show on iOS */}
+              {/* Apple first on iOS — platform convention */}
               {Platform.OS === "ios" && (
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={25}
-                  style={{ height: 50, marginBottom: 16 }}
+                <TouchableOpacity
+                  style={[styles.socialBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
                   onPress={handleAppleSignIn}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel={t("continueWithApple", { defaultValue: "Continue with Apple" })}
+                >
+                  <Ionicons name="logo-apple" size={20} color={theme.text} />
+                  <Text style={[styles.socialBtnText, { color: theme.text }]}>
+                    {t("continueWithApple", { defaultValue: "Continue with Apple" })}
+                  </Text>
+                </TouchableOpacity>
               )}
 
-            {/* Applies to Google / Apple account creation as well */}
-            <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
+              <TouchableOpacity
+                style={[styles.socialBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+                onPress={handleGoogleSignIn}
+                accessibilityRole="button"
+                accessibilityLabel={t("continueWithGoogle", { defaultValue: "Continue with Google" })}
+              >
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={[styles.socialBtnText, { color: theme.text }]}>
+                  {t("continueWithGoogle", { defaultValue: "Continue with Google" })}
+                </Text>
+              </TouchableOpacity>
+
+              <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
+            </View>
 
           </View>
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -551,10 +503,6 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
   input: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 0.5 },
-  inputApplied: { borderColor: "#C9A84C", borderWidth: 1.5 },
-  inputError: { borderColor: "#E24B4A", borderWidth: 1 },
-  fieldHint: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
-  agentCodeError: { color: "#E24B4A", fontSize: 12, marginTop: 6 },
   error: { color: "#E24B4A", fontSize: 13, marginBottom: 16, textAlign: "center" },
   btn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginBottom: 12, marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
@@ -562,10 +510,20 @@ const styles = StyleSheet.create({
   legalText: { marginBottom: 16, paddingHorizontal: 8 },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 16 },
   forgotText: { color: "#C9A84C", fontSize: 13 },
-  divider: { flexDirection: "row", alignItems: "center", marginVertical: 20, gap: 12 },
+  socialSection: { marginTop: 4, marginBottom: 24 },
+  divider: { flexDirection: "row", alignItems: "center", marginVertical: 16, gap: 12 },
   dividerLine: { flex: 1, height: 0.5 },
   dividerText: { fontSize: 13 },
-  googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, borderRadius: 25, padding: 14, borderWidth: 0.5, marginBottom: 16 },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    borderRadius: 25,
+    padding: 14,
+    borderWidth: 0.5,
+    marginBottom: 12,
+  },
+  socialBtnText: { fontSize: 15, fontWeight: "500" },
   googleIcon: { fontSize: 16, fontWeight: "bold", color: "#4285F4" },
-  googleBtnText: { fontSize: 15, fontWeight: "500" },
 })

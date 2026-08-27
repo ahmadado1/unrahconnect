@@ -57,7 +57,7 @@
       "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"]
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/logo.jpg"
     },
     "notification": {
