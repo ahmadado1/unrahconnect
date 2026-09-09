@@ -1,15 +1,17 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { AIGuideProvider } from "@/context/AIGuideContext";
-import { ThemeProvider } from "@/context/themeContext";
+import { ThemeProvider, useTheme } from "@/context/themeContext";
 import "@/i18n";
 import {
   handlePrayerNotificationOpen,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
+  scheduleAlMulkReminder,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
+  scheduleJourneyReminders,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications";
 import { normalizeReferralCode, saveReferralCode } from "@/lib/referral";
@@ -50,20 +52,40 @@ export default function RootLayout() {
       return
     }
 
-    if (identifier === "journey-reminder") {
-      if (data?.type === "hajj") {
-        router.push("/hajj")
-      } else {
-        router.push("/umrah-guide")
-      }
+    if (identifier === "journey-reminder-hajj" || (identifier === "journey-reminder" && data?.type === "hajj")) {
+      router.push("/hajj")
+    } else if (
+      identifier === "journey-reminder" ||
+      identifier === "journey-reminder-umrah"
+    ) {
+      router.push("/umrah-guide")
     } else if (identifier === "daily-verse") {
       router.push("/quran")
     } else if (
-      identifier === "al-kahf-friday" ||
+      identifier.startsWith("al-kahf") ||
       data?.screen === "al-kahf" ||
+      data?.route === "/quran/kahf" ||
       data?.route === "/quran/18"
     ) {
-      router.push("/quran/18" as any)
+      router.push("/quran/kahf" as any)
+    } else if (
+      identifier.startsWith("al-mulk") ||
+      data?.screen === "al-mulk" ||
+      data?.route === "/quran/67"
+    ) {
+      router.push({
+        pathname: "/quran/[surah]",
+        params: {
+          surah: "67",
+          name: "Al-Mulk",
+          arabicName: "الملك",
+          verses: "30",
+          type: "Meccan",
+          ayah: "1",
+          resume: "0",
+          expand: "1",
+        },
+      } as any)
     } else if (
       identifier === "adhkar-reminder-morning" ||
       identifier === "dhikr-reminder-morning" ||
@@ -129,6 +151,8 @@ export default function RootLayout() {
         await scheduleDailyDhikrReminders().catch(console.log)
         await scheduleIslamicDateReminders().catch(console.log)
         await scheduleAlKahfReminder().catch(console.log)
+        await scheduleAlMulkReminder().catch(console.log)
+        await scheduleJourneyReminders().catch(console.log)
       }
     })
 
@@ -227,46 +251,7 @@ const checkAuth = async () => {
           <View style={{ flex: 1, backgroundColor: "#1E3A5F" }}>
             <QuranBackgroundDownload />
             {/* Always mount Stack so notification/auth navigation never races ahead of the root layout */}
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="auth/login" />
-              <Stack.Screen name="auth/reset-password" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="hotels" />
-              <Stack.Screen name="restaurants" />
-              <Stack.Screen name="profile" />
-              <Stack.Screen name="favorites" />
-              <Stack.Screen name="about" />
-              <Stack.Screen name="contact" />
-              <Stack.Screen name="settings" />
-              <Stack.Screen name="notifications" />
-              <Stack.Screen name="privacy" />
-              <Stack.Screen name="terms" />
-              <Stack.Screen name="booking" />
-              <Stack.Screen name="search" />
-              <Stack.Screen name="hajj" />
-              <Stack.Screen name="hajj/[hajj]" />
-              <Stack.Screen name="umrah-guide" />
-              <Stack.Screen name="quran" />
-              <Stack.Screen name="quran/[surah]" />
-              <Stack.Screen name="quran/bookmark" />
-              <Stack.Screen name="duas" />
-              <Stack.Screen name="islamic-calendar" />
-              <Stack.Screen name="maps/[site]" />
-              <Stack.Screen name="makkah-places" />
-              <Stack.Screen name="makkah-place/[id]" />
-              <Stack.Screen name="haramain/[station]" />
-              <Stack.Screen name="auth/setup" />
-              <Stack.Screen name="auth/plans" />
-              <Stack.Screen name="agent/dashboard" />
-              <Stack.Screen name="agent/index" />
-              <Stack.Screen name="agent/[id]" />
-              <Stack.Screen name="join" />
-              <Stack.Screen name="qiblah" />
-              <Stack.Screen name="AIGuideScreen" />
-              <Stack.Screen name="MorningAdhkarScreen" />
-              <Stack.Screen name="EveningAdhkarScreen" />
-            </Stack>
+            <AppStack />
 
             {status === "loading" && (
               <View
@@ -290,5 +275,62 @@ const checkAuth = async () => {
         </PrayerAlertProvider>
       </AIGuideProvider>
     </ThemeProvider>
+  )
+}
+
+function AppStack() {
+  const { theme } = useTheme()
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        animationDuration: 280,
+        animationTypeForReplace: "push",
+        contentStyle: { backgroundColor: theme.background },
+        gestureEnabled: true,
+      }}
+    >
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="auth/login" />
+      <Stack.Screen name="auth/reset-password" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="hotels" />
+      <Stack.Screen name="hotel-webview" />
+      <Stack.Screen name="restaurants" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="favorites" />
+      <Stack.Screen name="about" />
+      <Stack.Screen name="contact" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="terms" />
+      <Stack.Screen name="booking" />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="hajj" />
+      <Stack.Screen name="hajj/[hajj]" />
+      <Stack.Screen name="umrah-guide" />
+      <Stack.Screen name="quran" />
+      <Stack.Screen name="quran/[surah]" />
+      <Stack.Screen name="quran/kahf" />
+      <Stack.Screen name="quran/bookmark" />
+      <Stack.Screen name="duas" />
+      <Stack.Screen name="islamic-calendar" />
+      <Stack.Screen name="maps/[site]" />
+      <Stack.Screen name="makkah-places" />
+      <Stack.Screen name="makkah-place/[id]" />
+      <Stack.Screen name="haramain/[station]" />
+      <Stack.Screen name="auth/setup" />
+      <Stack.Screen name="auth/plans" />
+      <Stack.Screen name="agent/dashboard" />
+      <Stack.Screen name="agent/index" />
+      <Stack.Screen name="agent/[id]" />
+      <Stack.Screen name="join" />
+      <Stack.Screen name="qiblah" />
+      <Stack.Screen name="AIGuideScreen" />
+      <Stack.Screen name="MorningAdhkarScreen" />
+      <Stack.Screen name="EveningAdhkarScreen" />
+    </Stack>
   )
 }

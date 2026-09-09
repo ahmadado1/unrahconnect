@@ -1,3 +1,4 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
 import {
@@ -5,20 +6,21 @@ import {
   haramainStationMapsUrl,
   HARAMAIN_PHONE_DISPLAY,
 } from "@/lib/haramainStations"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
 import {
-  ImageBackground,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 function callStation(phone: string) {
@@ -72,22 +74,19 @@ export default function HaramainStationScreen() {
   const station = getHaramainStation(stationId)
 
   if (!station) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>{t("stationNotFound")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>{t("goBack")}</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("stationNotFound")} />
   }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <ImageBackground source={{ uri: station.image }} style={styles.hero}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
+        <HeroBackground source={{ uri: station.image }} style={styles.hero}>
           <View style={styles.heroOverlay} />
           <TouchableOpacity style={[styles.backBtn, { top: insets.top + 8 }]} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -98,7 +97,7 @@ export default function HaramainStationScreen() {
             <Text style={styles.heroArabic}>{t(station.arabicNameKey)}</Text>
             <Text style={styles.heroSub}>{t("haramainRailway")}</Text>
           </View>
-        </ImageBackground>
+        </HeroBackground>
 
         <View style={styles.content}>
           {/* Quick stats */}
@@ -148,7 +147,10 @@ export default function HaramainStationScreen() {
               <Text style={styles.actionPrimaryText}>{t("getDirections")}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionPrimary} onPress={() => Linking.openURL(station.bookUrl)}>
+            <TouchableOpacity
+              style={styles.actionPrimary}
+              onPress={() => openExternalUrl(router, station.bookUrl, t("bookTickets"))}
+            >
               <Ionicons name="ticket" size={18} color="#C9A84C" />
               <Text style={styles.actionPrimaryText}>{t("bookTickets")}</Text>
             </TouchableOpacity>
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
   notFound: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   notFoundText: { fontSize: 16, marginBottom: 12 },
   backLink: { color: "#C9A84C", fontWeight: "600" },
-  hero: { height: 260, justifyContent: "flex-end" },
+  hero: { height: 260, justifyContent: "flex-end", backgroundColor: "#1E3A5F" },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(30,58,95,0.72)" },
   backBtn: {
     position: "absolute",
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   statsRow: {
     flexDirection: "row",
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 16,
     marginBottom: 8,
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 13, fontWeight: "700", textAlign: "center" },
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
-  sectionCard: { borderRadius: 14, borderWidth: 0.5, overflow: "hidden" },
+  sectionCard: { borderRadius: 16, borderWidth: 0.5, overflow: "hidden" },
   bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#C9A84C", marginTop: 7 },
   bulletText: { flex: 1, fontSize: 14, lineHeight: 21 },

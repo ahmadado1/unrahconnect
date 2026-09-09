@@ -6,7 +6,10 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Image, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom } from "@/lib/ui"
+import ScreenState from "@/app/components/ScreenState"
 import RawdahVisitCard from "../components/RawdahVisitCard"
 import SiteMapView from "../components/SiteMapView"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -280,7 +283,7 @@ export default function SiteDetailScreen() {
   const [showMap, setShowMap] = useState(false)
 
   const info = SITE_INFO[site]
-  if (!info) return null
+  if (!info) return <ScreenState kind="missing" />
 
   const siteName = t(info.nameKey)
 
@@ -303,7 +306,11 @@ export default function SiteDetailScreen() {
         <AnimatedHeroIcon name={info.icon} size={40} accent="gold" />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
 
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.description, { color: theme.text }]}>{t(info.descriptionKey)}</Text>
@@ -652,7 +659,7 @@ export default function SiteDetailScreen() {
           </>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -664,16 +671,16 @@ const styles = StyleSheet.create({
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 6 },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   headerArabic: { color: "#C9A84C", fontSize: 13, marginTop: 2 },
-  card: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16, borderWidth: 0.5 },
+  card: { marginHorizontal: 16, marginTop: 12, borderRadius: 16, padding: 16, borderWidth: 0.5 },
   description: { fontSize: 14, lineHeight: 22 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginHorizontal: 16, marginTop: 20, marginBottom: 4 },
   sectionSub: { fontSize: 12, marginHorizontal: 16, marginBottom: 8 },
   factRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10 },
   factDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#C9A84C", marginTop: 6, flexShrink: 0 },
   factText: { fontSize: 13, lineHeight: 20, flex: 1 },
-  navBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#C9A84C", margin: 16, borderRadius: 25, padding: 14 },
+  navBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#C9A84C", margin: 16, borderRadius: 16, padding: 16 },
   navBtnText: { color: "#1E3A5F", fontSize: 15, fontWeight: "bold" },
-  gateCard: { marginHorizontal: 16, marginBottom: 10, borderRadius: 12, padding: 14, borderWidth: 0.5, flexDirection: "row", alignItems: "center", gap: 10 },
+  gateCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 0.5, flexDirection: "row", alignItems: "center", gap: 10 },
   gateLeft: { flex: 1, flexDirection: "row", gap: 12, alignItems: "flex-start" },
   gateNum: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   gateNumText: { fontSize: 13, fontWeight: "bold" },
@@ -686,7 +693,7 @@ const styles = StyleSheet.create({
   helpCard: {
     marginHorizontal: 16,
     marginBottom: 10,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 0.5,
     flexDirection: "row",

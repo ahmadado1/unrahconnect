@@ -6,8 +6,10 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AppButton from "../components/AppButton";
 import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
 import { isExpoGo } from "../../lib/runtime";
@@ -399,16 +401,12 @@ const handleGoogleSignIn = async () => {
             {/* Error */}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* Primary email/password CTA */}
-            <TouchableOpacity
-              style={[styles.btn, loading && styles.btnDisabled]}
+            <AppButton
+              label={isSignUp ? t("signUp") : t("login")}
               onPress={handleAuth}
-              disabled={loading}
-            >
-              <Text style={styles.btnText}>
-                {loading ? t("pleaseWait") : isSignUp ? t("signUp") : t("login")}
-              </Text>
-            </TouchableOpacity>
+              loading={loading}
+              style={styles.btn}
+            />
 
             {isSignUp ? (
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
@@ -472,7 +470,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15 },
   modeSwitch: {
     flexDirection: "row",
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 4,
     marginBottom: 28,
@@ -504,9 +502,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
   input: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 0.5 },
   error: { color: "#E24B4A", fontSize: 13, marginBottom: 16, textAlign: "center" },
-  btn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginBottom: 12, marginTop: 8 },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  btn: { marginBottom: 12, marginTop: 8 },
   legalText: { marginBottom: 16, paddingHorizontal: 8 },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 16 },
   forgotText: { color: "#C9A84C", fontSize: 13 },
@@ -519,7 +515,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    borderRadius: 25,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 0.5,
     marginBottom: 12,

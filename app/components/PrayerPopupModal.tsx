@@ -1,3 +1,4 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon } from "@/components/AppIcon"
 import { PRAYER_INFO, type PrayerName } from "@/lib/prayerConstants"
 import { readCachedPrayerTimes } from "@/lib/prayerTimes"
@@ -13,14 +14,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ActivityIndicator,
-  ImageBackground,
   Modal,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   type ImageSourcePropType,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type PrayerPopupModalProps = {
@@ -159,7 +159,7 @@ export default function PrayerPopupModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      <ImageBackground
+      <HeroBackground
         source={bgSource}
         style={styles.screen}
         resizeMode="cover"
@@ -247,7 +247,7 @@ export default function PrayerPopupModal({
             </View>
           </View>
         </View>
-      </ImageBackground>
+      </HeroBackground>
     </Modal>
   )
 }

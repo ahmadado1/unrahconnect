@@ -11,9 +11,9 @@ import {
   Animated,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /** Precise Kaaba center (Masjid al-Haram), WGS84 */
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   compassDial: {
     width: 280,
     height: 280,
-    borderRadius: 140,
+    borderRadius: 160,
     borderWidth: 2.5,
     alignItems: "center",
     justifyContent: "center",

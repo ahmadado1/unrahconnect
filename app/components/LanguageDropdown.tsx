@@ -3,7 +3,8 @@ import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useTranslation } from "react-i18next"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 
 export const LANGUAGES = [
   { code: "en", label: "English", native: "English" },
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 14,
   },
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   triggerHint: { fontSize: 12, marginTop: 2 },
   menu: {
     marginTop: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     overflow: "hidden",
   },

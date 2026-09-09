@@ -3,6 +3,7 @@ import QuranReadModeModal from "@/app/components/QuranReadModeModal"
 import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
+import { loadLastReadState } from "@/lib/quranLastRead"
 import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
 import {
   getCachedQuranReadMode,
@@ -11,6 +12,10 @@ import {
   toggleQuranReadMode,
   type QuranReadMode,
 } from "@/lib/quranReadMode"
+import { getSurahMeta } from "@/lib/quranSurahMeta"
+import { QURAN_QUICK_LINKS } from "@/lib/quickLinks"
+import { searchSurahs } from "@/lib/surahSearch"
+import type { LastReadEntry } from "@/lib/lastReadRegister"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -18,7 +23,8 @@ import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../lib/supabase"
 
@@ -31,14 +37,6 @@ type Surah = {
   englishNameTranslation: string
   numberOfAyahs: number
   revelationType: string
-}
-
-// Last reading position fetched from Supabase
-type LastRead = {
-  surah_number: number
-  surah_name: string
-  surah_arabic: string
-  verse_number: number
 }
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
@@ -57,8 +55,7 @@ export default function QuranScreen() {
 
   const [bookmarkCount, setBookmarkCount] = useState(0)
 
-  // Last read position — shown in Continue Reading card
-  const [lastRead, setLastRead] = useState<LastRead | null>(null)
+  const [lastReadEntries, setLastReadEntries] = useState<LastReadEntry[]>([])
 
   const cachedMode = getCachedQuranReadMode()
   const [readMode, setReadMode] = useState<QuranReadMode | null>(() => cachedMode)
@@ -110,20 +107,15 @@ export default function QuranScreen() {
     await setQuranReadMode(next)
   }
 
-  // Filter surahs when search changes
   useEffect(() => {
     if (!search.trim()) {
       setFiltered(surahs)
       return
     }
-    const q = search.toLowerCase()
-    setFiltered(
-      surahs.filter(s =>
-        s.englishName.toLowerCase().includes(q) ||
-        s.englishNameTranslation.toLowerCase().includes(q) ||
-        s.number.toString().includes(q)
-      )
-    )
+    const timer = setTimeout(() => {
+      setFiltered(searchSurahs(search, surahs))
+    }, 180)
+    return () => clearTimeout(timer)
   }, [search, surahs])
 
   // Bookmark 
@@ -151,7 +143,6 @@ export default function QuranScreen() {
       if (cached) {
         const parsed = JSON.parse(cached)
         setSurahs(parsed)
-        setFiltered(parsed)
         setLoading(false)
       }
 
@@ -172,7 +163,6 @@ export default function QuranScreen() {
         const data = await res.json()
         if (data.code === 200) {
           setSurahs(data.data)
-          setFiltered(data.data)
           await AsyncStorage.setItem("quran_surahs", JSON.stringify(data.data))
         } else if (!cached) {
           setError(true)
@@ -193,31 +183,16 @@ export default function QuranScreen() {
     }
   }
 
-  // ─── FETCH LAST READ ───────────────────────────────────────────────────────
-
-  // Gets the most recently read surah and verse from Supabase
   const fetchLastRead = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      const { data } = await supabase
-        .from("quran_progress")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .single()
-
-      if (data) setLastRead(data)
+      const state = await loadLastReadState()
+      setLastReadEntries(state.entries)
     } catch (e) {
       console.log("Last read fetch error:", e)
     }
   }
 
-  // ─── NAVIGATE TO SURAH ─────────────────────────────────────────────────────
-
-  const goToSurah = (item: Surah, options?: { resume?: boolean }) => {
+  const goToSurah = (item: Surah, options?: { ayah?: number }) => {
     router.push({
       pathname: "/quran/[surah]",
       params: {
@@ -226,9 +201,32 @@ export default function QuranScreen() {
         arabicName: item.name,
         verses: String(item.numberOfAyahs),
         type: item.revelationType,
-        // List selection opens at ayah 1; Continue Reading resumes last verse
-        resume: options?.resume ? "1" : "0",
+        resume: "0",
         mode: readMode ?? "verses",
+        ...(options?.ayah ? { ayah: String(options.ayah) } : {}),
+      },
+    })
+  }
+
+  const openSurahByNumber = (surahNumber: number, ayah?: number) => {
+    const item = surahs.find(s => s.number === surahNumber)
+    if (item) {
+      goToSurah(item, { ayah })
+      return
+    }
+    const meta = getSurahMeta(surahNumber)
+    if (!meta) return
+    router.push({
+      pathname: "/quran/[surah]",
+      params: {
+        surah: String(meta.number),
+        name: meta.englishName,
+        arabicName: meta.arabicName,
+        verses: String(meta.ayahCount),
+        type: meta.revelationType,
+        resume: "0",
+        mode: readMode ?? "verses",
+        ...(ayah ? { ayah: String(ayah) } : {}),
       },
     })
   }
@@ -343,39 +341,49 @@ export default function QuranScreen() {
 
           ListHeaderComponent={() => (
             <>
-              {/* Continue Reading card — only shown if user has read before */}
-              {lastRead && (
-                <TouchableOpacity
-                  style={[styles.continueCard, { borderColor: theme.gold }]}
-                  onPress={() => {
-                    // Find the full surah data so we can pass all params
-                    const surahData = surahs.find(s => s.number === lastRead.surah_number)
-                    if (surahData) goToSurah(surahData, { resume: true })
-                  }}
-                >
-                  <AnimatedHeroIcon name="book" size={36} accent="gold" />
-
-                  <View style={styles.continueInfo}>
-                    {/* Label */}
-                    <Text style={styles.continueLabel}>CONTINUE READING</Text>
-
-                    {/* Arabic surah name */}
-                    <Text style={[
-                      styles.continueArabic,
-                      fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" }
-                    ]}>
-                      {lastRead.surah_arabic}
-                    </Text>
-
-                    {/* English name and verse */}
-                    <Text style={[styles.continueName, { color: theme.text }]}>
-                      {lastRead.surah_name} · Verse {lastRead.verse_number}
-                    </Text>
-                  </View>
-
-                  <Ionicons name="chevron-forward" size={20} color={theme.gold} />
-                </TouchableOpacity>
+              {lastReadEntries.length > 0 && (
+                <View style={styles.chipSection}>
+                  <Text style={styles.continueLabel}>LAST READ</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                  >
+                    {lastReadEntries.map((entry, index) => (
+                      <TouchableOpacity
+                        key={`${entry.surahNumber}-${entry.registeredAt}-${index}`}
+                        style={[styles.linkChip, { borderColor: theme.gold }]}
+                        onPress={() => openSurahByNumber(entry.surahNumber, entry.ayah)}
+                      >
+                        <Text style={[styles.linkChipText, { color: theme.text }]} numberOfLines={1}>
+                          {entry.englishName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               )}
+
+              <View style={styles.chipSection}>
+                <Text style={styles.continueLabel}>QUICK LINKS</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipRow}
+                >
+                  {QURAN_QUICK_LINKS.map(link => (
+                    <TouchableOpacity
+                      key={link.label}
+                      style={[styles.linkChip, { borderColor: theme.gold }]}
+                      onPress={() => openSurahByNumber(link.surahNumber, link.startAyah)}
+                    >
+                      <Text style={[styles.linkChipText, { color: theme.text }]} numberOfLines={1}>
+                        {link.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
               {/* Bookmarks card */}
                 <TouchableOpacity
@@ -434,12 +442,18 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   loadingText: { fontSize: 14 },
 
-  // Continue Reading card
-  continueCard: { margin: 16, marginBottom: 8, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(201,168,76,0.1)", borderWidth: 1 },
-  continueInfo: { flex: 1 },
   continueLabel: { color: "#C9A84C", fontSize: 10, fontWeight: "600", letterSpacing: 0.8, marginBottom: 4 },
-  continueArabic: { fontSize: 20, color: "#1E3A5F", marginBottom: 2 },
   continueName: { fontSize: 13, fontWeight: "500" },
+  chipSection: { marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
+  chipRow: { flexDirection: "row", gap: 8, paddingBottom: 4 },
+  linkChip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "rgba(201,168,76,0.1)",
+  },
+  linkChipText: { fontSize: 13, fontWeight: "600" },
 
   // All Surahs header
   listHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 0.5 },

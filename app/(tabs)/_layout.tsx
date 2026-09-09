@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 const GOLD = "#C9A84C"
@@ -35,6 +36,8 @@ function nativeIconColors() {
 function StandardTabs() {
   const { theme } = useTheme()
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
+  const tabBarHeight = 56 + Math.max(insets.bottom, 8)
 
   return (
     <Tabs
@@ -44,9 +47,9 @@ function StandardTabs() {
           backgroundColor: theme.card,
           borderTopWidth: 0.5,
           borderTopColor: theme.border,
-          height: 90,
-          paddingBottom: 22,
-          paddingTop: 10,
+          height: tabBarHeight,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
         },
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: theme.textSecondary,
@@ -75,6 +78,7 @@ function NativeTabsLayout() {
       tintColor={nativeTintColor()}
       iconColor={iconColor}
       labelStyle={{ color: nativeLabelColor(isDark) }}
+      disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="index">
         <Label>{t("home")}</Label>

@@ -9,7 +9,7 @@ const lightTheme = {
   header: "#1E3A5F",
   headerSecondary: "#2C5F8A",
   text: "#1E3A5F",
-  textSecondary: "#888888",
+  textSecondary: "#5C6B7A",
   textMuted: "#64748B",
   gold: "#C9A84C",
   border: "#E0D9CE",

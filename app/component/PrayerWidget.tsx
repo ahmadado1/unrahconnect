@@ -53,20 +53,16 @@ export default function PrayerWidget() {
   const { t } = useTranslation()
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [loading, setLoading] = useState(true)
-
   const load = useCallback(async (preferCacheFirst = true) => {
     if (preferCacheFirst) {
       const cached = await readCachedPrayerTimes()
       if (cached) {
         setPrayerTimes(cached)
-        setLoading(false)
       }
     }
 
     const fresh = await fetchAndCachePrayerTimes()
     if (fresh) setPrayerTimes(fresh)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -94,7 +90,11 @@ export default function PrayerWidget() {
 
   const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes()
 
-  const getNextPrayer = () => {
+  const getNextPrayer = (): {
+    name: (typeof PRAYER_NAMES)[number]
+    time: string
+    minutesLeft: number
+  } | null => {
     if (!prayerTimes) return null
     for (const name of PRAYER_NAMES) {
       const prayerMin = timeToMinutes(prayerTimes[name])
@@ -109,7 +109,11 @@ export default function PrayerWidget() {
     }
   }
 
-  const nextPrayer = getNextPrayer()
+  const nextPrayer = getNextPrayer() ?? {
+    name: "Fajr" as const,
+    time: "--:--",
+    minutesLeft: 0,
+  }
 
   const getPrayerStatus = (name: DisplayRow) => {
     if (!prayerTimes) return "upcoming"
@@ -121,7 +125,7 @@ export default function PrayerWidget() {
       return prayerMin < nowMinutes ? "past" : "upcoming"
     }
     if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) return "next"
-    if (nextPrayer?.name === name) return "next"
+    if (nextPrayer.name === name) return "next"
     if (prayerMin < nowMinutes) return "past"
     return "upcoming"
   }
@@ -149,128 +153,116 @@ export default function PrayerWidget() {
       <View style={styles.topRow}>
         <Text style={styles.prayerLabel}>{t("prayerTimes")}</Text>
         <View style={styles.separatorV} />
-        {prayerTimes && (
-          <View style={styles.locationRow}>
-            <Ionicons name="location" size={11} color="#C9A84C" />
-            <Text style={styles.locationText}>{prayerTimes.city}</Text>
-          </View>
-        )}
+        <View style={styles.locationRow}>
+          <Ionicons name="location" size={11} color="#C9A84C" />
+          <Text style={styles.locationText}>{prayerTimes?.city || "—"}</Text>
+        </View>
       </View>
 
-      {prayerTimes && (
-        <View style={styles.hijriBadge}>
-          <Ionicons name="calendar-outline" size={11} color="#C9A84C" />
-          <Text style={styles.hijriText}>{prayerTimes.date}</Text>
+      <View style={styles.hijriBadge}>
+        <Ionicons name="calendar-outline" size={11} color="#C9A84C" />
+        <Text style={styles.hijriText}>{prayerTimes?.date || "—"}</Text>
+      </View>
+
+      <View style={styles.nextPrayerBox}>
+        <View>
+          <Text style={styles.nextLabel}>
+            {currentPrayer
+              ? `${t("currentPrayer")} — ${prayerLabel(currentPrayer.name)}`
+              : `${t("nextPrayer")} — ${prayerLabel(nextPrayer.name)}`}
+          </Text>
+          <Text style={styles.nextTime}>
+            {currentPrayer ? currentPrayer.time : nextPrayer.time}
+          </Text>
         </View>
-      )}
+        <GeometricFlower />
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={styles.countdownLabel}>{t("timeRemaining")}</Text>
+          <Text style={styles.countdown}>
+            {prayerTimes ? formatCountdown(nextPrayer.minutesLeft) : "--:--"}
+          </Text>
+        </View>
+      </View>
 
-      {loading ? (
-        <Text style={styles.loadingText}>{t("gettingPrayerTimes")}</Text>
-      ) : prayerTimes ? (
-        <>
-          {nextPrayer && (
-            <View style={styles.nextPrayerBox}>
-              <View>
-                <Text style={styles.nextLabel}>
-                  {currentPrayer
-                    ? `${t("currentPrayer")} — ${prayerLabel(currentPrayer.name)}`
-                    : `${t("nextPrayer")} — ${prayerLabel(nextPrayer.name)}`}
-                </Text>
-                <Text style={styles.nextTime}>
-                  {currentPrayer ? currentPrayer.time : nextPrayer.time}
-                </Text>
-              </View>
-              <GeometricFlower />
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.countdownLabel}>{t("timeRemaining")}</Text>
-                <Text style={styles.countdown}>{formatCountdown(nextPrayer.minutesLeft)}</Text>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.prayersList}>
-            {PRAYER_DISPLAY_ROWS.map(name => {
-              const timeValue =
-                name === "Sunrise" ? prayerTimes.Sunrise : prayerTimes[name]
-              if (!timeValue) return null
-              const status = getPrayerStatus(name)
-              const isSunrise = name === "Sunrise"
-              return (
-                <View
-                  key={name}
+      <View style={styles.prayersList}>
+        {PRAYER_DISPLAY_ROWS.map(name => {
+          const isSunrise = name === "Sunrise"
+          const timeValue = isSunrise
+            ? prayerTimes?.Sunrise
+            : prayerTimes?.[name as (typeof PRAYER_NAMES)[number]]
+          const status = getPrayerStatus(name)
+          return (
+            <View
+              key={name}
+              style={[
+                styles.prayerRow,
+                status === "next" && styles.prayerRowNext,
+                status === "past" && styles.prayerRowPast,
+                isSunrise && styles.prayerRowSunrise,
+              ]}
+            >
+              <View style={styles.prayerLeft}>
+                <Ionicons
+                  name={
+                    isSunrise
+                      ? "sunny-outline"
+                      : (PRAYER_ICONS[name as (typeof PRAYER_NAMES)[number]] as any)
+                  }
+                  size={16}
+                  color={
+                    isSunrise
+                      ? "rgba(201,168,76,0.55)"
+                      : status === "next"
+                        ? "#C9A84C"
+                        : status === "past"
+                          ? "rgba(255,255,255,0.25)"
+                          : "rgba(255,255,255,0.5)"
+                  }
+                />
+                <Text
                   style={[
-                    styles.prayerRow,
-                    status === "next" && styles.prayerRowNext,
-                    status === "past" && styles.prayerRowPast,
-                    isSunrise && styles.prayerRowSunrise,
+                    styles.prayerName,
+                    status === "past" && styles.prayerNamePast,
+                    status === "next" && styles.prayerNameNext,
+                    isSunrise && styles.prayerNameSunrise,
                   ]}
                 >
-                  <View style={styles.prayerLeft}>
-                    <Ionicons
-                      name={
-                        isSunrise
-                          ? "sunny-outline"
-                          : (PRAYER_ICONS[name as (typeof PRAYER_NAMES)[number]] as any)
-                      }
-                      size={16}
-                      color={
-                        isSunrise
-                          ? "rgba(201,168,76,0.55)"
-                          : status === "next"
-                            ? "#C9A84C"
-                            : status === "past"
-                              ? "rgba(255,255,255,0.25)"
-                              : "rgba(255,255,255,0.5)"
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.prayerName,
-                        status === "past" && styles.prayerNamePast,
-                        status === "next" && styles.prayerNameNext,
-                        isSunrise && styles.prayerNameSunrise,
-                      ]}
-                    >
-                      {prayerLabel(name)}
-                    </Text>
+                  {prayerLabel(name)}
+                </Text>
+              </View>
+              <View style={styles.prayerRight}>
+                <Text
+                  style={[
+                    styles.prayerTime,
+                    status === "past" && styles.prayerTimePast,
+                    status === "next" && styles.prayerTimeNext,
+                    isSunrise && styles.prayerTimeSunrise,
+                  ]}
+                >
+                  {timeValue || "--:--"}
+                </Text>
+                {isSunrise ? (
+                  <View style={styles.sunriseMark}>
+                    <Ionicons name="ellipse-outline" size={10} color="rgba(201,168,76,0.45)" />
                   </View>
-                  <View style={styles.prayerRight}>
-                    <Text
-                      style={[
-                        styles.prayerTime,
-                        status === "past" && styles.prayerTimePast,
-                        status === "next" && styles.prayerTimeNext,
-                        isSunrise && styles.prayerTimeSunrise,
-                      ]}
-                    >
-                      {timeValue}
-                    </Text>
-                    {isSunrise ? (
-                      <View style={styles.sunriseMark}>
-                        <Ionicons name="ellipse-outline" size={10} color="rgba(201,168,76,0.45)" />
-                      </View>
-                    ) : status === "past" ? (
-                      <View style={styles.checkCircle}>
-                        <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.4)" />
-                      </View>
-                    ) : (
-                      <View style={[styles.dot, status === "next" && styles.dotNext]} />
-                    )}
+                ) : status === "past" ? (
+                  <View style={styles.checkCircle}>
+                    <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.4)" />
                   </View>
-                </View>
-              )
-            })}
-          </View>
-        </>
-      ) : (
-        <Text style={styles.loadingText}>Could not load prayer times</Text>
-      )}
+                ) : (
+                  <View style={[styles.dot, status === "next" && styles.dotNext]} />
+                )}
+              </View>
+            </View>
+          )
+        })}
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  widget: { padding: 16, paddingBottom: 24, overflow: "hidden", position: "relative" },
+  widget: { padding: 16, paddingBottom: 24, overflow: "hidden", position: "relative", minHeight: 420 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   prayerLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
   separatorV: { width: 1, height: 12, backgroundColor: "rgba(201,168,76,0.4)" },

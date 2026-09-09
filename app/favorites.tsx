@@ -8,7 +8,8 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../lib/supabase"
 
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, textAlign: "center", lineHeight: 22 },
   section: { marginTop: 24, paddingHorizontal: 16 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12 },
-  card: { borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 0.5 },
+  card: { borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 0.5 },
   cardImage: { width: 60, height: 60, borderRadius: 10, overflow: "hidden" },
   cardImageFill: { width: "100%", height: "100%" },
   logoThumb: {

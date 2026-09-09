@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useTranslation } from "react-i18next"
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ContactScreen() {
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   topSection: { alignItems: "center", padding: 28 },
   topTitle: { color: "#fff", fontSize: 22, fontWeight: "bold", marginBottom: 6 },
   topSub: { color: "rgba(255,255,255,0.6)", fontSize: 13, textAlign: "center" },
-  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 18, borderWidth: 0.5 },
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 18, borderWidth: 0.5 },
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 14 },
   contactBtn: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 0.5 },
   contactIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },

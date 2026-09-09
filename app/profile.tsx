@@ -11,9 +11,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PhoneInput from "./components/PhoneInput"
 import SelectDropdown from "./components/SelectDropdown"
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 0.5,
   },

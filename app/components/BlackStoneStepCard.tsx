@@ -135,7 +135,7 @@ export default function BlackStoneStepCard() {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 14,
     marginBottom: 12,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   illustrationWindow: {
     height: 160,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: "rgba(30, 58, 95, 0.06)",
     borderWidth: 1,
     borderColor: "rgba(201, 168, 76, 0.25)",

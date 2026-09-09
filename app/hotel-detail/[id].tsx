@@ -1,5 +1,8 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, ICON_GOLD, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import i18n from "@/i18n"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import {
   formatPhoneDisplay,
@@ -9,7 +12,6 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import * as WebBrowser from "expo-web-browser"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -19,30 +21,26 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { isFavorite, toggleFavorite } from "../../lib/supabase"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 
-async function openUrl(url: string) {
-  try {
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      await WebBrowser.openBrowserAsync(url)
-      return
-    }
-    const canOpen = await Linking.canOpenURL(url)
-    if (!canOpen) {
-      Alert.alert("Unable to open", "This link cannot be opened on this device.")
-      return
-    }
-    await Linking.openURL(url)
-  } catch {
-    Alert.alert("Unable to open", "Something went wrong opening this link.")
+function openUrl(
+  router: ReturnType<typeof useRouter>,
+  url: string,
+  title?: string,
+) {
+  if (!url) {
+    Alert.alert(i18n.t("unableToOpen"), i18n.t("unableToOpenLink"))
+    return
   }
+  openExternalUrl(router, url, title)
 }
 
 export default function HotelDetailScreen() {
@@ -79,27 +77,23 @@ export default function HotelDetailScreen() {
   }
 
   if (!hotel) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>{t("hotelNotFound")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>{t("goBack")}</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("hotelNotFound")} />
   }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         <View style={[styles.hero, isLogo && styles.logoHero]}>
           {!isLogo && (
             <>
-              <Image
+              <HeroBackground
                 source={{ uri: imageUri }}
-                style={styles.heroImage}
-                resizeMode="cover"
+                style={StyleSheet.absoluteFillObject}
                 onError={handleImageError}
               />
               <View style={styles.heroOverlay} />
@@ -198,14 +192,14 @@ export default function HotelDetailScreen() {
       <View style={[styles.actionBar, { backgroundColor: theme.card, borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
           style={styles.actionOutline}
-          onPress={() => openUrl(`tel:${hotel.phone}`)}
+          onPress={() => openUrl(router, `tel:${hotel.phone}`)}
         >
           <Ionicons name="call" size={16} color={NAVY} />
           <Text style={styles.actionOutlineText}>Call Hotel</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionOutline}
-          onPress={() => openUrl(hotel.website)}
+          onPress={() => openUrl(router, hotel.website, hotel.name)}
         >
           <Ionicons name="globe-outline" size={16} color={NAVY} />
           <Text style={styles.actionOutlineText}>Visit Website</Text>
@@ -215,7 +209,7 @@ export default function HotelDetailScreen() {
           onPress={() => {
             // Linking (not in-app browser) so Google Maps app opens on iOS/Android
             Linking.openURL(openHotelDirections(hotel)).catch(() => {
-              Alert.alert("Unable to open", "Could not open Google Maps.")
+              Alert.alert(t("unableToOpen"), t("unableToOpenMaps"))
             })
           }}
         >
@@ -254,11 +248,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(30,58,95,0.12)",
   },
   logoImage: { width: "80%", height: "80%" },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
-  },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(30,58,95,0.55)",
@@ -300,7 +289,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
   description: { fontSize: 14, lineHeight: 22 },
   divider: { height: 0.5, marginVertical: 20 },
-  infoCard: { borderRadius: 14, borderWidth: 0.5, padding: 14 },
+  infoCard: { borderRadius: 16, borderWidth: 0.5, padding: 14 },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   infoText: { flex: 1, fontSize: 14, lineHeight: 20 },
   amenitiesGrid: { gap: 10 },

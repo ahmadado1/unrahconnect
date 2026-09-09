@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { useTranslation } from "react-i18next"
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 
@@ -29,6 +31,7 @@ type Agent = {
     const router = useRouter()
     const insets = useSafeAreaInsets()
     const { theme } = useTheme()
+    const { t } = useTranslation()
     const [agents, setAgents] = useState<Agent[]>([])
     const [filtered, setFiltered] = useState<Agent[]>([])
     const [loading, setLoading] = useState(true)
@@ -170,9 +173,9 @@ type Agent = {
       ) : filtered.length === 0 ? (
         <View style={styles.emptyContainer}>
           <AnimatedHeroIcon name="business" size={48} accent="gold" />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No agents found</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noAgentsFound")}</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Be the first to register as a travel agent
+            {t("noAgentsSub")}
           </Text>
         </View>
       ) : (

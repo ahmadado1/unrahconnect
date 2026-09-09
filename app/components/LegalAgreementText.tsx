@@ -1,5 +1,6 @@
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from "@/lib/legalUrls"
-import * as WebBrowser from "expo-web-browser"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { useRouter } from "expo-router"
 import { useTranslation } from "react-i18next"
 import { StyleSheet, Text, type StyleProp, type TextStyle } from "react-native"
 
@@ -9,13 +10,14 @@ type Props = {
 
 export default function LegalAgreementText({ style }: Props) {
   const { t } = useTranslation()
+  const router = useRouter()
 
   const openTerms = () => {
-    void WebBrowser.openBrowserAsync(TERMS_OF_SERVICE_URL)
+    openExternalUrl(router, TERMS_OF_SERVICE_URL, t("termsOfService"))
   }
 
   const openPrivacy = () => {
-    void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)
+    openExternalUrl(router, PRIVACY_POLICY_URL, t("privacyPolicy"))
   }
 
   return (

@@ -1,35 +1,36 @@
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { getFlightPlatformById } from "@/lib/flights"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import i18n from "@/i18n"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import * as WebBrowser from "expo-web-browser"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 
-async function openUrl(url: string) {
-  try {
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      await WebBrowser.openBrowserAsync(url)
-      return
-    }
-    await Linking.openURL(url)
-  } catch {
-    Alert.alert("Unable to open", "Something went wrong opening this link.")
+function openUrl(
+  router: ReturnType<typeof useRouter>,
+  url: string,
+  title?: string,
+) {
+  if (!url) {
+    Alert.alert(i18n.t("unableToOpen"), i18n.t("unableToOpenGeneric"))
+    return
   }
+  openExternalUrl(router, url, title)
 }
 
 export default function FlightDetailScreen() {
@@ -41,14 +42,7 @@ export default function FlightDetailScreen() {
   const platform = getFlightPlatformById(id)
 
   if (!platform) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>Flight option not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>{t("goBack", { defaultValue: "Go back" })}</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("flightOptionNotFound")} />
   }
 
   return (
@@ -85,7 +79,7 @@ export default function FlightDetailScreen() {
 
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: platform.brandColor }]}
-            onPress={() => openUrl(platform.jeddahUrl)}
+            onPress={() => openUrl(router, platform.jeddahUrl, platform.name)}
             activeOpacity={0.9}
           >
             <Ionicons name="airplane-outline" size={18} color="#fff" />
@@ -96,7 +90,7 @@ export default function FlightDetailScreen() {
 
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: NAVY }]}
-            onPress={() => openUrl(platform.madinahUrl)}
+            onPress={() => openUrl(router, platform.madinahUrl, platform.name)}
             activeOpacity={0.9}
           >
             <Ionicons name="airplane-outline" size={18} color={GOLD} />
@@ -107,7 +101,7 @@ export default function FlightDetailScreen() {
 
           <TouchableOpacity
             style={[styles.outlineBtn, { borderColor: theme.border }]}
-            onPress={() => openUrl(platform.website)}
+            onPress={() => openUrl(router, platform.website, platform.name)}
             activeOpacity={0.9}
           >
             <Ionicons name="globe-outline" size={18} color={GOLD} />
@@ -147,7 +141,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10 },
   description: { fontSize: 14, lineHeight: 22, marginBottom: 18 },
   tipCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 14,
     marginBottom: 20,
@@ -160,7 +154,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 15,
     marginBottom: 10,
   },
@@ -170,7 +164,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 15,
     borderWidth: 1,
     marginTop: 4,

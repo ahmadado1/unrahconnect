@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import { Animated, Dimensions, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
 

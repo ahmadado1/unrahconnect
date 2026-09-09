@@ -1,8 +1,17 @@
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
+import QuranHomeCard from "@/app/components/QuranHomeCard";
+import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
 import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
+import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
+import { resolveHomeQuranCard, type HomeQuranCardState } from "@/lib/homeQuranCard";
+import { loadLastReadState } from "@/lib/quranLastRead";
+import { loadSurahPreviewText } from "@/lib/quranPreviewText";
+import { getQuranReadMode } from "@/lib/quranReadMode";
+import { openExternalUrl } from "@/lib/openAffiliateWebView";
+import { GOLD, NAVY, tabScrollBottom, ui, cardShadow } from "@/lib/ui";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
@@ -11,21 +20,21 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   AppState,
   Easing,
   Image,
   ImageBackground,
-  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   type AppStateStatus,
-} from "react-native";
+} from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -217,47 +226,45 @@ function getVerseEdition() {
 // ─── GOLD CRESCENT REFRESH SPINNER ───────────────────────────────────────────
 
 function GoldRefreshSpinner({ visible }: { visible: boolean }) {
-  const spin = useRef(new Animated.Value(0)).current
-
-  useEffect(() => {
-    if (!visible) {
-      spin.setValue(0)
-      return
-    }
-    const loop = Animated.loop(
-      Animated.timing(spin, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    )
-    loop.start()
-    return () => loop.stop()
-  }, [visible, spin])
-
   if (!visible) return null
-
-  const rotate = spin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  })
 
   return (
     <View style={refreshStyles.wrap} pointerEvents="none">
-      <Animated.View style={{ transform: [{ rotate }] }}>
-        <Ionicons name="moon" size={30} color="#C9A84C" />
-      </Animated.View>
+      <View style={refreshStyles.glowOuter} />
+      <View style={refreshStyles.glowInner} />
+      <ActivityIndicator color="#8E8E93" />
     </View>
   )
 }
 
 const refreshStyles = StyleSheet.create({
+  overlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    alignItems: "center",
+  },
   wrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 4,
-    paddingBottom: 8,
+    height: 64,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  glowOuter: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(245,240,232,0.7)",
+  },
+  glowInner: {
+    position: "absolute",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(201,168,76,0.22)",
   },
 })
 
@@ -358,6 +365,8 @@ export default function HomeScreen() {
   const [dhikrFaved, setDhikrFaved] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
   const [adhkarWindow, setAdhkarWindow] = useState<"morning" | "evening" | null>(() => getAdhkarWindow())
+  const [homeQuranCard, setHomeQuranCard] = useState<HomeQuranCardState>(() => resolveHomeQuranCard({}))
+  const [homeQuranPreview, setHomeQuranPreview] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const hijriToday = gregorianToHijri()
   const hijriMonthGrid = useMemo(
@@ -445,6 +454,44 @@ export default function HomeScreen() {
     } catch (e) {}
   }, [t])
 
+  const homeQuranKeyRef = useRef("")
+  const refreshHomeQuranCard = useCallback(async () => {
+    const [lastRead, kahf] = await Promise.all([
+      loadLastReadState(),
+      loadKahfWeeklyProgress(),
+      getQuranReadMode(),
+    ])
+    const next = resolveHomeQuranCard({
+      lastRead: lastRead.entries[0] ?? null,
+      kahfAyah: kahf.verseNumber,
+      now: new Date(),
+    })
+    const key = `${next.kind}:${next.surahNumber}:${next.ayah}`
+    setHomeQuranCard(next)
+    if (homeQuranKeyRef.current === key) return
+    homeQuranKeyRef.current = key
+    const preview = await loadSurahPreviewText(next.surahNumber, next.ayah)
+    setHomeQuranPreview(preview)
+  }, [])
+
+  const openHomeQuranCard = useCallback(async () => {
+    const mode = (await getQuranReadMode()) ?? "mushaf"
+    router.push({
+      pathname: "/quran/[surah]",
+      params: {
+        surah: String(homeQuranCard.surahNumber),
+        name: homeQuranCard.englishName,
+        arabicName: homeQuranCard.arabicName,
+        verses: String(homeQuranCard.ayahCount),
+        type: homeQuranCard.revelationType,
+        ayah: String(homeQuranCard.ayah),
+        resume: "0",
+        mode,
+        expand: "1",
+      },
+    })
+  }, [homeQuranCard, router])
+
   const refreshDhikr = useCallback(() => {
     setDhikr(DHIKR_LIST[Math.floor(Math.random() * DHIKR_LIST.length)])
     setDhikrFaved(false)
@@ -457,6 +504,7 @@ export default function HomeScreen() {
         loadVerse(true),
         loadPrayer(false),
         loadUmrahProgress(),
+        refreshHomeQuranCard(),
       ])
       refreshDhikr()
     } catch (e) {
@@ -464,10 +512,11 @@ export default function HomeScreen() {
     } finally {
       setRefreshing(false)
     }
-  }, [loadVerse, loadPrayer, loadUmrahProgress, refreshDhikr, t])
+  }, [loadVerse, loadPrayer, loadUmrahProgress, refreshDhikr, refreshHomeQuranCard, t])
 
   // ── Fetch user ──
   useEffect(() => {
+    prefetchHeroSource(require("../../assets/images/hero-mosque.jpeg"))
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -517,15 +566,19 @@ export default function HomeScreen() {
       loadUmrahProgress()
       void loadPrayer(true)
       setAdhkarWindow(getAdhkarWindow())
-    }, [loadUmrahProgress, loadPrayer])
+      void refreshHomeQuranCard()
+    }, [loadUmrahProgress, loadPrayer, refreshHomeQuranCard])
   )
 
   // Keep Adhkar card in sync as the clock crosses window boundaries
   useEffect(() => {
-    const tick = () => setAdhkarWindow(getAdhkarWindow())
+    const tick = () => {
+      setAdhkarWindow(getAdhkarWindow())
+      void refreshHomeQuranCard()
+    }
     const interval = setInterval(tick, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshHomeQuranCard])
 
   // ── Fetch bookings ──
   useEffect(() => {
@@ -549,22 +602,29 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {refreshing ? (
+        <View style={[refreshStyles.overlay, { top: insets.top + 8 }]} pointerEvents="none">
+          <GoldRefreshSpinner visible />
+        </View>
+      ) : null}
       <ScrollView
         showsVerticalScrollIndicator={false}
         bounces
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentInset={{ top: 0, left: 0, right: 0, bottom: 0 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#C9A84C"
-            colors={["#C9A84C"]}
+            tintColor="transparent"
+            colors={["#8E8E93"]}
           />
         }
       >
-        <GoldRefreshSpinner visible={refreshing} />
 
         {/* ── HERO ── */}
-        <ImageBackground
+        <HeroBackground
           source={require("../../assets/images/hero-mosque.jpeg")}
           style={styles.hero}
           imageStyle={styles.heroImage}
@@ -592,7 +652,7 @@ export default function HomeScreen() {
 
             {/* Greeting */}
             <View style={styles.heroContent}>
-              <Text style={styles.assalamu}>{t("greeting")}, {userName}</Text>
+              <Text style={styles.assalamu}>{t("greeting")}, {userName || t("pilgrim")}</Text>
               <Text style={styles.heroGreeting}>{t("whereGlobalizationMatters")}</Text>
               <Text style={styles.heroVerse}>{ayah}</Text>
               <Text style={styles.heroVerseRef}>{ayahRef}</Text>
@@ -608,10 +668,10 @@ export default function HomeScreen() {
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
           }} />
-        </ImageBackground>
+        </HeroBackground>
 
         {/* ── PRAYER CARD ── */}
-        <ImageBackground
+        <HeroBackground
           source={require("../../assets/images/hero-mosque.jpeg")}
           style={styles.prayerCard}
           imageStyle={{ opacity: 0.15, borderRadius: 24 }}
@@ -625,11 +685,11 @@ export default function HomeScreen() {
             <Text style={styles.prayerTime}>{formatPrayerTimeDisplay(nextPrayer.time)}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 }}>
               <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.prayerLocation}>{locationName}</Text>
+              <Text style={styles.prayerLocation}>{locationName || "—"}</Text>
             </View>
           </View>
           <CircularTimer minutesLeft={minutesLeft} total={minutesLeft} />
-        </ImageBackground>
+        </HeroBackground>
 
         {/* ── CONTINUE UMRAH JOURNEY ── */}
         <TouchableOpacity
@@ -694,7 +754,7 @@ export default function HomeScreen() {
           <ImageBackground
             source={require("../../assets/images/prayer-mosque.jpg")}
             style={StyleSheet.absoluteFillObject}
-            imageStyle={{ opacity: 0.08, borderRadius: 20 }}
+            imageStyle={{ opacity: 0.08, borderRadius: ui.radius }}
           />
           <View style={styles.dhikrHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -711,6 +771,15 @@ export default function HomeScreen() {
           <Text style={styles.dhikrTranslit}>'{dhikr.translit}'</Text>
           <Text style={[styles.dhikrMeaning, { color: theme.textSecondary }]}>({dhikr.meaning})</Text>
         </View>
+
+        {/* ── QURAN PREVIEW (Mulk at night, Kahf on Friday, else last read) ── */}
+        <QuranHomeCard
+          card={homeQuranCard}
+          previewText={homeQuranPreview}
+          startLabel={t("quranHomeStartReading")}
+          loading={!homeQuranPreview}
+          onPress={openHomeQuranCard}
+        />
 
         {/* ── ISLAMIC (HIJRI) CALENDAR ── */}
         <TouchableOpacity
@@ -781,7 +850,6 @@ export default function HomeScreen() {
           <QuickItem icon="moon-outline" label={t("hajj")} onPress={() => router.push("/hajj" as any)} theme={theme} color="#C9A84C" />
           <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} color="#E11D48" />
           <QuickItem icon="hand-left-outline" label={t("duas")} onPress={() => router.push("/duas" as any)} theme={theme} color="#0D9488" />
-          <QuickItem icon="book-outline" label={t("quran")} onPress={() => router.push("/quran" as any)} theme={theme} color="#0F766E" />
           <QuickItem icon="bus-outline" label={t("services")} onPress={() => router.push("/(tabs)/services" as any)} theme={theme} color="#0284C7" />
         </ScrollView>
 
@@ -803,7 +871,7 @@ export default function HomeScreen() {
           <View style={styles.donateBtnRow}>
             <TouchableOpacity
               style={styles.donateBtn}
-              onPress={() => Linking.openURL("https://maidabofoundation.com/")}
+              onPress={() => openExternalUrl(router, "https://maidabofoundation.com/", "Maidabo Foundation")}
             >
               <Ionicons name="heart" size={16} color="#fff" />
               <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
@@ -832,7 +900,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -846,6 +914,8 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     minHeight: 420,
+    backgroundColor: "#1E3A5F",
+    overflow: "hidden",
   },
   heroImage: {
     resizeMode: "cover",
@@ -887,20 +957,16 @@ const styles = StyleSheet.create({
   prayerCard: {
     marginHorizontal: 16,
     marginTop: -60,
-    borderRadius: 24,
+    borderRadius: ui.radius,
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#1E3A5F",
+    backgroundColor: NAVY,
     overflow: "hidden",
     minHeight: 140,
     zIndex: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
+    ...cardShadow,
   },
   prayerLeft: { flex: 1 },
   prayerLabel: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
@@ -909,8 +975,8 @@ const styles = StyleSheet.create({
   prayerLocation: { color: "rgba(255,255,255,0.5)", fontSize: 12 },
 
   // Journey card
-  journeyCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 0.5 },
-  journeyKaaba: { width: 70, height: 70, borderRadius: 14 },
+  journeyCard: { marginHorizontal: 16, marginTop: 14, borderRadius: ui.radius, padding: ui.cardPad, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: ui.hairline, ...cardShadow },
+  journeyKaaba: { width: 70, height: 70, borderRadius: 16 },
   journeyTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
   journeyStep: { fontSize: 12, marginBottom: 1 },
   journeyPhase: { fontSize: 12, marginBottom: 8 },
@@ -923,8 +989,8 @@ const styles = StyleSheet.create({
   adhkarHomeCard: {
     marginHorizontal: 16,
     marginTop: 10,
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: ui.radius,
+    padding: ui.cardPad,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -943,7 +1009,7 @@ const styles = StyleSheet.create({
   adhkarHomeSub: { fontSize: 12, lineHeight: 16 },
 
   // Dhikr card
-  dhikrCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 20, borderWidth: 0.5, overflow: "hidden" },
+  dhikrCard: { marginHorizontal: 16, marginTop: 14, borderRadius: ui.radius, padding: 20, borderWidth: ui.hairline, overflow: "hidden", ...cardShadow },
   dhikrHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   dhikrIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#2D6A4F", alignItems: "center", justifyContent: "center" },
   dhikrLabel: { fontSize: 15, fontWeight: "600" },
@@ -955,9 +1021,10 @@ const styles = StyleSheet.create({
   hijriCard: {
     marginHorizontal: 16,
     marginTop: 14,
-    borderRadius: 20,
+    borderRadius: ui.radius,
     padding: 16,
-    borderWidth: 0.5,
+    borderWidth: ui.hairline,
+    ...cardShadow,
   },
   hijriCardHeader: {
     flexDirection: "row",
@@ -1005,9 +1072,9 @@ const styles = StyleSheet.create({
   donateCard: {
     marginHorizontal: 16,
     marginTop: 20,
-    borderRadius: 20,
+    borderRadius: ui.radius,
     padding: 20,
-    backgroundColor: "#1E3A5F",
+    backgroundColor: NAVY,
     borderWidth: 1,
     borderColor: "rgba(201,168,76,0.4)",
   },
@@ -1019,8 +1086,8 @@ const styles = StyleSheet.create({
   donateDesc: { color: "rgba(255,255,255,0.8)", fontSize: 13, lineHeight: 20, textAlign: "center", marginBottom: 18 },
   donateBtnRow: { alignItems: "center" },
   donateBtn: {
-    backgroundColor: "#C9A84C",
-    borderRadius: 25,
+    backgroundColor: GOLD,
+    borderRadius: ui.radius,
     paddingVertical: 12,
     paddingHorizontal: 36,
     flexDirection: "row",
@@ -1037,7 +1104,7 @@ const qaStyles = StyleSheet.create({
 })
 
 const bookingStyles = StyleSheet.create({
-  card: { borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5 },
+  card: { borderRadius: ui.radius, padding: ui.cardPad, marginBottom: 12, borderWidth: ui.hairline, ...cardShadow },
   cardTop: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
   hotelName: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
   city: { fontSize: 13 },

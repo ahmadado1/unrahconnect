@@ -5,7 +5,11 @@ import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
-import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useTranslation } from "react-i18next"
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
+import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 
@@ -31,6 +35,7 @@ type Agent = {
     const router = useRouter()
     const insets = useSafeAreaInsets()
     const { theme } = useTheme()
+    const { t } = useTranslation()
     const [agent, setAgent] = useState<Agent | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -78,29 +83,7 @@ type Agent = {
       }
     
       if (!agent) return (
-        <View style={[styles.screen, { backgroundColor: theme.background }]}>
-          <StatusBar style="light" />
-          <View style={[styles.header, { paddingTop: insets.top }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Agency Profile</Text>
-            <View style={{ width: 36 }} />
-          </View>
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
-            <AnimatedHeroIcon name="business" size={56} accent="gold" style={{ marginBottom: 8 }} />
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: theme.text }}>Agent Not Found</Text>
-            <Text style={{ fontSize: 14, color: theme.textSecondary, textAlign: "center", lineHeight: 22 }}>
-              This agency profile doesn't exist or may have been removed.
-            </Text>
-            <TouchableOpacity
-              style={{ backgroundColor: "#1E3A5F", borderRadius: 25, paddingVertical: 14, paddingHorizontal: 32, marginTop: 8 }}
-              onPress={() => router.back()}
-            >
-              <Text style={{ color: "#C9A84C", fontWeight: "bold", fontSize: 15 }}>Browse Other Agents</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenState kind="missing" title={t("agentNotFound")} body={t("agentNotFoundBody")} />
       )
 
     return (
@@ -243,7 +226,7 @@ type Agent = {
                 </View>
                 </View>
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: tabScrollBottom(insets.bottom) }} />
         </ScrollView>
     </View>
   )

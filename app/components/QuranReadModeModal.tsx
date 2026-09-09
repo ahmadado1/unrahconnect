@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Modal, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useTranslation } from "react-i18next"
 import type { QuranReadMode } from "@/lib/quranReadMode"
 
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   optionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: NAVY,
     alignItems: "center",
     justifyContent: "center",

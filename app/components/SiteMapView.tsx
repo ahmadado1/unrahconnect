@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
-import { NativeModules, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { NativeModules, Platform, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 
 type GateMarker = {
   id: string

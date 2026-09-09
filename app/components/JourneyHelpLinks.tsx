@@ -1,9 +1,11 @@
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { Href, useRouter } from "expo-router"
 import { useTranslation } from "react-i18next"
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 
 const GOLD = "#C9A84C"
 const SAPTCO_URL = "https://www.saptco.com.sa"
@@ -240,7 +242,7 @@ export default function JourneyHelpLinks({ journey, phaseId }: Props) {
           style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
           activeOpacity={0.85}
           onPress={() => {
-            if (link.url) Linking.openURL(link.url)
+            if (link.url) openExternalUrl(router, link.url, t(link.titleKey))
             else if (link.route) router.push(link.route)
           }}
         >
@@ -274,10 +276,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
-    padding: 14,
-    marginBottom: 10,
+    padding: 16,
+    marginBottom: 12,
   },
   iconWrap: {
     width: 42,

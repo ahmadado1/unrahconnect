@@ -1,7 +1,8 @@
 import type { QuranReadMode } from "@/lib/quranReadMode"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
-import { StyleSheet, Text, TouchableOpacity } from "react-native"
+import { StyleSheet, Text} from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 
 const GOLD = "#C9A84C"
 

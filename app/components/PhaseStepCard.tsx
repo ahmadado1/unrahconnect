@@ -162,7 +162,7 @@ export default function PhaseStepCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 14, padding: 14 },
+  card: { borderRadius: 16, padding: 16 },
   crucialShadow: {
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 10,

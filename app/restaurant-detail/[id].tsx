@@ -1,5 +1,7 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { getRestaurantById, openRestaurantDirections } from "@/lib/restaurants"
 import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
 import { isFavorite, toggleFavorite } from "@/lib/supabase"
@@ -10,20 +12,22 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Image,
-  ImageBackground,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
-import * as WebBrowser from "expo-web-browser"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
+import { tabScrollBottom } from "@/lib/ui"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function RestaurantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { theme } = useTheme()
+  const insets = useSafeAreaInsets()
   const restaurant = getRestaurantById(id)
   const [favorited, setFavorited] = useState(false)
   const [imageUri, setImageUri] = useState(restaurant?.image ?? IMAGE_PLACEHOLDER)
@@ -56,20 +60,17 @@ export default function RestaurantDetailScreen() {
   }
 
   if (!restaurant) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>Restaurant not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go back</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("restaurantNotFound")} />
   }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         {isLogo ? (
           <View style={[styles.hero, styles.logoHero]}>
             <View style={styles.logoBox}>
@@ -97,7 +98,7 @@ export default function RestaurantDetailScreen() {
             </View>
           </View>
         ) : (
-          <ImageBackground
+          <HeroBackground
             source={{ uri: imageUri }}
             style={styles.hero}
             onError={handleImageError}
@@ -117,7 +118,7 @@ export default function RestaurantDetailScreen() {
                 {restaurant.featured ? "Al Baik · Iconic" : "Halal Certified"}
               </Text>
             </View>
-          </ImageBackground>
+          </HeroBackground>
         )}
 
         <View style={styles.content}>
@@ -175,7 +176,7 @@ export default function RestaurantDetailScreen() {
           {restaurant.website ? (
             <TouchableOpacity
               style={styles.websiteBtn}
-              onPress={() => WebBrowser.openBrowserAsync(restaurant.website)}
+              onPress={() => openExternalUrl(router, restaurant.website, restaurant.name)}
             >
               <Ionicons name="globe-outline" size={18} color="#1E3A5F" />
               <Text style={styles.websiteBtnText}>Visit Website / App</Text>
@@ -183,7 +184,7 @@ export default function RestaurantDetailScreen() {
           ) : null}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
   notFoundText: { fontSize: 18 },
   backLink: { color: "#C9A84C", marginTop: 10 },
-  hero: { height: 260, justifyContent: "flex-end", padding: 16 },
+  hero: { height: 260, justifyContent: "flex-end", padding: 16, backgroundColor: "#1E3A5F" },
   logoHero: { backgroundColor: "#F5F5F5", justifyContent: "flex-end" },
   logoBox: {
     ...StyleSheet.absoluteFillObject,

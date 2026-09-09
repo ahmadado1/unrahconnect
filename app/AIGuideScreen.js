@@ -19,9 +19,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import Markdown from "react-native-markdown-display"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 

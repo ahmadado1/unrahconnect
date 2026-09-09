@@ -13,9 +13,9 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 // Dynamic island padding
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 // Icons
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 18,
     borderWidth: 0.5,
   },

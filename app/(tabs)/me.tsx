@@ -6,7 +6,9 @@ import { Href, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MenuItem = {
@@ -78,7 +80,12 @@ export default function MeScreen() {
         )}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
 
         {/* Agent quick stats — only for agents */}
         {isAgent && (
@@ -125,8 +132,6 @@ export default function MeScreen() {
             </TouchableOpacity>
           ))}
         </View>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   )
@@ -135,35 +140,35 @@ export default function MeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
-    backgroundColor: "#1E3A5F", alignItems: "center",
+    backgroundColor: NAVY, alignItems: "center",
     paddingBottom: 28, paddingHorizontal: 20,
   },
   avatar: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: "#C9A84C", alignItems: "center", justifyContent: "center",
+    backgroundColor: GOLD, alignItems: "center", justifyContent: "center",
     marginTop: 16, marginBottom: 12,
   },
-  avatarText: { fontSize: 28, fontWeight: "bold", color: "#1E3A5F" },
+  avatarText: { fontSize: 28, fontWeight: "bold", color: NAVY },
   userName: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   userEmail: { color: "rgba(255,255,255,0.6)", fontSize: 13, marginTop: 4 },
   agentBadge: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "#C9A84C", borderRadius: 20,
+    backgroundColor: GOLD, borderRadius: ui.radiusPill,
     paddingHorizontal: 12, paddingVertical: 5, marginTop: 10,
   },
-  agentBadgeText: { fontSize: 12, fontWeight: "bold", color: "#1E3A5F" },
-  content: { padding: 16 },
+  agentBadgeText: { fontSize: 12, fontWeight: "bold", color: NAVY },
+  content: { padding: ui.space },
   agentCard: {
     flexDirection: "row", alignItems: "center",
-    backgroundColor: "#1E3A5F", borderRadius: 14,
-    padding: 16, marginBottom: 16,
+    backgroundColor: NAVY, borderRadius: ui.radius,
+    padding: ui.cardPad, marginBottom: 16,
     borderWidth: 1, borderColor: "rgba(201,168,76,0.3)",
   },
   agentCardLeft: { flex: 1 },
-  agentCardTitle: { color: "#C9A84C", fontSize: 15, fontWeight: "bold", marginBottom: 3 },
+  agentCardTitle: { color: GOLD, fontSize: 15, fontWeight: "bold", marginBottom: 3 },
   agentCardSub: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
-  menuSection: { borderRadius: 14, borderWidth: 0.5, overflow: "hidden" },
-  menuItem: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
+  menuSection: { borderRadius: ui.radius, borderWidth: ui.hairline, overflow: "hidden" },
+  menuItem: { flexDirection: "row", alignItems: "center", gap: 14, padding: ui.cardPad },
   menuIconBg: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   menuText: { flex: 1, fontSize: 15, fontWeight: "500" },
 })

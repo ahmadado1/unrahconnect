@@ -1,6 +1,6 @@
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
-import { AL_KAHF_SURAH_NUMBER, isAlKahfReminderWindow } from "@/lib/alKahfWindow"
+import { isAlKahfReminderWindow } from "@/lib/alKahfWindow"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useRouter } from "expo-router"
@@ -9,16 +9,17 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   AppState,
-  ImageBackground,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
+import HeroBackground, { prefetchHeroSource } from "../components/HeroBackground"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
 import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribeAdhanPlaying } from "@/lib/adhanAudio"
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile } from "@/lib/prayerConstants"
@@ -48,6 +49,7 @@ export default function GuideScreen() {
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
+    prefetchHeroSource(require("../../assets/images/image56.png"))
     AsyncStorage.getItem("selected_adhan").then(id => {
       if (id && ADHAN_OPTIONS.some(opt => opt.id === id)) setSelectedAdhan(id)
     })
@@ -156,9 +158,14 @@ export default function GuideScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentInset={{ top: 0, left: 0, right: 0, bottom: 0 }}
+      >
 
-        <ImageBackground
+        <HeroBackground
           source={require("../../assets/images/image56.png")}
           style={styles.heroArea}
           imageStyle={styles.heroImage}
@@ -185,7 +192,7 @@ export default function GuideScreen() {
           </View>
 
           <PrayerWidget />
-        </ImageBackground>
+        </HeroBackground>
 
         {/* Guide Cards */}
         <View style={styles.content}>
@@ -241,7 +248,7 @@ export default function GuideScreen() {
                 styles.alKahfCard,
                 { backgroundColor: theme.card, borderColor: theme.gold },
               ]}
-              onPress={() => router.push(`/quran/${AL_KAHF_SURAH_NUMBER}` as any)}
+              onPress={() => router.push("/quran/kahf" as any)}
             >
               <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
                 <AppIcon name="book" size={28} />
@@ -303,7 +310,7 @@ export default function GuideScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
 
       {/* ── ADHAN PICKER MODAL ── */}
@@ -421,7 +428,7 @@ export default function GuideScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  heroArea: { overflow: "hidden" },
+  heroArea: { overflow: "hidden", backgroundColor: "#1E3A5F", minHeight: 520 },
   heroImage: { resizeMode: "cover", opacity: 0.9 },
   overlayTop: { position: "absolute", top: 0, left: 0, right: 0, height: "50%", backgroundColor: "rgba(15,28,58,0.93)" },
   overlayBottom: { position: "absolute", top: "35%", left: 0, right: 0, bottom: 0, backgroundColor: "rgba(10,18,40,0.45)" },
@@ -433,14 +440,14 @@ const styles = StyleSheet.create({
   adhanBtn: { marginTop: 18, width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.4)", alignItems: "center", justifyContent: "center" },
 
   content: { padding: 16, gap: 12 },
-  guideCard: { borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 0.5 },
+  guideCard: { borderRadius: ui.radius, padding: ui.cardPad, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: ui.hairline },
   alKahfCard: { borderWidth: 1 },
   cardIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 2 },
   cardSub: { fontSize: 12, color: "#C9A84C", marginBottom: 6 },
   cardDesc: { fontSize: 13, lineHeight: 18 },
-  comingSoon: { borderRadius: 16, padding: 16, borderWidth: 0.5 },
+  comingSoon: { borderRadius: ui.radius, padding: ui.cardPad, borderWidth: ui.hairline },
   comingSoonTitle: { fontSize: 13, fontWeight: "600", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 },
   comingSoonItem: { flexDirection: "row", alignItems: "center", gap: 10 },
   comingSoonText: { fontSize: 14 },
@@ -453,8 +460,8 @@ const styles = StyleSheet.create({
   modalSub: { fontSize: 13, marginBottom: 20 },
 
   // Adhan rows
-  adhanRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 0.5, marginBottom: 8 },
-  adhanRowActive: { borderColor: "#C9A84C", backgroundColor: "rgba(201,168,76,0.08)" },
+  adhanRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: ui.radius, borderWidth: ui.hairline, marginBottom: 8 },
+  adhanRowActive: { borderColor: GOLD, backgroundColor: "rgba(201,168,76,0.08)" },
   adhanRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: "#ccc", alignItems: "center", justifyContent: "center" },
   adhanRadioActive: { borderColor: "#C9A84C" },
   adhanRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#C9A84C" },
@@ -469,6 +476,6 @@ const styles = StyleSheet.create({
   selectBtnTextActive: { color: "#1E3A5F", fontWeight: "700" },
 
   // Done button
-  doneBtn: { backgroundColor: "#1E3A5F", borderRadius: 25, padding: 16, alignItems: "center", marginTop: 8 },
+  doneBtn: { backgroundColor: NAVY, borderRadius: ui.radius, padding: 16, alignItems: "center", marginTop: 8 },
   doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 })

@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const FEATURES = [
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   tagline: { color: "#C9A84C", fontSize: 14, marginBottom: 10 },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   location: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
-  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 18, borderWidth: 0.5 },
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 18, borderWidth: 0.5 },
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 12 },
   sectionText: { fontSize: 14, lineHeight: 22 },
   featureItem: { flexDirection: "row", gap: 12, marginBottom: 14, alignItems: "flex-start" },

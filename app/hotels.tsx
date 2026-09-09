@@ -1,9 +1,12 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
   getFeaturedHotelsForCity,
   type FeaturedHotel,
 } from "@/lib/featuredHotels"
+import { affiliateWebViewHref, openExternalUrl } from "@/lib/openAffiliateWebView"
+import i18n from "@/i18n"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import { groupHotelsIntoSections, HOTELS, type Hotel } from "@/lib/hotels"
 import { supabase, toggleFavorite } from "@/lib/supabase"
@@ -11,21 +14,18 @@ import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import * as WebBrowser from "expo-web-browser"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
   Image,
-  ImageBackground,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type CityFilter = "All" | "Makkah" | "Madinah"
@@ -128,32 +128,28 @@ const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; icon: AppIconKey
   ]
 
 
-async function openWebsite(url: string) {
-  try {
-    if (!url) {
-      Alert.alert("Unable to open", "No website available for this hotel.")
-      return
-    }
-    await WebBrowser.openBrowserAsync(url)
-  } catch {
-    try {
-      await Linking.openURL(url)
-    } catch {
-      Alert.alert("Unable to open", "Something went wrong opening this website.")
-    }
-  }
-}
-
-async function openBookingUrl(url: string, hotelName: string) {
+function openWebsite(
+  router: ReturnType<typeof useRouter>,
+  url: string,
+  title?: string,
+) {
   if (!url) {
-    Alert.alert("Unable to open", `No booking link for ${hotelName}.`)
+    Alert.alert(i18n.t("unableToOpen"), i18n.t("noWebsiteForHotel"))
     return
   }
-  try {
-    await Linking.openURL(url)
-  } catch {
-    Alert.alert("Unable to open", "Could not open the booking link.")
+  openExternalUrl(router, url, title)
+}
+
+function openBookingInWebView(
+  router: ReturnType<typeof useRouter>,
+  url: string,
+  hotelName: string,
+) {
+  if (!url) {
+    Alert.alert(i18n.t("unableToOpen"), i18n.t("noBookingLinkFor", { name: hotelName }))
+    return
   }
+  router.push(affiliateWebViewHref(url, hotelName))
 }
 
 export default function HotelsScreen() {
@@ -282,7 +278,7 @@ export default function HotelsScreen() {
         <Text style={[cardStyles.imageLabel, cardStyles.imageLabelOnLight]}>{hotel.city}</Text>
       </View>
     ) : (
-      <ImageBackground
+      <HeroBackground
         source={{ uri: imageUri }}
         style={cardStyles.image}
         imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
@@ -290,7 +286,7 @@ export default function HotelsScreen() {
       >
         {badge}
         <Text style={cardStyles.imageLabel}>{hotel.city}</Text>
-      </ImageBackground>
+      </HeroBackground>
     )
 
     return (
@@ -315,7 +311,7 @@ export default function HotelsScreen() {
           </Text>
           <TouchableOpacity
             style={[cardStyles.btn, { backgroundColor: "#C9A84C", alignSelf: "stretch" }]}
-            onPress={() => void openBookingUrl(hotel.bookingUrl, hotel.name)}
+            onPress={() => openBookingInWebView(router, hotel.bookingUrl, hotel.name)}
           >
             <Text style={[cardStyles.btnText, { color: "#1E3A5F" }]}>{t("bookNow")}</Text>
           </TouchableOpacity>
@@ -355,7 +351,7 @@ export default function HotelsScreen() {
 
     const handleVisitWebsite = (e: { stopPropagation?: () => void }) => {
       e.stopPropagation?.()
-      openWebsite(hotel.website)
+      openWebsite(router, hotel.website, hotel.name)
     }
 
     const media = isLogo ? (
@@ -391,7 +387,7 @@ export default function HotelsScreen() {
         </Text>
       </View>
     ) : (
-      <ImageBackground
+      <HeroBackground
         source={{ uri: imageUri }}
         style={cardStyles.image}
         imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
@@ -418,7 +414,7 @@ export default function HotelsScreen() {
         <Text style={cardStyles.imageLabel}>
           {hotel.city} · {hotel.distanceLabel}
         </Text>
-      </ImageBackground>
+      </HeroBackground>
     )
 
     return (
@@ -474,7 +470,12 @@ export default function HotelsScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.body}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
@@ -569,7 +570,7 @@ export default function HotelsScreen() {
               </ScrollView>
               <TouchableOpacity
                 style={styles.budgetLink}
-                onPress={() => void openBookingUrl(section.budgetUrl, t(section.budgetLinkKey))}
+                onPress={() => openBookingInWebView(router, section.budgetUrl, t(section.budgetLinkKey))}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.budgetLinkText, { color: theme.textSecondary }]}>
@@ -605,7 +606,7 @@ export default function HotelsScreen() {
             <View style={styles.empty}>
               <Ionicons name="bed-outline" size={40} color={theme.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No hotels match your filters
+                {t("noHotelsMatchFilters")}
               </Text>
             </View>
           )}
@@ -619,7 +620,7 @@ export default function HotelsScreen() {
 
 const cardStyles = StyleSheet.create({
   card: { width: 260, borderRadius: 16, overflow: "hidden", borderWidth: 0.5 },
-  image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative" },
+  image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative", backgroundColor: "#1E3A5F" },
   logoWrap: {
     height: 160,
     backgroundColor: "#F4F6F8",

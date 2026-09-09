@@ -5,8 +5,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
     Keyboard, KeyboardAvoidingView, Platform, StyleSheet,
-    Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View
-} from "react-native";
+    Text, TextInput, TouchableWithoutFeedback, View
+} from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { sendAccountEmail } from "@/lib/accountEmails"
 import { supabase } from "../../lib/supabase";

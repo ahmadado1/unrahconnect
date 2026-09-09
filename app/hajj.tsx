@@ -1,3 +1,4 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { getPhaseHeaderImage } from "@/lib/phaseHeaderImages"
@@ -9,13 +10,13 @@ import { useFocusEffect, useRouter } from "expo-router"
 import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const HAJJ_PHASE_META = phaseStructure.hajj
@@ -50,14 +51,19 @@ export default function HajjGuideScreen() {
       const nextPhaseTitle = phases[completedCount]?.title ?? "your next phase"
       await scheduleJourneyReminder(nextPhaseTitle, "hajj")
     } else {
-      await Notifications.cancelScheduledNotificationAsync("journey-reminder")
+        await Notifications.cancelScheduledNotificationAsync("journey-reminder")
+        await Notifications.cancelScheduledNotificationAsync("journey-reminder-hajj")
     }
   }
   useFocusEffect(useCallback(() => { loadProgress() }, []))
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={styles.title}>{t("hajjGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeHajj")}</Text>
@@ -93,7 +99,7 @@ export default function HajjGuideScreen() {
               activeOpacity={0.85}
             >
               {thumb ? (
-                <Image source={thumb} style={styles.phaseThumb} resizeMode="cover" />
+                <HeroBackground source={thumb} style={styles.phaseThumb} />
               ) : null}
               <View style={styles.phaseRow}>
                 <View style={[styles.phaseNum, { backgroundColor: isCompleted ? "#C9A84C" : phase.color }]}>
@@ -117,7 +123,7 @@ export default function HajjGuideScreen() {
           )
         })}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -129,7 +135,7 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 40 },
   subtitle: { color: "#C9A84C", fontSize: 13 },
   phaseCardCompleted: { borderColor: "#C9A84C", borderWidth: 1 },
-  progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 35, borderWidth: 0.5 },
+  progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: ui.radius, padding: ui.cardPad, borderWidth: 0.5 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   progressTitle: { fontSize: 18, fontWeight: "bold" },
   progressCount: { fontSize: 16, color: "#C9A84C", fontWeight: "600" },
@@ -138,16 +144,17 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: "500", paddingHorizontal: 16, marginBottom: 8, marginTop: 8, letterSpacing: 0.5 },
   phaseCard: {
     marginHorizontal: 16,
-    marginBottom: 10,
-    borderRadius: 12,
+    marginBottom: 12,
+    borderRadius: ui.radius,
     borderWidth: 0.5,
     overflow: "hidden",
   },
   phaseThumb: {
     width: "100%",
     height: 88,
+    backgroundColor: "#1E3A5F",
   },
-  phaseRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  phaseRow: { flexDirection: "row", alignItems: "center", padding: ui.cardPad, gap: 12 },
   phaseNum: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   phaseNumText: { fontSize: 15, fontWeight: "bold" },
   phaseInfo: { flex: 1 },

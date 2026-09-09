@@ -6,7 +6,9 @@ import * as Notifications from 'expo-notifications';
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
@@ -40,14 +42,19 @@ const phases = [
         await scheduleJourneyReminder(nextPhaseTitle, 'umrah')  
       } else {
         // All done — cancel just the journey reminder
-        await Notifications.cancelScheduledNotificationAsync('journey-reminder')
+        await Notifications.cancelScheduledNotificationAsync("journey-reminder")
+        await Notifications.cancelScheduledNotificationAsync("journey-reminder-umrah")
       }
     }
     useFocusEffect(useCallback(() => { loadProgress() }, []))
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       {/* Dynamic island — always navy */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
 
         {/* Header — always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
@@ -107,7 +114,7 @@ const phases = [
           )
         })}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -119,16 +126,16 @@ const styles = StyleSheet.create({
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 24 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 30 },
   subtitle: { color: "#C9A84C", fontSize: 13,  },
-  progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 35, borderWidth: 0.5 },
+  progressCard: { marginHorizontal: 16, marginTop: 20, borderRadius: ui.radius, padding: ui.cardPad, borderWidth: 0.5 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
   progressTitle: { fontSize: 18, fontWeight: "bold" },
   progressCount: { fontSize: 13, color: "#C9A84C", fontWeight: "600" },
   progressTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
   progressFill: { height: 8, backgroundColor: "#C9A84C", borderRadius: 4 },
   sectionLabel: { fontSize: 11, fontWeight: "500", paddingHorizontal: 16, marginBottom: 8, marginTop: 8, letterSpacing: 0.5 },
-  phaseCard: { marginHorizontal: 16, marginBottom: 10, borderRadius: 12, borderWidth: 0.5 },
+  phaseCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: ui.radius, borderWidth: 0.5 },
   phaseCardCompleted: { borderColor: "#C9A84C", borderWidth: 1 },
-  phaseRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  phaseRow: { flexDirection: "row", alignItems: "center", padding: ui.cardPad, gap: 12 },
   phaseNum: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   phaseNumText: { fontSize: 15, fontWeight: "bold" },
   phaseInfo: { flex: 1 },

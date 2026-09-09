@@ -6,8 +6,10 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 
 const LOCATIONS = [
   { id: "haram", icon: "kaaba" as AppIconKey, nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },
@@ -54,13 +56,18 @@ export default function MapsScreen() {
         <Text style={styles.subtitle}>{t("mapsSub")}</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         <TouchableOpacity
           style={[styles.myLocationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={openMyLocation}
         >
           <View style={styles.myLocationIcon}>
-            <Ionicons name="navigate" size={22} color="#1E3A5F" />
+            <Ionicons name="navigate-outline" size={22} color={NAVY} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.locationName, { color: theme.text }]}>{t("myLocation")}</Text>
@@ -68,7 +75,7 @@ export default function MapsScreen() {
               {locationLabel ? t("openInMaps") : t("enableLocation")}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+          <Ionicons name="chevron-forward" size={20} color={GOLD} />
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
@@ -84,7 +91,7 @@ export default function MapsScreen() {
               <Text style={[styles.locationName, { color: theme.text }]}>{t(loc.nameKey)}</Text>
               <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(loc.subKey)}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+            <Ionicons name="chevron-forward" size={20} color={GOLD} />
           </TouchableOpacity>
         ))}
 
@@ -98,10 +105,8 @@ export default function MapsScreen() {
             <Text style={[styles.locationName, { color: theme.text }]}>{t("makkahPlacesTitle")}</Text>
             <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t("makkahPlacesSub")}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+          <Ionicons name="chevron-forward" size={20} color={GOLD} />
         </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   )
@@ -109,24 +114,25 @@ export default function MapsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { backgroundColor: "#1E3A5F", paddingHorizontal: 20, paddingBottom: 20 },
+  header: { backgroundColor: NAVY, paddingHorizontal: 20, paddingBottom: 20 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
-  subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
-  content: { padding: 16 },
+  subtitle: { color: GOLD, fontSize: 13, marginTop: 4 },
+  content: { padding: ui.space, gap: 0 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 12 },
   myLocationCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 0.5,
+    padding: ui.cardPad,
+    borderRadius: ui.radius,
+    borderWidth: ui.hairline,
+    ...cardShadow,
   },
   myLocationIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: "#C9A84C",
+    borderRadius: ui.radiusSm,
+    backgroundColor: GOLD,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -134,10 +140,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    marginBottom: 10,
+    padding: ui.cardPad,
+    borderRadius: ui.radius,
+    borderWidth: ui.hairline,
+    marginBottom: ui.gap,
+    ...cardShadow,
   },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },

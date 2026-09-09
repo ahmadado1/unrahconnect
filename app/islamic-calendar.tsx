@@ -18,14 +18,16 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const CATEGORY_COLORS = {
   pilgrimage: { bg: "rgba(201,168,76,0.15)", border: "rgba(201,168,76,0.4)", text: "#C9A84C" },
   celebration: { bg: "rgba(45,106,79,0.15)", border: "rgba(45,106,79,0.4)", text: "#2D6A4F" },
   observance: { bg: "rgba(30,58,95,0.15)", border: "rgba(30,58,95,0.4)", text: "#1E3A5F" },
-  holy: { bg: "rgba(138,43,226,0.1)", border: "rgba(138,43,226,0.3)", text: "#7B2FBE" },
+  holy: { bg: "rgba(30,58,95,0.12)", border: "rgba(30,58,95,0.3)", text: "#1E3A5F" },
 }
 
 const FILTERS = [
@@ -313,7 +315,7 @@ export default function IslamicCalendarScreen() {
           )}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )

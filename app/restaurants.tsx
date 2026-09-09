@@ -1,3 +1,4 @@
+import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
@@ -20,14 +21,13 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Image,
-  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type CityFilter = "All" | "Makkah" | "Madinah"
@@ -167,7 +167,7 @@ export default function RestaurantsScreen() {
             </Text>
           </View>
         ) : (
-          <ImageBackground
+          <HeroBackground
             source={{ uri: imageUri }}
             style={cardStyles.image}
             imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
@@ -194,7 +194,7 @@ export default function RestaurantsScreen() {
             <Text style={cardStyles.imageLabel}>
               {restaurant.city} · {restaurant.distance}
             </Text>
-          </ImageBackground>
+          </HeroBackground>
         )}
         <View style={cardStyles.info}>
           <Text style={[cardStyles.name, { color: theme.text }]} numberOfLines={1}>
@@ -234,7 +234,12 @@ export default function RestaurantsScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.body}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
@@ -311,7 +316,7 @@ export default function RestaurantsScreen() {
 
 const cardStyles = StyleSheet.create({
   card: { width: 260, borderRadius: 16, overflow: "hidden", borderWidth: 0.5 },
-  image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative" },
+  image: { height: 160, justifyContent: "flex-end", padding: 10, position: "relative", backgroundColor: "#1E3A5F" },
   logoWrap: {
     height: 160,
     backgroundColor: "#F5F5F5",

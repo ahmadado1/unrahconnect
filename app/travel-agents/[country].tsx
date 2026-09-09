@@ -9,6 +9,7 @@ import {
   TRAVEL_AGENT_CONTACT_EMAIL,
   type TravelAgent,
 } from "@/lib/travelAgents"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -21,15 +22,23 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 
-function AgentCard({ agent, onPress }: { agent: TravelAgent; onPress: () => void }) {
+function AgentCard({
+  agent,
+  onPress,
+  onGetFeatured,
+}: {
+  agent: TravelAgent
+  onPress: () => void
+  onGetFeatured: () => void
+}) {
   const { theme } = useTheme()
 
   return (
@@ -76,7 +85,7 @@ function AgentCard({ agent, onPress }: { agent: TravelAgent; onPress: () => void
       {!agent.featured ? (
         <TouchableOpacity
           style={styles.getFeaturedBtn}
-          onPress={() => Linking.openURL(GET_FEATURED_URL)}
+          onPress={onGetFeatured}
           activeOpacity={0.75}
         >
           <Text style={styles.getFeaturedText}>Get Featured</Text>
@@ -148,10 +157,10 @@ export default function CountryAgentsScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Travel Agents</Text>
+          <Text style={styles.headerTitle}>{t("travelAgents")}</Text>
         </View>
         <View style={styles.emptyWrap}>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>Country not found</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("countryNotFound")}</Text>
         </View>
       </View>
     )
@@ -264,6 +273,7 @@ export default function CountryAgentsScreen() {
                   key={agent.id}
                   agent={agent}
                   onPress={() => router.push(`/travel-agent-detail/${agent.id}` as any)}
+                  onGetFeatured={() => openExternalUrl(router, GET_FEATURED_URL, "Get Featured")}
                 />
               ))}
             </View>
@@ -320,7 +330,7 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: "flex-start",
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     marginBottom: 14,
   },
@@ -335,7 +345,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   agentCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 14,
     marginBottom: 10,

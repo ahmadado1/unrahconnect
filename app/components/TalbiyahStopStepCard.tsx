@@ -113,12 +113,12 @@ const styles = StyleSheet.create({
   wrapper: { marginBottom: 12 },
   placeholder: {
     height: 100,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0,
     opacity: 0,
   },
   card: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
     padding: 14,
     shadowOffset: { width: 0, height: 0 },

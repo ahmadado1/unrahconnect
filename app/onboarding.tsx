@@ -4,7 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Dimensions, FlatList, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const { width } = Dimensions.get("window")

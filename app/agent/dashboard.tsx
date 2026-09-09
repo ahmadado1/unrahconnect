@@ -7,7 +7,9 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Linking, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Linking, ScrollView, Share, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 
@@ -285,7 +287,7 @@ export default function AgentDashboard() {
             )}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )

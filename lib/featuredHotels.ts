@@ -12,7 +12,7 @@ export type FeaturedHotel = {
   image: string
   imageFallback: string
   imageType: FeaturedHotelImageType
-  /** Booking.com affiliate deep link (open via Linking.openURL) */
+  /** CJ tracking link wrapping the Booking.com hotel page */
   bookingUrl: string
 }
 
@@ -46,7 +46,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     description: "Direct access toward Masjid al-Haram · Abraj Al-Bait area",
     ...featuredAccor("a7x4"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/swissotel-al-maqam-makkah.html?aid=4347392",
+      "https://www.anrdoezrs.net/click-101805153-11891539?sid=swissotel-almaqam&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-al-maqam-makkah.html",
   },
   {
     id: "featured-swissotel-makkah",
@@ -54,7 +54,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Steps from Masjid al-Haram · Abraj Al-Bait",
     ...featuredAccor("a5b9"),
-    bookingUrl: "https://www.booking.com/hotel/sa/swissotel-makkah.html?aid=4347392",
+    bookingUrl:
+      "https://www.jdoqocy.com/click-101805153-11891539?sid=swissotel-makkah&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-makkah.html%3Faid%3D4347392",
   },
   {
     id: "featured-pullman-zamzam-makkah",
@@ -63,7 +64,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     description: "Grand suites · Direct Haram access",
     ...featuredAccor("6036"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/zamzam-grand-suites-managed-by-pullman.html?aid=4347392",
+      "https://www.tkqlhce.com/click-101805153-11891539?sid=Pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fzamzam-grand-suites-managed-by-pullman.html%3F",
   },
   {
     id: "featured-movenpick-hajar",
@@ -72,7 +73,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     description: "Clock Towers complex · Near Masjid al-Haram",
     ...featuredAccor("b4l3"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/movenpick-residence-hajar-tower-makkah.html?aid=4347392",
+      "https://www.anrdoezrs.net/click-101805153-11891539?sid=Movenpick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmovenpick-residence-hajar-tower-makkah.html%3F",
   },
   {
     id: "featured-marriott-makkah",
@@ -83,7 +84,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg",
       HOTEL_BRAND_LOGOS.marriott,
     ),
-    bookingUrl: "https://www.booking.com/hotel/sa/makkah-marriott.html?aid=4347392",
+    bookingUrl:
+      "https://www.kqzyfj.com/click-101805153-11891539?sid=Marriot&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-marriott.html%3F",
   },
   {
     id: "featured-al-safwah",
@@ -91,7 +93,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Close to the Haram · Central Makkah",
     ...featuredLogo(HOTEL_BRAND_LOGOS.alSafwah),
-    bookingUrl: "https://www.booking.com/hotel/sa/al-safwah.html?aid=4347392",
+    bookingUrl:
+      "https://www.jdoqocy.com/click-101805153-11891539?sid=safwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-safwah.html%3F",
   },
   {
     id: "featured-hyatt-regency-makkah",
@@ -103,7 +106,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       HOTEL_BRAND_LOGOS.hyatt,
     ),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/hyatt-regency-makkah.html?aid=4347392",
+      "https://www.anrdoezrs.net/click-101805153-11891539?sid=hyatt&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fhyatt-regency-makkah.html%3F",
   },
   {
     id: "featured-fairmont-clock",
@@ -112,7 +115,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     description: "Iconic Clock Tower · Connected to Masjid al-Haram",
     ...featuredAccor("a5f2"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/makkah-clock-royal-tower-a-fairmont.html?aid=4347392",
+      "https://www.dpbolvw.net/click-101805153-11891539?sid=royal&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-clock-royal-tower-a-fairmont.html%3F",
   },
   {
     id: "featured-jabal-omar-jumeirah",
@@ -124,7 +127,7 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       HOTEL_BRAND_LOGOS.jumeirah,
     ),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/jabal-omar-jumeirah-makkah.html?aid=4347392",
+      "https://www.dpbolvw.net/click-101805153-11891539?sid=jumeira&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fjabal-omar-jumeirah-makkah.html%3F",
   },
 ]
 
@@ -140,7 +143,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       HOTEL_BRAND_LOGOS.rotana,
     ),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/al-manakha-rotana-madinah-madinah.html?aid=4347392",
+      "https://www.dpbolvw.net/click-101805153-11891539?sid=rotana&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-manakha-rotana-madinah-madinah.html%3F",
   },
   {
     id: "featured-anwar-movenpick",
@@ -149,7 +152,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     description: "Direct access area · Al-Masjid an-Nabawi",
     ...featuredAccor("b4m6"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/anwar-al-madinah-movenpick.html?aid=4347392",
+      "https://www.tkqlhce.com/click-101805153-11891539?sid=movempick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fanwar-al-madinah-movenpick.html%3F",
   },
   {
     id: "featured-madinah-hilton",
@@ -160,7 +163,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
       HOTEL_BRAND_LOGOS.hilton,
     ),
-    bookingUrl: "https://www.booking.com/hotel/sa/madinah-hilton.html?aid=4347392",
+    bookingUrl:
+      "https://www.tkqlhce.com/click-101805153-11891539?sid=hilton&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmadinah-hilton.html%3F",
   },
   {
     id: "featured-dar-al-iman",
@@ -172,7 +176,7 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       HOTEL_BRAND_LOGOS.ihg,
     ),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/dar-al-iman-intercontinental.html?aid=4347392",
+      "https://www.jdoqocy.com/click-101805153-11891539?sid=dar+al+iman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fdar-al-iman-intercontinental.html%3F",
   },
   {
     id: "featured-elaf-taiba",
@@ -183,7 +187,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://image-tc.galaxy.tf/wijpeg-e5t954b5drwhz62i6oe28y1ub/elaf-taiba-2-2562-hdr_standard.jpg?width=800",
       HOTEL_BRAND_LOGOS.elafTaiba,
     ),
-    bookingUrl: "https://www.booking.com/hotel/sa/elaf-taiba.html?aid=4347392",
+    bookingUrl:
+      "https://www.kqzyfj.com/click-101805153-11891539?sid=taiba&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Felaf-taiba.html%3F",
   },
   {
     id: "featured-pullman-zamzam-madinah",
@@ -192,23 +197,25 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     description: "Steps from the Prophet's Mosque",
     ...featuredAccor("9245"),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/pullman-zamzam-madina.html?aid=4347392",
+      "https://www.anrdoezrs.net/click-101805153-11891539?sid=pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fpullman-zamzam-madina.html%3F",
   },
   {
     id: "featured-mawaddah-al-salwa",
-    name: "Mawaddah Al Salwa",
+    name: "Emmaar Elite",
     city: "Madinah",
     description: "Near Al-Masjid an-Nabawi",
     ...featuredLogo(HOTEL_BRAND_LOGOS.mawaddah),
     bookingUrl:
-      "https://www.booking.com/hotel/sa/mawadah-al-salwa.html?aid=4347392",
+      "https://www.dpbolvw.net/click-101805153-11891539?sid=salwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmawadah-al-salwa.html%3F",
   },
 ]
 
 /** Affiliate budget browse links for each holy city. */
 export const FEATURED_BUDGET_URLS: Record<FeaturedHotelCity, string> = {
-  Makkah: "https://www.booking.com/budget/city/sa/mecca.html?aid=4347392",
-  Madinah: "https://www.booking.com/budget/region/sa/al-madinah.html?aid=4347392",
+  Makkah:
+    "https://www.dpbolvw.net/click-101805153-11891539?sid=budget&url=https%3A%2F%2Fwww.booking.com%2Fbudget%2Fcity%2Fsa%2Fmecca.html%3F",
+  Madinah:
+    "https://www.anrdoezrs.net/click-101805153-11891539?sid=budget+2&url=https%3A%2F%2Fwww.booking.com%2Fbudget%2Fregion%2Fsa%2Fal-madinah.html%3F",
 }
 
 export type FeaturedHotelSection = {

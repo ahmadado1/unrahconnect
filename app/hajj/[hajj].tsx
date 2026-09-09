@@ -10,18 +10,19 @@ import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import HeroBackground from "@/app/components/HeroBackground"
+import ScreenState from "@/app/components/ScreenState"
 import { LinearGradient } from "expo-linear-gradient"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   BackHandler,
-  ImageBackground,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { getPhaseHeaderImage, photoHeaderHeight } from "@/lib/phaseHeaderImages"
@@ -89,14 +90,7 @@ export default function HajjPhaseDetailScreen() {
   )
 
   if (!data) {
-    return (
-      <View style={styles.notFound}>
-        <Text style={{ color: theme.text }}>{t("phaseNotFound")}</Text>
-        <TouchableOpacity onPress={goToHajjGuide}>
-          <Text style={{ color: "#C9A84C" }}>{t("goBack")}</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("phaseNotFound")} onBack={goToHajjGuide} />
   }
 
   return (
@@ -107,6 +101,7 @@ export default function HajjPhaseDetailScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="never"
       >
         <View
           style={[
@@ -120,11 +115,10 @@ export default function HajjPhaseDetailScreen() {
         >
           {headerImageSource ? (
             <>
-              <ImageBackground
+              <HeroBackground
                 source={headerImageSource}
                 style={StyleSheet.absoluteFillObject}
                 imageStyle={styles.headerImage}
-                resizeMode="cover"
               />
               <LinearGradient
                 colors={["rgba(0,0,0,0.65)", "rgba(0,0,0,0.25)", "transparent"]}
@@ -348,7 +342,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 14 },
   femaleNote: { flexDirection: "row", gap: 8, backgroundColor: "#E6F1FB", borderRadius: 10, padding: 12, marginTop: 12, alignItems: "flex-start" },
   femaleNoteText: { flex: 1, fontSize: 13, color: "#0C447C", lineHeight: 20 },
-  duaCard: { borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 0.5 },
+  duaCard: { borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 0.5 },
   duaTitle: { fontSize: 12, fontWeight: "bold", marginBottom: 10 },
   duaArabic: { fontSize: 20, textAlign: "right", lineHeight: 36, marginBottom: 8 },
   duaTranslit: { fontSize: 13, color: "#C9A84C", fontStyle: "italic", marginBottom: 8 },
@@ -379,15 +373,15 @@ const styles = StyleSheet.create({
   },
   tipDuaTranslation: { fontSize: 13, lineHeight: 20, textAlign: "center" },
   tipCitation: { fontSize: 11, lineHeight: 16, color: "#C9A84C", fontStyle: "italic" },
-  completeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "green", marginHorizontal: 20, borderRadius: 25, padding: 14, marginBottom: 12 },
+  completeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#1E3A5F", marginHorizontal: 20, borderRadius: 16, padding: 16, marginBottom: 12 },
   completeBtnDone: { backgroundColor: "#C9A84C" },
   completeBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
   completeBtnTextDone: { color: "#1E3A5F" },
-  nextBtn: { backgroundColor: "#1E3A5F", borderRadius: 14, padding: 16, marginTop: 4 },
+  nextBtn: { backgroundColor: "#1E3A5F", borderRadius: 16, padding: 16, marginTop: 4 },
   nextBtnContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   nextBtnLabel: { color: "#C9A84C", fontSize: 12, fontWeight: "600", marginBottom: 4 },
   nextBtnTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  completionBox: { backgroundColor: "#1E3A5F", borderRadius: 14, padding: 24, alignItems: "center" },
+  completionBox: { backgroundColor: "#1E3A5F", borderRadius: 16, padding: 24, alignItems: "center" },
   completionTitle: { color: "#C9A84C", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
   completionText: { color: "rgba(255,255,255,0.8)", fontSize: 14, textAlign: "center", lineHeight: 22 },
 })

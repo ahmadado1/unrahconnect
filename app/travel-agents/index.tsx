@@ -15,9 +15,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 14,
     marginBottom: 10,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 15, fontWeight: "600" },
   tipCard: {
     marginTop: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     padding: 14,
     flexDirection: "row",

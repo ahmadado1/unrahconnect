@@ -2,12 +2,15 @@ import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIc
 import { useTheme } from "@/context/themeContext"
 import { FLIGHT_PLATFORMS } from "@/lib/flights"
 import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useTranslation } from "react-i18next"
-import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
@@ -115,12 +118,17 @@ export default function ServicesScreen() {
             style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 20, padding: 10, marginBottom: 2 }}
             onPress={() => router.push("/search" as any)}
           >
-            <Ionicons name="search" size={20} color="#fff" />
+            <Ionicons name="search-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+      >
 
         <View style={styles.grid}>
           {APP_SERVICES.map(s => (
@@ -220,7 +228,7 @@ export default function ServicesScreen() {
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={styles.actionBtnOutline}
-              onPress={() => Linking.openURL(SAPTCO_URL)}
+              onPress={() => openExternalUrl(router, SAPTCO_URL, t("saptcoBuses"))}
             >
               <Ionicons name="globe-outline" size={14} color="#C9A84C" />
               <Text style={styles.actionBtnOutlineText}>{t("officialSite")}</Text>
@@ -276,7 +284,7 @@ export default function ServicesScreen() {
         {COMING_SOON.map(s => (
           <View
             key={s.id}
-            style={[styles.listCard, { backgroundColor: theme.card, borderColor: theme.border, opacity: 0.5 }]}
+            style={[styles.listCard, { backgroundColor: theme.card, borderColor: theme.border, opacity: 0.42 }]}
           >
             <AppIcon name={s.icon} size={26} />
             <View style={{ flex: 1 }}>
@@ -288,8 +296,6 @@ export default function ServicesScreen() {
             </View>
           </View>
         ))}
-
-        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   )
@@ -297,23 +303,23 @@ export default function ServicesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { backgroundColor: "#1E3A5F", paddingHorizontal: 20, paddingBottom: 20 },
+  header: { backgroundColor: NAVY, paddingHorizontal: 20, paddingBottom: 20 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
-  subtitle: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
-  content: { padding: 16 },
+  subtitle: { color: GOLD, fontSize: 13, marginTop: 4 },
+  content: { padding: ui.space },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 4 },
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 4 },
   sectionSub: { fontSize: 12, marginBottom: 12 },
   groupLabel: { fontSize: 12, fontWeight: "600", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
-  gridCard: { width: "47%", borderRadius: 16, padding: 16, borderWidth: 0.5, minHeight: 130 },
+  gridCard: { width: "47%", borderRadius: ui.radius, padding: ui.cardPad, borderWidth: ui.hairline, minHeight: 130 },
   cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 4 },
   cardSub: { fontSize: 11, flex: 1 },
   cardFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
 
-  listCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 0.5, marginBottom: 10 },
-  expandCard: { borderRadius: 14, borderWidth: 0.5, marginBottom: 10, padding: 14 },
+  listCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: ui.cardPad, borderRadius: ui.radius, borderWidth: ui.hairline, marginBottom: ui.gap },
+  expandCard: { borderRadius: ui.radius, borderWidth: ui.hairline, marginBottom: ui.gap, padding: ui.cardPad },
   expandHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   listTitle: { fontSize: 14, fontWeight: "600" },
   listSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
@@ -335,7 +341,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: ui.radius,
     borderWidth: 1,
     borderColor: "rgba(201,168,76,0.5)",
     backgroundColor: "rgba(201,168,76,0.08)",
@@ -348,8 +354,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#1E3A5F",
+    borderRadius: ui.radius,
+    backgroundColor: NAVY,
   },
   actionBtnPrimaryText: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
   actionBtnFull: { flex: undefined, width: "100%", marginTop: 12 },

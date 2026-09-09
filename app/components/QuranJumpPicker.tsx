@@ -19,9 +19,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   columns: {
     flexDirection: "row",
     height: 320,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,

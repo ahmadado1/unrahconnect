@@ -1,7 +1,8 @@
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "@/context/themeContext"
-import { Platform, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Platform, Image, Linking, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useTranslation } from "react-i18next"
 
 const NUSUK_IOS = "https://apps.apple.com/app/id6469515422"
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: "#1E3A5F",
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 14,
   },

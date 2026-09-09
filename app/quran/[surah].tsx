@@ -9,15 +9,23 @@ import {
   setQuranReadMode,
   type QuranReadMode,
 } from "@/lib/quranReadMode"
+import { AL_KAHF_SURAH_NUMBER } from "@/lib/alKahfWindow"
+import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
+import { KAHF_AYAH_COUNT, saveKahfWeeklyProgress } from "@/lib/kahfWeekly"
+import { scheduleAlKahfReminder, scheduleAlMulkReminder } from "@/lib/notifications"
+import { recordQuranLastRead } from "@/lib/quranLastRead"
 import { getSurahMeta } from "@/lib/quranSurahMeta"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
+import { useKeepAwake } from "expo-keep-awake"
+import { useFocusEffect, useLocalSearchParams, useRouter, Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
@@ -192,7 +200,7 @@ function MushafTextFlow({
                   <Text
                     style={[
                       mStyles.bismillahText,
-                      fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+                      fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
                     ]}
                   >
                     {BISMILLAH}
@@ -209,7 +217,7 @@ function MushafTextFlow({
               key={item.key}
               style={[
                 mStyles.word,
-                fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+                fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
               ]}
             >
               {item.text}
@@ -550,6 +558,7 @@ function MushafView({
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
 export default function SurahScreen() {
+  useKeepAwake()
   const router = useRouter()
   const { theme } = useTheme()
   const { t } = useTranslation()
@@ -557,7 +566,7 @@ export default function SurahScreen() {
   const [scrollToVerseIndex, setScrollToVerseIndex] = useState<number | null>(null)
   const listRef = useRef<FlatList>(null)
   const didScrollForSurahRef = useRef<string | null>(null)
-  const { surah, name, arabicName, verses, type, resume, ayah, mode } = useLocalSearchParams<{
+  const { surah, name, arabicName, verses, type, resume, ayah, mode, expand } = useLocalSearchParams<{
     surah: string
     name: string
     arabicName: string
@@ -566,9 +575,11 @@ export default function SurahScreen() {
     resume?: string
     ayah?: string
     mode?: string
+    expand?: string
   }>()
   const shouldResume = resume === "1"
   const requestedAyah = ayah ? Number(ayah) : NaN
+  const expandFromCard = expand === "1"
 
   const resolveInitialMode = (): QuranReadMode => {
     if (mode === "mushaf" || mode === "verses") return mode
@@ -597,6 +608,46 @@ export default function SurahScreen() {
   const saveTimer = useRef<any>(null)
   const loadRequestRef = useRef(0)
   const switchingRef = useRef(false)
+  const lastAyahRef = useRef(1)
+
+  useEffect(() => {
+    if (viewMode === "mushaf") {
+      const onPage = verseList.filter(v => v.page === currentPage)
+      if (onPage.length) {
+        lastAyahRef.current = onPage[0].number
+        return
+      }
+    }
+    lastAyahRef.current = visibleVerseNumber || 1
+  }, [viewMode, currentPage, verseList, visibleVerseNumber])
+
+  // Register Last Read on exit (back, tab change, or jump to another Surah) — not on enter.
+  useFocusEffect(
+    useCallback(() => {
+      const capturedSurah = Number(surah)
+      const capturedName = String(name ?? "")
+      const capturedArabic = String(arabicName ?? "")
+      return () => {
+        if (!capturedSurah) return
+        void recordQuranLastRead({
+          surahNumber: capturedSurah,
+          englishName: capturedName,
+          arabicName: capturedArabic,
+          ayah: lastAyahRef.current || 1,
+        })
+        const ayah = lastAyahRef.current || 1
+        if (capturedSurah === AL_KAHF_SURAH_NUMBER) {
+          void saveKahfWeeklyProgress({
+            verseNumber: ayah,
+            completed: ayah >= KAHF_AYAH_COUNT,
+          }).then(() => scheduleAlKahfReminder().catch(() => {}))
+        }
+        if (capturedSurah === AL_MULK_SURAH_NUMBER) {
+          void scheduleAlMulkReminder().catch(() => {})
+        }
+      }
+    }, [surah, name, arabicName]),
+  )
 
   // Keep view mode from jump / navigation params
   useEffect(() => {
@@ -973,7 +1024,17 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
   // ─── RENDER ────────────────────────────────────────────────────────────────
 
   return (
-  <View style={[styles.screen, { backgroundColor: theme.background }]}>
+  <Reanimated.View
+    style={[styles.screen, { backgroundColor: theme.background }]}
+    entering={expandFromCard ? ZoomIn.duration(380) : FadeIn.duration(160)}
+  >
+    <Stack.Screen
+      options={
+        expandFromCard
+          ? { animation: "fade", animationDuration: 280 }
+          : { animation: "slide_from_right" }
+      }
+    />
     <StatusBar style="light" />
 
     {viewMode === "mushaf" ? (
@@ -1079,7 +1140,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               if (Number(surah) === 9) return null
               return (
                 <View style={[styles.bismillahCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }, { color: theme.text }]}>
+                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" }, { color: theme.text }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
                   <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
@@ -1099,7 +1160,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         )}
       </>
     )}
-  </View>
+  </Reanimated.View>
 )
 }
 
@@ -1148,9 +1209,9 @@ const styles = StyleSheet.create({
   bismillahTranslation: { fontSize: 12, textAlign: "center", lineHeight: 18 },
   verseCard: { borderRadius: 16, padding: 16, borderWidth: 0.5 },
   verseTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  verseBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)", alignItems: "center", justifyContent: "center" },
-  verseBadgeText: { color: "#C9A84C", fontSize: 12, fontWeight: "700" },
-  verseArabic: { fontSize: 26, textAlign: "right", lineHeight: 50, marginBottom: 14 } as any,
+  verseBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#F5EDD6", borderWidth: 1, borderColor: "#8B6914", alignItems: "center", justifyContent: "center" },
+  verseBadgeText: { color: "#1A1A1A", fontSize: 12, fontWeight: "700" },
+  verseArabic: { fontSize: 26, textAlign: "justify", writingDirection: "rtl", lineHeight: 50, marginBottom: 14, fontWeight: "400" } as any,
   verseDivider: { height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", marginBottom: 12 },
   verseTranslation: { fontSize: 13, lineHeight: 22 },
   footer: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, paddingBottom: 40 },
@@ -1160,17 +1221,18 @@ const styles = StyleSheet.create({
   verseEndBadge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#C9A84C",
+    borderRadius: 16,
+    borderWidth: 1.25,
+    borderColor: "#8B6914",
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 2,
-    backgroundColor: "rgba(201,168,76,0.08)",
+    backgroundColor: "#F5EDD6",
   },
   verseEndText: {
     fontSize: 11,
-    color: "#C9A84C",
+    color: "#1A1A1A",
+    fontWeight: "700",
     textAlign: "center",
   },
 
@@ -1373,9 +1435,11 @@ const mStyles = StyleSheet.create({
   textFlow: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
+    justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
     overflow: "hidden",
+    rowGap: 0,
   },
   flowSurahBlock: {
     width: "100%",
@@ -1384,8 +1448,8 @@ const mStyles = StyleSheet.create({
   word: {
     fontSize: 26,
     color: "#1E3A5F",
-    lineHeight: 52,
-    marginHorizontal: 1,
+    lineHeight: 48,
+    fontWeight: "400",
   },
   navBar: {
     flexDirection: "row",
@@ -1407,19 +1471,21 @@ const mStyles = StyleSheet.create({
   navPage: { color: "#fff", fontSize: 18, fontWeight: "600" },
   navTotal: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
   verseEndBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: "#C9A84C",
+    width: 28,
+    height: 28,
+    borderRadius: 16,
+    borderWidth: 1.25,
+    borderColor: "#8B6914",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(201,168,76,0.08)",
+    backgroundColor: "#F5EDD6",
     flexShrink: 0,
+    marginHorizontal: 2,
   },
   verseEndText: {
     fontSize: 11,
-    color: "#C9A84C",
+    color: "#1A1A1A",
+    fontWeight: "700",
     textAlign: "center",
   },
 })

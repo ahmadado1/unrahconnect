@@ -7,9 +7,11 @@ import {
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
+  scheduleAlMulkReminder,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
+  scheduleJourneyReminders,
   scheduleTestAdhanNotification,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications"
@@ -31,9 +33,9 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 function parseStoredTime(
@@ -131,6 +133,8 @@ export default function NotificationsScreen() {
     await scheduleDailyDhikrReminders().catch(console.log)
     await scheduleIslamicDateReminders().catch(console.log)
     await scheduleAlKahfReminder().catch(console.log)
+    await scheduleAlMulkReminder().catch(console.log)
+    await scheduleJourneyReminders().catch(console.log)
     return true
   }
 
@@ -520,7 +524,7 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 18,
     borderWidth: 0.5,
   },
@@ -572,7 +576,7 @@ const styles = StyleSheet.create({
   doneBtn: {
     marginTop: 8,
     backgroundColor: "#C9A84C",
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
   },

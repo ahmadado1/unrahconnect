@@ -127,7 +127,7 @@ Examples:
 
 FEATURED HOTELS (Hotels screen — Book Now opens Booking.com):
 Makkah near Haram: Swissotel Al Maqam, Swissotel Makkah, Pullman ZamZam Makkah, Mövenpick Hajar Tower, Makkah Marriott, Al Safwah, Hyatt Regency Makkah, Fairmont Clock Royal Tower, Jabal Omar Jumeirah
-Madinah near Nabawi: Al Manakha Rotana, Anwar Al Madinah Mövenpick, Madinah Hilton, Dar Al Iman InterContinental, Elaf Taiba, Pullman Zamzam Madina, Mawaddah Al Salwa
+Madinah near Nabawi: Al Manakha Rotana, Anwar Al Madinah Mövenpick, Madinah Hilton, Dar Al Iman InterContinental, Elaf Taiba, Pullman Zamzam Madina, Emmaar Elite
 Also: budget browse links for Makkah and Madinah on that screen
 
 MAKKAH PLACES TO SEE:

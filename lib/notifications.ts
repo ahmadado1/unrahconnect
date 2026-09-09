@@ -8,7 +8,30 @@ import {
 import { isAdhanPlaying, isAdhanPlayingFor } from "@/lib/adhanAudio"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification } from "@/lib/prayerConstants"
-import { parsePrayerTimeHourMinute } from "@/lib/prayerTimes"
+import {
+  emptyKahfProgress,
+  getKahfFridayDate,
+  getKahfWeekId,
+  loadKahfWeeklyProgress,
+  KAHF_READER_ROUTE,
+} from "@/lib/kahfWeekly"
+import { parsePrayerTimeHourMinute, readCachedPrayerTimes } from "@/lib/prayerTimes"
+import {
+  HAJJ_JOURNEY_PHASES,
+  UMRAH_JOURNEY_PHASES,
+  journeyNotifKind,
+  kahfNotifKind,
+  mulkNotifKind,
+  nextWeekdayAt,
+  isSameLocalDay,
+  type JourneyNotifKind,
+  type KahfNotifKind,
+  type MulkNotifKind,
+} from "@/lib/progressNotifCopy"
+import { loadLastReadState } from "@/lib/quranLastRead"
+import { ayahCountForSurah } from "@/lib/quranSurahMeta"
+import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
+import { getHajjProgress, getUmrahProgress } from "@/lib/supabase"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Notifications from "expo-notifications"
@@ -532,66 +555,368 @@ export async function scheduleDhikrReminder(_hour?: number, _minute?: number) {
   return scheduleDailyDhikrReminders()
 }
 
-/** Weekly Friday reminder to read Surah Al-Kahf (opens Quran surah 18). */
+const AL_KAHF_NOTIF_IDS = [
+  "al-kahf-thursday-eve",
+  "al-kahf-friday",
+  "al-kahf-friday-next",
+  "al-kahf-friday-evening",
+] as const
+
+function kahfNotifCopy(kind: KahfNotifKind): { title: string; body: string } {
+  switch (kind) {
+    case "continue":
+      return {
+        title: i18n.t("alKahfNotifFriContinueTitle", { defaultValue: "Continue Surah Al-Kahf" }),
+        body: i18n.t("alKahfNotifFriContinueBody", {
+          defaultValue: "Pick up Surah Al-Kahf from where you stopped.",
+        }),
+      }
+    case "finish":
+      return {
+        title: i18n.t("alKahfNotifFriFinishTitle", { defaultValue: "Finish your Kahf" }),
+        body: i18n.t("alKahfNotifFriFinishBody", {
+          defaultValue: "You're almost there — finish Surah Al-Kahf before Friday ends.",
+        }),
+      }
+    case "dontMiss":
+      return {
+        title: i18n.t("alKahfNotifFriDontMissTitle", { defaultValue: "Don't miss Surah Al-Kahf today" }),
+        body: i18n.t("alKahfNotifFriDontMissBody", {
+          defaultValue: "It's Friday — take a moment to read Surah Al-Kahf.",
+        }),
+      }
+    case "start":
+    default:
+      return {
+        title: i18n.t("alKahfNotifThuStartTitle", { defaultValue: "Start reciting Surah Al-Kahf" }),
+        body: i18n.t("alKahfNotifThuStartBody", {
+          defaultValue: "Tomorrow is Friday — start Surah Al-Kahf when you're ready.",
+        }),
+      }
+  }
+}
+
+function kahfNotifContent(kind: KahfNotifKind) {
+  const copy = kahfNotifCopy(kind)
+  return {
+    title: copy.title,
+    body: copy.body,
+    sound: true as const,
+    data: {
+      screen: "al-kahf",
+      route: KAHF_READER_ROUTE,
+      surah: 18,
+    },
+    ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+  }
+}
+
+async function cancelAlKahfReminders() {
+  for (const id of AL_KAHF_NOTIF_IDS) {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+  }
+}
+
+const AL_MULK_NOTIF_ID = "al-mulk-night"
+const AL_MULK_NOTIF_ID_NEXT = "al-mulk-night-next"
+
+function mulkNotifCopy(kind: MulkNotifKind): { title: string; body: string } {
+  switch (kind) {
+    case "continue":
+      return {
+        title: i18n.t("alMulkNotifContinueTitle", { defaultValue: "Continue Surah Al-Mulk" }),
+        body: i18n.t("alMulkNotifContinueBody", {
+          defaultValue: "Pick up Surah Al-Mulk from where you stopped.",
+        }),
+      }
+    case "finish":
+      return {
+        title: i18n.t("alMulkNotifFinishTitle", { defaultValue: "Finish Surah Al-Mulk" }),
+        body: i18n.t("alMulkNotifFinishBody", {
+          defaultValue: "Finish Surah Al-Mulk before you sleep.",
+        }),
+      }
+    default:
+      return {
+        title: i18n.t("alMulkNotifStartTitle", {
+          defaultValue: i18n.t("alMulkNotifTitle", { defaultValue: "Surah Al-Mulk" }),
+        }),
+        body: i18n.t("alMulkNotifStartBody", {
+          defaultValue: i18n.t("alMulkNotifBody", {
+            defaultValue: "Read Surah Al-Mulk before you sleep.",
+          }),
+        }),
+      }
+  }
+}
+
+function mulkNotifContent(kind: MulkNotifKind = "start") {
+  const copy = mulkNotifCopy(kind)
+  return {
+    title: copy.title,
+    body: copy.body,
+    sound: true as const,
+    data: {
+      screen: "al-mulk",
+      route: "/quran/67",
+      surah: 67,
+    },
+    ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+  }
+}
+
+async function ensureQuranReminderChannel() {
+  if (Platform.OS !== "android") return
+  await Notifications.setNotificationChannelAsync("quran-reminders", {
+    name: "Quran Reminders",
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: "default",
+    vibrationPattern: [0, 200, 100, 200],
+    enableVibrate: true,
+  })
+}
+
+function nextLocalTime(hour: number, minute: number, now = new Date(), extraDays = 0): Date {
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0)
+  target.setDate(target.getDate() + extraDays)
+  if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1)
+  return target
+}
+
+/** Nightly Al-Mulk reminder around 10pm, including Friday nights. */
+export async function scheduleAlMulkReminder() {
+  await Notifications.cancelScheduledNotificationAsync(AL_MULK_NOTIF_ID).catch(() => {})
+  await Notifications.cancelScheduledNotificationAsync(AL_MULK_NOTIF_ID_NEXT).catch(() => {})
+
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+
+  await ensureQuranReminderChannel()
+
+  const now = new Date()
+  const lastRead = (await loadLastReadState()).entries.find(e => e.surahNumber === AL_MULK_SURAH_NUMBER)
+  const readToday = Boolean(lastRead && isSameLocalDay(lastRead.registeredAt, now))
+  const tonightKind = mulkNotifKind({
+    lastAyah: lastRead?.ayah ?? null,
+    ayahCount: ayahCountForSurah(AL_MULK_SURAH_NUMBER),
+    readToday,
+  })
+
+  const tonight = nextLocalTime(22, 0, now)
+  const isTonight = tonight.getDate() === now.getDate() && tonight.getMonth() === now.getMonth()
+  const firstKind: MulkNotifKind = isTonight && tonightKind !== "skip" ? tonightKind : "start"
+  const firstAt = isTonight && tonightKind === "skip" ? nextLocalTime(22, 0, now, 1) : tonight
+  const secondAt = new Date(firstAt)
+  secondAt.setDate(secondAt.getDate() + 1)
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: AL_MULK_NOTIF_ID,
+    content: mulkNotifContent(firstKind),
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: firstAt,
+      ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+    },
+  })
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: AL_MULK_NOTIF_ID_NEXT,
+    content: mulkNotifContent("start"),
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: secondAt,
+      ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+    },
+  })
+
+  return true
+}
+
+async function fridayEveningDate(now = new Date()): Promise<Date | null> {
+  const friday = getKahfFridayDate(now)
+  const maghrib = (await readCachedPrayerTimes())?.Maghrib
+  const parsed = maghrib ? parsePrayerTimeHourMinute(maghrib) : null
+  friday.setHours(parsed?.hour ?? 18, parsed?.minute ?? 0, 0, 0)
+  if (friday.getTime() <= now.getTime()) return null
+  return friday
+}
+
+async function scheduleKahfDate(id: string, date: Date, kind: KahfNotifKind) {
+  if (kind === "skip") return
+  await Notifications.scheduleNotificationAsync({
+    identifier: id,
+    content: kahfNotifContent(kind),
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date,
+      ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+    },
+  })
+}
+
+/** Weekly Kahf reminders: Thu 9pm start, Fri 9:30am + evening from this week's progress. */
 export async function scheduleAlKahfReminder() {
-  await Notifications.cancelScheduledNotificationAsync("al-kahf-friday").catch(() => {})
+  await cancelAlKahfReminders()
 
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return false
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("quran-reminders", {
-      name: "Quran Reminders",
-      importance: Notifications.AndroidImportance.DEFAULT,
-      sound: "default",
-      vibrationPattern: [0, 200, 100, 200],
-      enableVibrate: true,
-    })
+    await ensureQuranReminderChannel()
   }
 
+  const now = new Date()
+  const progress = await loadKahfWeeklyProgress(now)
+
   await Notifications.scheduleNotificationAsync({
-    identifier: "al-kahf-friday",
-    content: {
-      title: i18n.t("alKahfNotifTitle", { defaultValue: "Surah Al-Kahf" }),
-      body: i18n.t("alKahfNotifBody", {
-        defaultValue: "It's Friday — take a moment to read Surah Al-Kahf.",
-      }),
-      sound: true,
-      data: {
-        screen: "al-kahf",
-        route: "/quran/18",
-        surah: 18,
-      },
-      ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
-    },
+    identifier: "al-kahf-thursday-eve",
+    content: kahfNotifContent("start"),
     trigger: {
-      // Expo: 1 = Sunday … 6 = Friday … 7 = Saturday
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-      weekday: 6,
-      hour: 9,
+      weekday: 5, // Thursday
+      hour: 21,
       minute: 0,
     },
   })
+
+  const nextFriAm = nextWeekdayAt(5, 9, 30, now)
+  const sameWeekAsNextAm = getKahfWeekId(nextFriAm) === getKahfWeekId(now)
+  const nextAmProgress = sameWeekAsNextAm ? progress : emptyKahfProgress(nextFriAm)
+  const nextAmKind = kahfNotifKind("FriAm", nextAmProgress)
+
+  if (nextAmKind === "skip") {
+    const following = new Date(nextFriAm)
+    following.setDate(following.getDate() + 7)
+    await scheduleKahfDate("al-kahf-friday", following, "dontMiss")
+    const afterThat = new Date(following)
+    afterThat.setDate(afterThat.getDate() + 7)
+    await scheduleKahfDate("al-kahf-friday-next", afterThat, "dontMiss")
+  } else {
+    await scheduleKahfDate("al-kahf-friday", nextFriAm, nextAmKind)
+    const following = new Date(nextFriAm)
+    following.setDate(following.getDate() + 7)
+    await scheduleKahfDate("al-kahf-friday-next", following, "dontMiss")
+  }
+
+  const eveKind = kahfNotifKind("FriEve", progress)
+  const eveningAt = eveKind === "skip" ? null : await fridayEveningDate(now)
+  if (eveningAt) {
+    await scheduleKahfDate("al-kahf-friday-evening", eveningAt, eveKind)
+  }
+
   return true
 }
 
-export async function scheduleJourneyReminder(phaseName: string, type: "umrah" | "hajj") {
-  await Notifications.cancelScheduledNotificationAsync("journey-reminder")
+function journeyNotifCopy(
+  type: "umrah" | "hajj",
+  kind: Exclude<JourneyNotifKind, "skip">,
+  phaseName: string,
+): { title: string; body: string } {
+  const label = type === "hajj" ? "Hajj" : "Umrah"
+  const prefix = type === "hajj" ? "journeyHajj" : "journeyUmrah"
+  if (kind === "start") {
+    return {
+      title: i18n.t(`${prefix}StartTitle`, { defaultValue: `Start your ${label} journey` }),
+      body: i18n.t(`${prefix}StartBody`, {
+        phase: phaseName,
+        defaultValue: `Begin with ${phaseName}. Open UmrahConnect to start.`,
+      }),
+    }
+  }
+  if (kind === "finish") {
+    return {
+      title: i18n.t(`${prefix}FinishTitle`, { defaultValue: `Finish your ${label} journey` }),
+      body: i18n.t(`${prefix}FinishBody`, {
+        phase: phaseName,
+        defaultValue: `You're on ${phaseName} — open UmrahConnect to finish.`,
+      }),
+    }
+  }
+  return {
+    title: i18n.t(`${prefix}ContinueTitle`, { defaultValue: `Continue your ${label} journey` }),
+    body: i18n.t(`${prefix}ContinueBody`, {
+      phase: phaseName,
+      defaultValue: `Pick up at ${phaseName}. Open UmrahConnect to continue.`,
+    }),
+  }
+}
 
+function journeyIdentifier(type: "umrah" | "hajj") {
+  return type === "hajj" ? "journey-reminder-hajj" : "journey-reminder-umrah"
+}
+
+export async function scheduleJourneyReminder(phaseName: string, type: "umrah" | "hajj") {
+  const id = journeyIdentifier(type)
+  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+  await Notifications.cancelScheduledNotificationAsync("journey-reminder").catch(() => {})
+
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+
+  const completed =
+    type === "hajj" ? await getHajjProgress() : await getUmrahProgress()
+  const total = type === "hajj" ? HAJJ_JOURNEY_PHASES : UMRAH_JOURNEY_PHASES
+  const kind = journeyNotifKind(completed.length, total)
+  if (kind === "skip") return false
+
+  const copy = journeyNotifCopy(type, kind, phaseName)
   await Notifications.scheduleNotificationAsync({
-    identifier: "journey-reminder",
+    identifier: id,
     content: {
-      title: "Continue Your Journey",
-      body: `Don't forget to complete: ${phaseName}. Open UmrahConnect to continue.`,
+      title: copy.title,
+      body: copy.body,
       sound: true,
       data: { type },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 9,
-      minute: 0,
+      hour: type === "hajj" ? 9 : 9,
+      minute: type === "hajj" ? 10 : 0,
     },
   })
+  return true
+}
+
+const UMRAH_PHASE_TITLE_KEYS = [
+  "phase_umrah_1_title",
+  "phase_umrah_2_title",
+  "phase_umrah_3_title",
+  "phase_umrah_4_title",
+  "phase_umrah_5_title",
+  "phase_umrah_6_title",
+  "phase_umrah_7_title",
+] as const
+
+const HAJJ_PHASE_TITLE_KEYS = [
+  "phase_hajj_1_title",
+  "phase_hajj_2_title",
+  "phase_hajj_3_title",
+  "phase_hajj_4_title",
+  "phase_hajj_5_title",
+  "phase_hajj_6_title",
+  "phase_hajj_7_title",
+  "phase_hajj_8_title",
+  "phase_hajj_9_title",
+] as const
+
+/** Schedule Umrah + Hajj nudges from checklist progress (Start vs Continue vs Finish). */
+export async function scheduleJourneyReminders() {
+  const umrahDone = await getUmrahProgress()
+  if (umrahDone.length >= UMRAH_JOURNEY_PHASES) {
+    await Notifications.cancelScheduledNotificationAsync("journey-reminder-umrah").catch(() => {})
+    await Notifications.cancelScheduledNotificationAsync("journey-reminder").catch(() => {})
+  } else {
+    const nextKey = UMRAH_PHASE_TITLE_KEYS[umrahDone.length] ?? UMRAH_PHASE_TITLE_KEYS[0]
+    await scheduleJourneyReminder(i18n.t(nextKey), "umrah")
+  }
+
+  const hajjDone = await getHajjProgress()
+  if (hajjDone.length >= HAJJ_JOURNEY_PHASES) {
+    await Notifications.cancelScheduledNotificationAsync("journey-reminder-hajj").catch(() => {})
+  } else {
+    const nextKey = HAJJ_PHASE_TITLE_KEYS[hajjDone.length] ?? HAJJ_PHASE_TITLE_KEYS[0]
+    await scheduleJourneyReminder(i18n.t(nextKey), "hajj")
+  }
 }
 
 export async function scheduleIslamicDateReminders() {

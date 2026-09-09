@@ -9,20 +9,21 @@ import {
   TRAVEL_AGENT_CONTACT_EMAIL,
   type TravelAgent,
 } from "@/lib/travelAgents"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  ActivityIndicator,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -68,22 +69,11 @@ export default function TravelAgentDetailScreen() {
   const country = agent ? getTravelAgentCountry(agent.countryId) : null
 
   if (loading && !agent) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <ActivityIndicator color={GOLD} />
-      </View>
-    )
+    return <ScreenState kind="loading" showBack={false} />
   }
 
   if (!agent) {
-    return (
-      <View style={[styles.notFound, { backgroundColor: theme.background }]}>
-        <Text style={[styles.notFoundText, { color: theme.text }]}>Agent not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>{t("goBack", { defaultValue: "Go back" })}</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ScreenState kind="missing" title={t("agentNotFound")} />
   }
 
   const call = (phone: string | null) => {
@@ -117,7 +107,7 @@ export default function TravelAgentDetailScreen() {
           {agent.featured ? (
             <View style={styles.featuredPill}>
               <Ionicons name="star" size={12} color={NAVY} />
-              <Text style={styles.featuredPillText}>Featured Agent</Text>
+              <Text style={styles.featuredPillText}>{t("featuredAgent")}</Text>
             </View>
           ) : null}
           <Text style={styles.heroMeta}>
@@ -126,7 +116,7 @@ export default function TravelAgentDetailScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Location</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("location")}</Text>
           <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.infoRow}>
               <AppIcon name="location" size={18} color={GOLD} />
@@ -164,7 +154,7 @@ export default function TravelAgentDetailScreen() {
             {agent.website ? (
               <TouchableOpacity
                 style={[styles.infoRow, { marginTop: 12 }]}
-                onPress={() => Linking.openURL(agent.website!)}
+                onPress={() => openExternalUrl(router, agent.website!, agent.agencyName)}
               >
                 <AppIcon name="globe" size={18} color={GOLD} />
                 <Text style={[styles.infoText, { color: theme.text }]}>{agent.website}</Text>
@@ -185,7 +175,7 @@ export default function TravelAgentDetailScreen() {
           {!agent.featured ? (
             <TouchableOpacity
               style={styles.getFeaturedBtn}
-              onPress={() => Linking.openURL(GET_FEATURED_URL)}
+              onPress={() => openExternalUrl(router, GET_FEATURED_URL, "Get Featured")}
             >
               <Text style={styles.getFeaturedText}>Get Featured</Text>
             </TouchableOpacity>
@@ -231,7 +221,7 @@ export default function TravelAgentDetailScreen() {
         {agent.website ? (
           <TouchableOpacity
             style={styles.barEmail}
-            onPress={() => Linking.openURL(agent.website!)}
+            onPress={() => openExternalUrl(router, agent.website!, agent.agencyName)}
           >
             <Ionicons name="globe-outline" size={16} color={NAVY} />
             <Text style={styles.barEmailText}>Website</Text>
@@ -290,7 +280,7 @@ const styles = StyleSheet.create({
   heroMeta: { color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 10 },
   content: { padding: 20, paddingBottom: 110 },
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 10, marginTop: 6 },
-  infoCard: { borderRadius: 14, borderWidth: 0.5, padding: 14, marginBottom: 18 },
+  infoCard: { borderRadius: 16, borderWidth: 0.5, padding: 14, marginBottom: 18 },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   infoText: { flex: 1, fontSize: 14, lineHeight: 20 },
   tags: { gap: 8 },

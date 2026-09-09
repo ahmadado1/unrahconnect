@@ -1,5 +1,6 @@
 import { useTheme } from "@/context/themeContext"
 import { getMakkahPlace } from "@/lib/makkahPlaces"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { ResizeMode, Video } from "expo-av"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -11,19 +12,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const VIDEOS = {
   "clock-tower-museum": require("../../assets/video/clock-tower-museum.mp4"),
 } as const
-
-function openMoreInfo(query: string) {
-  const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`
-  Linking.openURL(url)
-}
 
 function openDirections(lat: number, lng: number) {
   Linking.openURL(
@@ -89,7 +85,13 @@ export default function MakkahPlaceDetailScreen() {
 
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => openMoreInfo(place.moreInfoQuery)}
+          onPress={() =>
+            openExternalUrl(
+              router,
+              `https://www.google.com/search?q=${encodeURIComponent(place.moreInfoQuery)}`,
+              t(place.titleKey),
+            )
+          }
         >
           <Ionicons name="globe-outline" size={20} color="#C9A84C" />
           <Text style={[styles.actionText, { color: theme.text }]}>{t("findMoreInfoOnline")}</Text>
@@ -135,7 +137,7 @@ const styles = StyleSheet.create({
   videoWrap: {
     width: "100%",
     aspectRatio: 16 / 9,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#000",
     borderWidth: 0.5,
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
   },
   actionText: { flex: 1, fontSize: 15, fontWeight: "600" },

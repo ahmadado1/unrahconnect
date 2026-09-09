@@ -854,6 +854,17 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       target: "/quran",
       keywords: kw("quran", "quraan", "koran", "surah", "ayah", "recite", "read"),
       boost: 12,
+    }),
+    item({
+      id: "kahf-friday",
+      title: t("alKahfCardTitle", { defaultValue: "Surah Al-Kahf" }),
+      subtitle: t("alKahfHomeSub", { defaultValue: "Friday sunnah · Surah 18" }),
+      icon: "book",
+      category: "Quran",
+      action: "navigate",
+      target: "/quran/kahf",
+      keywords: kw("kahf", "al kahf", "cave", "friday", "jummah", "الكهف", "surah 18"),
+      boost: 10,
     })
   )
   for (const s of POPULAR_SURAHS) {
@@ -1042,20 +1053,20 @@ export function searchCatalog(items: SearchResult[], query: string, limit = 80):
 export const SEARCH_CATEGORY_COLORS: Record<string, string> = {
   Home: "#1E3A5F",
   Maps: "#1E3A5F",
-  Services: "#2D6A4F",
-  Hotels: "#1B4F9C",
+  Services: "#1E3A5F",
+  Hotels: "#1E3A5F",
   Restaurants: "#C9A84C",
-  Flights: "#0770E3",
+  Flights: "#1E3A5F",
   Agents: "#1E3A5F",
-  Transport: "#5C3D00",
-  Shopping: "#7B2FBE",
+  Transport: "#1E3A5F",
+  Shopping: "#1E3A5F",
   Umrah: "#C9A84C",
-  Hajj: "#8B5E34",
-  Madinah: "#2D6A4F",
-  Duas: "#5B4B8A",
-  Quran: "#1E3A5F",
-  Calendar: "#0E7490",
-  Features: "#555",
+  Hajj: "#C9A84C",
+  Madinah: "#C9A84C",
+  Duas: "#C9A84C",
+  Quran: "#C9A84C",
+  Calendar: "#C9A84C",
+  Features: "#1E3A5F",
 }
 
 export const SEARCH_QUICK_CHIPS: { label: string; icon: AppIconKey; q: string }[] = [

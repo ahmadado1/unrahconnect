@@ -1,6 +1,7 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon, ICON_NAVY } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import {
   SEARCH_CATEGORY_COLORS,
   SEARCH_QUICK_CHIPS,
@@ -14,14 +15,14 @@ import { StatusBar } from "expo-status-bar"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function SearchScreen() {
@@ -56,7 +57,7 @@ export default function SearchScreen() {
 
   const handlePress = (item: SearchResult) => {
     if (item.action === "link") {
-      Linking.openURL(item.target)
+      openExternalUrl(router, item.target, item.title)
     } else {
       router.push(item.target as any)
     }
@@ -98,8 +99,7 @@ export default function SearchScreen() {
             <AnimatedHeroIcon name="search" size={48} accent="navy" style={{ marginBottom: 16 }} />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("search")}</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-              Search anything in the app — hotels, Madinah ziyarat, Umrah steps, services, Quran,
-              and more.
+              {t("searchAnythingHint")}
             </Text>
 
             <View style={styles.quickGrid}>
@@ -118,7 +118,7 @@ export default function SearchScreen() {
         ) : results.length === 0 ? (
           <View style={styles.emptyState}>
             <AnimatedHeroIcon name="sad" size={48} accent="navy" style={{ marginBottom: 16 }} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No results found</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noResultsFound")}</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
               Try "hotel", "muhammad", "qibla", "tawaf", "zamzam", or "prayer"
             </Text>
@@ -205,7 +205,7 @@ export default function SearchScreen() {
             })}
           </View>
         )}
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   quickCard: {
     width: "28%",
     minWidth: 96,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 12,
     alignItems: "center",
     borderWidth: 0.5,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 0.5,
     marginBottom: 8,
   },

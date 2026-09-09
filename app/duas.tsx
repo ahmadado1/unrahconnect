@@ -4,7 +4,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import TasbihCounter from './component/tasbih'
 
@@ -478,7 +480,7 @@ export default function DuasScreen() {
           <DuaCard key={dua.id} dua={dua} theme={theme} />
         ))}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: tabScrollBottom(insets.bottom) }} />
       </ScrollView>
     </View>
   )

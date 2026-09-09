@@ -14,9 +14,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
-} from "react-native";
+} from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PhoneInput from "./components/PhoneInput";
 import { isNetworkError } from "@/lib/networkError";
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   hotelSummaryName: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   hotelSummaryCity: { color: "#C9A84C", fontSize: 13, marginTop: 4 },
   form: { flex: 1 },
-  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16, borderWidth: 0.5 },
+  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 16, borderWidth: 0.5 },
   sectionTitle: { fontSize: 15, fontWeight: "bold", marginBottom: 14 },
   inputGroup: { marginBottom: 14 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   guestBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center" },
   guestBtnText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   guestCount: { fontSize: 20, fontWeight: "bold", minWidth: 30, textAlign: "center" },
-  priceSummary: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 14, padding: 16 },
+  priceSummary: { backgroundColor: "#1E3A5F", marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 16 },
   priceSummaryTitle: { color: "#C9A84C", fontSize: 15, fontWeight: "bold", marginBottom: 12 },
   priceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   priceLabel: { color: "rgba(255,255,255,0.7)", fontSize: 14 },

@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useTranslation } from "react-i18next"
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
 
@@ -30,6 +32,7 @@ export default function BookmarksScreen() {
   console.log("BookmarksScreen mounted")  // just this line added here
   const router = useRouter()
   const { theme } = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
 
   // All bookmarked verses
@@ -166,9 +169,9 @@ export default function BookmarksScreen() {
         // Empty state
         <View style={styles.emptyContainer}>
           <AnimatedHeroIcon name="bookmark" size={48} accent="gold" style={{ marginBottom: 8 }} />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No bookmarks yet</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noBookmarksYet")}</Text>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            Tap the bookmark icon on any verse to save it here
+            {t("noBookmarksSub")}
           </Text>
         </View>
       ) : (
