@@ -1,6 +1,7 @@
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
+import { cancelPrayerAlarms } from "@/modules/prayer-alarm"
 import {
   cancelAllNotifications,
   getNotificationAdhanSound,
@@ -9,7 +10,6 @@ import {
   scheduleAlKahfReminder,
   scheduleAlMulkReminder,
   scheduleDailyDhikrReminders,
-  scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
   scheduleJourneyReminders,
   scheduleTestAdhanNotification,
@@ -73,7 +73,6 @@ export default function NotificationsScreen() {
   const [prayerAlerts, setPrayerAlerts] = useState(true)
   const [morningAdhkar, setMorningAdhkar] = useState(true)
   const [eveningAdhkar, setEveningAdhkar] = useState(true)
-  const [dailyVerse, setDailyVerse] = useState(true)
   const [islamicDates, setIslamicDates] = useState(true)
   const [morningTime, setMorningTime] = useState(() => parseStoredTime(null, null, 8, 0))
   const [eveningTime, setEveningTime] = useState(() => parseStoredTime(null, null, 17, 0))
@@ -85,7 +84,6 @@ export default function NotificationsScreen() {
       prayer,
       morningEn,
       eveningEn,
-      verse,
       islamic,
       mH,
       mM,
@@ -96,7 +94,6 @@ export default function NotificationsScreen() {
       AsyncStorage.getItem("prayer_alerts_enabled"),
       AsyncStorage.getItem("adhkar_morning_enabled"),
       AsyncStorage.getItem("adhkar_evening_enabled"),
-      AsyncStorage.getItem("daily_verse_enabled"),
       AsyncStorage.getItem("islamic_dates_enabled"),
       AsyncStorage.getItem("adhkar_morning_hour"),
       AsyncStorage.getItem("adhkar_morning_minute"),
@@ -107,7 +104,6 @@ export default function NotificationsScreen() {
     setPrayerAlerts(prayer !== "false")
     setMorningAdhkar(morningEn !== "false")
     setEveningAdhkar(eveningEn !== "false")
-    setDailyVerse(verse !== "false")
     setIslamicDates(islamic !== "false")
     setMorningTime(parseStoredTime(mH, mM, 8, 0))
     setEveningTime(parseStoredTime(eH, eM, 17, 0))
@@ -129,7 +125,6 @@ export default function NotificationsScreen() {
     if (prayerAlerts) {
       await reschedulePrayerNotificationsFromCache().catch(console.log)
     }
-    await scheduleDailyVerseNotification().catch(console.log)
     await scheduleDailyDhikrReminders().catch(console.log)
     await scheduleIslamicDateReminders().catch(console.log)
     await scheduleAlKahfReminder().catch(console.log)
@@ -161,6 +156,7 @@ export default function NotificationsScreen() {
           await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})
         }
       }
+      cancelPrayerAlarms()
     }
   }
 
@@ -282,21 +278,6 @@ export default function NotificationsScreen() {
             switchValue={master}
             onSwitch={onMasterChange}
             alwaysActive
-          />
-          <Row
-            icon="book"
-            iconBg="#1E3A5F"
-            label={t("dailyVerse")}
-            value={t("dailyVerseSub")}
-            switchValue={dailyVerse}
-            onSwitch={async val => {
-              setDailyVerse(val)
-              await AsyncStorage.setItem("daily_verse_enabled", String(val))
-              if (master) {
-                if (val) await scheduleDailyVerseNotification()
-                else await Notifications.cancelScheduledNotificationAsync("daily-verse").catch(() => {})
-              }
-            }}
           />
           <Row
             icon="calendar"

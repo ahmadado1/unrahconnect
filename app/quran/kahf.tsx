@@ -1,5 +1,7 @@
+import MushafFittedLine from "@/app/components/MushafFittedLine"
 import { useTheme } from "@/context/themeContext"
 import { AL_KAHF_SURAH_NUMBER } from "@/lib/alKahfWindow"
+import { buildMushafBlocks } from "@/lib/mushafLines"
 import {
   KAHF_AYAH_COUNT,
   KAHF_FALLBACK_END_PAGE,
@@ -44,11 +46,6 @@ const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَ
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 const meta = getSurahMeta(AL_KAHF_SURAH_NUMBER)
 
-type FlowItem =
-  | { type: "word"; text: string; key: string }
-  | { type: "end"; verseNumber: number; key: string }
-  | { type: "surahStart"; key: string }
-
 function kahfVersesOnPage(data: MushafPageData | null): MushafVerse[] {
   if (!data?.verses?.length) return []
   return data.verses.filter(v => v.verse_key.startsWith(`${AL_KAHF_SURAH_NUMBER}:`))
@@ -57,31 +54,6 @@ function kahfVersesOnPage(data: MushafPageData | null): MushafVerse[] {
 function maxAyahOnPage(verses: MushafVerse[]): number {
   if (!verses.length) return 0
   return Math.max(...verses.map(v => v.verse_number))
-}
-
-function buildKahfFlow(verses: MushafVerse[]): FlowItem[] {
-  const items: FlowItem[] = []
-  for (const verse of verses) {
-    if (verse.verse_number === 1) {
-      items.push({ type: "surahStart", key: `surah-start-${verse.verse_key}` })
-    }
-    for (const word of verse.words) {
-      if (word.char_type_name === "end") {
-        items.push({
-          type: "end",
-          verseNumber: verse.verse_number,
-          key: `${verse.verse_key}-end`,
-        })
-      } else {
-        items.push({
-          type: "word",
-          text: word.text_uthmani,
-          key: `${verse.verse_key}-${word.position}`,
-        })
-      }
-    }
-  }
-  return items
 }
 
 function KahfPage({
@@ -150,7 +122,7 @@ function KahfPage({
   }
 
   const verses = kahfVersesOnPage(pageData)
-  const flowItems = buildKahfFlow(verses)
+  const flowBlocks = buildMushafBlocks(verses)
   const juzNumber = juzForPage(pageNumber)
 
   return (
@@ -179,17 +151,17 @@ function KahfPage({
               </View>
 
               <View style={styles.textFlow}>
-                {flowItems.map(item => {
-                  if (item.type === "surahStart") {
+                {flowBlocks.map(block => {
+                  if (block.type === "surahStart") {
                     return (
-                      <View key={item.key} style={styles.flowSurahBlock}>
+                      <View key={block.key} style={styles.flowSurahBlock}>
                         <View style={styles.surahBanner}>
                           <View style={styles.surahBannerFrame}>
                             <View style={styles.surahBannerInner}>
                               <Text
                                 style={[
                                   styles.surahBannerText,
-                                  fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+                                  fontsLoaded && { fontFamily: "AmiriQuran" },
                                 ]}
                               >
                                 {meta?.arabicName ?? "سورة الكهف"}
@@ -201,7 +173,7 @@ function KahfPage({
                           <Text
                             style={[
                               styles.bismillahText,
-                              fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+                              fontsLoaded && { fontFamily: "AmiriQuran" },
                             ]}
                           >
                             {BISMILLAH}
@@ -210,23 +182,8 @@ function KahfPage({
                       </View>
                     )
                   }
-                  if (item.type === "word") {
-                    return (
-                      <Text
-                        key={item.key}
-                        style={[
-                          styles.word,
-                          fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-                        ]}
-                      >
-                        {item.text}
-                      </Text>
-                    )
-                  }
                   return (
-                    <View key={item.key} style={styles.verseEndBadge}>
-                      <Text style={styles.verseEndText}>{item.verseNumber}</Text>
-                    </View>
+                    <MushafFittedLine key={block.key} block={block} fontsLoaded={fontsLoaded} />
                   )
                 })}
               </View>
@@ -273,6 +230,7 @@ export default function KahfReadingScreen() {
   const [fontsLoaded] = useFonts({
     ScheherazadeNew_400Regular,
     ScheherazadeNew_700Bold,
+    AmiriQuran: require("../../assets/fonts/AmiriQuran-Regular.ttf"),
   })
 
   const [range, setRange] = useState({
@@ -610,9 +568,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   pageContent: {
-    paddingHorizontal: 12,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
+    overflow: "hidden",
   },
   ornamentTop: { marginBottom: 8 },
   ornamentBottom: { marginTop: 8 },
@@ -624,10 +583,6 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   textFlow: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "center",
     width: "100%",
   },
   flowSurahBlock: { width: "100%", flexBasis: "100%" },
@@ -657,30 +612,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   bismillahText: {
-    fontSize: 26,
-    color: "#1E3A5F",
+    fontSize: 28,
+    color: "#0E1C33",
     textAlign: "center",
-    lineHeight: 48,
+    lineHeight: 56,
   },
-  word: {
-    fontSize: 26,
-    color: "#1E3A5F",
-    lineHeight: 48,
-    fontWeight: "400",
-  },
-  verseEndBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 16,
-    borderWidth: 1.25,
-    borderColor: "#8B6914",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F5EDD6",
-    marginHorizontal: 2,
-    flexShrink: 0,
-  },
-  verseEndText: { fontSize: 11, color: "#1A1A1A", fontWeight: "700", textAlign: "center" },
   completeWrap: {
     marginHorizontal: 16,
     marginTop: 8,

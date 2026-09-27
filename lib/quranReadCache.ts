@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { fetchWithTimeout } from "./fetchWithTimeout"
+import { showKasraWithShadda } from "./quranArabicMarks"
 
 export type ReadVerse = {
   number: number
@@ -34,9 +35,16 @@ export function surahCacheKey(surah: number, language: string) {
 }
 
 /** Instant read from in-memory cache (no AsyncStorage). */
+function withVisibleKasra(verses: ReadVerse[]): ReadVerse[] {
+  return verses.map(verse => ({
+    ...verse,
+    text: showKasraWithShadda(verse.text),
+  }))
+}
+
 export function peekCachedSurah(surah: number, language: string): ReadVerse[] | null {
   const cached = memoryCache.get(surahCacheKey(surah, language))
-  return cached?.length ? cached : null
+  return cached?.length ? withVisibleKasra(cached) : null
 }
 
 /** Load all cached surahs for a language into memory for instant read mode. */
@@ -51,7 +59,7 @@ export async function warmReadCacheForLanguage(language: string): Promise<number
     try {
       const parsed: ReadVerse[] = JSON.parse(value)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryCache.set(key, parsed)
+        memoryCache.set(key, withVisibleKasra(parsed))
         loaded++
       }
     } catch {}
@@ -67,7 +75,7 @@ export async function readCachedSurah(
   try {
     const key = surahCacheKey(surah, language)
     const inMemory = memoryCache.get(key)
-    if (inMemory?.length) return inMemory
+    if (inMemory?.length) return withVisibleKasra(inMemory)
 
     const cached = await AsyncStorage.getItem(key)
     if (!cached) return null
@@ -75,8 +83,9 @@ export async function readCachedSurah(
     const parsed: ReadVerse[] = JSON.parse(cached)
     if (!Array.isArray(parsed) || parsed.length === 0) return null
 
-    memoryCache.set(key, parsed)
-    return parsed
+    const verses = withVisibleKasra(parsed)
+    memoryCache.set(key, verses)
+    return verses
   } catch {
     return null
   }
@@ -148,7 +157,7 @@ export async function fetchAndCacheSurah(
 
     const combined: ReadVerse[] = arabicData.data.ayahs.map(
       (ayah: { numberInSurah: number; number: number; text: string; page: number }, index: number) => {
-        let text = ayah.text
+        let text = showKasraWithShadda(ayah.text)
         if (ayah.numberInSurah === 1 && surah !== 1 && surah !== 9) {
           const words = text.split(" ")
           if (words.length > 4) text = words.slice(4).join(" ").trim()

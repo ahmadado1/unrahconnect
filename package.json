@@ -21,6 +21,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "bun scripts/run-quran-lib-tests.ts",
+    "adhan:fetch": "node scripts/fetch-adhan-assets.mjs",
     "seed:travel-agents": "node scripts/seed-travel-agents.mjs"
   },
   "dependencies": {

@@ -51,40 +51,12 @@ export const PRAYER_INFO: Record<
   },
 }
 
-export const ADHAN_FILES: Record<string, number> = {
-  "1": require("../assets/audio1/azan1.mp3"),
-  "2": require("../assets/audio1/azan2.mp3"),
-  "3": require("../assets/audio1/azan3.mp3"),
-  "4": require("../assets/audio1/azan4.mp3"),
-  "5": require("../assets/audio1/azan5.mp3"),
-}
-
-/** Fajr adhan includes «الصلاة خير من النوم» (prayer is better than sleep). */
-export const ADHAN_FAJR_FILES: Record<string, number> = {
-  "1": require("../assets/audio1/azan1_fajr.mp3"),
-  "2": require("../assets/audio1/azan2_fajr.mp3"),
-  "3": require("../assets/audio1/azan3_fajr.mp3"),
-  "4": require("../assets/audio1/azan4_fajr.mp3"),
-  "5": require("../assets/audio1/azan5_fajr.mp3"),
-}
-
-export const ADHAN_OPTIONS = [
-  { id: "1", name: "Abdulbasit", fajrLabel: "Abdulbasit Fajr" },
-  { id: "2", name: "Ahmed At-Trablsy", fajrLabel: "Ahmed Fajr" },
-  { id: "3", name: "Mishary Rashid Alafasy", fajrLabel: "Mishary Fajr" },
-  { id: "4", name: "Yasser Al-Dosari", fajrLabel: "Yasser Fajr" },
-  { id: "5", name: "Al-Aqsa Jerusalem", fajrLabel: "Al-Aqsa Fajr" },
-] as const
-
-export const DEFAULT_ADHAN_ID = "3"
-
-export function getAdhanFile(adhanId: string, prayerName?: PrayerName | string | null) {
-  const id = ADHAN_FILES[adhanId] ? adhanId : DEFAULT_ADHAN_ID
-  if (prayerName === "Fajr") {
-    return ADHAN_FAJR_FILES[id] ?? ADHAN_FAJR_FILES[DEFAULT_ADHAN_ID]
-  }
-  return ADHAN_FILES[id] ?? ADHAN_FILES[DEFAULT_ADHAN_ID]
-}
+export {
+  ADHAN_OPTIONS,
+  DEFAULT_ADHAN_ID,
+  getAdhanFile,
+  resolveAdhanId,
+} from "./adhanCatalog"
 
 export function normalizePrayerName(value: unknown): PrayerName | null {
   if (typeof value !== "string") return null

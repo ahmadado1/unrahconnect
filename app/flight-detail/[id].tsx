@@ -46,9 +46,13 @@ export default function FlightDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: platform.brandColor }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ backgroundColor: platform.brandColor }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.hero, { backgroundColor: platform.brandColor, paddingTop: insets.top + 8 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />

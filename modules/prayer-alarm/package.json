@@ -1,0 +1,11 @@
+{
+  "name": "prayer-alarm",
+  "version": "1.0.0",
+  "description": "iOS 26 AlarmKit prayer alarms that open UmrahConnect and play the full Adhan.",
+  "main": "index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

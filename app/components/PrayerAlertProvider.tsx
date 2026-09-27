@@ -4,6 +4,7 @@ import {
   playAdhan,
   stopAdhan,
 } from "@/lib/adhanAudio"
+import { consumePendingPrayerAlarm } from "@/modules/prayer-alarm"
 import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/prayerAlert"
 import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
 import {
@@ -75,6 +76,19 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       })
     }
   }
+
+  const playAlarmLaunchAdhan = useCallback(async () => {
+    if (!(await arePrayerAlertsEnabled())) return
+    const pending = consumePendingPrayerAlarm()
+    if (!pending || !PRAYER_NAMES.includes(pending as PrayerName)) return
+    await configureAdhanAudioMode().catch(() => {})
+    showPrayerAlertRef.current(pending as PrayerName, {
+      playSound: true,
+      forceShow: true,
+      forceRestart: true,
+      continueIfPlaying: false,
+    })
+  }, [])
 
   const dismissPrayerAlert = () => {
     setPrayerPopup(null)
@@ -178,11 +192,16 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
     }
 
     loadTimes()
+    void playAlarmLaunchAdhan()
+    const alarmRetry = setTimeout(() => {
+      void playAlarmLaunchAdhan()
+    }, 700)
     const refreshTimer = setInterval(() => loadTimes(true), 6 * 60 * 60 * 1000)
 
     const onAppState = (state: AppStateStatus) => {
       if (state === "active") {
         void configureAdhanAudioMode().catch(() => {})
+        void playAlarmLaunchAdhan()
         // Catch up immediately — don't wait for the next 15s poll tick.
         void checkPrayer()
         // Re-check GPS so a city change after travel updates times without reinstall.
@@ -193,10 +212,11 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
     return () => {
       cancelled = true
+      clearTimeout(alarmRetry)
       clearInterval(refreshTimer)
       sub.remove()
     }
-  }, [checkPrayer])
+  }, [checkPrayer, playAlarmLaunchAdhan])
 
   useEffect(() => {
     if (!prayerTimes) return

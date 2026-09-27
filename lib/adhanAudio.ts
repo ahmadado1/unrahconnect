@@ -1,4 +1,5 @@
-import { getAdhanFile, DEFAULT_ADHAN_ID, type PrayerName } from "@/lib/prayerConstants"
+import { getAdhanFile, getAdhanLockFile, DEFAULT_ADHAN_ID } from "@/lib/adhanCatalog"
+import type { PrayerName } from "@/lib/prayerConstants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import {
   createAudioPlayer,
@@ -8,21 +9,8 @@ import {
   type AudioStatus,
 } from "expo-audio"
 
-/** Short clips used only if the full Adhan file fails to load. */
-const ADHAN_LOCK_FILES: Record<string, number> = {
-  "1": require("../assets/audio1/azan1_lock.mp3"),
-  "2": require("../assets/audio1/azan2_lock.mp3"),
-  "3": require("../assets/audio1/azan3_lock.mp3"),
-  "4": require("../assets/audio1/azan4_lock.mp3"),
-  "5": require("../assets/audio1/azan5_lock.mp3"),
-}
-
-const ADHAN_FAJR_LOCK_FILES: Record<string, number> = {
-  "1": require("../assets/audio1/azan1_fajr_lock.mp3"),
-  "2": require("../assets/audio1/azan2_fajr_lock.mp3"),
-  "3": require("../assets/audio1/azan3_fajr_lock.mp3"),
-  "4": require("../assets/audio1/azan4_fajr_lock.mp3"),
-  "5": require("../assets/audio1/azan5_fajr_lock.mp3"),
+function getLockFile(adhanId: string, prayerName?: PrayerName | string | null) {
+  return getAdhanLockFile(adhanId, prayerName)
 }
 
 export type PlayAdhanOptions = {
@@ -149,14 +137,6 @@ async function teardownPlayer(opts?: { keepExpectation?: boolean }) {
     currentPrayer = null
   }
   notifyPlaying(false)
-}
-
-function getLockFile(adhanId: string, prayerName?: PrayerName | string | null) {
-  const id = ADHAN_LOCK_FILES[adhanId] ? adhanId : DEFAULT_ADHAN_ID
-  if (prayerName === "Fajr") {
-    return ADHAN_FAJR_LOCK_FILES[id] ?? ADHAN_FAJR_LOCK_FILES[DEFAULT_ADHAN_ID]
-  }
-  return ADHAN_LOCK_FILES[id] ?? ADHAN_LOCK_FILES[DEFAULT_ADHAN_ID]
 }
 
 async function playSource(

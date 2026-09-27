@@ -600,7 +600,7 @@ export default function HomeScreen() {
   const past = bookings.filter(b => b.check_in < today)
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
       {refreshing ? (
         <View style={[refreshStyles.overlay, { top: insets.top + 8 }]} pointerEvents="none">
@@ -608,6 +608,8 @@ export default function HomeScreen() {
         </View>
       ) : null}
       <ScrollView
+        style={{ backgroundColor: NAVY }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         bounces
         contentInsetAdjustmentBehavior="never"

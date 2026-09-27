@@ -81,9 +81,11 @@ export default function HotelDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: isLogo ? theme.background : NAVY }]}>
       <StatusBar style="light" />
       <ScrollView
+        style={{ backgroundColor: isLogo ? theme.background : NAVY }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}

@@ -91,9 +91,13 @@ export default function TravelAgentDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ backgroundColor: NAVY }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />

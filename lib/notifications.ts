@@ -6,8 +6,14 @@ import {
   type IslamicEvent,
 } from "@/lib/islamicEvents"
 import { isAdhanPlaying, isAdhanPlayingFor } from "@/lib/adhanAudio"
+import {
+  cancelPrayerAlarms,
+  scheduleTestPrayerAlarm,
+  syncPrayerAlarms,
+} from "@/modules/prayer-alarm"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification } from "@/lib/prayerConstants"
+import { ADHAN_RECITERS, getAdhanLockSoundName, resolveAdhanId } from "@/lib/adhanCatalog"
 import {
   emptyKahfProgress,
   getKahfFridayDate,
@@ -34,6 +40,7 @@ import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
 import { getHajjProgress, getUmrahProgress } from "@/lib/supabase"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
+import * as Location from "expo-location"
 import * as Notifications from "expo-notifications"
 import {
   AndroidAudioContentType,
@@ -44,11 +51,13 @@ import { Platform } from "react-native"
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
 /**
  * Android channels with lock-screen Adhan clips.
- * v10 uses .wav — iOS custom notification sounds do NOT support MP3
- * (Apple requires aiff/wav/caf). WAV works on both iOS and Android.
+ * v11 uses the reciter lock clips in assets/adhan.
+ * iOS custom notification sounds do NOT support MP3
+ * (Apple requires aiff/wav/caf, under 30 seconds). WAV works on both iOS and Android.
+ * The iOS 26 alarm uses the same basename. Full Adhan playback stays the long mp3.
  * Basename must match app.json expo-notifications plugin sounds exactly.
  */
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v10"
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v11"
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
@@ -61,10 +70,7 @@ export function getPrayerChannelId(adhanId: string, isFajr = false) {
  * Always .wav (iOS-safe). Full Adhan in-app still uses the long .mp3 via expo-audio.
  */
 export function getNotificationAdhanSound(adhanId: string, isFajr = false) {
-  const id = ["1", "2", "3", "4", "5"].includes(String(adhanId))
-    ? String(adhanId)
-    : DEFAULT_ADHAN_ID
-  return isFajr ? `azan${id}_fajr_lock.wav` : `azan${id}_lock.wav`
+  return getAdhanLockSoundName(adhanId, isFajr)
 }
 
 async function getSelectedAdhanId() {
@@ -105,17 +111,18 @@ async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
 export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
   if (Platform.OS !== "android") return null
 
-  const adhanId = selectedAdhan || (await getSelectedAdhanId())
+  const adhanId = resolveAdhanId(selectedAdhan || (await getSelectedAdhanId()))
 
   // Pre-create channels for every Adhan voice so switching never hits a missing channel.
-  for (const id of ["1", "2", "3", "4", "5"]) {
-    await ensureAndroidChannel(id, false)
-    await ensureAndroidChannel(id, true)
+  for (const reciter of ADHAN_RECITERS) {
+    await ensureAndroidChannel(reciter.id, false)
+    await ensureAndroidChannel(reciter.id, true)
   }
 
   // Remove silent / outdated channels (Android locks sound after channel create).
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
-  for (const id of ["1", "2", "3", "4", "5"]) {
+  const retiredIds = ["1", "2", "3", "4", "5", ...ADHAN_RECITERS.map(reciter => reciter.id)]
+  for (const id of retiredIds) {
     for (const prefix of [
       "prayer-adhan-v2-",
       "prayer-adhan-v3-",
@@ -125,6 +132,7 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
       "prayer-adhan-v7-",
       "prayer-adhan-v8-",
       "prayer-adhan-v9-",
+      "prayer-adhan-v10-",
     ]) {
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
@@ -204,44 +212,46 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return true
 }
 
+/** Verse of the day is shown in the app. Do not schedule a daily push for it. */
 export async function scheduleDailyVerseNotification() {
   await Notifications.cancelScheduledNotificationAsync("daily-verse").catch(() => {})
-
-  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
-  if (notifEnabled === "false") return false
-
-  const verseEnabled = (await AsyncStorage.getItem("daily_verse_enabled")) !== "false"
-  if (!verseEnabled) return false
-
-  await Notifications.scheduleNotificationAsync({
-    identifier: "daily-verse",
-    content: {
-      title: i18n.language === "ar" ? "آية اليوم"
-        : i18n.language === "fr" ? "Verset du jour"
-        : i18n.language === "tr" ? "Günün Ayeti"
-        : i18n.language === "ur" ? "آج کی آیت"
-        : i18n.language === "bn" ? "আজকের আয়াত"
-        : "Verse of the Day",
-      body: i18n.language === "ar" ? "آيتك القرآنية اليومية جاهزة. افتح UmrahConnect لقراءتها."
-        : i18n.language === "fr" ? "Votre verset du jour est prêt. Ouvrez UmrahConnect pour le lire."
-        : i18n.language === "tr" ? "Günlük Kuran ayetiniz hazır. Okumak için UmrahConnect'i açın."
-        : i18n.language === "ur" ? "آپ کی روزانہ کی قرآنی آیت تیار ہے۔ پڑھنے کے لیے UmrahConnect کھولیں۔"
-        : i18n.language === "bn" ? "আপনার দৈনিক কুরআনের আয়াত প্রস্তুত। পড়তে UmrahConnect খুলুন।"
-        : "Your daily Quran verse is ready. Open UmrahConnect to read it.",
-      sound: true,
-      data: { screen: "quran" },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 7,
-      minute: 0,
-    },
-  })
-  return true
+  return false
 }
 
 /** Prevent overlapping cancel/schedule races that leave zero prayer alarms. */
 let schedulePrayerChain: Promise<void> = Promise.resolve()
+
+function prayersFromTimes(
+  prayerTimes: {
+    fajr: string
+    dhuhr: string
+    asr: string
+    maghrib: string
+    isha: string
+  },
+  adhanId: string
+) {
+  const prayers = [
+    { name: "Fajr", time: prayerTimes.fajr, arabic: "الفجر" },
+    { name: "Dhuhr", time: prayerTimes.dhuhr, arabic: "الظهر" },
+    { name: "Asr", time: prayerTimes.asr, arabic: "العصر" },
+    { name: "Maghrib", time: prayerTimes.maghrib, arabic: "المغرب" },
+    { name: "Isha", time: prayerTimes.isha, arabic: "العشاء" },
+  ]
+  return prayers.flatMap(prayer => {
+    const parsed = parsePrayerTimeHourMinute(prayer.time)
+    if (!parsed) return []
+    return [
+      {
+        prayerName: prayer.name,
+        hour: parsed.hour,
+        minute: parsed.minute,
+        soundName: getNotificationAdhanSound(adhanId, prayer.name === "Fajr"),
+        title: `${prayer.name} — ${prayer.arabic}`,
+      },
+    ]
+  })
+}
 
 export async function schedulePrayerNotifications(
   prayerTimes: {
@@ -257,21 +267,25 @@ export async function schedulePrayerNotifications(
     const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
     if (notifEnabled === "false") {
       console.warn("[Notifications] Skipping prayer schedule — master notifications off")
+      cancelPrayerAlarms()
       return
     }
     const prayerAlerts = (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
     if (!prayerAlerts) {
       console.warn("[Notifications] Skipping prayer schedule — prayer alerts off")
+      cancelPrayerAlarms()
       return
     }
+
+    const adhanId = resolveAdhanId(selectedAdhan || (await getSelectedAdhanId()))
+    const alarmDrafts = prayersFromTimes(prayerTimes, adhanId)
 
     const granted = await requestNotificationPermission()
     if (!granted) {
       console.warn("[Notifications] Skipping prayer schedule — permission not granted")
+      await syncPrayerAlarms(alarmDrafts)
       return
     }
-
-    const adhanId = selectedAdhan || (await getSelectedAdhanId())
     await setupPrayerNotificationChannel(adhanId)
     const regularChannelId =
       Platform.OS === "android" ? getPrayerChannelId(adhanId, false) : null
@@ -359,6 +373,7 @@ export async function schedulePrayerNotifications(
     console.log(
       `[Notifications] Scheduled ${prayerCount}/${scheduledOk} prayer alerts (adhan ${adhanId}, ${Platform.OS})`
     )
+    await syncPrayerAlarms(alarmDrafts)
   }
 
   const next = schedulePrayerChain.then(run, run)
@@ -376,7 +391,7 @@ export async function scheduleTestAdhanNotification(seconds = 15) {
     return false
   }
 
-  const adhanId = await getSelectedAdhanId()
+  const adhanId = resolveAdhanId(await getSelectedAdhanId())
   const sound = getNotificationAdhanSound(adhanId, false)
   const channelId = await setupPrayerNotificationChannel(adhanId)
 
@@ -423,15 +438,23 @@ export async function scheduleTestAdhanNotification(seconds = 15) {
     (test?.content as { sound?: string } | undefined)?.sound
   )
 
+  await scheduleTestPrayerAlarm("Dhuhr", Math.max(5, Math.floor(seconds)), sound, "Test Prayer")
+
   return true
 }
 
 export async function reschedulePrayerNotificationsFromCache(selectedAdhan?: string) {
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
-  if (notifEnabled === "false") return false
+  if (notifEnabled === "false") {
+    cancelPrayerAlarms()
+    return false
+  }
 
   const prayerAlerts = (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
-  if (!prayerAlerts) return false
+  if (!prayerAlerts) {
+    cancelPrayerAlarms()
+    return false
+  }
 
   const { fetchAndCachePrayerTimes, isPrayerTimesCacheFresh, readCachedPrayerTimes } =
     await import("@/lib/prayerTimes")
@@ -841,24 +864,60 @@ function journeyNotifCopy(
   }
 }
 
-function journeyIdentifier(type: "umrah" | "hajj") {
-  return type === "hajj" ? "journey-reminder-hajj" : "journey-reminder-umrah"
+const JOURNEY_WELCOME_KEY = "journey_welcome_at"
+const JOURNEY_OCCASIONAL_KEY = "journey_occasional_at"
+const JOURNEY_NEAR_KEY = "journey_near_burst_at"
+const JOURNEY_ARAFAH_KEY = "journey_arafah_for"
+const OCCASIONAL_GAP_MS = 21 * 24 * 60 * 60 * 1000
+const NEAR_GAP_MS = 14 * 24 * 60 * 60 * 1000
+
+/** Saudi Arabia plus the approaches used by pilgrims (Red Sea and Gulf). */
+export function isNearSaudiCoords(latitude: number, longitude: number) {
+  return latitude >= 15.5 && latitude <= 32.5 && longitude >= 34 && longitude <= 56.5
 }
 
-export async function scheduleJourneyReminder(phaseName: string, type: "umrah" | "hajj") {
-  const id = journeyIdentifier(type)
-  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
-  await Notifications.cancelScheduledNotificationAsync("journey-reminder").catch(() => {})
+function morningOn(base: Date, hour = 9) {
+  const d = new Date(base)
+  d.setHours(hour, 0, 0, 0)
+  return d
+}
 
-  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
-  if (notifEnabled === "false") return false
+function addDays(base: Date, days: number) {
+  const d = new Date(base)
+  d.setDate(d.getDate() + days)
+  return morningOn(d)
+}
 
-  const completed =
-    type === "hajj" ? await getHajjProgress() : await getUmrahProgress()
+async function cancelDailyJourneyNotifications() {
+  await Promise.all(
+    ["journey-reminder", "journey-reminder-umrah", "journey-reminder-hajj"].map(id =>
+      Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+    )
+  )
+}
+
+async function activeJourney(): Promise<"umrah" | "hajj" | null> {
+  const [umrah, hajj] = await Promise.all([getUmrahProgress(), getHajjProgress()])
+  const umrahOpen = umrah.length < UMRAH_JOURNEY_PHASES
+  const hajjOpen = hajj.length < HAJJ_JOURNEY_PHASES
+  if (!umrahOpen && !hajjOpen) return null
+  if (hajj.length > 0 && hajjOpen) return "hajj"
+  if (umrah.length > 0 && umrahOpen) return "umrah"
+  if (umrahOpen) return "umrah"
+  return "hajj"
+}
+
+async function scheduleJourneyAt(
+  id: string,
+  when: Date,
+  type: "umrah" | "hajj",
+  phaseName: string,
+) {
+  if (when.getTime() <= Date.now()) return
+  const completed = type === "hajj" ? await getHajjProgress() : await getUmrahProgress()
   const total = type === "hajj" ? HAJJ_JOURNEY_PHASES : UMRAH_JOURNEY_PHASES
   const kind = journeyNotifKind(completed.length, total)
-  if (kind === "skip") return false
-
+  if (kind === "skip") return
   const copy = journeyNotifCopy(type, kind, phaseName)
   await Notifications.scheduleNotificationAsync({
     identifier: id,
@@ -869,12 +928,26 @@ export async function scheduleJourneyReminder(phaseName: string, type: "umrah" |
       data: { type },
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: type === "hajj" ? 9 : 9,
-      minute: type === "hajj" ? 10 : 0,
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: when,
     },
   })
-  return true
+}
+
+async function isNearSaudi() {
+  try {
+    const perm = await Location.getForegroundPermissionsAsync()
+    if (perm.status !== "granted") return false
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low })
+    return isNearSaudiCoords(pos.coords.latitude, pos.coords.longitude)
+  } catch {
+    return false
+  }
+}
+
+/** Progress updates refresh the same sparse schedule. They do not add a daily alarm. */
+export async function scheduleJourneyReminder(_phaseName?: string, _type?: "umrah" | "hajj") {
+  return scheduleJourneyReminders()
 }
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -899,24 +972,80 @@ const HAJJ_PHASE_TITLE_KEYS = [
   "phase_hajj_9_title",
 ] as const
 
-/** Schedule Umrah + Hajj nudges from checklist progress (Start vs Continue vs Finish). */
+/** One welcome after install, then about every three weeks. Near Saudi: two mornings. Before Arafah: one extra reminder. */
 export async function scheduleJourneyReminders() {
-  const umrahDone = await getUmrahProgress()
-  if (umrahDone.length >= UMRAH_JOURNEY_PHASES) {
-    await Notifications.cancelScheduledNotificationAsync("journey-reminder-umrah").catch(() => {})
-    await Notifications.cancelScheduledNotificationAsync("journey-reminder").catch(() => {})
-  } else {
-    const nextKey = UMRAH_PHASE_TITLE_KEYS[umrahDone.length] ?? UMRAH_PHASE_TITLE_KEYS[0]
-    await scheduleJourneyReminder(i18n.t(nextKey), "umrah")
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  await cancelDailyJourneyNotifications()
+  if (notifEnabled === "false") {
+    await Promise.all(
+      ["journey-welcome", "journey-occasional", "journey-near-1", "journey-near-2", "journey-arafah"].map(id =>
+        Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+      )
+    )
+    return false
   }
 
-  const hajjDone = await getHajjProgress()
-  if (hajjDone.length >= HAJJ_JOURNEY_PHASES) {
-    await Notifications.cancelScheduledNotificationAsync("journey-reminder-hajj").catch(() => {})
-  } else {
-    const nextKey = HAJJ_PHASE_TITLE_KEYS[hajjDone.length] ?? HAJJ_PHASE_TITLE_KEYS[0]
-    await scheduleJourneyReminder(i18n.t(nextKey), "hajj")
+  const type = await activeJourney()
+  if (!type) {
+    await Promise.all(
+      ["journey-welcome", "journey-occasional", "journey-near-1", "journey-near-2", "journey-arafah"].map(id =>
+        Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+      )
+    )
+    return false
   }
+
+  const done = type === "hajj" ? await getHajjProgress() : await getUmrahProgress()
+  const keys = type === "hajj" ? HAJJ_PHASE_TITLE_KEYS : UMRAH_PHASE_TITLE_KEYS
+  const phaseName = i18n.t(keys[done.length] ?? keys[0])
+  const now = new Date()
+
+  const welcomeRaw = await AsyncStorage.getItem(JOURNEY_WELCOME_KEY)
+  let welcomeAt = welcomeRaw ? Number(welcomeRaw) : 0
+  if (!welcomeAt) {
+    welcomeAt = addDays(now, 1).getTime()
+    await AsyncStorage.setItem(JOURNEY_WELCOME_KEY, String(welcomeAt))
+    await scheduleJourneyAt("journey-welcome", new Date(welcomeAt), type, phaseName)
+  }
+
+  const occasionalRaw = await AsyncStorage.getItem(JOURNEY_OCCASIONAL_KEY)
+  let occasionalAt = occasionalRaw ? Number(occasionalRaw) : 0
+  if (!occasionalAt || occasionalAt <= now.getTime()) {
+    occasionalAt = Math.max(welcomeAt + OCCASIONAL_GAP_MS, now.getTime() + OCCASIONAL_GAP_MS)
+    await AsyncStorage.setItem(JOURNEY_OCCASIONAL_KEY, String(occasionalAt))
+  }
+  await Notifications.cancelScheduledNotificationAsync("journey-occasional").catch(() => {})
+  await scheduleJourneyAt("journey-occasional", new Date(occasionalAt), type, phaseName)
+
+  if (await isNearSaudi()) {
+    const burstRaw = await AsyncStorage.getItem(JOURNEY_NEAR_KEY)
+    const burstAt = burstRaw ? Number(burstRaw) : 0
+    if (!burstAt || now.getTime() - burstAt > NEAR_GAP_MS) {
+      await scheduleJourneyAt("journey-near-1", addDays(now, 1), type, phaseName)
+      await scheduleJourneyAt("journey-near-2", addDays(now, 2), type, phaseName)
+      await AsyncStorage.setItem(JOURNEY_NEAR_KEY, String(now.getTime()))
+    }
+  }
+
+  const hajjOpen = (await getHajjProgress()).length < HAJJ_JOURNEY_PHASES
+  if (hajjOpen) {
+    const events = await fetchAndCacheIslamicEvents().catch(() => [])
+    const arafah = events.find(event => event.baseId === "arafah")
+    if (arafah) {
+      const already = await AsyncStorage.getItem(JOURNEY_ARAFAH_KEY)
+      if (already !== arafah.gregorianDate) {
+        const lead = new Date(arafah.gregorianYear, arafah.gregorianMonth - 1, arafah.gregorianDay)
+        lead.setDate(lead.getDate() - 2)
+        const when = morningOn(lead)
+        if (when.getTime() > now.getTime()) {
+          await scheduleJourneyAt("journey-arafah", when, "hajj", phaseName)
+          await AsyncStorage.setItem(JOURNEY_ARAFAH_KEY, arafah.gregorianDate)
+        }
+      }
+    }
+  }
+
+  return true
 }
 
 export async function scheduleIslamicDateReminders() {
@@ -1051,6 +1180,7 @@ function buildEventDate(event: IslamicEvent, hour: number, minute: number) {
 }
 
 export async function cancelAllNotifications() {
+  cancelPrayerAlarms()
   await Notifications.cancelAllScheduledNotificationsAsync()
 }
 

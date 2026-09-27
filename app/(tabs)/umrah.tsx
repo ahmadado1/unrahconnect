@@ -22,14 +22,14 @@ import PrayerWidget from "../component/PrayerWidget"
 import HeroBackground, { prefetchHeroSource } from "../components/HeroBackground"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
 import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribeAdhanPlaying } from "@/lib/adhanAudio"
-import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile } from "@/lib/prayerConstants"
+import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile, resolveAdhanId } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
   name: opt.name,
-  fajrLabel: opt.fajrLabel,
+  style: opt.style,
 }))
 
 const PREVIEW_MS = 12_000
@@ -40,7 +40,7 @@ export default function GuideScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [adhanPickerOpen, setAdhanPickerOpen] = useState(false)
-  const [selectedAdhan, setSelectedAdhan] = useState(DEFAULT_ADHAN_ID)
+  const [selectedAdhan, setSelectedAdhan] = useState<string>(DEFAULT_ADHAN_ID)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [previewFajr, setPreviewFajr] = useState(false)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -51,7 +51,12 @@ export default function GuideScreen() {
   useEffect(() => {
     prefetchHeroSource(require("../../assets/images/image56.png"))
     AsyncStorage.getItem("selected_adhan").then(id => {
-      if (id && ADHAN_OPTIONS.some(opt => opt.id === id)) setSelectedAdhan(id)
+      if (!id) return
+      const resolved = resolveAdhanId(id)
+      if (ADHAN_OPTIONS.some(opt => opt.id === resolved)) {
+        setSelectedAdhan(resolved)
+        if (resolved !== id) void AsyncStorage.setItem("selected_adhan", resolved)
+      }
     })
   }, [])
 
@@ -155,10 +160,12 @@ export default function GuideScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
 
       <ScrollView
+        style={{ backgroundColor: NAVY }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
@@ -367,7 +374,7 @@ export default function GuideScreen() {
                     {adhan.name}
                   </Text>
                   <Text style={[styles.fajrMeta, { color: theme.textSecondary }]}>
-                    {t("fajrAdhanMeta", { label: adhan.fajrLabel })}
+                    {adhan.style}
                   </Text>
                 </View>
 

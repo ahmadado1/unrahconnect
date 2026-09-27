@@ -95,10 +95,12 @@ export default function PhaseDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: data.textColor }]}>
       <StatusBar style="light" backgroundColor={data.textColor} />
 
       <Animated.ScrollView
+        style={{ backgroundColor: data.textColor }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}

@@ -2,6 +2,8 @@ import { emptyLastReadState, registerLastRead, type LastReadEntry } from "../lib
 import { normalizeSearchText } from "../lib/searchNormalize"
 import { searchSurahs, type SearchableSurah } from "../lib/surahSearch"
 import { resolveHomeQuranCard } from "../lib/homeQuranCard"
+import { showKasraWithShadda } from "../lib/quranArabicMarks"
+import { buildMushafBlocks } from "../lib/mushafLines"
 
 function assertEqual(actual: unknown, expected: unknown, label: string) {
   const a = JSON.stringify(actual)
@@ -122,6 +124,48 @@ assertEqual(searchSurahs("  ", surahs).length, surahs.length, "empty query")
   const fresh = resolveHomeQuranCard({ now: wednesday })
   assertEqual(fresh.surahNumber, 1, "default fatihah")
   assertEqual(fresh.ayah, 1, "default ayah 1")
+}
+
+assertEqual(
+  showKasraWithShadda("\u0645\u0651\u0650\u0646\u064e"),
+  "\u0645\u0651\u0650\u0646\u064e",
+  "shadda then kasra stays",
+)
+assertEqual(
+  showKasraWithShadda("\u0645\u0650\u0651\u0646\u064e"),
+  "\u0645\u0651\u0650\u0646\u064e",
+  "restores shadda before kasra",
+)
+assertEqual(
+  showKasraWithShadda("\u0645\u064d\u06e2\u0651"),
+  "\u0645\u0651\u064d\u06e2",
+  "restores iqlab meem after kasratan",
+)
+assertEqual(showKasraWithShadda("\u0645\u0650\u0646"), "\u0645\u0650\u0646", "plain meem kasra unchanged")
+
+{
+  const blocks = buildMushafBlocks([
+    {
+      verse_number: 30,
+      verse_key: "32:30",
+      juz_number: 21,
+      words: [
+        { text_uthmani: "فَأَعْرِضْ", line_number: 14, page_number: 417, char_type_name: "word", position: 1 },
+        { text_uthmani: "عَنْهُمْ", line_number: 14, page_number: 417, char_type_name: "word", position: 2 },
+        { text_uthmani: "وَٱنتَظِرْ", line_number: 14, page_number: 417, char_type_name: "word", position: 3 },
+        { text_uthmani: "إِنَّهُم", line_number: 14, page_number: 417, char_type_name: "word", position: 4 },
+        { text_uthmani: "مُّنتَظِرُونَ", line_number: 14, page_number: 417, char_type_name: "word", position: 5 },
+        { text_uthmani: "٣٠", line_number: 14, page_number: 417, char_type_name: "end", position: 6 },
+      ],
+    },
+  ])
+  const line = blocks.find(b => b.type === "line")
+  if (!line || line.type !== "line") throw new Error("expected a mushaf line")
+  assertEqual(
+    line.pieces.filter(p => p.type === "word").map(p => p.type === "word" ? p.text : ""),
+    ["فَأَعْرِضْ", "عَنْهُمْ", "وَٱنتَظِرْ", "إِنَّهُم", "مُّنتَظِرُونَ"],
+    "page line keeps the source words",
+  )
 }
 
 import "../lib/progressNotifCopy.test"

@@ -37,7 +37,11 @@ export default function AboutScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ backgroundColor: theme.header }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Logo section — always navy */}
         <View style={[styles.logoSection, { backgroundColor: theme.header }]}>

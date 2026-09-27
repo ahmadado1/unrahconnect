@@ -231,11 +231,12 @@ export default function RestaurantsScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
       <StatusBar style="light" />
 
       <ScrollView
-        style={styles.body}
+        style={[styles.body, { backgroundColor: "#1E3A5F" }]}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}

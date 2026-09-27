@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as FileSystem from "expo-file-system/legacy"
 import { fetchWithTimeout } from "./fetchWithTimeout"
+import { showKasraWithShadda } from "./quranArabicMarks"
 import { resolveJuzNumber } from "./mushafJuz"
 
 export const TOTAL_MUSHAF_PAGES = 604
@@ -62,7 +63,7 @@ export function slimPageDataFromJson(json: { verses?: any[] }, pageHint?: number
     verse_key: verse.verse_key,
     juz_number: verse.juz_number,
     words: (verse.words ?? []).map((word: any) => ({
-      text_uthmani: word.text_uthmani,
+      text_uthmani: showKasraWithShadda(word.text_uthmani ?? ""),
       line_number: word.line_number,
       page_number: word.page_number,
       char_type_name: word.char_type_name,
@@ -89,9 +90,19 @@ async function readLegacyAsyncStoragePage(page: number): Promise<MushafPageData 
     const legacy = await AsyncStorage.getItem(`quran_page_v2_${page}`)
     if (!legacy) return null
     const parsed: MushafPageData = JSON.parse(legacy)
-    await writeCachedPage(page, parsed)
+    const fixed: MushafPageData = {
+      ...parsed,
+      verses: parsed.verses.map(verse => ({
+        ...verse,
+        words: verse.words?.map(word => ({
+          ...word,
+          text_uthmani: showKasraWithShadda(word.text_uthmani ?? ""),
+        })),
+      })),
+    }
+    await writeCachedPage(page, fixed)
     await AsyncStorage.removeItem(`quran_page_v2_${page}`)
-    return parsed
+    return fixed
   } catch {
     return null
   }
@@ -110,7 +121,14 @@ export async function readCachedPage(page: number): Promise<MushafPageData | nul
       await FileSystem.deleteAsync(path, { idempotent: true }).catch(() => {})
       return null
     }
-    return { ...parsed, juzNumber: extractJuzNumber(parsed.verses, page) }
+    const verses = parsed.verses.map(verse => ({
+      ...verse,
+      words: verse.words?.map(word => ({
+        ...word,
+        text_uthmani: showKasraWithShadda(word.text_uthmani ?? ""),
+      })),
+    }))
+    return { ...parsed, verses, juzNumber: extractJuzNumber(verses, page) }
   } catch {
     return null
   }

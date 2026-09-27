@@ -200,7 +200,8 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={[styles.screen, { backgroundColor: theme.background }]}
+      style={[styles.screen, { backgroundColor: theme.header }]}
+      contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >

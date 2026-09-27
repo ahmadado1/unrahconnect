@@ -1,3 +1,4 @@
+import MushafFittedLine from "@/app/components/MushafFittedLine"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
 import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
 import { useTheme } from "@/context/themeContext"
@@ -29,12 +30,12 @@ import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
+import { buildMushafBlocks, type MushafBlock } from "../../lib/mushafLines"
 import {
   fetchAndCachePage,
   getFirstVerseOnPage,
   preloadAdjacentPages,
   type MushafPageData,
-  type MushafVerse,
 } from "../../lib/quranPageCache"
 import {
   fetchAndCacheSurah,
@@ -54,11 +55,6 @@ type Verse = {
 }
 
 // MushafVerse and MushafPageData imported from lib/quranPageCache
-
-type FlowItem =
-  | { type: "word"; text: string; key: string }
-  | { type: "end"; verseNumber: number; key: string }
-  | { type: "surahStart"; surahNumber: number; key: string }
 
 const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 const MUSHAF_PAGE_COUNT = 604
@@ -87,39 +83,6 @@ async function fetchMushafPage(page: number): Promise<MushafPageData> {
   const data = await fetchAndCachePage(page)
   if (!data) throw new Error(`Failed to fetch page ${page}`)
   return data
-}
-
-function buildPageFlow(verses: MushafVerse[]): FlowItem[] {
-  const items: FlowItem[] = []
-
-  for (const verse of verses) {
-    if (verse.verse_number === 1) {
-      const surahNumber = parseInt(verse.verse_key.split(":")[0], 10)
-      items.push({
-        type: "surahStart",
-        surahNumber,
-        key: `surah-start-${surahNumber}-${verse.verse_key}`,
-      })
-    }
-
-    for (const word of verse.words) {
-      if (word.char_type_name === "end") {
-        items.push({
-          type: "end",
-          verseNumber: verse.verse_number,
-          key: `${verse.verse_key}-end`,
-        })
-      } else {
-        items.push({
-          type: "word",
-          text: word.text_uthmani,
-          key: `${verse.verse_key}-${word.position}`,
-        })
-      }
-    }
-  }
-
-  return items
 }
 
 function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean }) {
@@ -152,14 +115,14 @@ function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean
 }
 
 function MushafTextFlow({
-  items,
+  blocks,
   fontsLoaded,
   surahNames,
   targetSurah,
   pageScrollRef,
   didScrollToSurah,
 }: {
-  items: FlowItem[]
+  blocks: MushafBlock[]
   fontsLoaded: boolean
   surahNames: Record<number, string>
   targetSurah?: number
@@ -168,12 +131,12 @@ function MushafTextFlow({
 }) {
   return (
     <View style={mStyles.textFlow}>
-      {items.map(item => {
-        if (item.type === "surahStart") {
-          const { surahNumber } = item
+      {blocks.map(block => {
+        if (block.type === "surahStart") {
+          const { surahNumber } = block
           return (
             <View
-              key={item.key}
+              key={block.key}
               style={mStyles.flowSurahBlock}
               onLayout={e => {
                 if (!targetSurah || surahNumber !== targetSurah || didScrollToSurah.current) return
@@ -200,7 +163,7 @@ function MushafTextFlow({
                   <Text
                     style={[
                       mStyles.bismillahText,
-                      fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+                      fontsLoaded && { fontFamily: "AmiriQuran" },
                     ]}
                   >
                     {BISMILLAH}
@@ -211,25 +174,7 @@ function MushafTextFlow({
           )
         }
 
-        if (item.type === "word") {
-          return (
-            <Text
-              key={item.key}
-              style={[
-                mStyles.word,
-                fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
-              ]}
-            >
-              {item.text}
-            </Text>
-          )
-        }
-
-        return (
-          <View key={item.key} style={mStyles.verseEndBadge}>
-            <Text style={mStyles.verseEndText}>{item.verseNumber}</Text>
-          </View>
-        )
+        return <MushafFittedLine key={block.key} block={block} fontsLoaded={fontsLoaded} />
       })}
     </View>
   )
@@ -304,7 +249,7 @@ function MushafPageContent({
 
   const primarySurah = parseInt(pageData.verses[0]?.verse_key.split(":")[0] ?? "1", 10)
   const primarySurahName = surahNames[targetSurah ?? primarySurah] ?? surahNames[primarySurah] ?? ""
-  const flowItems = buildPageFlow(pageData.verses)
+  const flowBlocks = buildMushafBlocks(pageData.verses)
   // Prefer API juz; always clamp via Madani page→juz so layout never glues juz+page (e.g. "Juz 350")
   const juzNumber = juzForPage(pageNumber)
 
@@ -337,7 +282,7 @@ function MushafPageContent({
               </View>
 
               <MushafTextFlow
-                items={flowItems}
+                blocks={flowBlocks}
                 fontsLoaded={fontsLoaded}
                 surahNames={surahNames}
                 targetSurah={targetSurah}
@@ -658,6 +603,7 @@ export default function SurahScreen() {
   const [fontsLoaded] = useFonts({
     ScheherazadeNew_400Regular,
     ScheherazadeNew_700Bold,
+    AmiriQuran: require("../../assets/fonts/AmiriQuran-Regular.ttf"),
   })
 
   useFocusEffect(
@@ -1005,7 +951,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       <Text
         style={[
           styles.verseArabic,
-          fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+          fontsLoaded && { fontFamily: "AmiriQuran" },
         ]}
       >
         {item.text}
@@ -1140,7 +1086,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               if (Number(surah) === 9) return null
               return (
                 <View style={[styles.bismillahCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" }, { color: theme.text }]}>
+                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "AmiriQuran" }, { color: theme.text }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
                   <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
@@ -1337,9 +1283,9 @@ const mStyles = StyleSheet.create({
     overflow: "hidden",
   },
   pageContent: {
-    paddingHorizontal: 12,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
     overflow: "hidden",
     width: "100%",
   },
@@ -1427,29 +1373,17 @@ const mStyles = StyleSheet.create({
     width: "100%",
   },
   bismillahText: {
-    fontSize: 26,
-    color: "#1E3A5F",
+    fontSize: 28,
+    color: "#0E1C33",
     textAlign: "center",
-    lineHeight: 48,
+    lineHeight: 56,
   },
   textFlow: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "center",
     width: "100%",
-    overflow: "hidden",
-    rowGap: 0,
   },
   flowSurahBlock: {
     width: "100%",
     flexBasis: "100%",
-  },
-  word: {
-    fontSize: 26,
-    color: "#1E3A5F",
-    lineHeight: 48,
-    fontWeight: "400",
   },
   navBar: {
     flexDirection: "row",
@@ -1470,22 +1404,4 @@ const mStyles = StyleSheet.create({
   navLabel: { color: "#C9A84C", fontSize: 13, fontWeight: "600" },
   navPage: { color: "#fff", fontSize: 18, fontWeight: "600" },
   navTotal: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
-  verseEndBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 16,
-    borderWidth: 1.25,
-    borderColor: "#8B6914",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F5EDD6",
-    flexShrink: 0,
-    marginHorizontal: 2,
-  },
-  verseEndText: {
-    fontSize: 11,
-    color: "#1A1A1A",
-    fontWeight: "700",
-    textAlign: "center",
-  },
 })

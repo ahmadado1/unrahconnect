@@ -99,7 +99,11 @@ type Agent = {
             <View style={{ width: 36 }} />
           </View>
     
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={{ backgroundColor: "#1E3A5F" }}
+            contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+          >
 
                 {/* Profile hero */}
             <View style={styles.hero}>

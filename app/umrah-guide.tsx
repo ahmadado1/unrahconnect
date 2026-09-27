@@ -48,9 +48,11 @@ const phases = [
     }
     useFocusEffect(useCallback(() => { loadProgress() }, []))
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
       {/* Dynamic island — always navy */}
       <ScrollView
+        style={{ backgroundColor: "#1E3A5F" }}
+        contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
