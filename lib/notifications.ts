@@ -338,11 +338,11 @@ export async function schedulePrayerNotifications(
             i18n.language === "ar"
               ? `حان وقت صلاة ${prayer.arabic} · الله أكبر`
               : i18n.language === "fr"
-                ? `C'est l'heure de la prière ${prayer.name}. Allahou Akbar`
+                ? `C'est l'heure de la prière : ${prayer.name}. Allahou Akbar`
                 : i18n.language === "tr"
                   ? `${prayer.name} namazı vakti. Allahu Ekber`
                   : i18n.language === "ur"
-                    ? `${prayer.name} کی نماز کا وقت ہوگیا۔ اللہ اکبر`
+                    ? `${prayer.name} کی نماز کا وقت ہو گیا۔ اللہ اکبر`
                     : i18n.language === "bn"
                       ? `${prayer.name} নামাজের সময় হয়েছে। আল্লাহু আকবার`
                       : `It's time for ${prayer.name} prayer. Allahu Akbar`,

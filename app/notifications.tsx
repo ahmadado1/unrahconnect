@@ -4,7 +4,6 @@ import { playAdhan } from "@/lib/adhanAudio"
 import { cancelPrayerAlarms } from "@/modules/prayer-alarm"
 import {
   cancelAllNotifications,
-  getNotificationAdhanSound,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
@@ -15,7 +14,6 @@ import {
   scheduleTestAdhanNotification,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications"
-import { DEFAULT_ADHAN_ID } from "@/lib/prayerConstants"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
@@ -306,7 +304,7 @@ export default function NotificationsScreen() {
             iconBg="#1E3A5F"
             label={t("prayerAdhanAlerts", { defaultValue: "Prayer Adhan alerts" })}
             value={t("prayerAdhanAlertsSub", {
-              defaultValue: "Adhan notification at each prayer time",
+              defaultValue: "A short Adhan at each prayer time. Tap the notification to hear the rest.",
             })}
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
@@ -325,7 +323,7 @@ export default function NotificationsScreen() {
                 Alert.alert(
                   t("playAdhanNowTitle", { defaultValue: "Adhan playing" }),
                   t("playAdhanNowBody", {
-                    defaultValue: "Full Adhan is playing now. Tap Stop Adhan in the Guide tab if you need to stop it.",
+                    defaultValue: "The full Adhan is playing now. It stops when it finishes.",
                   })
                 )
               } catch (e) {
@@ -348,7 +346,7 @@ export default function NotificationsScreen() {
               </Text>
               <Text style={[styles.sub, { color: theme.textSecondary }]}>
                 {t("playAdhanNowSub", {
-                  defaultValue: "Plays the full Adhan immediately (in-app)",
+                  defaultValue: "Plays the full Adhan now",
                 })}
               </Text>
             </View>
@@ -364,16 +362,12 @@ export default function NotificationsScreen() {
               setPrayerAlerts(true)
               await reschedulePrayerNotificationsFromCache().catch(console.log)
 
-              const selected =
-                (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
-              const soundName = getNotificationAdhanSound(selected, false)
               const ok = await scheduleTestAdhanNotification(15)
               if (ok) {
                 Alert.alert(
                   t("testAdhanScheduledTitle"),
                   t("testAdhanScheduledBodyShort", {
-                    defaultValue: `Lock your phone now. In about 15 seconds you should hear the Adhan notification sound (${soundName}). Requires a native build (not Expo Go).`,
-                    sound: soundName,
+                    defaultValue: "Lock your phone now. In about 15 seconds you should hear a short Adhan.",
                   })
                 )
               } else {
@@ -388,7 +382,7 @@ export default function NotificationsScreen() {
               <Text style={[styles.label, { color: theme.text }]}>{t("testAdhanAlert")}</Text>
               <Text style={[styles.sub, { color: theme.textSecondary }]}>
                 {t("testAdhanAlertSubShort", {
-                  defaultValue: "Lock-screen sound in ~15 seconds (native build)",
+                  defaultValue: "Plays a short Adhan in about 15 seconds",
                 })}
               </Text>
             </View>
