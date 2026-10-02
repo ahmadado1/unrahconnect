@@ -7,6 +7,43 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:655574174670:android:149af5631748aa178bf99f",
+        "android_client_info": {
+          "package_name": "com.myumrahconnect.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "655574174670-d8tdmekbnb852n05bnscofnd8annjt5o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.myumrahconnect.app",
+            "certificate_hash": "4392a6c0d9f87b44bfd9fcec2647f9050d37c950"
+          }
+        },
+        {
+          "client_id": "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArWUEO9yqtvv9OSOnC6guH4RC8ffaVkLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:655574174670:android:13b7a819b2bc486d8bf99f",
         "android_client_info": {
           "package_name": "com.umrahconnect.app"

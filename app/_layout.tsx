@@ -14,6 +14,7 @@ import {
   scheduleJourneyReminders,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications";
+import { registerAdhanRescheduleTask } from "@/lib/adhanBackgroundTask";
 import { normalizeReferralCode, saveReferralCode } from "@/lib/referral";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoLinking from "expo-linking";
@@ -42,6 +43,15 @@ export default function RootLayout() {
     data: Record<string, unknown> | undefined,
     deliveredAt?: Date | number | string | null
   ) => {
+    if (identifier === "adhan-reopen" || identifier.startsWith("adhan-soon-")) {
+      try {
+        router.push("/(tabs)/umrah")
+      } catch (e) {
+        console.log("Adhan reminder navigation error:", e)
+      }
+      return
+    }
+
     if (handlePrayerNotificationOpen(identifier, data, () => {
       try {
         router.push("/(tabs)/umrah")
@@ -140,6 +150,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     checkAuth()
+
+    void registerAdhanRescheduleTask().catch(console.log)
 
     requestNotificationPermission().then(async granted => {
       if (!granted) return

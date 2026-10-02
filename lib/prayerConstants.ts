@@ -68,7 +68,7 @@ export function prayerNameFromNotification(identifier: string, data: Record<stri
   const fromData = normalizePrayerName(data?.prayerName)
   if (fromData) return fromData
 
-  const match = identifier.match(/^prayer-(fajr|dhuhr|asr|maghrib|isha)-now$/i)
+  const match = identifier.match(/^prayer-(fajr|dhuhr|asr|maghrib|isha)(?:-|$)/i)
   if (!match) return null
   return normalizePrayerName(match[1])
 }

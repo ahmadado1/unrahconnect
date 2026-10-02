@@ -1,9 +1,17 @@
 import PrayerPopupModal from "./PrayerPopupModal"
+import { getAdhanDuration } from "@/lib/adhanCatalog"
 import {
   configureAdhanAudioMode,
+  isAdhanPlayingFor,
   playAdhan,
   stopAdhan,
 } from "@/lib/adhanAudio"
+import { getAdhanPlaybackMode } from "@/lib/adhanPlaybackMode"
+import {
+  cancelAdhanReopenWarning,
+  cancelPrayerChunks,
+  scheduleAdhanReopenWarning,
+} from "@/lib/notifications"
 import { consumePendingPrayerAlarm } from "@/modules/prayer-alarm"
 import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/prayerAlert"
 import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
@@ -16,7 +24,7 @@ import {
 } from "@/lib/prayerTimes"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { AppState, type AppStateStatus } from "react-native"
+import { AppState, Platform, type AppStateStatus } from "react-native"
 
 const SHOWN_POPUPS_KEY = "prayer_popups_shown_date"
 /** How long after prayer time we still auto-trigger in-app Adhan */
@@ -128,6 +136,9 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
     const now = new Date()
     const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    const fullMode =
+      Platform.OS === "ios" && (await getAdhanPlaybackMode()) === "full"
+    const selected = fullMode ? await AsyncStorage.getItem("selected_adhan") : null
 
     for (const name of PRAYER_NAMES) {
       const prayerMin = timeToMinutes(times[name])
@@ -137,6 +148,24 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
         nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
         !shownPopupsRef.current.has(name)
       ) {
+        if (fullMode) {
+          const start = new Date(now)
+          start.setHours(Math.floor(prayerMin / 60), prayerMin % 60, 0, 0)
+          const elapsed = (now.getTime() - start.getTime()) / 1000
+          const duration = getAdhanDuration(selected, name === "Fajr")
+          if (elapsed >= duration - 0.5) {
+            setShownPopups(prev => new Set([...prev, name]))
+            continue
+          }
+          void cancelPrayerChunks(name)
+          showPrayerAlertRef.current(name, {
+            playSound: true,
+            forceRestart: elapsed <= 1.5,
+            continueIfPlaying: true,
+            seekSeconds: elapsed > 1.5 ? elapsed : undefined,
+          })
+          break
+        }
         showPrayerAlertRef.current(name, true)
         break
       }
@@ -200,12 +229,15 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
 
     const onAppState = (state: AppStateStatus) => {
       if (state === "active") {
+        void cancelAdhanReopenWarning()
         void configureAdhanAudioMode().catch(() => {})
         void playAlarmLaunchAdhan()
         // Catch up immediately — don't wait for the next 15s poll tick.
         void checkPrayer()
         // Re-check GPS so a city change after travel updates times without reinstall.
         void loadTimes(false)
+      } else if (state === "background") {
+        void scheduleAdhanReopenWarning()
       }
     }
     const sub = AppState.addEventListener("change", onAppState)

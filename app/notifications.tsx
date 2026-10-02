@@ -1,8 +1,14 @@
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
+import {
+  getAdhanPlaybackMode,
+  setAdhanPlaybackMode,
+  type AdhanPlaybackMode,
+} from "@/lib/adhanPlaybackMode"
 import { cancelPrayerAlarms } from "@/modules/prayer-alarm"
 import {
+  cancelAdhanReopenWarning,
   cancelAllNotifications,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
@@ -75,6 +81,7 @@ export default function NotificationsScreen() {
   const [morningTime, setMorningTime] = useState(() => parseStoredTime(null, null, 8, 0))
   const [eveningTime, setEveningTime] = useState(() => parseStoredTime(null, null, 17, 0))
   const [pickerTarget, setPickerTarget] = useState<"morning" | "evening" | null>(null)
+  const [adhanMode, setAdhanMode] = useState<AdhanPlaybackMode>("full")
 
   const loadPrefs = useCallback(async () => {
     const [
@@ -105,6 +112,7 @@ export default function NotificationsScreen() {
     setIslamicDates(islamic !== "false")
     setMorningTime(parseStoredTime(mH, mM, 8, 0))
     setEveningTime(parseStoredTime(eH, eM, 17, 0))
+    if (Platform.OS === "ios") setAdhanMode(await getAdhanPlaybackMode())
   }, [])
 
   useFocusEffect(
@@ -141,6 +149,16 @@ export default function NotificationsScreen() {
     }
   }
 
+  const onAdhanMode = async (mode: AdhanPlaybackMode) => {
+    setAdhanMode(mode)
+    await setAdhanPlaybackMode(mode)
+    if (!master || !prayerAlerts) {
+      if (mode !== "full") await cancelAdhanReopenWarning()
+      return
+    }
+    await reschedulePrayerNotificationsFromCache().catch(console.log)
+  }
+
   const onPrayerChange = async (val: boolean) => {
     setPrayerAlerts(val)
     await AsyncStorage.setItem("prayer_alerts_enabled", String(val))
@@ -150,10 +168,11 @@ export default function NotificationsScreen() {
     } else {
       const all = await Notifications.getAllScheduledNotificationsAsync()
       for (const n of all) {
-        if (n.identifier.startsWith("prayer-")) {
+        if (n.identifier.startsWith("prayer-") || n.identifier.startsWith("adhan-soon-")) {
           await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})
         }
       }
+      await cancelAdhanReopenWarning()
       cancelPrayerAlarms()
     }
   }
@@ -303,15 +322,60 @@ export default function NotificationsScreen() {
             icon="alarm"
             iconBg="#1E3A5F"
             label={t("prayerAdhanAlerts", { defaultValue: "Prayer Adhan alerts" })}
-            value={t("prayerAdhanAlertsSub", {
-              defaultValue: "A short Adhan at each prayer time. Tap the notification to hear the rest.",
-            })}
+            value={t(
+              Platform.OS === "android"
+                ? "prayerAdhanAlertsSubAndroid"
+                : adhanMode === "full"
+                  ? "prayerAdhanAlertsSubFull"
+                  : "prayerAdhanAlertsSub",
+              {
+                defaultValue:
+                  Platform.OS === "android"
+                    ? "The full Adhan at each prayer time, including on the lock screen."
+                    : adhanMode === "full"
+                      ? "The full Adhan at each prayer time, in short pieces, when the ringer is on."
+                      : "A short Adhan at each prayer time. Tap the notification to hear the rest.",
+              }
+            )}
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
           />
           <Text style={[styles.sub, { color: theme.textSecondary, paddingLeft: 48, paddingBottom: 8 }]}>
-            {t("adhanOpenVsClosedNote")}
+            {t(
+              Platform.OS === "android"
+                ? "adhanLockNoteAndroid"
+                : adhanMode === "full"
+                  ? "adhanFullModeNote"
+                  : "adhanOpenVsClosedNote"
+            )}
           </Text>
+          {Platform.OS === "ios" ? (
+            <View style={styles.modeWrap}>
+              {(["alarm", "full"] as const).map(mode => {
+                const selected = adhanMode === mode
+                return (
+                  <Pressable
+                    key={mode}
+                    onPress={() => void onAdhanMode(mode)}
+                    style={[
+                      styles.modeRow,
+                      {
+                        borderColor: selected ? theme.gold : theme.border,
+                        backgroundColor: selected ? "rgba(201,168,76,0.12)" : "transparent",
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.modeTitle, { color: theme.text }]}>
+                      {t(mode === "alarm" ? "adhanModeAlarm" : "adhanModeFull")}
+                    </Text>
+                    <Text style={[styles.sub, { color: theme.textSecondary }]}>
+                      {t(mode === "alarm" ? "adhanModeAlarmSub" : "adhanModeFullSub")}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+          ) : null}
           <TouchableOpacity
             style={[styles.row, { borderBottomColor: theme.border }]}
             onPress={async () => {
@@ -366,9 +430,17 @@ export default function NotificationsScreen() {
               if (ok) {
                 Alert.alert(
                   t("testAdhanScheduledTitle"),
-                  t("testAdhanScheduledBodyShort", {
-                    defaultValue: "Lock your phone now. In about 15 seconds you should hear a short Adhan.",
-                  })
+                  t(
+                    Platform.OS === "android"
+                      ? "testAdhanScheduledBodyAndroid"
+                      : "testAdhanScheduledBodyShort",
+                    {
+                      defaultValue:
+                        Platform.OS === "android"
+                          ? "Lock your phone now. The full Adhan starts in about 15 seconds."
+                          : "Lock your phone now. In about 15 seconds you should hear a short Adhan.",
+                    }
+                  )
                 )
               } else {
                 Alert.alert(t("testAdhanPermissionTitle"), t("testAdhanPermissionBody"))
@@ -381,8 +453,11 @@ export default function NotificationsScreen() {
             <View style={styles.info}>
               <Text style={[styles.label, { color: theme.text }]}>{t("testAdhanAlert")}</Text>
               <Text style={[styles.sub, { color: theme.textSecondary }]}>
-                {t("testAdhanAlertSubShort", {
-                  defaultValue: "Plays a short Adhan in about 15 seconds",
+                {t(Platform.OS === "android" ? "testAdhanAlertSubAndroid" : "testAdhanAlertSubShort", {
+                  defaultValue:
+                    Platform.OS === "android"
+                      ? "Plays the full Adhan in about 15 seconds"
+                      : "Plays a short Adhan in about 15 seconds",
                 })}
               </Text>
             </View>
@@ -527,6 +602,9 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   label: { fontSize: 15, fontWeight: "500" },
   sub: { fontSize: 12, marginTop: 2 },
+  modeWrap: { marginLeft: 48, marginBottom: 8, gap: 8 },
+  modeRow: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  modeTitle: { fontSize: 14, fontWeight: "600" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,

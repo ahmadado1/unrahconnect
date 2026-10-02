@@ -1,0 +1,11 @@
+{
+  "name": "exact-alarm",
+  "version": "1.0.0",
+  "description": "Checks Android exact-alarm access and opens the Alarms & reminders screen.",
+  "main": "index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
