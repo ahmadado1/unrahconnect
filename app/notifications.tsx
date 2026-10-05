@@ -303,20 +303,14 @@ export default function NotificationsScreen() {
             icon="alarm"
             iconBg="#1E3A5F"
             label={t("prayerAdhanAlerts", { defaultValue: "Prayer Adhan alerts" })}
-            value={t(
-              Platform.OS === "android" ? "prayerAdhanAlertsSubAndroid" : "prayerAdhanAlertsSub",
-              {
-                defaultValue:
-                  Platform.OS === "android"
-                    ? "The full Adhan at each prayer time, including on the lock screen."
-                    : "A short Adhan at each prayer time. Tap the notification to hear the rest.",
-              }
-            )}
+            value={t("prayerAdhanAlertsSub", {
+              defaultValue: "A short Adhan at each prayer time. Tap the notification to hear the rest.",
+            })}
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
           />
           <Text style={[styles.sub, { color: theme.textSecondary, paddingLeft: 48, paddingBottom: 8 }]}>
-            {t(Platform.OS === "android" ? "adhanLockNoteAndroid" : "adhanOpenVsClosedNote")}
+            {t("adhanOpenVsClosedNote")}
           </Text>
           <TouchableOpacity
             style={[styles.row, { borderBottomColor: theme.border }]}
@@ -372,17 +366,9 @@ export default function NotificationsScreen() {
               if (ok) {
                 Alert.alert(
                   t("testAdhanScheduledTitle"),
-                  t(
-                    Platform.OS === "android"
-                      ? "testAdhanScheduledBodyAndroid"
-                      : "testAdhanScheduledBodyShort",
-                    {
-                      defaultValue:
-                        Platform.OS === "android"
-                          ? "Lock your phone now. The full Adhan starts in about 15 seconds."
-                          : "Lock your phone now. In about 15 seconds you should hear a short Adhan.",
-                    }
-                  )
+                  t("testAdhanScheduledBodyShort", {
+                    defaultValue: "Lock your phone now. In about 15 seconds you should hear a short Adhan.",
+                  })
                 )
               } else {
                 Alert.alert(t("testAdhanPermissionTitle"), t("testAdhanPermissionBody"))
@@ -395,11 +381,8 @@ export default function NotificationsScreen() {
             <View style={styles.info}>
               <Text style={[styles.label, { color: theme.text }]}>{t("testAdhanAlert")}</Text>
               <Text style={[styles.sub, { color: theme.textSecondary }]}>
-                {t(Platform.OS === "android" ? "testAdhanAlertSubAndroid" : "testAdhanAlertSubShort", {
-                  defaultValue:
-                    Platform.OS === "android"
-                      ? "Plays the full Adhan in about 15 seconds"
-                      : "Plays a short Adhan in about 15 seconds",
+                {t("testAdhanAlertSubShort", {
+                  defaultValue: "Plays a short Adhan in about 15 seconds",
                 })}
               </Text>
             </View>

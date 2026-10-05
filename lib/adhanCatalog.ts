@@ -1,18 +1,10 @@
 /**
- * One catalog for in-app playback, the notification clip, and the iOS 26 alarm.
- * Fajr always resolves to the `adhan_<id>_fajr` file, which is the take that
- * includes «الصلاة خير من النوم». Daytime prayers use `adhan_<id>`.
+ * One catalog for in-app playback and the 30-second notification clip.
+ * Fajr uses `adhan_<id>_fajr` when that sheikh has a Fajr take.
  *
  * Files live in assets/adhan. Rebuild them with scripts/fetch-adhan-assets.mjs.
  */
 export const ADHAN_RECITERS = [
-  {
-    id: "alafasy",
-    legacyIds: ["3"],
-    name: "Sheikh Mishary Rashid Alafasy",
-    style: "Kuwaiti",
-    fajrLabel: "Mishary Fajr",
-  },
   {
     id: "abdulbasit",
     legacyIds: ["1"],
@@ -28,25 +20,11 @@ export const ADHAN_RECITERS = [
     fajrLabel: "Al-Trablsy Fajr",
   },
   {
-    id: "mulla",
-    legacyIds: [] as string[],
-    name: "Sheikh Ali Ahmed Mulla",
-    style: "Makkah",
-    fajrLabel: "Mulla Fajr",
-  },
-  {
-    id: "bokhari",
-    legacyIds: [] as string[],
-    name: "Sheikh Issam Bokhari",
-    style: "Madinah",
-    fajrLabel: "Bokhari Fajr",
-  },
-  {
-    id: "ozcan",
-    legacyIds: [] as string[],
-    name: "Sheikh Mustafa Özcan",
-    style: "Turkish",
-    fajrLabel: "Özcan Fajr",
+    id: "alafasy",
+    legacyIds: ["3"],
+    name: "Sheikh Mishary Rashid Alafasy",
+    style: "Kuwaiti",
+    fajrLabel: "Mishary Fajr",
   },
 ] as const
 
@@ -57,34 +35,22 @@ export const DEFAULT_ADHAN_ID: AdhanReciterId = "alafasy"
 export const ADHAN_OPTIONS = ADHAN_RECITERS
 
 const FULL_TRACKS: Record<string, number> = {
-  alafasy: require("../assets/adhan/adhan_alafasy.mp3"),
-  alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr.mp3"),
   abdulbasit: require("../assets/adhan/adhan_abdulbasit.mp3"),
   abdulbasit_fajr: require("../assets/adhan/adhan_abdulbasit_fajr.mp3"),
   trablsy: require("../assets/adhan/adhan_trablsy.mp3"),
   trablsy_fajr: require("../assets/adhan/adhan_trablsy_fajr.mp3"),
-  mulla: require("../assets/adhan/adhan_mulla.mp3"),
-  mulla_fajr: require("../assets/adhan/adhan_mulla_fajr.mp3"),
-  bokhari: require("../assets/adhan/adhan_bokhari.mp3"),
-  bokhari_fajr: require("../assets/adhan/adhan_bokhari_fajr.mp3"),
-  ozcan: require("../assets/adhan/adhan_ozcan.mp3"),
-  ozcan_fajr: require("../assets/adhan/adhan_ozcan_fajr.mp3"),
+  alafasy: require("../assets/adhan/adhan_alafasy.mp3"),
+  alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr.mp3"),
 }
 
 /** Short clip used only if the full mp3 fails. Same voice, Fajr-aware. */
 const LOCK_TRACKS: Record<string, number> = {
-  alafasy: require("../assets/adhan/adhan_alafasy_lock.wav"),
-  alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr_lock.wav"),
   abdulbasit: require("../assets/adhan/adhan_abdulbasit_lock.wav"),
   abdulbasit_fajr: require("../assets/adhan/adhan_abdulbasit_fajr_lock.wav"),
   trablsy: require("../assets/adhan/adhan_trablsy_lock.wav"),
   trablsy_fajr: require("../assets/adhan/adhan_trablsy_fajr_lock.wav"),
-  mulla: require("../assets/adhan/adhan_mulla_lock.wav"),
-  mulla_fajr: require("../assets/adhan/adhan_mulla_fajr_lock.wav"),
-  bokhari: require("../assets/adhan/adhan_bokhari_lock.wav"),
-  bokhari_fajr: require("../assets/adhan/adhan_bokhari_fajr_lock.wav"),
-  ozcan: require("../assets/adhan/adhan_ozcan_lock.wav"),
-  ozcan_fajr: require("../assets/adhan/adhan_ozcan_fajr_lock.wav"),
+  alafasy: require("../assets/adhan/adhan_alafasy_lock.wav"),
+  alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr_lock.wav"),
 }
 
 const LEGACY_IDS: Record<string, AdhanReciterId> = {}
@@ -120,7 +86,7 @@ export function getAdhanLockFile(adhanId?: string | null, prayerName?: string | 
 }
 
 /**
- * Basename bundled for the iOS notification and the iOS alarm tone.
+ * Basename bundled for the notification sound.
  * Must match a file listed in app.json expo-notifications sounds.
  */
 export function getAdhanLockSoundName(adhanId?: string | null, isFajr = false) {
@@ -129,8 +95,8 @@ export function getAdhanLockSoundName(adhanId?: string | null, isFajr = false) {
 }
 
 /**
- * Full recording used as the Android notification sound.
- * Android plays this on the lock screen with no 30-second cap.
+ * Full recording. Used only inside the app after the notification is tapped.
+ * The notification itself is the short wav, on iPhone and Android.
  */
 export function getAdhanFullSoundName(adhanId?: string | null, isFajr = false) {
   const id = resolveAdhanId(adhanId)

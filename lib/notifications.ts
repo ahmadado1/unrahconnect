@@ -5,17 +5,12 @@ import {
   ISLAMIC_EVENTS_HIJRI,
   type IslamicEvent,
 } from "@/lib/islamicEvents"
-import { isAdhanPlaying, isAdhanPlayingFor } from "@/lib/adhanAudio"
-import {
-  cancelPrayerAlarms,
-  scheduleTestPrayerAlarm,
-  syncPrayerAlarms,
-} from "@/modules/prayer-alarm"
+import { isAdhanPlaying } from "@/lib/adhanAudio"
+import { cancelPrayerAlarms } from "@/modules/prayer-alarm"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification } from "@/lib/prayerConstants"
 import {
   ADHAN_RECITERS,
-  getAdhanFullSoundName,
   getAdhanLockSoundName,
   resolveAdhanId,
 } from "@/lib/adhanCatalog"
@@ -56,11 +51,11 @@ import { Alert, AppState, Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
 /**
- * Android channels play the full MP3. v12 replaces v11, which was locked to the 25-second wav.
- * iOS notifications use the short wav. Tap the notification to continue the full Adhan in the app.
- * Basename must match app.json expo-notifications plugin sounds exactly.
+ * One 25-second Adhan clip on the notification, on iPhone and Android.
+ * v13 replaces v12, which used the full MP3 as an alarm and stacked a second sound.
+ * Tap the notification to continue the full Adhan in the app.
  */
-const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v12"
+const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v14"
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
@@ -68,14 +63,9 @@ export function getPrayerChannelId(adhanId: string, isFajr = false) {
     : `${PRAYER_CHANNEL_PREFIX}-${adhanId}`
 }
 
-/** iOS lock-screen clip and AlarmKit tone. Always a wav under 30 seconds. */
+/** Notification clip. Always a wav under 30 seconds. */
 export function getNotificationAdhanSound(adhanId: string, isFajr = false) {
   return getAdhanLockSoundName(adhanId, isFajr)
-}
-
-/** Android notification channel sound. The full MP3, played while the phone is locked. */
-export function getAndroidAdhanSound(adhanId: string, isFajr = false) {
-  return getAdhanFullSoundName(adhanId, isFajr)
 }
 
 async function getSelectedAdhanId() {
@@ -85,25 +75,21 @@ async function getSelectedAdhanId() {
 async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
   const channelId = getPrayerChannelId(adhanId, isFajr)
   // Expo docs: provide ONLY the base filename (e.g. azan3_lock.wav)
-  const adhanSound = getAndroidAdhanSound(adhanId, isFajr)
+  const adhanSound = getNotificationAdhanSound(adhanId, isFajr)
 
   await Notifications.setNotificationChannelAsync(channelId, {
     name: isFajr ? "Fajr Adhan" : "Prayer Adhan",
-    description: isFajr
-      ? "Full Fajr Adhan, including on the lock screen"
-      : "Full Adhan at prayer time, including on the lock screen",
+    description: "About 30 seconds of the Adhan. Tap the notification to hear the rest in the app.",
     importance: Notifications.AndroidImportance.MAX,
     sound: adhanSound,
-    vibrationPattern: [0, 250, 250, 250],
-    enableVibrate: true,
-    bypassDnd: true,
+    enableVibrate: false,
+    bypassDnd: false,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    // ALARM usage is more reliable than ringtone for prayer alerts on Android
     audioAttributes: {
-      usage: AndroidAudioUsage.ALARM,
-      contentType: AndroidAudioContentType.MUSIC,
+      usage: AndroidAudioUsage.NOTIFICATION,
+      contentType: AndroidAudioContentType.SONIFICATION,
       flags: {
-        enforceAudibility: true,
+        enforceAudibility: false,
         requestHardwareAudioVideoSynchronization: false,
       },
     },
@@ -126,7 +112,21 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
 
   // Remove silent / outdated channels (Android locks sound after channel create).
   await Notifications.deleteNotificationChannelAsync(PRAYER_CHANNEL_ID).catch(() => {})
-  const retiredIds = ["1", "2", "3", "4", "5", ...ADHAN_RECITERS.map(reciter => reciter.id)]
+  const retiredIds = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "abdulbasit",
+    "trablsy",
+    "mulla",
+    "bokhari",
+    "ozcan",
+    "minshawi",
+    "noreen",
+    ...ADHAN_RECITERS.map(reciter => reciter.id),
+  ]
   for (const id of retiredIds) {
     for (const prefix of [
       "prayer-adhan-v2-",
@@ -139,6 +139,8 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
       "prayer-adhan-v9-",
       "prayer-adhan-v10-",
       "prayer-adhan-v11-",
+      "prayer-adhan-v12-",
+      "prayer-adhan-v13-",
     ]) {
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}`).catch(() => {})
       await Notifications.deleteNotificationChannelAsync(`${prefix}${id}-fajr`).catch(() => {})
@@ -149,35 +151,11 @@ export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
 }
 
 Notifications.setNotificationHandler({
-  handleNotification: async notification => {
-    const identifier = notification.request.identifier
-    const data = notification.request.content.data as Record<string, unknown> | undefined
-    const isTest = identifier === "prayer-adhan-test"
-    const isPrayer = identifier.startsWith("prayer-") || isTest
-
-    if (isPrayer && !isTest) {
-      const prayerName = prayerNameFromNotification(identifier, data)
-      if (prayerName) {
-        // App open: full Adhan via expo-audio (not the short notification clip).
-        const prayerAlerts =
-          (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
-        const master = (await AsyncStorage.getItem("notifications_enabled")) !== "false"
-        if (master && prayerAlerts && !isAdhanPlayingFor(prayerName)) {
-          triggerPrayerAlert(prayerName, {
-            playSound: true,
-            forceRestart: false,
-            continueIfPlaying: true,
-            forceShow: true,
-          })
-        }
-      }
-    }
-
+  handleNotification: async () => {
     return {
       shouldShowAlert: true,
-      // Foreground: suppress system sound for real prayer alerts — expo-audio plays full track.
-      // Test notification keeps system sound so we can verify the lock-screen WAV clip.
-      shouldPlaySound: !isPrayer || isTest,
+      // The notification itself is the only Adhan sound. Tapping it continues in the app.
+      shouldPlaySound: true,
       shouldSetBadge: true,
       shouldShowBanner: true,
       shouldShowList: true,
@@ -224,40 +202,8 @@ export async function scheduleDailyVerseNotification() {
   return false
 }
 
-/** Prevent overlapping cancel/schedule races that leave zero prayer alarms. */
+/** Prevent overlapping cancel/schedule races that leave zero prayer alerts. */
 let schedulePrayerChain: Promise<void> = Promise.resolve()
-
-function prayersFromTimes(
-  prayerTimes: {
-    fajr: string
-    dhuhr: string
-    asr: string
-    maghrib: string
-    isha: string
-  },
-  adhanId: string
-) {
-  const prayers = [
-    { name: "Fajr", time: prayerTimes.fajr, arabic: "الفجر" },
-    { name: "Dhuhr", time: prayerTimes.dhuhr, arabic: "الظهر" },
-    { name: "Asr", time: prayerTimes.asr, arabic: "العصر" },
-    { name: "Maghrib", time: prayerTimes.maghrib, arabic: "المغرب" },
-    { name: "Isha", time: prayerTimes.isha, arabic: "العشاء" },
-  ]
-  return prayers.flatMap(prayer => {
-    const parsed = parsePrayerTimeHourMinute(prayer.time)
-    if (!parsed) return []
-    return [
-      {
-        prayerName: prayer.name,
-        hour: parsed.hour,
-        minute: parsed.minute,
-        soundName: getNotificationAdhanSound(adhanId, prayer.name === "Fajr"),
-        title: `${prayer.name} — ${prayer.arabic}`,
-      },
-    ]
-  })
-}
 
 const EXACT_ALARM_DECLINED_KEY = "exact_alarm_prompt_declined"
 let exactAlarmPromptedThisProcess = false
@@ -356,12 +302,11 @@ export async function schedulePrayerNotifications(
     }
 
     const adhanId = resolveAdhanId(selectedAdhan || (await getSelectedAdhanId()))
-    const alarmDrafts = prayersFromTimes(prayerTimes, adhanId)
 
     const granted = await requestNotificationPermission()
     if (!granted) {
       console.warn("[Notifications] Skipping prayer schedule — permission not granted")
-      await syncPrayerAlarms(alarmDrafts)
+      cancelPrayerAlarms()
       return
     }
     await setupPrayerNotificationChannel(adhanId)
@@ -397,10 +342,7 @@ export async function schedulePrayerNotifications(
       }
       const { hour, minute } = parsed
       const isFajr = prayer.name === "Fajr"
-      const sound =
-        Platform.OS === "android"
-          ? getAndroidAdhanSound(adhanId, isFajr)
-          : getNotificationAdhanSound(adhanId, isFajr)
+      const sound = getNotificationAdhanSound(adhanId, isFajr)
       const channelId = isFajr ? fajrChannelId : regularChannelId
 
       console.log(
@@ -418,7 +360,7 @@ export async function schedulePrayerNotifications(
           content: {
             title: `${prayer.name} — ${prayer.arabic}`,
             body: prayerAlertBody(prayer.name, prayer.arabic),
-            // iOS plays the short wav. Android plays the full mp3 from the channel.
+            // One short clip. Tapping the notification continues the full Adhan in the app.
             sound,
             priority: Notifications.AndroidNotificationPriority.MAX,
             ...(Platform.OS === "ios"
@@ -449,7 +391,7 @@ export async function schedulePrayerNotifications(
     console.log(
       `[Notifications] Scheduled ${prayerCount}/${scheduledOk} prayer alerts (adhan ${adhanId}, ${Platform.OS})`
     )
-    await syncPrayerAlarms(alarmDrafts)
+    cancelPrayerAlarms()
   }
 
   const next = schedulePrayerChain.then(run, run)
@@ -468,10 +410,7 @@ export async function scheduleTestAdhanNotification(seconds = 15) {
   }
 
   const adhanId = resolveAdhanId(await getSelectedAdhanId())
-  const sound =
-    Platform.OS === "android"
-      ? getAndroidAdhanSound(adhanId, false)
-      : getNotificationAdhanSound(adhanId, false)
+  const sound = getNotificationAdhanSound(adhanId, false)
   const channelId = await setupPrayerNotificationChannel(adhanId)
 
   await Notifications.cancelScheduledNotificationAsync("prayer-adhan-test").catch(() => {})
@@ -516,8 +455,6 @@ export async function scheduleTestAdhanNotification(seconds = 15) {
     "content.sound=",
     (test?.content as { sound?: string } | undefined)?.sound
   )
-
-  await scheduleTestPrayerAlarm("Dhuhr", Math.max(5, Math.floor(seconds)), sound, "Test Prayer")
 
   return true
 }

@@ -138,7 +138,7 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
         nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
         !shownPopupsRef.current.has(name)
       ) {
-        showPrayerAlertRef.current(name, true)
+        showPrayerAlertRef.current(name, { playSound: false })
         break
       }
     }
