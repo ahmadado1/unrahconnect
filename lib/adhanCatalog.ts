@@ -1,5 +1,3 @@
-import { ADHAN_CHUNK_LISTS } from "@/lib/adhanChunks.generated"
-
 /**
  * One catalog for in-app playback, the notification clip, and the iOS 26 alarm.
  * Fajr always resolves to the `adhan_<id>_fajr` file, which is the take that
@@ -137,23 +135,4 @@ export function getAdhanLockSoundName(adhanId?: string | null, isFajr = false) {
 export function getAdhanFullSoundName(adhanId?: string | null, isFajr = false) {
   const id = resolveAdhanId(adhanId)
   return isFajr ? `adhan_${id}_fajr.mp3` : `adhan_${id}.mp3`
-}
-
-type AdhanChunkList = {
-  duration: number
-  chunks: readonly { file: string; offset: number }[]
-}
-
-const CHUNK_LISTS = ADHAN_CHUNK_LISTS as unknown as Record<string, AdhanChunkList>
-
-/** Short iOS notification pieces for one reciter, each with its start time in the full Adhan. */
-export function getAdhanChunks(adhanId?: string | null, isFajr = false) {
-  const list = CHUNK_LISTS[trackKey(adhanId, isFajr)] ?? CHUNK_LISTS[DEFAULT_ADHAN_ID]
-  return list.chunks.map(chunk => ({ file: chunk.file, offset: chunk.offset }))
-}
-
-/** Length of the full Adhan in seconds. Used to seek when the app opens mid-call. */
-export function getAdhanDuration(adhanId?: string | null, isFajr = false) {
-  const list = CHUNK_LISTS[trackKey(adhanId, isFajr)] ?? CHUNK_LISTS[DEFAULT_ADHAN_ID]
-  return list.duration
 }

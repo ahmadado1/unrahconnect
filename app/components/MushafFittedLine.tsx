@@ -108,9 +108,14 @@ const styles = StyleSheet.create({
   },
   word: {
     fontSize: 28,
-    color: "#0E1C33",
+    color: "#071018",
     lineHeight: 58,
     fontWeight: "400",
+    // Amiri Quran has no bold cut. A sharp copy of the same ink thickens
+    // the strokes without changing size, spacing, or the fitted line.
+    textShadowColor: "#071018",
+    textShadowOffset: { width: 0.55, height: 0 },
+    textShadowRadius: 0.2,
   },
   verseEndBadge: {
     width: 26,

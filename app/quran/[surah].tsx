@@ -1374,9 +1374,12 @@ const mStyles = StyleSheet.create({
   },
   bismillahText: {
     fontSize: 28,
-    color: "#0E1C33",
+    color: "#071018",
     textAlign: "center",
     lineHeight: 56,
+    textShadowColor: "#071018",
+    textShadowOffset: { width: 0.55, height: 0 },
+    textShadowRadius: 0.2,
   },
   textFlow: {
     width: "100%",

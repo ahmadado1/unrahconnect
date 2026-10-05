@@ -247,15 +247,23 @@ export default function KahfReadingScreen() {
   const currentPageRef = useRef(currentPage)
   currentPageRef.current = currentPage
 
+  /**
+   * Same order as the main mushaf: the first Kahf page sits at the end of the
+   * pager, so a swipe to the right advances, the way a printed mushaf turns.
+   */
   const pages = useMemo(() => {
     const list: number[] = []
-    for (let p = range.start; p <= range.end; p++) list.push(p)
+    for (let p = range.end; p >= range.start; p--) list.push(p)
     return list
   }, [range.start, range.end])
 
   const pageIndex = Math.min(
-    Math.max(currentPage - range.start, 0),
+    Math.max(range.end - currentPage, 0),
     Math.max(pages.length - 1, 0),
+  )
+  const kahfPageNumber = Math.min(
+    Math.max(currentPage - range.start + 1, 1),
+    Math.max(pages.length, 1),
   )
   const isLast = currentPage >= range.end
   const fraction = progress ? kahfProgressFraction(progress) : 0
@@ -450,15 +458,34 @@ export default function KahfReadingScreen() {
 
       <View style={[styles.navBar, { paddingBottom: insets.bottom + 6 }]}>
         <TouchableOpacity
-          onPress={() => goToPage(currentPage - 1)}
+          onPress={() => goToPage(currentPage + 1)}
           style={styles.navBtnRow}
-          disabled={currentPage <= range.start}
+          disabled={isLast}
         >
           <Ionicons
             name="chevron-back"
             size={18}
-            color={currentPage <= range.start ? "rgba(201,168,76,0.35)" : "#C9A84C"}
+            color={isLast ? "rgba(201,168,76,0.35)" : "#C9A84C"}
           />
+          <Text style={[styles.navLabel, isLast && styles.navLabelDisabled]}>
+            {t("quranNext")}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.navCenter}>
+          <Text style={styles.navPage}>
+            {t("alKahfPageOf", {
+              current: kahfPageNumber,
+              total: pages.length,
+            })}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => goToPage(currentPage - 1)}
+          style={styles.navBtnRow}
+          disabled={currentPage <= range.start}
+        >
           <Text
             style={[
               styles.navLabel,
@@ -467,29 +494,10 @@ export default function KahfReadingScreen() {
           >
             {t("quranPrev")}
           </Text>
-        </TouchableOpacity>
-
-        <View style={styles.navCenter}>
-          <Text style={styles.navPage}>
-            {t("alKahfPageOf", {
-              current: pageIndex + 1,
-              total: pages.length,
-            })}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => goToPage(currentPage + 1)}
-          style={styles.navBtnRow}
-          disabled={isLast}
-        >
-          <Text style={[styles.navLabel, isLast && styles.navLabelDisabled]}>
-            {t("quranNext")}
-          </Text>
           <Ionicons
             name="chevron-forward"
             size={18}
-            color={isLast ? "rgba(201,168,76,0.35)" : "#C9A84C"}
+            color={currentPage <= range.start ? "rgba(201,168,76,0.35)" : "#C9A84C"}
           />
         </TouchableOpacity>
       </View>
@@ -613,9 +621,12 @@ const styles = StyleSheet.create({
   },
   bismillahText: {
     fontSize: 28,
-    color: "#0E1C33",
+    color: "#071018",
     textAlign: "center",
     lineHeight: 56,
+    textShadowColor: "#071018",
+    textShadowOffset: { width: 0.55, height: 0 },
+    textShadowRadius: 0.2,
   },
   completeWrap: {
     marginHorizontal: 16,

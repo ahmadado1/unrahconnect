@@ -20,7 +20,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   AppState,
@@ -178,7 +177,7 @@ function QuickItem({
   return (
     <TouchableOpacity style={[qaStyles.item, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress}>
       <View style={[qaStyles.iconBox, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={24} color={color} />
+        <Ionicons name={icon} size={28} color={color} />
       </View>
       <Text style={[qaStyles.label, { color: theme.text }]}>{label}</Text>
     </TouchableOpacity>
@@ -222,51 +221,6 @@ function getVerseEdition() {
     default: return "en.sahih"
   }
 }
-
-// ─── GOLD CRESCENT REFRESH SPINNER ───────────────────────────────────────────
-
-function GoldRefreshSpinner({ visible }: { visible: boolean }) {
-  if (!visible) return null
-
-  return (
-    <View style={refreshStyles.wrap} pointerEvents="none">
-      <View style={refreshStyles.glowOuter} />
-      <View style={refreshStyles.glowInner} />
-      <ActivityIndicator color="#8E8E93" />
-    </View>
-  )
-}
-
-const refreshStyles = StyleSheet.create({
-  overlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    alignItems: "center",
-  },
-  wrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: 64,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  glowOuter: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(245,240,232,0.7)",
-  },
-  glowInner: {
-    position: "absolute",
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(201,168,76,0.22)",
-  },
-})
 
 function GlowingAiButton({ onPress }: { onPress: () => void }) {
   const glow = useRef(new Animated.Value(0)).current
@@ -602,11 +556,6 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
-      {refreshing ? (
-        <View style={[refreshStyles.overlay, { top: insets.top + 8 }]} pointerEvents="none">
-          <GoldRefreshSpinner visible />
-        </View>
-      ) : null}
       <ScrollView
         style={{ backgroundColor: NAVY }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
@@ -619,8 +568,9 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="transparent"
-            colors={["#8E8E93"]}
+            tintColor="#FFFFFF"
+            colors={["#FFFFFF"]}
+            progressBackgroundColor={NAVY}
           />
         }
       >
@@ -1065,7 +1015,7 @@ const styles = StyleSheet.create({
   qaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 16, marginTop: 20, marginBottom: 12 },
   qaTitle: { fontSize: 17, fontWeight: "bold" },
   qaViewAll: { color: "#C9A84C", fontSize: 13, fontWeight: "600" },
-  qaRow: { paddingHorizontal: 16, gap: 10 },
+  qaRow: { paddingHorizontal: 16, gap: 12 },
 
   // Maidabo + bookings
   sectionTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 12 },
@@ -1100,9 +1050,9 @@ const styles = StyleSheet.create({
 })
 
 const qaStyles = StyleSheet.create({
-  item: { width: 80, alignItems: "center", borderRadius: 16, padding: 12, borderWidth: 0.5 },
-  iconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(30,58,95,0.08)", alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  label: { fontSize: 11, textAlign: "center", fontWeight: "500" },
+  item: { width: 96, alignItems: "center", borderRadius: 18, paddingVertical: 14, paddingHorizontal: 10, borderWidth: 0.5 },
+  iconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: "rgba(30,58,95,0.08)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  label: { fontSize: 13, textAlign: "center", fontWeight: "700" },
 })
 
 const bookingStyles = StyleSheet.create({
