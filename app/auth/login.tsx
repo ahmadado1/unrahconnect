@@ -10,6 +10,7 @@ import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppButton from "../components/AppButton";
+import PhoneLogin from "../components/PhoneLogin";
 import SelectDropdown from "../components/SelectDropdown";
 import { supabase } from "../../lib/supabase";
 import { isExpoGo } from "../../lib/runtime";
@@ -42,6 +43,7 @@ export default function LoginScreen() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
+  const [phoneOpen, setPhoneOpen] = useState(false)
   const { t } = useTranslation()
 
   // Configure Google Sign In on mount
@@ -49,7 +51,7 @@ export default function LoginScreen() {
     if (GoogleSignin) {
       GoogleSignin.configure({
         webClientId: "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
-        iosClientId: "960037449593-nsmd655ofr73ln844jap3171d0s92o17.apps.googleusercontent.com",
+        iosClientId: "655574174670-0776g80gopifqrtltranoa1ao570co22.apps.googleusercontent.com",
       })
     }
   }, [])
@@ -282,6 +284,10 @@ const handleGoogleSignIn = async () => {
 
 
 
+  if (phoneOpen) {
+    return <PhoneLogin onBack={() => setPhoneOpen(false)} />
+  }
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
@@ -449,6 +455,16 @@ const handleGoogleSignIn = async () => {
                 </Text>
               </TouchableOpacity>
 
+              <TouchableOpacity
+                style={styles.phoneBtn}
+                onPress={() => setPhoneOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("continueWithPhone")}
+              >
+                <Ionicons name="call-outline" size={20} color="#C9A84C" />
+                <Text style={styles.phoneBtnText}>{t("continueWithPhone")}</Text>
+              </TouchableOpacity>
+
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
             </View>
 
@@ -522,4 +538,17 @@ const styles = StyleSheet.create({
   },
   socialBtnText: { fontSize: 15, fontWeight: "500" },
   googleIcon: { fontSize: 16, fontWeight: "bold", color: "#4285F4" },
+  phoneBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 0.5,
+    marginBottom: 12,
+    backgroundColor: "#1E3A5F",
+    borderColor: "#C9A84C",
+  },
+  phoneBtnText: { fontSize: 15, fontWeight: "500", color: "#C9A84C" },
 })

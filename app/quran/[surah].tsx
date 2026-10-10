@@ -1,8 +1,10 @@
-import MushafFittedLine from "@/app/components/MushafFittedLine"
+import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
+import MushafFontSizer from "@/app/components/MushafFontSizer"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
 import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
+import { useMushafFontSize, mushafLineHeight } from "@/lib/mushafFontSize"
 import { juzForPage } from "@/lib/mushafJuz"
 import {
   getCachedQuranReadMode,
@@ -34,6 +36,7 @@ import { buildMushafBlocks, type MushafBlock } from "../../lib/mushafLines"
 import {
   fetchAndCachePage,
   getFirstVerseOnPage,
+  isUsableMushafPage,
   preloadAdjacentPages,
   type MushafPageData,
 } from "../../lib/quranPageCache"
@@ -43,6 +46,13 @@ import {
   peekCachedSurah,
   readSurahOfflineFirst,
 } from "../../lib/quranReadCache"
+
+function revelationLabel(type: string, t: (key: string) => string) {
+  const value = type.toLowerCase()
+  if (value.startsWith("med")) return t("quranMedinan")
+  if (value.startsWith("mec") || value.startsWith("mak")) return t("quranMeccan")
+  return type
+}
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -79,14 +89,16 @@ const MUSHAF_INNER_FRAME_WIDTH =
 
 // ─── MUSHAF HELPERS ──────────────────────────────────────────────────────────
 
-async function fetchMushafPage(page: number): Promise<MushafPageData> {
-  const data = await fetchAndCachePage(page)
-  if (!data) throw new Error(`Failed to fetch page ${page}`)
-  return data
-}
-
-function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean }) {
-  if (!name) return null
+function SurahBanner({
+  name,
+  fontsLoaded,
+  fontSize,
+}: {
+  name: string
+  fontsLoaded: boolean
+  fontSize: number
+}) {
+  if (!name || !fontsLoaded) return null
 
   return (
     <View style={mStyles.surahBanner}>
@@ -99,7 +111,7 @@ function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean
           <Text
             style={[
               mStyles.surahBannerText,
-              fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" },
+              { fontSize: Math.round(fontSize * 0.95), fontFamily: MUSHAF_FONT_BOLD },
             ]}
           >
             {name}
@@ -114,20 +126,37 @@ function SurahBanner({ name, fontsLoaded }: { name: string; fontsLoaded: boolean
   )
 }
 
+function BismillahLine({ fontsLoaded, fontSize }: { fontsLoaded: boolean; fontSize: number }) {
+  if (!fontsLoaded) return null
+  const lineHeight = mushafLineHeight(fontSize)
+  return (
+    <View style={mStyles.bismillahRow}>
+      <Text
+        style={[
+          mStyles.bismillahText,
+          { fontSize, lineHeight, fontFamily: MUSHAF_FONT },
+        ]}
+      >
+        {BISMILLAH}
+      </Text>
+    </View>
+  )
+}
+
 function MushafTextFlow({
   blocks,
   fontsLoaded,
   surahNames,
   targetSurah,
-  pageScrollRef,
   didScrollToSurah,
+  fontSize,
 }: {
   blocks: MushafBlock[]
   fontsLoaded: boolean
   surahNames: Record<number, string>
   targetSurah?: number
-  pageScrollRef: RefObject<ScrollView | null>
   didScrollToSurah: MutableRefObject<boolean>
+  fontSize: number
 }) {
   return (
     <View style={mStyles.textFlow}>
@@ -138,43 +167,31 @@ function MushafTextFlow({
             <View
               key={block.key}
               style={mStyles.flowSurahBlock}
-              onLayout={e => {
+              onLayout={() => {
                 if (!targetSurah || surahNumber !== targetSurah || didScrollToSurah.current) return
                 didScrollToSurah.current = true
-                const node = e.target as unknown as {
-                  measureInWindow?: (cb: (x: number, y: number) => void) => void
-                }
-                node.measureInWindow?.((x, y) => {
-                  pageScrollRef.current?.measureInWindow((sx, sy) => {
-                    pageScrollRef.current?.scrollTo({
-                      y: Math.max(0, y - sy - 4),
-                      animated: false,
-                    })
-                  })
-                })
               }}
             >
               <SurahBanner
                 name={surahNames[surahNumber] ?? ""}
                 fontsLoaded={fontsLoaded}
+                fontSize={fontSize}
               />
               {surahNumber !== 9 && surahNumber !== 1 && (
-                <View style={mStyles.bismillahRow}>
-                  <Text
-                    style={[
-                      mStyles.bismillahText,
-                      fontsLoaded && { fontFamily: "AmiriQuran" },
-                    ]}
-                  >
-                    {BISMILLAH}
-                  </Text>
-                </View>
+                <BismillahLine fontsLoaded={fontsLoaded} fontSize={fontSize} />
               )}
             </View>
           )
         }
 
-        return <MushafFittedLine key={block.key} block={block} fontsLoaded={fontsLoaded} />
+        return (
+          <MushafFittedLine
+            key={block.key}
+            block={block}
+            fontsLoaded={fontsLoaded}
+            fontSize={fontSize}
+          />
+        )
       })}
     </View>
   )
@@ -185,46 +202,53 @@ function MushafPageContent({
   fontsLoaded,
   surahNames,
   targetSurah,
+  pageHeight,
+  fontSize,
 }: {
   pageNumber: number
   fontsLoaded: boolean
   surahNames: Record<number, string>
   targetSurah?: number
+  pageHeight: number
+  fontSize: number
 }) {
-  const scrollRef = useRef<ScrollView>(null)
+  const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const didScrollToSurah = useRef(false)
+  const scrollRef = useRef<ScrollView>(null)
 
   useEffect(() => {
-    let cancelled = false
+    let active = true
+    const requested = pageNumber
     setLoading(true)
     setError(false)
+    setPageData(null)
     didScrollToSurah.current = false
 
-    fetchMushafPage(pageNumber)
-      .then(data => {
-        if (!cancelled) {
-          setPageData(data)
-          setLoading(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError(true)
-          setLoading(false)
-        }
-      })
+    fetchAndCachePage(requested).then(data => {
+      if (!active || requested !== pageNumber) return
+      if (!isUsableMushafPage(data)) {
+        setPageData(null)
+        setError(true)
+        setLoading(false)
+        return
+      }
+      setPageData(data)
+      setError(false)
+      setLoading(false)
+    })
 
     return () => {
-      cancelled = true
+      active = false
     }
-  }, [pageNumber])
+  }, [pageNumber, retryCount])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false })
     didScrollToSurah.current = false
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
   }, [pageNumber, targetSurah])
 
   if (loading) {
@@ -237,11 +261,18 @@ function MushafPageContent({
     )
   }
 
-  if (error || !pageData) {
+  if (error || !isUsableMushafPage(pageData)) {
     return (
       <View style={mStyles.pageContainer}>
         <View style={mStyles.pageLoading}>
-          <Text style={mStyles.pageError}>Unable to load page {pageNumber}</Text>
+          <Text style={mStyles.pageError}>{t("quranPageLoadFailed")}</Text>
+          <TouchableOpacity
+            onPress={() => setRetryCount(count => count + 1)}
+            style={mStyles.pageRetry}
+            accessibilityLabel={t("quranPageRetry")}
+          >
+            <Text style={mStyles.pageRetryText}>{t("quranPageRetry")}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     )
@@ -254,11 +285,11 @@ function MushafPageContent({
   const juzNumber = juzForPage(pageNumber)
 
   return (
-    <View style={mStyles.pageContainer}>
+    <View style={[mStyles.pageContainer, pageHeight > 0 && { height: pageHeight }]}>
       <View style={mStyles.pageMetaBar}>
-        <Text style={mStyles.metaText}>Juz {juzNumber}</Text>
+        <Text style={mStyles.metaText}>{t("quranJuz", { number: juzNumber })}</Text>
         <Text style={mStyles.metaSeparator}>·</Text>
-        <Text style={mStyles.metaText}>Page {pageNumber}</Text>
+        <Text style={mStyles.metaText}>{t("quranPage", { number: pageNumber })}</Text>
         <Text style={[mStyles.metaText, mStyles.metaSurah]} numberOfLines={1}>
           {primarySurahName}
         </Text>
@@ -286,8 +317,8 @@ function MushafPageContent({
                 fontsLoaded={fontsLoaded}
                 surahNames={surahNames}
                 targetSurah={targetSurah}
-                pageScrollRef={scrollRef}
                 didScrollToSurah={didScrollToSurah}
+                fontSize={fontSize}
               />
 
               <View style={mStyles.ornamentBottom}>
@@ -324,6 +355,7 @@ function MushafView({
   onSwitchToVerses: () => void
 }) {
   const { t } = useTranslation()
+  const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
   const flatListRef = useRef<GestureFlatList<number>>(null)
   /**
    * RTL mushaf order: index 0 = page 604 … last = page 1.
@@ -337,6 +369,7 @@ function MushafView({
 
   const [surahNames, setSurahNames] = useState<Record<number, string>>({})
   const [jumpOpen, setJumpOpen] = useState(false)
+  const [pageHeight, setPageHeight] = useState(0)
   const pageIndex = pageToIndex(
     Math.min(Math.max(currentPage, 1), MUSHAF_PAGE_COUNT),
   )
@@ -398,22 +431,28 @@ function MushafView({
       <View style={[mStyles.mushafHeader, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={mStyles.mushafHeaderBtn}>
           <Ionicons name="chevron-back" size={20} color="#fff" />
-          <Text style={mStyles.mushafHeaderBackText}>Quran</Text>
+          <Text style={mStyles.mushafHeaderBackText}>{t("quran")}</Text>
         </TouchableOpacity>
 
         <View style={mStyles.mushafHeaderActions}>
+          <MushafFontSizer
+            onDecrease={decrease}
+            onIncrease={increase}
+            canDecrease={canDecrease}
+            canIncrease={canIncrease}
+          />
           <TouchableOpacity
             onPress={() => setJumpOpen(true)}
             style={mStyles.mushafToggleBtn}
-            accessibilityLabel="Go to surah and ayah"
+            accessibilityLabel={t("quranGoToA11y")}
           >
             <Ionicons name="search-outline" size={16} color="#C9A84C" />
-            <Text style={mStyles.mushafToggleText}>Go to</Text>
+            <Text style={mStyles.mushafToggleText}>{t("quranGoTo")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onSwitchToVerses}
             style={mStyles.mushafToggleBtn}
-            accessibilityLabel="Switch to verse view"
+            accessibilityLabel={t("quranSwitchToVerses")}
           >
             <Ionicons name="list-outline" size={16} color="#C9A84C" />
             <Text style={mStyles.mushafToggleText}>{t("quranReadModeVersesShort")}</Text>
@@ -439,6 +478,10 @@ function MushafView({
         initialScrollIndex={pageIndex}
         keyExtractor={item => item.toString()}
         style={mStyles.mushafPager}
+        onLayout={event => {
+          const height = event.nativeEvent.layout.height
+          setPageHeight(current => (Math.abs(current - height) < 1 ? current : height))
+        }}
         windowSize={5}
         maxToRenderPerBatch={3}
         initialNumToRender={3}
@@ -456,10 +499,13 @@ function MushafView({
         }}
         renderItem={({ item }) => (
           <MushafPageContent
+            key={item}
             pageNumber={item}
             fontsLoaded={fontsLoaded}
             surahNames={surahNames}
             targetSurah={targetSurah}
+            pageHeight={pageHeight}
+            fontSize={fontSize}
           />
         )}
         onScrollToIndexFailed={info => {
@@ -477,12 +523,12 @@ function MushafView({
           disabled={currentPage >= MUSHAF_PAGE_COUNT}
         >
           <Ionicons name="chevron-back" size={18} color="#C9A84C" />
-          <Text style={mStyles.navLabel}>Next</Text>
+          <Text style={mStyles.navLabel}>{t("quranNext")}</Text>
         </TouchableOpacity>
 
         <View style={mStyles.navCenter}>
           <Text style={mStyles.navPage}>{currentPage}</Text>
-          <Text style={mStyles.navTotal}>of {MUSHAF_PAGE_COUNT}</Text>
+          <Text style={mStyles.navTotal}>{t("quranPageOf", { total: MUSHAF_PAGE_COUNT })}</Text>
         </View>
 
         <TouchableOpacity
@@ -490,7 +536,7 @@ function MushafView({
           style={mStyles.navBtnRow}
           disabled={currentPage <= 1}
         >
-          <Text style={mStyles.navLabel}>Prev</Text>
+          <Text style={mStyles.navLabel}>{t("quranPrev")}</Text>
           <Ionicons name="chevron-forward" size={18} color="#C9A84C" />
         </TouchableOpacity>
       </View>
@@ -1001,16 +1047,16 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={22} color="#fff" />
-              <Text style={styles.backText}>Quran</Text>
+              <Text style={styles.backText}>{t("quran")}</Text>
             </TouchableOpacity>
             <View style={styles.headerTopActions}>
               <TouchableOpacity
                 onPress={() => setJumpOpen(true)}
                 style={styles.jumpBtn}
-                accessibilityLabel="Go to surah and ayah"
+                accessibilityLabel={t("quranGoToA11y")}
               >
                 <Ionicons name="search-outline" size={18} color="#C9A84C" />
-                <Text style={styles.jumpBtnLabel}>Go to</Text>
+                <Text style={styles.jumpBtnLabel}>{t("quranGoTo")}</Text>
               </TouchableOpacity>
               <QuranReadModeToggle mode="verses" onToggle={switchToMushaf} />
             </View>
@@ -1019,7 +1065,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
             {arabicName}
           </Text>
           <Text style={styles.headerEnglish}>{name}</Text>
-          <Text style={styles.headerMeta}>{verses} verses · {type}</Text>
+          <Text style={styles.headerMeta}>
+            {t("quranSurahMeta", {
+              count: verses,
+              type: revelationLabel(String(type ?? ""), t),
+            })}
+          </Text>
         </View>
 
         <QuranJumpPicker
@@ -1040,7 +1091,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           <View style={styles.loadingContainer}>
             <ActivityIndicator color="#C9A84C" size="large" />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Loading {name}...
+              {t("quranLoadingSurah", { name })}
             </Text>
           </View>
         ) : verseList.length === 0 ? (
@@ -1251,10 +1302,12 @@ const mStyles = StyleSheet.create({
   },
   pageScroll: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: "#FAF6EE",
   },
   pageScrollContent: {
-    paddingBottom: 24,
+    flexGrow: 1,
+    paddingBottom: 8,
     paddingHorizontal: 4,
   },
   pageLoading: {
@@ -1266,6 +1319,20 @@ const mStyles = StyleSheet.create({
   pageError: {
     color: "#8B6914",
     fontSize: 14,
+    textAlign: "center",
+  },
+  pageRetry: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8B6914",
+  },
+  pageRetryText: {
+    color: "#8B6914",
+    fontSize: 14,
+    fontWeight: "700",
   },
   pageFrameOuter: {
     marginHorizontal: 4,
@@ -1280,13 +1347,11 @@ const mStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#8B6914",
     backgroundColor: "#FAF6EE",
-    overflow: "hidden",
   },
   pageContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
-    overflow: "hidden",
     width: "100%",
   },
   metaText: {
@@ -1374,19 +1439,15 @@ const mStyles = StyleSheet.create({
   },
   bismillahText: {
     fontSize: 28,
-    color: "#071018",
     textAlign: "center",
-    lineHeight: 56,
-    textShadowColor: "#071018",
-    textShadowOffset: { width: 0.55, height: 0 },
-    textShadowRadius: 0.2,
+    lineHeight: 64,
+    ...MUSHAF_INK,
   },
   textFlow: {
     width: "100%",
   },
   flowSurahBlock: {
     width: "100%",
-    flexBasis: "100%",
   },
   navBar: {
     flexDirection: "row",

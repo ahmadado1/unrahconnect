@@ -1,4 +1,5 @@
-import MushafFittedLine from "@/app/components/MushafFittedLine"
+import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
+import MushafFontSizer from "@/app/components/MushafFontSizer"
 import { useTheme } from "@/context/themeContext"
 import { AL_KAHF_SURAH_NUMBER } from "@/lib/alKahfWindow"
 import { buildMushafBlocks } from "@/lib/mushafLines"
@@ -13,10 +14,12 @@ import {
   saveKahfWeeklyProgress,
   type KahfWeeklyProgress,
 } from "@/lib/kahfWeekly"
+import { mushafLineHeight, useMushafFontSize } from "@/lib/mushafFontSize"
 import { juzForPage } from "@/lib/mushafJuz"
 import { scheduleAlKahfReminder } from "@/lib/notifications"
 import {
   fetchAndCachePage,
+  isUsableMushafPage,
   preloadAdjacentPages,
   type MushafPageData,
   type MushafVerse,
@@ -63,6 +66,8 @@ function KahfPage({
   completed,
   onMaxAyah,
   onMarkComplete,
+  pageHeight,
+  fontSize,
 }: {
   pageNumber: number
   fontsLoaded: boolean
@@ -70,36 +75,41 @@ function KahfPage({
   completed: boolean
   onMaxAyah: (ayah: number, page: number) => void
   onMarkComplete: () => void
+  pageHeight: number
+  fontSize: number
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const onMaxAyahRef = useRef(onMaxAyah)
   onMaxAyahRef.current = onMaxAyah
 
   useEffect(() => {
-    let cancelled = false
+    let active = true
+    const requested = pageNumber
     setLoading(true)
     setError(false)
-    fetchAndCachePage(pageNumber)
-      .then(data => {
-        if (cancelled) return
-        setPageData(data)
+    setPageData(null)
+    fetchAndCachePage(requested).then(data => {
+      if (!active || requested !== pageNumber) return
+      if (!isUsableMushafPage(data)) {
+        setPageData(null)
+        setError(true)
         setLoading(false)
-        const ayah = maxAyahOnPage(kahfVersesOnPage(data))
-        if (ayah > 0) onMaxAyahRef.current(ayah, pageNumber)
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError(true)
-          setLoading(false)
-        }
-      })
+        return
+      }
+      setPageData(data)
+      setError(false)
+      setLoading(false)
+      const ayah = maxAyahOnPage(kahfVersesOnPage(data))
+      if (ayah > 0) onMaxAyahRef.current(ayah, requested)
+    })
     return () => {
-      cancelled = true
+      active = false
     }
-  }, [pageNumber])
+  }, [pageNumber, retryCount])
 
   if (loading) {
     return (
@@ -111,11 +121,18 @@ function KahfPage({
     )
   }
 
-  if (error || !pageData) {
+  if (error || !isUsableMushafPage(pageData)) {
     return (
       <View style={styles.pageContainer}>
         <View style={styles.pageLoading}>
-          <Text style={styles.pageError}>Unable to load page {pageNumber}</Text>
+          <Text style={styles.pageError}>{t("quranPageLoadFailed")}</Text>
+          <TouchableOpacity
+            onPress={() => setRetryCount(count => count + 1)}
+            style={styles.pageRetry}
+            accessibilityLabel={t("quranPageRetry")}
+          >
+            <Text style={styles.pageRetryText}>{t("quranPageRetry")}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     )
@@ -125,12 +142,14 @@ function KahfPage({
   const flowBlocks = buildMushafBlocks(verses)
   const juzNumber = juzForPage(pageNumber)
 
+  const pageStyle = [styles.pageContainer, pageHeight > 0 && { height: pageHeight }]
+
   return (
-    <View style={styles.pageContainer}>
+    <View style={pageStyle}>
       <View style={styles.pageMetaBar}>
-        <Text style={styles.metaText}>Juz {juzNumber}</Text>
+        <Text style={styles.metaText}>{t("quranJuz", { number: juzNumber })}</Text>
         <Text style={styles.metaSeparator}>·</Text>
-        <Text style={styles.metaText}>Page {pageNumber}</Text>
+        <Text style={styles.metaText}>{t("quranPage", { number: pageNumber })}</Text>
         <Text style={[styles.metaText, styles.metaSurah]} numberOfLines={1}>
           {meta?.arabicName ?? "الكهف"}
         </Text>
@@ -141,6 +160,7 @@ function KahfPage({
         contentContainerStyle={styles.pageScrollContent}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
+        directionalLockEnabled
       >
         <View style={styles.pageFrameOuter}>
           <View style={styles.pageFrameInner}>
@@ -153,37 +173,50 @@ function KahfPage({
               <View style={styles.textFlow}>
                 {flowBlocks.map(block => {
                   if (block.type === "surahStart") {
+                    const lineHeight = mushafLineHeight(fontSize)
                     return (
                       <View key={block.key} style={styles.flowSurahBlock}>
                         <View style={styles.surahBanner}>
                           <View style={styles.surahBannerFrame}>
                             <View style={styles.surahBannerInner}>
-                              <Text
-                                style={[
-                                  styles.surahBannerText,
-                                  fontsLoaded && { fontFamily: "AmiriQuran" },
-                                ]}
-                              >
-                                {meta?.arabicName ?? "سورة الكهف"}
-                              </Text>
+                              {fontsLoaded ? (
+                                <Text
+                                  style={[
+                                    styles.surahBannerText,
+                                    {
+                                      fontFamily: MUSHAF_FONT_BOLD,
+                                      fontSize: Math.round(fontSize * 0.95),
+                                    },
+                                  ]}
+                                >
+                                  {meta?.arabicName ?? "سورة الكهف"}
+                                </Text>
+                              ) : null}
                             </View>
                           </View>
                         </View>
                         <View style={styles.bismillahRow}>
-                          <Text
-                            style={[
-                              styles.bismillahText,
-                              fontsLoaded && { fontFamily: "AmiriQuran" },
-                            ]}
-                          >
-                            {BISMILLAH}
-                          </Text>
+                          {fontsLoaded ? (
+                            <Text
+                              style={[
+                                styles.bismillahText,
+                                { fontFamily: MUSHAF_FONT, fontSize, lineHeight },
+                              ]}
+                            >
+                              {BISMILLAH}
+                            </Text>
+                          ) : null}
                         </View>
                       </View>
                     )
                   }
                   return (
-                    <MushafFittedLine key={block.key} block={block} fontsLoaded={fontsLoaded} />
+                    <MushafFittedLine
+                      key={block.key}
+                      block={block}
+                      fontsLoaded={fontsLoaded}
+                      fontSize={fontSize}
+                    />
                   )
                 })}
               </View>
@@ -230,8 +263,8 @@ export default function KahfReadingScreen() {
   const [fontsLoaded] = useFonts({
     ScheherazadeNew_400Regular,
     ScheherazadeNew_700Bold,
-    AmiriQuran: require("../../assets/fonts/AmiriQuran-Regular.ttf"),
   })
+  const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
 
   const [range, setRange] = useState({
     start: KAHF_FALLBACK_START_PAGE,
@@ -240,6 +273,7 @@ export default function KahfReadingScreen() {
   const [currentPage, setCurrentPage] = useState(KAHF_FALLBACK_START_PAGE)
   const [progress, setProgress] = useState<KahfWeeklyProgress | null>(null)
   const [ready, setReady] = useState(false)
+  const [pageHeight, setPageHeight] = useState(0)
   const flatListRef = useRef<FlatList<number>>(null)
   const pageFromSwipeRef = useRef(false)
   const hasSyncedPagerRef = useRef(false)
@@ -394,10 +428,22 @@ export default function KahfReadingScreen() {
           <Text style={styles.headerBack}>{t("quran")}</Text>
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <Text style={styles.headerArabic}>{meta?.arabicName ?? "الكهف"}</Text>
+          <Text
+            style={[
+              styles.headerArabic,
+              fontsLoaded && { fontFamily: MUSHAF_FONT_BOLD },
+            ]}
+          >
+            {fontsLoaded ? (meta?.arabicName ?? "الكهف") : " "}
+          </Text>
           <Text style={styles.headerEnglish}>{t("alKahfCardTitle")}</Text>
         </View>
-        <View style={styles.headerSpacer} />
+        <MushafFontSizer
+          onDecrease={decrease}
+          onIncrease={increase}
+          canDecrease={canDecrease}
+          canIncrease={canIncrease}
+        />
       </View>
 
       <View style={styles.progressTrack}>
@@ -422,6 +468,10 @@ export default function KahfReadingScreen() {
         initialScrollIndex={pageIndex}
         keyExtractor={item => String(item)}
         style={styles.pager}
+        onLayout={event => {
+          const height = event.nativeEvent.layout.height
+          setPageHeight(current => (Math.abs(current - height) < 1 ? current : height))
+        }}
         windowSize={5}
         maxToRenderPerBatch={3}
         initialNumToRender={2}
@@ -440,12 +490,15 @@ export default function KahfReadingScreen() {
         }}
         renderItem={({ item }) => (
           <KahfPage
+            key={item}
             pageNumber={item}
             fontsLoaded={fontsLoaded}
             isLast={item === range.end}
             completed={Boolean(progress?.completed)}
             onMaxAyah={onMaxAyah}
             onMarkComplete={onMarkComplete}
+            pageHeight={pageHeight}
+            fontSize={fontSize}
           />
         )}
         onScrollToIndexFailed={info => {
@@ -520,7 +573,6 @@ const styles = StyleSheet.create({
   headerTitles: { flex: 1, alignItems: "center" },
   headerArabic: { color: "#C9A84C", fontSize: 20 },
   headerEnglish: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  headerSpacer: { minWidth: 72 },
   progressTrack: {
     height: 4,
     backgroundColor: "rgba(201,168,76,0.2)",
@@ -558,10 +610,19 @@ const styles = StyleSheet.create({
   },
   metaSeparator: { color: "rgba(139,105,20,0.45)", fontSize: 12, fontWeight: "600" },
   metaSurah: { color: "#C9A84C", flex: 1, textAlign: "right", marginLeft: "auto" },
-  pageScroll: { flex: 1 },
-  pageScrollContent: { paddingBottom: 24, paddingHorizontal: 4 },
+  pageScroll: { flex: 1, minHeight: 0 },
+  pageScrollContent: { flexGrow: 1, paddingBottom: 8, paddingHorizontal: 4 },
   pageLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  pageError: { color: "#8B6914", fontSize: 14 },
+  pageError: { color: "#8B6914", fontSize: 14, textAlign: "center" },
+  pageRetry: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8B6914",
+  },
+  pageRetryText: { color: "#8B6914", fontSize: 14, fontWeight: "700" },
   pageFrameOuter: {
     marginHorizontal: 4,
     marginVertical: 8,
@@ -573,13 +634,11 @@ const styles = StyleSheet.create({
   pageFrameInner: {
     borderWidth: 1,
     borderColor: "#8B6914",
-    overflow: "hidden",
   },
   pageContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
-    overflow: "hidden",
   },
   ornamentTop: { marginBottom: 8 },
   ornamentBottom: { marginTop: 8 },
@@ -593,7 +652,7 @@ const styles = StyleSheet.create({
   textFlow: {
     width: "100%",
   },
-  flowSurahBlock: { width: "100%", flexBasis: "100%" },
+  flowSurahBlock: { width: "100%" },
   surahBanner: { alignItems: "center", marginVertical: 8, width: "100%" },
   surahBannerFrame: {
     borderWidth: 1,
@@ -621,12 +680,9 @@ const styles = StyleSheet.create({
   },
   bismillahText: {
     fontSize: 28,
-    color: "#071018",
     textAlign: "center",
-    lineHeight: 56,
-    textShadowColor: "#071018",
-    textShadowOffset: { width: 0.55, height: 0 },
-    textShadowRadius: 0.2,
+    lineHeight: 64,
+    ...MUSHAF_INK,
   },
   completeWrap: {
     marginHorizontal: 16,

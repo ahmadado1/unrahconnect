@@ -28,6 +28,13 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../lib/supabase"
 
+function revelationLabel(type: string, t: (key: string) => string) {
+  const value = type.toLowerCase()
+  if (value.startsWith("med")) return t("quranMedinan")
+  if (value.startsWith("mec") || value.startsWith("mak")) return t("quranMeccan")
+  return type
+}
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
 type Surah = {
@@ -247,7 +254,10 @@ export default function QuranScreen() {
       <View style={styles.surahInfo}>
         <Text style={[styles.surahEn, { color: theme.text }]}>{item.englishName}</Text>
         <Text style={styles.surahMeta}>
-          {item.numberOfAyahs} verses · {item.revelationType}
+          {t("quranSurahMeta", {
+            count: item.numberOfAyahs,
+            type: revelationLabel(item.revelationType, t),
+          })}
         </Text>
       </View>
 

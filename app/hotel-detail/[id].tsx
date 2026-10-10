@@ -2,6 +2,7 @@ import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, ICON_GOLD, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { openGoogleMapsUrl } from "@/lib/openMaps"
 import i18n from "@/i18n"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import {
@@ -17,7 +18,6 @@ import { useTranslation } from "react-i18next"
 import {
   Alert,
   Image,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -209,8 +209,12 @@ export default function HotelDetailScreen() {
         <TouchableOpacity
           style={styles.actionPrimary}
           onPress={() => {
-            // Linking (not in-app browser) so Google Maps app opens on iOS/Android
-            Linking.openURL(openHotelDirections(hotel)).catch(() => {
+            void openGoogleMapsUrl(openHotelDirections(hotel), {
+              name: hotel.name,
+              latitude: hotel.lat,
+              longitude: hotel.lng,
+              directions: true,
+            }).catch(() => {
               Alert.alert(t("unableToOpen"), t("unableToOpenMaps"))
             })
           }}

@@ -1,6 +1,17 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import i18n from "@/i18n"
-import { fetchWithTimeout } from "./fetchWithTimeout"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import {
+  clearQuranDownloadFlag,
+  getCachedPageCount,
+  getMissingPageNumbers,
+  markQuranFullyCached,
+  // FIX: these three were used below but never imported
+  pageApiUrl,
+  QURAN_DOWNLOAD_FLAG_KEY,
+  slimPageDataFromJson,
+  TOTAL_MUSHAF_PAGES,
+  writeCachedPage
+} from "./quranPageCache"
 import {
   downloadSurahList,
   fetchAndCacheSurah,
@@ -8,17 +19,8 @@ import {
   normalizeReadLanguage,
   warmReadCacheForLanguage,
 } from "./quranReadCache"
-import {
-  clearQuranDownloadFlag,
-  getCachedPageCount,
-  getMissingPageNumbers,
-  markQuranFullyCached,
-  pageApiUrl,
-  QURAN_DOWNLOAD_FLAG_KEY,
-  slimPageDataFromJson,
-  TOTAL_MUSHAF_PAGES,
-  writeCachedPage,
-} from "./quranPageCache"
+// FIX: also used below but never imported
+import { fetchWithTimeout } from "./fetchWithTimeout"
 
 const BATCH_SIZE = 4
 const BATCH_DELAY_MS = 250
@@ -72,7 +74,8 @@ async function downloadPageFromNetwork(page: number): Promise<boolean> {
     if (!res.ok) return false
 
     const json = await res.json()
-    const data = slimPageDataFromJson(json)
+    // FIX: pass the page number, same as quranPageCache.ts does
+    const data = slimPageDataFromJson(json, page)
     if (!data.verses.length) return false
 
     await writeCachedPage(page, data)

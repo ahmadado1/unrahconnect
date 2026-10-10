@@ -1,3 +1,5 @@
+import { isGoogleMapsUrl, openGoogleMapsUrl } from "@/lib/openMaps"
+import * as WebBrowser from "expo-web-browser"
 import { Linking } from "react-native"
 
 /** In-app WebView route for websites and affiliate clicks. */
@@ -57,9 +59,35 @@ export function inAppWebViewHref(url: string, title?: string) {
 /** @deprecated Use inAppWebViewHref */
 export const affiliateWebViewHref = inAppWebViewHref
 
+export function isDonationUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "")
+    return host === "maidabofoundation.com"
+  } catch {
+    return false
+  }
+}
+
+/** Charity donations open in the system browser, never inside the app. */
+export async function openDonationPage(url = "https://maidabofoundation.com/") {
+  try {
+    await WebBrowser.openBrowserAsync(url)
+  } catch {
+    await Linking.openURL(url)
+  }
+}
+
 /** Open http(s) websites in-app; keep tel/maps/WhatsApp/store links native. */
 export function openExternalUrl(router: { push: (href: any) => void }, url: string, title?: string) {
   if (!url) return
+  if (isDonationUrl(url)) {
+    void openDonationPage(url)
+    return
+  }
+  if (isGoogleMapsUrl(url)) {
+    void openGoogleMapsUrl(url, title ? { name: title } : undefined)
+    return
+  }
   if (isHttpUrl(url) && !shouldOpenInSystemApp(url)) {
     router.push(inAppWebViewHref(url, title))
     return

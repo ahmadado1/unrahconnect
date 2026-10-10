@@ -1,291 +1,114 @@
-import PrayerPopupModal from "./PrayerPopupModal"
-import {
-  configureAdhanAudioMode,
-  isAdhanPlayingFor,
-  playAdhan,
-  stopAdhan,
-} from "@/lib/adhanAudio"
-import { consumePendingPrayerAlarm } from "@/modules/prayer-alarm"
-import { normalizePrayerAlertOptions, registerPrayerAlertHandler } from "@/lib/prayerAlert"
-import { PRAYER_NAMES, type PrayerName } from "@/lib/prayerConstants"
-import {
-  fetchAndCachePrayerTimes,
-  getLocalGregorianDateKey,
-  readCachedPrayerTimes,
-  timeToMinutes,
-  type CachedPrayerTimes,
-} from "@/lib/prayerTimes"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { AppState, type AppStateStatus } from "react-native"
+import { isAdhanPlaying, stopAdhan, subscribeAdhanPlaying } from "@/lib/adhanAudio"
+import { fetchAndCachePrayerTimes } from "@/lib/prayerTimes"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { AppState, Pressable, StyleSheet, Text, View, type AppStateStatus } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-const SHOWN_POPUPS_KEY = "prayer_popups_shown_date"
-/** How long after prayer time we still auto-trigger in-app Adhan */
-const PRAYER_CATCHUP_MINUTES = 20
+function AdhanPlayingBar() {
+  const insets = useSafeAreaInsets()
+  const { t } = useTranslation()
+  const [playing, setPlaying] = useState(isAdhanPlaying())
 
-function getTodayKey() {
-  return getLocalGregorianDateKey()
+  useEffect(() => subscribeAdhanPlaying(setPlaying), [])
+
+  if (!playing) return null
+
+  return (
+    <View style={[styles.bar, { top: insets.top + 8 }]}>
+      <Text style={styles.label}>{t("playAdhanNowTitle", { defaultValue: "Adhan playing" })}</Text>
+      <Pressable onPress={() => void stopAdhan()} style={styles.stop} hitSlop={8}>
+        <Text style={styles.stopText}>{t("stopAdhan", { defaultValue: "Stop" })}</Text>
+      </Pressable>
+    </View>
+  )
 }
 
-async function arePrayerAlertsEnabled() {
-  const master = await AsyncStorage.getItem("notifications_enabled")
-  if (master === "false") return false
-  const prayer = await AsyncStorage.getItem("prayer_alerts_enabled")
-  return prayer !== "false"
-}
-
+/**
+ * Keeps prayer times fresh when the app opens or the user moves, which
+ * reschedules the prayer notifications. The bar is the only Adhan UI.
+ */
 export default function PrayerAlertProvider({ children }: { children: React.ReactNode }) {
-  const [prayerPopup, setPrayerPopup] = useState<PrayerName | null>(null)
-  const [prayerTimes, setPrayerTimes] = useState<CachedPrayerTimes | null>(null)
-  const [shownPopups, setShownPopups] = useState<Set<string>>(new Set())
-  const snoozeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const shownPopupsRef = useRef(shownPopups)
-  const shownHydratedRef = useRef(false)
-  const showPrayerAlertRef = useRef<
-    (prayerName: PrayerName, options?: boolean | import("@/lib/prayerAlert").PrayerAlertOptions) => void
-  >(() => {})
+  useEffect(() => {
+    let cancelled = false
 
-  const prayerTimesRef = useRef<CachedPrayerTimes | null>(null)
-  shownPopupsRef.current = shownPopups
-  prayerTimesRef.current = prayerTimes
-
-  showPrayerAlertRef.current = (prayerName, rawOptions) => {
-    const options = normalizePrayerAlertOptions(rawOptions)
-    const alreadyShown = shownPopupsRef.current.has(prayerName)
-
-    if (alreadyShown && !options.forceShow) {
-      if (options.playSound) {
-        void playAdhan(prayerName, {
-          forceRestart: false,
-          continueIfPlaying: true,
-          seekSeconds: options.seekSeconds,
-        })
-      }
-      return
-    }
-
-    setPrayerPopup(prayerName)
-    if (!alreadyShown) {
-      setShownPopups(prev => new Set([...prev, prayerName]))
-    }
-
-    if (options.playSound) {
-      void playAdhan(prayerName, {
-        forceRestart: options.forceRestart,
-        continueIfPlaying: options.continueIfPlaying,
-        seekSeconds: options.seekSeconds,
+    const refresh = () => {
+      void fetchAndCachePrayerTimes().then(() => {
+        if (cancelled) return
       })
     }
-  }
 
-  const playAlarmLaunchAdhan = useCallback(async () => {
-    if (!(await arePrayerAlertsEnabled())) return
-    const pending = consumePendingPrayerAlarm()
-    if (!pending || !PRAYER_NAMES.includes(pending as PrayerName)) return
-    await configureAdhanAudioMode().catch(() => {})
-    showPrayerAlertRef.current(pending as PrayerName, {
-      playSound: true,
-      forceShow: true,
-      forceRestart: true,
-      continueIfPlaying: false,
-    })
-  }, [])
-
-  const dismissPrayerAlert = () => {
-    setPrayerPopup(null)
-  }
-
-  const handlePrayNow = () => {
-    void stopAdhan()
-    setPrayerPopup(null)
-  }
-
-  useEffect(() => {
-    return registerPrayerAlertHandler(async (name, rawOptions) => {
-      if (!(await arePrayerAlertsEnabled())) return
-      // Ensure AV session is ready before any Adhan starts from a notification.
-      await configureAdhanAudioMode().catch(() => {})
-      const options = normalizePrayerAlertOptions(rawOptions)
-      if (shownPopupsRef.current.has(name) && !options.forceShow) {
-        if (options.playSound) {
-          showPrayerAlertRef.current(name, {
-            ...options,
-            forceShow: false,
-            continueIfPlaying: true,
-            forceRestart: false,
-          })
-        }
-        return
-      }
-      showPrayerAlertRef.current(name, options)
-    })
-  }, [])
-
-  const checkPrayer = useCallback(async () => {
-    const times = prayerTimesRef.current
-    if (!times) return
-    if (!shownHydratedRef.current) return
-    if (!(await arePrayerAlertsEnabled())) return
-
-    const now = new Date()
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
-
-    for (const name of PRAYER_NAMES) {
-      const prayerMin = timeToMinutes(times[name])
-      if (prayerMin < 0) continue
-      if (
-        nowMinutes >= prayerMin &&
-        nowMinutes <= prayerMin + PRAYER_CATCHUP_MINUTES &&
-        !shownPopupsRef.current.has(name)
-      ) {
-        showPrayerAlertRef.current(name, { playSound: false })
-        break
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    configureAdhanAudioMode().catch(console.log)
-
-    let cancelled = false
-    ;(async () => {
-      try {
-        const today = getTodayKey()
-        const saved = await AsyncStorage.getItem(SHOWN_POPUPS_KEY)
-        if (saved === today) {
-          const list = await AsyncStorage.getItem("prayer_popups_shown_list")
-          if (!cancelled && list) {
-            setShownPopups(new Set(JSON.parse(list)))
-          }
-        } else {
-          await AsyncStorage.setItem(SHOWN_POPUPS_KEY, today)
-          await AsyncStorage.setItem("prayer_popups_shown_list", "[]")
-        }
-      } catch (e) {
-        console.log("Prayer popup hydrate error:", e)
-      } finally {
-        if (!cancelled) shownHydratedRef.current = true
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!shownHydratedRef.current) return
-    const today = getTodayKey()
-    AsyncStorage.setItem(SHOWN_POPUPS_KEY, today)
-    AsyncStorage.setItem("prayer_popups_shown_list", JSON.stringify([...shownPopups]))
-  }, [shownPopups])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadTimes = async (force = false) => {
-      const cached = await readCachedPrayerTimes()
-      if (cached && !cancelled) setPrayerTimes(cached)
-
-      // Location-aware cache inside fetchAndCachePrayerTimes; force only for periodic / midnight.
-      const fresh = await fetchAndCachePrayerTimes({ force })
-      if (fresh && !cancelled) setPrayerTimes(fresh)
-    }
-
-    loadTimes()
-    void playAlarmLaunchAdhan()
-    const alarmRetry = setTimeout(() => {
-      void playAlarmLaunchAdhan()
-    }, 700)
-    const refreshTimer = setInterval(() => loadTimes(true), 6 * 60 * 60 * 1000)
+    refresh()
+    const refreshTimer = setInterval(() => {
+      void fetchAndCachePrayerTimes({ force: true })
+    }, 6 * 60 * 60 * 1000)
 
     const onAppState = (state: AppStateStatus) => {
-      if (state === "active") {
-        void configureAdhanAudioMode().catch(() => {})
-        void playAlarmLaunchAdhan()
-        // Catch up immediately — don't wait for the next 15s poll tick.
-        void checkPrayer()
-        // Re-check GPS so a city change after travel updates times without reinstall.
-        void loadTimes(false)
-      }
+      if (state === "active") refresh()
     }
     const sub = AppState.addEventListener("change", onAppState)
 
-    return () => {
-      cancelled = true
-      clearTimeout(alarmRetry)
-      clearInterval(refreshTimer)
-      sub.remove()
-    }
-  }, [checkPrayer, playAlarmLaunchAdhan])
-
-  useEffect(() => {
-    if (!prayerTimes) return
-    void checkPrayer()
-    const interval = setInterval(() => {
-      void checkPrayer()
-    }, 15000)
-    return () => clearInterval(interval)
-  }, [prayerTimes, shownPopups, checkPrayer])
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-
-    const scheduleMidnightClear = () => {
+    let midnight: ReturnType<typeof setTimeout> | null = null
+    const scheduleMidnight = () => {
       const now = new Date()
       const msUntilMidnight =
         new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
-      timer = setTimeout(() => {
-        setShownPopups(new Set())
-        AsyncStorage.setItem(SHOWN_POPUPS_KEY, getTodayKey())
-        AsyncStorage.setItem("prayer_popups_shown_list", "[]")
-        // New day → force fresh timings + notification schedule
-        void fetchAndCachePrayerTimes({ force: true }).then(fresh => {
-          if (fresh) setPrayerTimes(fresh)
-        })
-        scheduleMidnightClear()
+      midnight = setTimeout(() => {
+        void fetchAndCachePrayerTimes({ force: true })
+        scheduleMidnight()
       }, msUntilMidnight + 500)
     }
+    scheduleMidnight()
 
-    scheduleMidnightClear()
     return () => {
-      if (timer) clearTimeout(timer)
-    }
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (snoozeTimer.current) clearTimeout(snoozeTimer.current)
+      cancelled = true
+      clearInterval(refreshTimer)
+      if (midnight) clearTimeout(midnight)
+      sub.remove()
     }
   }, [])
 
   return (
     <>
       {children}
-      <PrayerPopupModal
-        visible={prayerPopup !== null}
-        prayerName={prayerPopup}
-        onDismiss={dismissPrayerAlert}
-        onPrayNow={handlePrayNow}
-        onSnooze={() => {
-          const snoozed = prayerPopup
-          dismissPrayerAlert()
-          void stopAdhan()
-          if (snoozeTimer.current) clearTimeout(snoozeTimer.current)
-          if (snoozed) {
-            snoozeTimer.current = setTimeout(
-              () =>
-                showPrayerAlertRef.current(snoozed, {
-                  playSound: true,
-                  forceRestart: true,
-                  continueIfPlaying: false,
-                  forceShow: true,
-                }),
-              5 * 60 * 1000
-            )
-          }
-        }}
-      />
+      <AdhanPlayingBar />
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#1E3A5F",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  label: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  stop: {
+    backgroundColor: "#C9A84C",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  stopText: {
+    color: "#1E3A5F",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+})

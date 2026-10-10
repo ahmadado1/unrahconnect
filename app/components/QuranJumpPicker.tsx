@@ -12,6 +12,7 @@ import {
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout"
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   ActivityIndicator,
   FlatList,
@@ -73,6 +74,7 @@ export default function QuranJumpPicker({
   initialSurah = 1,
   initialAyah = 1,
 }: Props) {
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const surahListRef = useRef<FlatList>(null)
   const ayahListRef = useRef<FlatList>(null)
@@ -134,7 +136,7 @@ export default function QuranJumpPicker({
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.handle} />
           <View style={styles.titleRow}>
-            <Text style={styles.title}>Go to</Text>
+            <Text style={styles.title}>{t("quranGoTo")}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
               <Ionicons name="close" size={22} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
@@ -142,7 +144,7 @@ export default function QuranJumpPicker({
 
           <View style={styles.columns}>
             <View style={styles.column}>
-              <Text style={styles.columnLabel}>Surah</Text>
+              <Text style={styles.columnLabel}>{t("quranSurah")}</Text>
               <FlatList
                 ref={surahListRef}
                 data={SURAH_META}
@@ -174,7 +176,7 @@ export default function QuranJumpPicker({
             <View style={styles.divider} />
 
             <View style={[styles.column, styles.ayahColumn]}>
-              <Text style={styles.columnLabel}>Ayah</Text>
+              <Text style={styles.columnLabel}>{t("quranAyah")}</Text>
               <FlatList
                 ref={ayahListRef}
                 data={ayahs}

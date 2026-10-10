@@ -1,6 +1,7 @@
+import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
-import { getFlightPlatformById } from "@/lib/flights"
+import { flightSearchUrl, getFlightPlatformById } from "@/lib/flights"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import i18n from "@/i18n"
 import { Ionicons } from "@expo/vector-icons"
@@ -40,6 +41,7 @@ export default function FlightDetailScreen() {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const platform = getFlightPlatformById(id)
+  const { trip, open: tripOpen, setOpen: setTripOpen, close: closeTrip, onSaved: onTripSaved } = useTripDetails(true)
 
   if (!platform) {
     return <ScreenState kind="missing" title={t("flightOptionNotFound")} />
@@ -64,7 +66,9 @@ export default function FlightDetailScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          <TripDetailsChip trip={trip} onPress={() => setTripOpen(true)} light />
+
+          <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 16 }]}>
             {t("about", { defaultValue: "About" })}
           </Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>
@@ -94,7 +98,7 @@ export default function FlightDetailScreen() {
 
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: NAVY }]}
-            onPress={() => openUrl(router, platform.madinahUrl, platform.name)}
+            onPress={() => openUrl(router, flightSearchUrl(platform, "MED", trip), platform.name)}
             activeOpacity={0.9}
           >
             <Ionicons name="airplane-outline" size={18} color={GOLD} />
@@ -115,6 +119,12 @@ export default function FlightDetailScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <TripDetailsSheet
+        visible={tripOpen}
+        initial={trip}
+        onClose={closeTrip}
+        onSaved={onTripSaved}
+      />
     </View>
   )
 }

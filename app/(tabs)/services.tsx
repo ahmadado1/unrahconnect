@@ -1,122 +1,136 @@
-import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIcon"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMarks"
+import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
-import { FLIGHT_PLATFORMS } from "@/lib/flights"
-import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
-import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
-import * as Location from "expo-location"
+import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useTranslation } from "react-i18next"
-import { Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
-import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
+import { I18nManager, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-// ─── DATA ─────────────────────────────────────────────────────────────────────
-
-const APP_SERVICES = [
-  { id: "hotels", icon: "bed" as AppIconKey, titleKey: "hotelsTitle", subKey: "hotelsSub", route: "/hotels", ionIcon: "bed-outline" },
-  { id: "restaurants", icon: "restaurant" as AppIconKey, titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", ionIcon: "restaurant-outline" },
-  { id: "agents", icon: "handshake" as AppIconKey, titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", ionIcon: "people-outline" },
-  { id: "hospitals", icon: "medkit" as AppIconKey, titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", ionIcon: "medkit-outline" },
-] as const
-
-const HARAMAIN_STATIONS = (["makkah", "madinah"] as const).map((id) => {
-  const station = HARAMAIN_STATION_MAP[id]
-  return {
-    id: station.id,
-    icon: station.icon as AppIconKey,
-    titleKey: station.titleKey,
-    addressKey: station.addressKey,
-    lat: station.lat,
-    lng: station.lng,
-  }
-})
-
-const SAPTCO_URL = "https://www.saptco.com.sa"
-const UBER_FALLBACK_URL = "https://www.uber.com"
-const HARAM_LAT = 21.4225
-const HARAM_LNG = 39.8262
-
-const SHOPPING = [
-  { id: "abraj", icon: "bag" as AppIconKey, titleKey: "abrajMall", subKey: "abrajSub", lat: 21.4183, lng: 39.8260 },
-  { id: "zal", icon: "storefront" as AppIconKey, titleKey: "souqZal", subKey: "souqZalSub", lat: 21.4157, lng: 39.8198 },
-  { id: "madinah-mall", icon: "storefront" as AppIconKey, titleKey: "madinahMall", subKey: "madinahMallSub", lat: 24.4672, lng: 39.6150 },
-  { id: "ansar", icon: "cart" as AppIconKey, titleKey: "ansarMall", subKey: "ansarMallSub", lat: 24.4698, lng: 39.6118 },
-] as const
-
-const COMING_SOON = [
-  { id: "booking", icon: "calendar" as AppIconKey, titleKey: "booking", subKey: "bookingSub" },
-  { id: "sim", icon: "phone" as AppIconKey, titleKey: "simCards", subKey: "simCardsSub" },
-] as const
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-function openDirections(lat: number, lng: number) {
-  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`)
+type Cover = {
+  id: string
+  titleKey: string
+  subKey: string
+  route: string
+  mark: "hotel" | "aviasales" | "saily" | "airalo"
+  accent: readonly [string, string, ...string[]]
+  fill: readonly [string, string]
+  fillDark: readonly [string, string]
+  border: string
+  borderDark: string
 }
 
-async function openNearestSaptcoStop() {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status === "granted") {
-      const pos = await Location.getCurrentPositionAsync({})
-      const { latitude, longitude } = pos.coords
-      const query = encodeURIComponent("SAPTCO bus stop")
-      Linking.openURL(`https://www.google.com/maps/search/${query}/@${latitude},${longitude},14z`)
-      return
-    }
-  } catch {
-    // fall through to default search
+const COVERS: Cover[] = [
+  {
+    id: "hotels",
+    titleKey: "hotelsNearHaram",
+    subKey: "hotelsSub",
+    route: "/hotels",
+    mark: "hotel",
+    accent: ["#C9A84C", "#E8D5A3"],
+    fill: ["#FBF7EE", "#F3E6C8"],
+    fillDark: ["#2C281C", "#241F16"],
+    border: "#E4D2A4",
+    borderDark: "#6E5A32",
+  },
+  {
+    id: "aviasales",
+    titleKey: "coverAviasales",
+    subKey: "flightsCompare",
+    route: "/services/flights",
+    mark: "aviasales",
+    accent: ["#3A6DFF", "#7AA2FF"],
+    fill: ["#F4F7FF", "#E6EDFF"],
+    fillDark: ["#1A2744", "#152033"],
+    border: "#C9D7FF",
+    borderDark: "#2E4A86",
+  },
+  {
+    id: "saily",
+    titleKey: "coverSaily",
+    subKey: "esimCardSub",
+    route: "/services/esim",
+    mark: "saily",
+    accent: ["#F5D000", "#FFE566"],
+    fill: ["#FFFDF4", "#FFF6C8"],
+    fillDark: ["#2C2814", "#241F12"],
+    border: "#F0D56A",
+    borderDark: "#6A5A20",
+  },
+  {
+    id: "airalo",
+    titleKey: "coverAiralo",
+    subKey: "esimAiraloSub",
+    route: "/services/airalo",
+    mark: "airalo",
+    accent: ["#F6B73D", "#F58A2A", "#F15B4A", "#E23D7A"],
+    fill: ["#FFF6EE", "#FDEAF2"],
+    fillDark: ["#2E221C", "#2A1A22"],
+    border: "#F3C2B4",
+    borderDark: "#6A4038",
+  },
+]
+
+const LIST: {
+  id: string
+  sectionKey?: string
+  icon: AppIconKey
+  titleKey: string
+  subKey: string
+  route?: string
+  fill: string
+  fillDark: string
+  border: string
+  borderDark: string
+}[] = [
+  { id: "restaurants", sectionKey: "serviceFood", icon: "restaurant", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", fill: "#FFF6F0", fillDark: "#2A221C", border: "#F3D5C4", borderDark: "#5A4034" },
+  { id: "agents", icon: "handshake", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", fill: "#F4F7FB", fillDark: "#1A2433", border: "#D5DEE8", borderDark: "#3A4A5C" },
+  { id: "hospitals", icon: "medkit", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", fill: "#F3F8F4", fillDark: "#1A2820", border: "#D3E6D8", borderDark: "#3A5644" },
+  { id: "transport", sectionKey: "transport", icon: "train", titleKey: "transport", subKey: "transportSub", route: "/services/transport", fill: "#F3F7F8", fillDark: "#1A2628", border: "#D0E0E4", borderDark: "#3A5258" },
+  { id: "shopping", sectionKey: "shopping", icon: "bag", titleKey: "shopping", subKey: "shoppingSub", route: "/services/shopping", fill: "#FBF6F8", fillDark: "#2A2226", border: "#E8D6DE", borderDark: "#5A4450" },
+  { id: "booking", sectionKey: "comingSoon", icon: "calendar", titleKey: "booking", subKey: "bookingSub", fill: "#F7F5F2", fillDark: "#242220", border: "#E4DDD4", borderDark: "#4A453E" },
+]
+
+function CoverMark({ mark }: { mark: Cover["mark"] }) {
+  if (mark === "hotel") {
+    return (
+      <View style={styles.hotelMark}>
+        <AppIcon name="bed" size={20} />
+      </View>
+    )
   }
-  Linking.openURL("https://www.google.com/maps/search/SAPTCO+bus+stop+Makkah")
+  if (mark === "aviasales") return <AviasalesMark size={34} />
+  if (mark === "saily") return <SailyMark size={34} />
+  return <AiraloMark size={34} />
 }
-
-async function openUberToHaram() {
-  const uberUrl =
-    `uber://?action=setPickup&pickup=my_location` +
-    `&dropoff[latitude]=${HARAM_LAT}&dropoff[longitude]=${HARAM_LNG}` +
-    `&dropoff[nickname]=${encodeURIComponent("Masjid al-Haram")}`
-
-  try {
-    const supported = await Linking.canOpenURL(uberUrl)
-    if (supported) {
-      await Linking.openURL(uberUrl)
-      return
-    }
-  } catch {
-    // try direct open below
-  }
-
-  try {
-    await Linking.openURL(uberUrl)
-  } catch {
-    Linking.openURL(UBER_FALLBACK_URL)
-  }
-}
-
-// ─── SCREEN ───────────────────────────────────────────────────────────────────
 
 export default function ServicesScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
+  const boxWidth = (width - ui.space * 2 - 12) / 2
+  const chevron = I18nManager.isRTL ? "chevron-back" : "chevron-forward"
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 16 }}>
-          <View>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>{t("services")}</Text>
             <Text style={styles.subtitle}>{t("servicesSub")}</Text>
           </View>
           <TouchableOpacity
-            style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 20, padding: 10, marginBottom: 2 }}
+            style={styles.searchBtn}
             onPress={() => router.push("/search" as any)}
+            accessibilityRole="button"
           >
             <Ionicons name="search-outline" size={20} color="#fff" />
           </TouchableOpacity>
@@ -129,173 +143,63 @@ export default function ServicesScreen() {
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
-
         <View style={styles.grid}>
-          {APP_SERVICES.map(s => (
+          {COVERS.map(cover => (
             <TouchableOpacity
-              key={s.id}
-              style={[styles.gridCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={() => router.push(s.route as any)}
+              key={cover.id}
+              style={[styles.cover, { width: boxWidth, borderColor: theme.dark ? cover.borderDark : cover.border }]}
+              onPress={() => router.push(cover.route as any)}
+              accessibilityRole="button"
             >
-              <AppIcon name={s.icon} size={28} style={{ marginBottom: 8 }} />
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
-              <Text style={[styles.cardSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
-              <View style={styles.cardFooter}>
-                <Ionicons name={s.ionIcon as any} size={16} color={getIconColor(s.icon)} />
-                <Ionicons name="chevron-forward" size={16} color="#C9A84C" />
-              </View>
+              <LinearGradient colors={cover.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.accent} />
+              <LinearGradient colors={theme.dark ? cover.fillDark : cover.fill} style={styles.coverBody}>
+                <CoverMark mark={cover.mark} />
+                <Text style={[styles.coverTitle, { color: theme.text }]} numberOfLines={2}>{t(cover.titleKey)}</Text>
+                <Text style={[styles.coverSub, { color: theme.textSecondary }]} numberOfLines={2}>{t(cover.subKey)}</Text>
+                <View style={styles.coverFooter}>
+                  <Ionicons name={chevron} size={16} color={GOLD} />
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* ── FLIGHTS ── */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
-            {t("flights")}
-          </Text>
-          <AppIcon name="airplane" size={18} />
-        </View>
-        <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>
-          {t("flightsSub")}
-        </Text>
-        {FLIGHT_PLATFORMS.map(platform => (
-          <TouchableOpacity
-            key={platform.id}
-            style={[
-              styles.expandCard,
-              {
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-                borderLeftWidth: 3,
-                borderLeftColor: platform.brandColor,
-              },
-            ]}
-            onPress={() =>
-              router.push(`/flight-detail/${platform.id}` as any)
-            }
-            activeOpacity={0.85}
-          >
-            <View style={styles.expandHeader}>
-              <View style={[styles.flightIcon, { backgroundColor: `${platform.brandColor}18` }]}>
-                <AppIcon name={platform.icon} size={26} color={platform.brandColor} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.listTitle, { color: theme.text }]}>{platform.name}</Text>
-                <Text style={[styles.listSub, { color: theme.textSecondary }]}>{platform.tagline}</Text>
-                <Text style={[styles.flightSite, { color: platform.brandColor }]}>
-                  {platform.websiteLabel}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+        {LIST.map(service => {
+          const showSection = Boolean(service.sectionKey && service.sectionKey !== service.titleKey)
+          return (
+            <View key={service.id}>
+              {showSection ? (
+                <Text style={[styles.section, { color: theme.textSecondary }]}>{t(service.sectionKey!)}</Text>
+              ) : null}
+              <TouchableOpacity
+                style={[
+                  styles.row,
+                  {
+                    backgroundColor: theme.dark ? service.fillDark : service.fill,
+                    borderColor: theme.dark ? service.borderDark : service.border,
+                  },
+                  !service.route && styles.rowSoon,
+                ]}
+                disabled={!service.route}
+                onPress={() => service.route && router.push(service.route as any)}
+                accessibilityRole="button"
+              >
+                <AppIcon name={service.icon} size={26} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>{t(service.titleKey)}</Text>
+                  <Text style={[styles.rowSub, { color: theme.textSecondary }]} numberOfLines={1}>{t(service.subKey)}</Text>
+                </View>
+                {service.route ? (
+                  <Ionicons name={chevron} size={18} color={GOLD} />
+                ) : (
+                  <View style={styles.soonTag}>
+                    <Text style={styles.soonText}>{t("comingSoonLabel")}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        ))}
-
-        {/* ── TRANSPORT ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("transport")}</Text>
-        <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>{t("transportSub")}</Text>
-
-        <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>{t("haramainRailway")}</Text>
-        {HARAMAIN_STATIONS.map(station => (
-          <TouchableOpacity
-            key={station.id}
-            style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push(`/haramain/${station.id}` as any)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.expandHeader}>
-              <AppIcon name={station.icon} size={26} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.listTitle, { color: theme.text }]}>{t(station.titleKey)}</Text>
-                <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(station.addressKey)}</Text>
-                <Text style={[styles.coords, { color: theme.textSecondary }]}>
-                  {station.lat.toFixed(4)}, {station.lng.toFixed(4)}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        <View style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.expandHeader}>
-            <AppIcon name="bus" size={26} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.listTitle, { color: theme.text }]}>{t("saptcoBuses")}</Text>
-              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("saptcoSub")}</Text>
-            </View>
-          </View>
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.actionBtnOutline}
-              onPress={() => openExternalUrl(router, SAPTCO_URL, t("saptcoBuses"))}
-            >
-              <Ionicons name="globe-outline" size={14} color="#C9A84C" />
-              <Text style={styles.actionBtnOutlineText}>{t("officialSite")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtnPrimary} onPress={openNearestSaptcoStop}>
-              <Ionicons name="navigate-outline" size={14} color="#C9A84C" />
-              <Text style={styles.actionBtnPrimaryText}>{t("directionsNearestStop")}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.expandHeader}>
-            <AppIcon name="car" size={26} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.listTitle, { color: theme.text }]}>{t("uber")}</Text>
-              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("uberSub")}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={[styles.actionBtnPrimary, styles.actionBtnFull]} onPress={openUberToHaram}>
-            <Ionicons name="car-outline" size={14} color="#C9A84C" />
-            <Text style={styles.actionBtnPrimaryText}>{t("openUberApp")}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── SHOPPING ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("shopping")}</Text>
-        <Text style={[styles.sectionSub, { color: theme.textSecondary }]}>{t("shoppingSub")}</Text>
-        {SHOPPING.map(s => (
-          <View
-            key={s.id}
-            style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-          >
-            <View style={styles.expandHeader}>
-              <AppIcon name={s.icon} size={26} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.listTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
-                <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[styles.actionBtnPrimary, styles.actionBtnFull]}
-              onPress={() => openDirections(s.lat, s.lng)}
-            >
-              <Ionicons name="navigate-outline" size={14} color="#C9A84C" />
-              <Text style={styles.actionBtnPrimaryText}>{t("getDirections")}</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-
-        {/* ── COMING SOON ── */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("comingSoon")}</Text>
-        {COMING_SOON.map(s => (
-          <View
-            key={s.id}
-            style={[styles.listCard, { backgroundColor: theme.card, borderColor: theme.border, opacity: 0.42 }]}
-          >
-            <AppIcon name={s.icon} size={26} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.listTitle, { color: theme.text }]}>{t(s.titleKey)}</Text>
-              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t(s.subKey)}</Text>
-            </View>
-            <View style={styles.comingSoonTag}>
-              <Text style={styles.comingSoonText}>{t("comingSoonLabel")}</Text>
-            </View>
-          </View>
-        ))}
+          )
+        })}
       </ScrollView>
     </View>
   )
@@ -304,62 +208,51 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: { backgroundColor: NAVY, paddingHorizontal: 20, paddingBottom: 20 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
+  headerRow: { flexDirection: "row", alignItems: "flex-end", marginTop: 16, gap: 12 },
+  title: { color: "#fff", fontSize: 26, fontWeight: "bold" },
   subtitle: { color: GOLD, fontSize: 13, marginTop: 4 },
+  searchBtn: { backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 20, padding: 10, marginBottom: 2 },
   content: { padding: ui.space },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 4 },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 4 },
-  sectionSub: { fontSize: 12, marginBottom: 12 },
-  groupLabel: { fontSize: 12, fontWeight: "600", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 },
-
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
-  gridCard: { width: "47%", borderRadius: ui.radius, padding: ui.cardPad, borderWidth: ui.hairline, minHeight: 130 },
-  cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 4 },
-  cardSub: { fontSize: 11, flex: 1 },
-  cardFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
-
-  listCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: ui.cardPad, borderRadius: ui.radius, borderWidth: ui.hairline, marginBottom: ui.gap },
-  expandCard: { borderRadius: ui.radius, borderWidth: ui.hairline, marginBottom: ui.gap, padding: ui.cardPad },
-  expandHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  listTitle: { fontSize: 14, fontWeight: "600" },
-  listSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
-  coords: { fontSize: 10, marginTop: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-  flightIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flightSite: { fontSize: 11, fontWeight: "600", marginTop: 4 },
-
-  actionRow: { flexDirection: "row", gap: 8, marginTop: 12 },
-  actionBtnOutline: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
+  cover: {
+    height: 158,
     borderRadius: ui.radius,
     borderWidth: 1,
-    borderColor: "rgba(201,168,76,0.5)",
-    backgroundColor: "rgba(201,168,76,0.08)",
+    overflow: "hidden",
   },
-  actionBtnOutlineText: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
-  actionBtnPrimary: {
-    flex: 1,
-    flexDirection: "row",
+  accent: { height: 4 },
+  coverBody: { flex: 1, padding: 12 },
+  hotelMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "rgba(201,168,76,0.22)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: ui.radius,
-    backgroundColor: NAVY,
   },
-  actionBtnPrimaryText: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
-  actionBtnFull: { flex: undefined, width: "100%", marginTop: 12 },
-
-  comingSoonTag: { backgroundColor: "rgba(0,0,0,0.06)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  comingSoonText: { fontSize: 10, color: "#888", fontWeight: "600" },
+  coverTitle: { fontSize: 14, fontWeight: "700", marginTop: 8 },
+  coverSub: { fontSize: 11, lineHeight: 15, marginTop: 3, flex: 1 },
+  coverFooter: { flexDirection: "row", justifyContent: "flex-end" },
+  section: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: ui.cardPad,
+    borderRadius: ui.radius,
+    borderWidth: ui.hairline,
+    marginBottom: 10,
+  },
+  rowSoon: { opacity: 0.5 },
+  rowTitle: { fontSize: 15, fontWeight: "700" },
+  rowSub: { fontSize: 12, marginTop: 2 },
+  soonTag: { backgroundColor: "rgba(0,0,0,0.06)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  soonText: { fontSize: 10, color: "#888", fontWeight: "600" },
 })

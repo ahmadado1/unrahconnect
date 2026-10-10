@@ -2,6 +2,7 @@ import HeroBackground from "@/app/components/HeroBackground"
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { openGoogleMapsUrl } from "@/lib/openMaps"
 import { getRestaurantById, openRestaurantDirections } from "@/lib/restaurants"
 import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
 import { isFavorite, toggleFavorite } from "@/lib/supabase"
@@ -12,7 +13,6 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Image,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -169,7 +169,14 @@ export default function RestaurantDetailScreen() {
 
           <TouchableOpacity
             style={styles.directionsBtn}
-            onPress={() => Linking.openURL(openRestaurantDirections(restaurant))}
+            onPress={() =>
+              void openGoogleMapsUrl(openRestaurantDirections(restaurant), {
+                name: restaurant.name,
+                latitude: restaurant.lat,
+                longitude: restaurant.lng,
+                directions: true,
+              })
+            }
           >
             <Ionicons name="navigate" size={18} color="#fff" />
             <Text style={styles.directionsBtnText}>{t("getDirections")}</Text>

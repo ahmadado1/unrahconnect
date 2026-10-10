@@ -155,10 +155,10 @@ export default function BookmarksScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
-          <Text style={styles.backText}>Quran</Text>
+          <Text style={styles.backText}>{t("quran")}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Bookmarks</Text>
-        <Text style={styles.subtitle}>Your saved verses</Text>
+        <Text style={styles.title}>{t("quranBookmarks")}</Text>
+        <Text style={styles.subtitle}>{t("quranBookmarksSub")}</Text>
       </View>
 
       {loading ? (

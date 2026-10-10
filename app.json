@@ -2,7 +2,7 @@
   "expo": {
     "name": "UmrahConnect",
     "slug": "UmrahConnect",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/logo.jpg",
     "scheme": "umrahconnect",
@@ -16,14 +16,14 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
-          "uber"
+          "uber",
+          "comgooglemaps"
         ],
         "UIBackgroundModes": [
           "audio"
         ],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
-        "NSAlarmKitUsageDescription": "UmrahConnect schedules a prayer alarm so the Adhan can play at salah time, including while Silent is on."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services."
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"
@@ -94,7 +94,7 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.960037449593-nsmd655ofr73ln844jap3171d0s92o17"
+          "iosUrlScheme": "com.googleusercontent.apps.655574174670-0776g80gopifqrtltranoa1ao570co22"
         }
       ],
       [
@@ -117,11 +117,16 @@
             "./assets/adhan/adhan_trablsy_lock.wav",
             "./assets/adhan/adhan_trablsy_fajr_lock.wav",
             "./assets/adhan/adhan_alafasy_lock.wav",
-            "./assets/adhan/adhan_alafasy_fajr_lock.wav"
+            "./assets/adhan/adhan_alafasy_fajr_lock.wav",
+            "./assets/adhan/adhan_abdulbasit.mp3",
+            "./assets/adhan/adhan_abdulbasit_fajr.mp3",
+            "./assets/adhan/adhan_trablsy.mp3",
+            "./assets/adhan/adhan_trablsy_fajr.mp3",
+            "./assets/adhan/adhan_alafasy.mp3",
+            "./assets/adhan/adhan_alafasy_fajr.mp3"
           ]
         }
       ],
-      "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser",
       [
@@ -141,7 +146,10 @@
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# react-native-reanimated: JNI and TurboModule classes are called by reflection. R8 removes them and animations crash in release.\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-keep class com.facebook.react.fabric.** { *; }\n\n# react-native-worklets: Reanimated 4 runs worklets through this package. R8 strips the JNI entry points.\n-keep class com.swmansion.worklets.** { *; }\n\n# @react-native-google-signin: the native module and Play Services sign-in types are loaded by name. R8 drops them and Google sign-in crashes in release.\n-keep class com.reactnativegooglesignin.** { *; }\n-keep class com.google.android.gms.auth.** { *; }\n-keep class com.google.android.gms.auth.api.signin.** { *; }\n-keep class com.google.android.gms.common.api.** { *; }\n\n# @supabase/supabase-js is JavaScript bundled by Metro. R8 never sees it, so it has no Java keep rule.\n\n# expo-notifications: the library keep file is not applied as consumer rules. Android creates the Firebase messaging service from the manifest.\n-keep class expo.modules.notifications.** { *; }\n\n# react-native-svg: native view classes are created by name. R8 removes them and SVG renders blank.\n-keep public class com.horcrux.svg.** { *; }\n\n# react-native-maps: ships no consumer rules. Map views and markers are created by reflection.\n-keep class com.rnmaps.** { *; }\n\n# react-native-gesture-handler: handler classes are created by name and ship no consumer rules.\n-keep class com.swmansion.gesturehandler.** { *; }\n\n# react-native-screens: screen and fragment classes are restored by name. R8 breaks navigation in release.\n-keep class com.swmansion.rnscreens.** { *; }\n\n# react-native-webview: the view manager and message events are reached by reflection.\n-keep class com.reactnativecommunity.webview.** { *; }\n\n# @react-native-async-storage/async-storage: the storage module is looked up by name.\n-keep class com.reactnativecommunity.asyncstorage.** { *; }\n\n# react-native-safe-area-context: inset views are created by name. Edge-to-edge padding depends on them.\n-keep class com.th3rdwave.safeareacontext.** { *; }\n\n# @react-native-community/datetimepicker: picker modules are created by name and ship no ProGuard rules.\n-keep class com.reactcommunity.rndatetimepicker.** { *; }\n\n# expo-task-manager: its keep rule is not wired as a consumer file. Background tasks are started by class name.\n-keep class expo.modules.taskManager.** { *; }\n\n# Google Sign-In, Reanimated, and Expo find classes through annotations and generic signatures.\n-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod\n"
           }
         }
       ]

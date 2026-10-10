@@ -1,14 +1,20 @@
+import TouchableOpacity from "@/app/components/AppPressable"
 import HeroBackground from "@/app/components/HeroBackground"
+import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon, AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import i18n from "@/i18n"
 import {
   getFeaturedHotelsForCity,
+  loadFeaturedFavorites,
+  toggleFeaturedFavorite,
   type FeaturedHotel,
+  type HotelPartner,
 } from "@/lib/featuredHotels"
-import { affiliateWebViewHref, openExternalUrl } from "@/lib/openAffiliateWebView"
-import i18n from "@/i18n"
 import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import { groupHotelsIntoSections, HOTELS, type Hotel } from "@/lib/hotels"
+import { affiliateWebViewHref, openExternalUrl } from "@/lib/openAffiliateWebView"
+import { applyStayToBookingUrl } from "@/lib/stayLinks"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect } from "@react-navigation/native"
@@ -19,13 +25,13 @@ import { useTranslation } from "react-i18next"
 import {
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type CityFilter = "All" | "Makkah" | "Madinah"
@@ -37,6 +43,8 @@ type CategoryFilter =
   | "Near Nabawi"
   | "Abraj Al Bait Mall"
   | "Family"
+type BudgetFilter = "all" | "budget" | "premium"
+type DistanceFilter = "any" | 5 | 10 | 15
 
 function byIds(ids: string[]): Hotel[] {
   return ids
@@ -127,6 +135,16 @@ const CATEGORY_SECTIONS: { key: Exclude<CategoryFilter, "All">; icon: AppIconKey
     { key: "Family", icon: "people", title: "Family Friendly", hotels: familyHotels },
   ]
 
+const CATEGORY_FILTERS: CategoryFilter[] = [
+  "All",
+  "Recommended",
+  "Budget Friendly",
+  "Near Haram",
+  "Near Nabawi",
+  "Abraj Al Bait Mall",
+  "Family",
+]
+const CITY_FILTERS: CityFilter[] = ["All", "Makkah", "Madinah"]
 
 function openWebsite(
   router: ReturnType<typeof useRouter>,
@@ -154,23 +172,23 @@ function openBookingInWebView(
 
 export default function HotelsScreen() {
   const router = useRouter()
-  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All")
-  const [activeFilter, setActiveFilter] = useState<CityFilter>("All")
-  const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
-  const categoryFilters: CategoryFilter[] = [
-    "All",
-    "Recommended",
-    "Budget Friendly",
-    "Near Haram",
-    "Near Nabawi",
-    "Abraj Al Bait Mall",
-    "Family",
-  ]
-  const cityFilters: CityFilter[] = ["All", "Makkah", "Madinah"]
-  const [searchQuery, setSearchQuery] = useState("")
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+
+  // ─── Filters ───
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All")
+  const [activeFilter, setActiveFilter] = useState<CityFilter>("All")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [budgetFilter, setBudgetFilter] = useState<BudgetFilter>("all")
+  const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>("any")
+  const [sortClosest, setSortClosest] = useState(true)
+
+  // ─── Favorites, partner picker, trip dates ───
+  const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set())
+  const [featuredFavoriteIds, setFeaturedFavoriteIds] = useState<Set<string>>(new Set())
+  const [partnerHotel, setPartnerHotel] = useState<FeaturedHotel | null>(null)
+  const { trip, open: tripOpen, setOpen: setTripOpen, close: closeTrip, onSaved: onTripSaved } = useTripDetails(true)
 
   const loadFavoriteHotels = async () => {
     const {
@@ -195,17 +213,27 @@ export default function HotelsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadFavoriteHotels()
+      void loadFeaturedFavorites().then(setFeaturedFavoriteIds)
     }, [])
   )
 
+  // ─── Filtering ───
   const filterHotelsList = useCallback(
-    (hotels: Hotel[]) =>
-      hotels.filter(h => {
+    (hotels: Hotel[]) => {
+      const filtered = hotels.filter(h => {
         const matchesCity = activeFilter === "All" || h.city === activeFilter
         const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase())
-        return matchesCity && matchesSearch
-      }),
-    [activeFilter, searchQuery]
+        const matchesBudget =
+          budgetFilter === "all" ||
+          (budgetFilter === "budget" && BUDGET_FRIENDLY_IDS.has(h.id)) ||
+          (budgetFilter === "premium" && !BUDGET_FRIENDLY_IDS.has(h.id))
+        const matchesDistance = distanceFilter === "any" || h.walkMinutes <= distanceFilter
+        return matchesCity && matchesSearch && matchesBudget && matchesDistance
+      })
+      if (!sortClosest) return filtered
+      return [...filtered].sort((a, b) => a.walkMinutes - b.walkMinutes)
+    },
+    [activeFilter, searchQuery, budgetFilter, distanceFilter, sortClosest]
   )
 
   const visibleSections = useMemo(() => {
@@ -233,15 +261,33 @@ export default function HotelsScreen() {
     if (activeCategory !== "All") return []
     const q = searchQuery.trim().toLowerCase()
     return getFeaturedHotelsForCity(activeFilter)
-      .map(section => ({
-        ...section,
-        hotels: section.hotels.filter(
-          h => !q || h.name.toLowerCase().includes(q) || h.description.toLowerCase().includes(q),
-        ),
-      }))
-      .filter(section => section.hotels.length > 0)
-  }, [activeCategory, activeFilter, searchQuery])
+      .map(section => {
+        let hotels = section.hotels.filter(h => {
+          const matchesQuery =
+            !q || h.name.toLowerCase().includes(q) || h.description.toLowerCase().includes(q)
+          const matchesDistance = distanceFilter === "any" || h.walkMinutes <= distanceFilter
+          const matchesBudget = budgetFilter !== "budget"
+          return matchesQuery && matchesDistance && matchesBudget
+        })
+        if (sortClosest) hotels = [...hotels].sort((a, b) => a.walkMinutes - b.walkMinutes)
+        return { ...section, hotels }
+      })
+      .filter(section => section.hotels.length > 0 || budgetFilter === "budget")
+  }, [activeCategory, activeFilter, searchQuery, budgetFilter, distanceFilter, sortClosest])
 
+  // ─── Booking ───
+  const bookFeatured = (hotel: FeaturedHotel, partner?: HotelPartner) => {
+    const partners = hotel.partners
+    if (!partner && partners.length > 1) {
+      setPartnerHotel(hotel)
+      return
+    }
+    const chosen = partner ?? partners[0]
+    if (!chosen) return
+    openBookingInWebView(router, applyStayToBookingUrl(chosen.url, trip), hotel.name)
+  }
+
+  // ─── Featured (partner) hotel card ───
   function FeaturedHotelCard({ hotel }: { hotel: FeaturedHotel }) {
     const [imageUri, setImageUri] = useState(hotel.image)
     const [showLogo, setShowLogo] = useState(hotel.imageType === "logo")
@@ -257,6 +303,22 @@ export default function HotelsScreen() {
         setShowLogo(true)
       }
     }
+
+    const isFavorited = featuredFavoriteIds.has(hotel.id)
+    const heart = (
+      <TouchableOpacity
+        style={[cardStyles.heart, showLogo ? cardStyles.heartOnLight : null]}
+        onPress={() => {
+          void toggleFeaturedFavorite(hotel.id).then(setFeaturedFavoriteIds)
+        }}
+      >
+        <Ionicons
+          name={isFavorited ? "heart" : "heart-outline"}
+          size={18}
+          color={isFavorited ? "#C9A84C" : showLogo ? "#1E3A5F" : "#fff"}
+        />
+      </TouchableOpacity>
+    )
 
     const badge = (
       <View style={[cardStyles.badge, { backgroundColor: "#1E3A5F" }]}>
@@ -275,6 +337,7 @@ export default function HotelsScreen() {
           />
         </View>
         {badge}
+        {heart}
         <Text style={[cardStyles.imageLabel, cardStyles.imageLabelOnLight]}>{hotel.city}</Text>
       </View>
     ) : (
@@ -285,6 +348,7 @@ export default function HotelsScreen() {
         onError={handleImageError}
       >
         {badge}
+        {heart}
         <Text style={cardStyles.imageLabel}>{hotel.city}</Text>
       </HeroBackground>
     )
@@ -309,17 +373,19 @@ export default function HotelsScreen() {
           <Text style={[cardStyles.meta, { color: theme.textSecondary }]} numberOfLines={2}>
             {hotel.description}
           </Text>
+          <Text style={cardStyles.walkText}>● {t("walkMinShort", { count: hotel.walkMinutes })}</Text>
           <TouchableOpacity
             style={[cardStyles.btn, { backgroundColor: "#C9A84C", alignSelf: "stretch" }]}
-            onPress={() => openBookingInWebView(router, hotel.bookingUrl, hotel.name)}
+            onPress={() => bookFeatured(hotel)}
           >
-            <Text style={[cardStyles.btnText, { color: "#1E3A5F" }]}>{t("bookNow")}</Text>
+            <Text style={[cardStyles.btnText, { color: "#1E3A5F", textAlign: "center" }]}>{t("bookNow")}</Text>
           </TouchableOpacity>
         </View>
       </View>
     )
   }
 
+  // ─── Regular hotel card ───
   function HotelCard({ hotel }: { hotel: Hotel }) {
     const isFavorited = favoriteHotelIds.has(hotel.id)
     const isFeatured = FEATURED_IDS.has(hotel.id)
@@ -466,6 +532,7 @@ export default function HotelsScreen() {
     )
   }
 
+  // ─── Screen ───
   return (
     <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
       <StatusBar style="light" />
@@ -477,6 +544,7 @@ export default function HotelsScreen() {
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
+        {/* Header: title, trip dates, search and filters */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
@@ -485,6 +553,7 @@ export default function HotelsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("hotels")}</Text>
               <Text style={styles.subtitle}>Well-known hotels near the Holy Mosques</Text>
+              <TripDetailsChip trip={trip} onPress={() => setTripOpen(true)} />
             </View>
           </View>
 
@@ -499,80 +568,124 @@ export default function HotelsScreen() {
             />
           </View>
 
+          {/* Category pills */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.pillsRow}
             contentContainerStyle={{ gap: 8, paddingRight: 16 }}
           >
-            {categoryFilters.map(filter => (
+            {CATEGORY_FILTERS.map(filter => (
               <TouchableOpacity
                 key={filter}
                 style={[styles.pill, activeCategory === filter && styles.pillActive]}
                 onPress={() => setActiveCategory(filter)}
               >
-                <Text
-                  style={[styles.pillText, activeCategory === filter && styles.pillTextActive]}
-                >
+                <Text style={[styles.pillText, activeCategory === filter && styles.pillTextActive]}>
                   {filter}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
+          {/* City pills */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.cityPillsRow}
             contentContainerStyle={{ gap: 8, paddingRight: 16 }}
           >
-            {cityFilters.map(filter => (
+            {CITY_FILTERS.map(filter => (
               <TouchableOpacity
                 key={filter}
                 style={[styles.cityPill, activeFilter === filter && styles.cityPillActive]}
                 onPress={() => setActiveFilter(filter)}
               >
-                <Text
-                  style={[
-                    styles.cityPillText,
-                    activeFilter === filter && styles.cityPillTextActive,
-                  ]}
-                >
+                <Text style={[styles.cityPillText, activeFilter === filter && styles.cityPillTextActive]}>
                   {filter}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Budget, walking distance and sort */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={[styles.cityPillsRow, { marginTop: 10 }]}
+            contentContainerStyle={{ gap: 8, paddingRight: 16 }}
+          >
+            {([
+              ["budget", t("filterBudget")],
+              ["premium", t("filterPremium")],
+            ] as const).map(([key, label]) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.cityPill, budgetFilter === key && styles.cityPillActive]}
+                onPress={() => setBudgetFilter(current => (current === key ? "all" : key))}
+              >
+                <Text style={[styles.cityPillText, budgetFilter === key && styles.cityPillTextActive]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {([5, 10, 15] as const).map(minutes => (
+              <TouchableOpacity
+                key={minutes}
+                style={[styles.cityPill, distanceFilter === minutes && styles.cityPillActive]}
+                onPress={() => setDistanceFilter(current => (current === minutes ? "any" : minutes))}
+              >
+                <Text style={[styles.cityPillText, distanceFilter === minutes && styles.cityPillTextActive]}>
+                  {t("filterWalkMinutes", { count: minutes })}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.cityPill, sortClosest && styles.cityPillActive]}
+              onPress={() => setSortClosest(current => !current)}
+            >
+              <Text style={[styles.cityPillText, sortClosest && styles.cityPillTextActive]}>
+                {t("sortClosest")}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
+        {/* Hotel lists */}
         <View key={`${activeCategory}-${activeFilter}`}>
           {featuredSections.map(section => (
             <View key={section.titleKey} style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-                  <AppIcon
-                    name={section.city === "Madinah" ? "mosque" : "kaaba"}
-                    size={20}
-                  />
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                    {t(section.titleKey)}
-                  </Text>
-                </View>
-                <Text style={styles.seeAll}>{section.hotels.length}</Text>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-              >
-                {section.hotels.map(hotel => (
-                  <FeaturedHotelCard key={hotel.id} hotel={hotel} />
-                ))}
-              </ScrollView>
+              {section.hotels.length > 0 ? (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                      <AppIcon name={section.city === "Madinah" ? "mosque" : "kaaba"} size={20} />
+                      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                        {t(section.titleKey)}
+                      </Text>
+                    </View>
+                    <Text style={styles.seeAll}>{section.hotels.length}</Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+                  >
+                    {section.hotels.map(hotel => (
+                      <FeaturedHotelCard key={hotel.id} hotel={hotel} />
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
               <TouchableOpacity
                 style={styles.budgetLink}
-                onPress={() => openBookingInWebView(router, section.budgetUrl, t(section.budgetLinkKey))}
-                activeOpacity={0.7}
+                onPress={() =>
+                  openBookingInWebView(
+                    router,
+                    applyStayToBookingUrl(section.budgetUrl, trip),
+                    t(section.budgetLinkKey),
+                  )
+                }
               >
                 <Text style={[styles.budgetLinkText, { color: theme.textSecondary }]}>
                   {t(section.budgetLinkKey)}
@@ -615,6 +728,45 @@ export default function HotelsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Trip dates sheet */}
+      <TripDetailsSheet
+        visible={tripOpen}
+        initial={trip}
+        onClose={closeTrip}
+        onSaved={onTripSaved}
+      />
+
+      {/* "Where do you want to book?" when a hotel has several partners */}
+      <Modal
+        visible={partnerHotel != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPartnerHotel(null)}
+      >
+        <View style={styles.partnerRoot}>
+          <TouchableOpacity style={styles.partnerBackdrop} onPress={() => setPartnerHotel(null)} />
+          <View style={[styles.partnerSheet, { backgroundColor: theme.card }]}>
+            <Text style={[styles.partnerTitle, { color: theme.text }]}>{t("chooseWhereToBook")}</Text>
+            {partnerHotel?.partners.map(partner => (
+              <TouchableOpacity
+                key={partner.url}
+                style={styles.partnerBtn}
+                onPress={() => {
+                  const hotel = partnerHotel
+                  setPartnerHotel(null)
+                  if (hotel) bookFeatured(hotel, partner)
+                }}
+              >
+                <Text style={styles.partnerBtnText}>{t("bookWithPartner", { name: partner.name })}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setPartnerHotel(null)}>
+              <Text style={[styles.partnerCancel, { color: theme.textSecondary }]}>{t("cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -684,7 +836,7 @@ const cardStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    marginTop: 2,
+    marginTop: 8,
   },
   btnExternal: { backgroundColor: "#C9A84C" },
   btnText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
@@ -772,4 +924,24 @@ const styles = StyleSheet.create({
   cityPillTextActive: { color: "#C9A84C", fontWeight: "700" },
   empty: { alignItems: "center", paddingVertical: 48, gap: 10 },
   emptyText: { fontSize: 14 },
+
+  // Partner picker
+  partnerRoot: { flex: 1, justifyContent: "flex-end" },
+  partnerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  partnerSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+    gap: 10,
+  },
+  partnerTitle: { fontSize: 17, fontWeight: "bold", marginBottom: 6 },
+  partnerBtn: {
+    backgroundColor: "#1E3A5F",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  partnerBtnText: { color: "#C9A84C", fontSize: 15, fontWeight: "bold" },
+  partnerCancel: { textAlign: "center", fontSize: 14, paddingVertical: 10 },
 })

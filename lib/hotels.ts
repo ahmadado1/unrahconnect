@@ -703,8 +703,8 @@ export function hotelMapsQuery(hotel: Hotel) {
 }
 
 /**
- * Always Google Maps (never Apple Maps).
- * Pins by coordinates and labels/resolves by hotel name.
+ * Google Maps walking directions for this hotel.
+ * Android opens this link. iOS offers Apple Maps as well.
  */
 export function openHotelDirections(hotel: Hotel) {
   const destination = encodeURIComponent(

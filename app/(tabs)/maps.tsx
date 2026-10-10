@@ -1,5 +1,7 @@
+import TouchableOpacity from "@/app/components/AppPressable"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
@@ -7,9 +9,7 @@ import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 
 const LOCATIONS = [
   { id: "haram", icon: "kaaba" as AppIconKey, nameKey: "masjidAlHaram", subKey: "makkah", query: "Masjid Al-Haram, Makkah, Saudi Arabia" },

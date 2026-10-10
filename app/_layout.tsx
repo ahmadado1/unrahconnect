@@ -3,6 +3,7 @@ import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider, useTheme } from "@/context/themeContext";
 import "@/i18n";
 import {
+  handlePrayerNotificationForeground,
   handlePrayerNotificationOpen,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
@@ -20,7 +21,8 @@ import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
+import { auditAllMushafPages, purgeEmptyCachedPages } from "../lib/quranPageCache";
 import { clearLocalAuth, getValidSession, supabase } from "../lib/supabase";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
@@ -139,12 +141,17 @@ export default function RootLayout() {
   }, [status])
 
   useEffect(() => {
+    void purgeEmptyCachedPages().then(() => {
+      if (__DEV__) void auditAllMushafPages()
+    })
+  }, [])
+
+  useEffect(() => {
     checkAuth()
 
     requestNotificationPermission().then(async granted => {
       if (!granted) return
       await setupPrayerNotificationChannel().catch(console.log)
-      await reschedulePrayerNotificationsFromCache().catch(console.log)
       const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
       if (notifEnabled !== "false") {
         await scheduleDailyVerseNotification().catch(console.log)
@@ -154,6 +161,7 @@ export default function RootLayout() {
         await scheduleAlMulkReminder().catch(console.log)
         await scheduleJourneyReminders().catch(console.log)
       }
+      await reschedulePrayerNotificationsFromCache().catch(console.log)
     })
 
     const handleDeepLink = async (url: string) => {
@@ -195,6 +203,13 @@ export default function RootLayout() {
       await AsyncStorage.setItem("last_handled_notification_response", responseKey)
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
       openNotificationRef.current(identifier, data, deliveredAt)
+    })
+
+    const receivedListener = Notifications.addNotificationReceivedListener(notification => {
+      if (AppState.currentState !== "active") return
+      const identifier = notification.request.identifier
+      const data = notification.request.content.data as Record<string, unknown> | undefined
+      handlePrayerNotificationForeground(identifier, data)
     })
 
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
@@ -297,6 +312,11 @@ function AppStack() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="hotels" />
       <Stack.Screen name="hotel-webview" />
+      <Stack.Screen name="services/flights" />
+      <Stack.Screen name="services/esim" />
+      <Stack.Screen name="services/airalo" />
+      <Stack.Screen name="services/transport" />
+      <Stack.Screen name="services/shopping" />
       <Stack.Screen name="restaurants" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="favorites" />

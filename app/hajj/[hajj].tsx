@@ -95,7 +95,7 @@ export default function HajjPhaseDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: data.textColor }]}>
-      <StatusBar style="light" backgroundColor={data.textColor} />
+      <StatusBar style="light" />
 
       <Animated.ScrollView
         style={{ backgroundColor: data.textColor }}
@@ -265,12 +265,17 @@ export default function HajjPhaseDetailScreen() {
 
         <View style={{ height: 50 }} />
       </Animated.ScrollView>
+      <View
+        pointerEvents="none"
+        style={[styles.statusBarFill, { height: insets.top, backgroundColor: data.textColor }]}
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  statusBarFill: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 2 },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     paddingHorizontal: 20,

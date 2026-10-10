@@ -1,8 +1,10 @@
-import { isHttpUrl } from "@/lib/openAffiliateWebView"
+import TouchableOpacity from "@/app/components/AppPressable"
+import ScreenState from "@/app/components/ScreenState"
+import { isDonationUrl, isHttpUrl, openDonationPage } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ActivityIndicator,
@@ -10,8 +12,6 @@ import {
   Text,
   View,
 } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
-import ScreenState from "@/app/components/ScreenState"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { WebView } from "react-native-webview"
 
@@ -32,15 +32,31 @@ export default function HotelWebViewScreen() {
   const title = firstParam(params.title).trim() || t("bookNow")
   const [loading, setLoading] = useState(true)
 
+  const donationUrl = isDonationUrl(initialUrl)
+
+  useEffect(() => {
+    if (!donationUrl) return
+    void openDonationPage(initialUrl)
+    router.back()
+  }, [donationUrl, initialUrl, router])
+
   const source = useMemo(() => {
-    if (!isHttpUrl(initialUrl)) return null
+    if (!isHttpUrl(initialUrl) || donationUrl) return null
     return { uri: initialUrl }
-  }, [initialUrl])
+  }, [initialUrl, donationUrl])
 
   const onShouldStartLoadWithRequest = (request: { url: string }) => {
+    if (isDonationUrl(request.url)) {
+      void openDonationPage(request.url)
+      return false
+    }
     // Keep http(s) in the WebView so iOS/Android cannot hand off to Booking.com.
     // Block custom schemes (booking://, intent://, market://, etc.).
     return isHttpUrl(request.url)
+  }
+
+  if (donationUrl) {
+    return <View style={styles.screen} />
   }
 
   return (

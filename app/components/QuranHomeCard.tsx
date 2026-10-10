@@ -1,11 +1,11 @@
-import { LinearGradient } from "expo-linear-gradient"
-import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new"
-import { Ionicons } from "@expo/vector-icons"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
-import { useTheme } from "@/context/themeContext"
 import AppPressable from "@/app/components/AppPressable"
+import { useTheme } from "@/context/themeContext"
 import type { HomeQuranCardState } from "@/lib/homeQuranCard"
 import { cardShadow, ui } from "@/lib/ui"
+import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new"
+import { Ionicons } from "@expo/vector-icons"
+import { LinearGradient } from "expo-linear-gradient"
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 
 const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 const NO_BISMILLAH_SURAH = 9
@@ -81,7 +81,7 @@ export default function QuranHomeCard({
           </Text>
         )}
         <LinearGradient
-          colors={fadeColors}
+          colors={fadeColors as unknown as readonly [string, string, ...string[]]}
           locations={[0, 0.42, 1]}
           style={styles.fade}
           pointerEvents="none"

@@ -96,7 +96,7 @@ export default function PhaseDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: data.textColor }]}>
-      <StatusBar style="light" backgroundColor={data.textColor} />
+      <StatusBar style="light" />
 
       <Animated.ScrollView
         style={{ backgroundColor: data.textColor }}

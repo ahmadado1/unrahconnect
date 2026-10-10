@@ -1,7 +1,15 @@
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { HOTEL_BRAND_LOGOS } from "./hotelImages"
+
+const FAVORITES_KEY = "featured_hotel_favorites_v1"
 
 export type FeaturedHotelCity = "Makkah" | "Madinah"
 export type FeaturedHotelImageType = "logo" | "photo"
+
+export type HotelPartner = {
+  name: string
+  url: string
+}
 
 export type FeaturedHotel = {
   id: string
@@ -12,8 +20,14 @@ export type FeaturedHotel = {
   image: string
   imageFallback: string
   imageType: FeaturedHotelImageType
-  /** CJ tracking link wrapping the Booking.com hotel page */
-  bookingUrl: string
+  /** Walking minutes to Masjid al-Haram or Al-Masjid an-Nabawi */
+  walkMinutes: number
+  /** Booking partners. The first entry is the default. Affiliate URLs stay intact. */
+  partners: HotelPartner[]
+}
+
+function booking(url: string): HotelPartner {
+  return { name: "Booking.com", url }
 }
 
 function accorPhoto(code: string, shot = "ho_00") {
@@ -45,8 +59,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Direct access toward Masjid al-Haram · Abraj Al-Bait area",
     ...featuredAccor("a7x4"),
-    bookingUrl:
-      "https://www.anrdoezrs.net/click-101805153-11891539?sid=swissotel-almaqam&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-al-maqam-makkah.html",
+    walkMinutes: 2,
+    partners: [booking("https://www.anrdoezrs.net/click-101805153-11891539?sid=swissotel-almaqam&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-al-maqam-makkah.html")],
   },
   {
     id: "featured-swissotel-makkah",
@@ -54,8 +68,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Steps from Masjid al-Haram · Abraj Al-Bait",
     ...featuredAccor("a5b9"),
-    bookingUrl:
-      "https://www.jdoqocy.com/click-101805153-11891539?sid=swissotel-makkah&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-makkah.html%3Faid%3D4347392",
+    walkMinutes: 2,
+    partners: [booking("https://www.jdoqocy.com/click-101805153-11891539?sid=swissotel-makkah&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fswissotel-makkah.html%3Faid%3D4347392")],
   },
   {
     id: "featured-pullman-zamzam-makkah",
@@ -63,8 +77,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Grand suites · Direct Haram access",
     ...featuredAccor("6036"),
-    bookingUrl:
-      "https://www.tkqlhce.com/click-101805153-11891539?sid=Pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fzamzam-grand-suites-managed-by-pullman.html%3F",
+    walkMinutes: 2,
+    partners: [booking("https://www.tkqlhce.com/click-101805153-11891539?sid=Pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fzamzam-grand-suites-managed-by-pullman.html%3F")],
   },
   {
     id: "featured-movenpick-hajar",
@@ -72,8 +86,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Clock Towers complex · Near Masjid al-Haram",
     ...featuredAccor("b4l3"),
-    bookingUrl:
-      "https://www.anrdoezrs.net/click-101805153-11891539?sid=Movenpick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmovenpick-residence-hajar-tower-makkah.html%3F",
+    walkMinutes: 3,
+    partners: [booking("https://www.anrdoezrs.net/click-101805153-11891539?sid=Movenpick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmovenpick-residence-hajar-tower-makkah.html%3F")],
   },
   {
     id: "featured-marriott-makkah",
@@ -84,8 +98,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       "https://www.cfmedia.vfmleonardo.com/imageRepo/2/0/189/12/426/f88S65Yk5E9T7v9s5hG6w_qcamc-terrace-0006_R.jpg",
       HOTEL_BRAND_LOGOS.marriott,
     ),
-    bookingUrl:
-      "https://www.kqzyfj.com/click-101805153-11891539?sid=Marriot&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-marriott.html%3F",
+    walkMinutes: 6,
+    partners: [booking("https://www.kqzyfj.com/click-101805153-11891539?sid=Marriot&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-marriott.html%3F")],
   },
   {
     id: "featured-al-safwah",
@@ -93,8 +107,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Close to the Haram · Central Makkah",
     ...featuredLogo(HOTEL_BRAND_LOGOS.alSafwah),
-    bookingUrl:
-      "https://www.jdoqocy.com/click-101805153-11891539?sid=safwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-safwah.html%3F",
+    walkMinutes: 2,
+    partners: [booking("https://www.jdoqocy.com/click-101805153-11891539?sid=safwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-safwah.html%3F")],
   },
   {
     id: "featured-hyatt-regency-makkah",
@@ -105,8 +119,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       "https://cf.bstatic.com/xdata/images/hotel/square600/110318868.webp?k=22c56e8ddb868d285e68ba6d19a8d14c13e4f9822272efa997dce0aa6a8abf61&o=",
       HOTEL_BRAND_LOGOS.hyatt,
     ),
-    bookingUrl:
-      "https://www.anrdoezrs.net/click-101805153-11891539?sid=hyatt&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fhyatt-regency-makkah.html%3F",
+    walkMinutes: 6,
+    partners: [booking("https://www.anrdoezrs.net/click-101805153-11891539?sid=hyatt&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fhyatt-regency-makkah.html%3F")],
   },
   {
     id: "featured-fairmont-clock",
@@ -114,8 +128,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
     city: "Makkah",
     description: "Iconic Clock Tower · Connected to Masjid al-Haram",
     ...featuredAccor("a5f2"),
-    bookingUrl:
-      "https://www.dpbolvw.net/click-101805153-11891539?sid=royal&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-clock-royal-tower-a-fairmont.html%3F",
+    walkMinutes: 1,
+    partners: [booking("https://www.dpbolvw.net/click-101805153-11891539?sid=royal&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmakkah-clock-royal-tower-a-fairmont.html%3F")],
   },
   {
     id: "featured-jabal-omar-jumeirah",
@@ -126,8 +140,8 @@ export const FEATURED_MAKKAH_HOTELS: FeaturedHotel[] = [
       "https://cdn.jumeirah.com/api/public/content/51655c7cfa1e45d39f8c8e47cacd157b",
       HOTEL_BRAND_LOGOS.jumeirah,
     ),
-    bookingUrl:
-      "https://www.dpbolvw.net/click-101805153-11891539?sid=jumeira&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fjabal-omar-jumeirah-makkah.html%3F",
+    walkMinutes: 5,
+    partners: [booking("https://www.dpbolvw.net/click-101805153-11891539?sid=jumeira&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fjabal-omar-jumeirah-makkah.html%3F")],
   },
 ]
 
@@ -142,8 +156,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://media.rotana.com/images/almanakharotana/rc_177537323169_613.jpg",
       HOTEL_BRAND_LOGOS.rotana,
     ),
-    bookingUrl:
-      "https://www.dpbolvw.net/click-101805153-11891539?sid=rotana&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-manakha-rotana-madinah-madinah.html%3F",
+    walkMinutes: 5,
+    partners: [booking("https://www.dpbolvw.net/click-101805153-11891539?sid=rotana&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fal-manakha-rotana-madinah-madinah.html%3F")],
   },
   {
     id: "featured-anwar-movenpick",
@@ -151,8 +165,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     city: "Madinah",
     description: "Direct access area · Al-Masjid an-Nabawi",
     ...featuredAccor("b4m6"),
-    bookingUrl:
-      "https://www.tkqlhce.com/click-101805153-11891539?sid=movempick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fanwar-al-madinah-movenpick.html%3F",
+    walkMinutes: 2,
+    partners: [booking("https://www.tkqlhce.com/click-101805153-11891539?sid=movempick&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fanwar-al-madinah-movenpick.html%3F")],
   },
   {
     id: "featured-madinah-hilton",
@@ -163,8 +177,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://media.iceportal.com/60037/photos/74116233_XL.jpg",
       HOTEL_BRAND_LOGOS.hilton,
     ),
-    bookingUrl:
-      "https://www.tkqlhce.com/click-101805153-11891539?sid=hilton&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmadinah-hilton.html%3F",
+    walkMinutes: 3,
+    partners: [booking("https://www.tkqlhce.com/click-101805153-11891539?sid=hilton&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmadinah-hilton.html%3F")],
   },
   {
     id: "featured-dar-al-iman",
@@ -175,8 +189,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://cf.bstatic.com/xdata/images/hotel/max500/540226226.jpg?k=7daf802e5b5fd81814692800baa0a3ad4eef12b45ed47c18fbe1d70bfbcc9625&o=",
       HOTEL_BRAND_LOGOS.ihg,
     ),
-    bookingUrl:
-      "https://www.jdoqocy.com/click-101805153-11891539?sid=dar+al+iman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fdar-al-iman-intercontinental.html%3F",
+    walkMinutes: 2,
+    partners: [booking("https://www.jdoqocy.com/click-101805153-11891539?sid=dar+al+iman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fdar-al-iman-intercontinental.html%3F")],
   },
   {
     id: "featured-elaf-taiba",
@@ -187,8 +201,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
       "https://image-tc.galaxy.tf/wijpeg-e5t954b5drwhz62i6oe28y1ub/elaf-taiba-2-2562-hdr_standard.jpg?width=800",
       HOTEL_BRAND_LOGOS.elafTaiba,
     ),
-    bookingUrl:
-      "https://www.kqzyfj.com/click-101805153-11891539?sid=taiba&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Felaf-taiba.html%3F",
+    walkMinutes: 6,
+    partners: [booking("https://www.kqzyfj.com/click-101805153-11891539?sid=taiba&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Felaf-taiba.html%3F")],
   },
   {
     id: "featured-pullman-zamzam-madinah",
@@ -196,8 +210,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     city: "Madinah",
     description: "Steps from the Prophet's Mosque",
     ...featuredAccor("9245"),
-    bookingUrl:
-      "https://www.anrdoezrs.net/click-101805153-11891539?sid=pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fpullman-zamzam-madina.html%3F",
+    walkMinutes: 4,
+    partners: [booking("https://www.anrdoezrs.net/click-101805153-11891539?sid=pullman&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fpullman-zamzam-madina.html%3F")],
   },
   {
     id: "featured-mawaddah-al-salwa",
@@ -205,8 +219,8 @@ export const FEATURED_MADINAH_HOTELS: FeaturedHotel[] = [
     city: "Madinah",
     description: "Near Al-Masjid an-Nabawi",
     ...featuredLogo(HOTEL_BRAND_LOGOS.mawaddah),
-    bookingUrl:
-      "https://www.dpbolvw.net/click-101805153-11891539?sid=salwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmawadah-al-salwa.html%3F",
+    walkMinutes: 10,
+    partners: [booking("https://www.dpbolvw.net/click-101805153-11891539?sid=salwa&url=https%3A%2F%2Fwww.booking.com%2Fhotel%2Fsa%2Fmawadah-al-salwa.html%3F")],
   },
 ]
 
@@ -224,6 +238,24 @@ export type FeaturedHotelSection = {
   budgetLinkKey: string
   budgetUrl: string
   hotels: FeaturedHotel[]
+}
+
+export async function loadFeaturedFavorites(): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(FAVORITES_KEY)
+    const ids = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [])
+  } catch {
+    return new Set()
+  }
+}
+
+export async function toggleFeaturedFavorite(id: string): Promise<Set<string>> {
+  const current = await loadFeaturedFavorites()
+  if (current.has(id)) current.delete(id)
+  else current.add(id)
+  await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...current]))
+  return current
 }
 
 export function getFeaturedHotelsForCity(

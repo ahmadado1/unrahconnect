@@ -6,47 +6,61 @@ export type MushafLinePiece =
 
 export type MushafBlock =
   | { type: "surahStart"; surahNumber: number; key: string }
-  | { type: "line"; lineNumber: number; key: string; pieces: MushafLinePiece[] }
+  | { type: "paragraph"; key: string; pieces: MushafLinePiece[] }
 
 /**
- * Group words onto the Madani mushaf lines from the Quran.com `line_number`
- * field. Word text is copied through unchanged.
+ * One flowing paragraph per surah section on the page. Words stay in order.
+ * Verse ends are markers inside the paragraph, and `line_number` is ignored
+ * so the text can wrap to the screen width.
  */
-export function buildMushafBlocks(verses: MushafVerse[]): MushafBlock[] {
-  const blocks: MushafBlock[] = []
-  let line: Extract<MushafBlock, { type: "line" }> | null = null
+function verseOrder(verse: MushafVerse) {
+  const [surah, ayah] = verse.verse_key.split(":").map(part => Number(part) || 0)
+  return { surah, ayah }
+}
 
-  for (const verse of verses) {
-    if (verse.verse_number === 1) {
-      const surahNumber = parseInt(verse.verse_key.split(":")[0], 10)
-      line = null
-      blocks.push({
-        type: "surahStart",
-        surahNumber,
-        key: `surah-start-${surahNumber}-${verse.verse_key}`,
-      })
+export function buildMushafBlocks(verses: MushafVerse[]): MushafBlock[] {
+  const ordered = [...verses].sort((a, b) => {
+    const left = verseOrder(a)
+    const right = verseOrder(b)
+    return left.surah - right.surah || left.ayah - right.ayah || a.verse_number - b.verse_number
+  })
+
+  const blocks: MushafBlock[] = []
+  let paragraph: Extract<MushafBlock, { type: "paragraph" }> | null = null
+  let currentSurah = 0
+
+  for (const verse of ordered) {
+    const surahNumber = verseOrder(verse).surah
+    if (surahNumber !== currentSurah) {
+      currentSurah = surahNumber
+      paragraph = null
+      if (verse.verse_number === 1 && surahNumber > 0) {
+        blocks.push({
+          type: "surahStart",
+          surahNumber,
+          key: `surah-start-${surahNumber}-${verse.verse_key}`,
+        })
+      }
     }
 
-    for (const word of verse.words) {
-      const lineNumber = word.line_number || 1
-      if (!line || line.lineNumber !== lineNumber) {
-        line = {
-          type: "line",
-          lineNumber,
-          key: `line-${verse.verse_key}-${lineNumber}-${word.position}`,
-          pieces: [],
-        }
-        blocks.push(line)
+    if (!paragraph) {
+      paragraph = {
+        type: "paragraph",
+        key: `paragraph-${verse.verse_key}`,
+        pieces: [],
       }
+      blocks.push(paragraph)
+    }
 
+    for (const word of verse.words ?? []) {
       if (word.char_type_name === "end") {
-        line.pieces.push({
+        paragraph.pieces.push({
           type: "end",
           verseNumber: verse.verse_number,
           key: `${verse.verse_key}-end`,
         })
-      } else if (word.text_uthmani) {
-        line.pieces.push({
+      } else if (word.text_uthmani?.trim()) {
+        paragraph.pieces.push({
           type: "word",
           text: word.text_uthmani,
           key: `${verse.verse_key}-${word.position}`,
@@ -55,5 +69,39 @@ export function buildMushafBlocks(verses: MushafVerse[]): MushafBlock[] {
     }
   }
 
-  return blocks
+  return blocks.filter(block => block.type === "surahStart" || block.pieces.length > 0)
+}
+
+/**
+ * Greedy wrap. A piece stays on the current line when it fits, including an
+ * ayah marker after the last word. Only the caller treats the final line as
+ * the ragged one.
+ */
+export function packMushafPieces<T extends { key: string }>(
+  pieces: T[],
+  widthOf: (piece: T) => number,
+  maxWidth: number,
+  gap: number,
+): T[][] {
+  if (maxWidth <= 0) return pieces.length ? [pieces] : []
+
+  const lines: T[][] = []
+  let current: T[] = []
+  let used = 0
+
+  for (const piece of pieces) {
+    const width = Math.max(0, widthOf(piece))
+    const next = current.length === 0 ? width : used + gap + width
+    if (current.length > 0 && next > maxWidth) {
+      lines.push(current)
+      current = [piece]
+      used = width
+    } else {
+      current.push(piece)
+      used = next
+    }
+  }
+
+  if (current.length) lines.push(current)
+  return lines
 }

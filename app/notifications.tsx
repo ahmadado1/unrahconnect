@@ -1,7 +1,7 @@
+import TouchableOpacity from "@/app/components/AppPressable"
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
-import { cancelPrayerAlarms } from "@/modules/prayer-alarm"
 import {
   cancelAllNotifications,
   requestNotificationPermission,
@@ -33,7 +33,6 @@ import {
   Text,
   View,
 } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 function parseStoredTime(
@@ -120,14 +119,14 @@ export default function NotificationsScreen() {
       return false
     }
     await setupPrayerNotificationChannel().catch(console.log)
-    if (prayerAlerts) {
-      await reschedulePrayerNotificationsFromCache().catch(console.log)
-    }
     await scheduleDailyDhikrReminders().catch(console.log)
     await scheduleIslamicDateReminders().catch(console.log)
     await scheduleAlKahfReminder().catch(console.log)
     await scheduleAlMulkReminder().catch(console.log)
     await scheduleJourneyReminders().catch(console.log)
+    if (prayerAlerts) {
+      await reschedulePrayerNotificationsFromCache().catch(console.log)
+    }
     return true
   }
 
@@ -154,7 +153,7 @@ export default function NotificationsScreen() {
           await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})
         }
       }
-      cancelPrayerAlarms()
+      
     }
   }
 

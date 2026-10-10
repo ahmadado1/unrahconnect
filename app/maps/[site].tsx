@@ -6,7 +6,8 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Image, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
+import { openGoogleMapsUrl } from "@/lib/openMaps"
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { tabScrollBottom } from "@/lib/ui"
 import ScreenState from "@/app/components/ScreenState"
@@ -288,7 +289,10 @@ export default function SiteDetailScreen() {
   const siteName = t(info.nameKey)
 
   const navigateTo = (lat: number, lng: number, label: string) => {
-    Linking.openURL(`https://maps.google.com/?q=${lat},${lng}(${encodeURIComponent(label)})`)
+    void openGoogleMapsUrl(
+      `https://maps.google.com/?q=${lat},${lng}(${encodeURIComponent(label)})`,
+      { name: label, latitude: lat, longitude: lng }
+    )
   }
 
   return (

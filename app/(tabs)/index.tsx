@@ -1,21 +1,22 @@
-import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
-import QuranHomeCard from "@/app/components/QuranHomeCard";
+import TouchableOpacity from "@/app/components/AppPressable";
 import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
+import QuranHomeCard from "@/app/components/QuranHomeCard";
+import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
-import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
-import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
 import { resolveHomeQuranCard, type HomeQuranCardState } from "@/lib/homeQuranCard";
+import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
+import { openDonationPage } from "@/lib/openAffiliateWebView";
+import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { loadLastReadState } from "@/lib/quranLastRead";
 import { loadSurahPreviewText } from "@/lib/quranPreviewText";
 import { getQuranReadMode } from "@/lib/quranReadMode";
-import { openExternalUrl } from "@/lib/openAffiliateWebView";
-import { GOLD, NAVY, tabScrollBottom, ui, cardShadow } from "@/lib/ui";
+import { getUmrahProgress, supabase } from "@/lib/supabase";
+import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getUmrahProgress, supabase } from "@/lib/supabase";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,8 +33,7 @@ import {
   Text,
   View,
   type AppStateStatus,
-} from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -814,7 +814,6 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.donateTitle}>{t("supportMaidabo")}</Text>
               <Text style={styles.donateSub}>{t("maidaboSub")}</Text>
             </View>
           </View>
@@ -823,7 +822,7 @@ export default function HomeScreen() {
           <View style={styles.donateBtnRow}>
             <TouchableOpacity
               style={styles.donateBtn}
-              onPress={() => openExternalUrl(router, "https://maidabofoundation.com/", "Maidabo Foundation")}
+              onPress={() => void openDonationPage("https://maidabofoundation.com/")}
             >
               <Ionicons name="heart" size={16} color="#fff" />
               <Text style={styles.donateBtnText}>{t("donateNow")}</Text>

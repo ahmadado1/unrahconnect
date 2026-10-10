@@ -1,88 +1,144 @@
-import { useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
-import type { MushafBlock } from "../../lib/mushafLines"
+import { toArabicIndic } from "../../lib/mushafFontSize"
+import { packMushafPieces, type MushafBlock, type MushafLinePiece } from "../../lib/mushafLines"
 
-type LineBlock = Extract<MushafBlock, { type: "line" }>
+type ParagraphBlock = Extract<MushafBlock, { type: "paragraph" }>
+
+/** Scheherazade New, registered with expo-font. Never substitute a system face. */
+export const MUSHAF_FONT = "ScheherazadeNew_400Regular"
+export const MUSHAF_FONT_BOLD = "ScheherazadeNew_700Bold"
+
+/** Same dark ink as the earlier readable mushaf. Weight stays regular. */
+export const MUSHAF_INK = {
+  color: "#0E1C33",
+  fontWeight: "400" as const,
+}
+
+/** Body leading. Header and Bismillah keep their own spacing. */
+const BODY_LEADING = 1.75
+
+function markerMetrics(verseNumber: number, fontSize: number) {
+  const digitSize = Math.max(13, Math.round(fontSize * 0.5))
+  const label = toArabicIndic(verseNumber)
+  const height = Math.round(fontSize * 1.15)
+  const width = Math.max(height, Math.round(digitSize * label.length * 0.72) + 12)
+  return { digitSize, label, height, width }
+}
 
 /**
- * One Madani line. Words stay in official order. A line that is wider than
- * the frame scales down just enough to stay inside the side borders.
+ * One surah section, wrapped to the frame. Full lines are justified.
+ * The last line stays on the right. The font size is never reduced.
  */
 export default function MushafFittedLine({
   block,
   fontsLoaded,
+  fontSize,
 }: {
-  block: LineBlock
+  block: ParagraphBlock
   fontsLoaded: boolean
+  fontSize: number
 }) {
-  const spread = block.pieces.length > 2
-  const widths = useRef<Record<string, number>>({})
-  const boxRef = useRef(0)
+  const lineHeight = Math.round(fontSize * BODY_LEADING)
+  const gap = Math.max(4, Math.round(fontSize * 0.16))
   const [boxWidth, setBoxWidth] = useState(0)
-  const [natural, setNatural] = useState(0)
+  const [widths, setWidths] = useState<Record<string, number>>({})
+  const pieceKey = block.pieces.map(piece => piece.key).join("|")
 
-  const publishNatural = () => {
-    if (block.pieces.some(piece => widths.current[piece.key] == null)) return
-    const margins = block.pieces.reduce((sum, piece) => sum + (piece.type === "end" ? 2 : 0), 0)
-    const sum = block.pieces.reduce((total, piece) => total + (widths.current[piece.key] ?? 0), 0) + margins
-    setNatural(prev => (Math.abs(prev - sum) < 0.5 ? prev : sum))
+  useEffect(() => {
+    setWidths({})
+  }, [fontSize, pieceKey])
+
+  const ready =
+    fontsLoaded &&
+    boxWidth > 0 &&
+    block.pieces.every(piece => piece.type === "end" || widths[piece.key] != null)
+
+  const widthOf = (piece: MushafLinePiece) =>
+    piece.type === "end"
+      ? markerMetrics(piece.verseNumber, fontSize).width
+      : Math.max(1, widths[piece.key] ?? 1)
+
+  const lines = ready ? packMushafPieces(block.pieces, widthOf, boxWidth - 1, gap) : []
+
+  if (!fontsLoaded) {
+    return <View style={{ width: "100%", minHeight: lineHeight }} />
   }
 
-  const overflow = boxWidth > 0 && natural > boxWidth - 4
-  const scale = overflow ? (boxWidth - 6) / natural : 1
+  const wordStyle = [styles.word, { fontSize, lineHeight, fontFamily: MUSHAF_FONT }]
+
+  const rememberWidth = (key: string, width: number) => {
+    setWidths(current => {
+      const previous = current[key]
+      if (previous != null && Math.abs(previous - width) < 0.5) return current
+      return { ...current, [key]: width }
+    })
+  }
+
+  const renderPiece = (piece: MushafLinePiece, measure: boolean) => {
+    if (piece.type === "word") {
+      return (
+        <Text
+          key={piece.key}
+          style={wordStyle}
+          onLayout={
+            measure
+              ? event => rememberWidth(piece.key, event.nativeEvent.layout.width)
+              : undefined
+          }
+        >
+          {piece.text}
+        </Text>
+      )
+    }
+
+    const marker = markerMetrics(piece.verseNumber, fontSize)
+    return (
+      <View
+        key={piece.key}
+        style={[
+          styles.verseEndBadge,
+          { width: marker.width, height: marker.height, borderRadius: marker.height / 2 },
+        ]}
+      >
+        <Text style={[styles.verseEndText, { fontSize: marker.digitSize, fontFamily: MUSHAF_FONT_BOLD }]}>
+          {marker.label}
+        </Text>
+      </View>
+    )
+  }
 
   return (
     <View
-      style={styles.slot}
+      style={[styles.slot, { minHeight: lineHeight }]}
       onLayout={event => {
         const width = event.nativeEvent.layout.width
-        if (Math.abs(boxRef.current - width) < 0.5) return
-        boxRef.current = width
+        if (width <= 0 || Math.abs(boxWidth - width) < 0.5) return
         setBoxWidth(width)
       }}
     >
-      <View
-        style={[
-          styles.line,
-          !spread && !overflow && styles.center,
-          overflow ? { width: natural, transform: [{ scale }] } : styles.full,
-        ]}
-      >
-        {block.pieces.map(piece => {
-          if (piece.type === "word") {
+      {!ready ? (
+        <View style={[styles.line, styles.wrap, { minHeight: lineHeight, columnGap: gap, rowGap: Math.round(fontSize * 0.12) }]}>
+          {block.pieces.map(piece => renderPiece(piece, true))}
+        </View>
+      ) : null}
+      {ready
+        ? lines.map((line, index) => {
+            const last = index === lines.length - 1
             return (
-              <Text
-                key={piece.key}
-                onLayout={event => {
-                  const width = event.nativeEvent.layout.width
-                  const prev = widths.current[piece.key]
-                  if (prev != null && Math.abs(prev - width) < 0.5) return
-                  widths.current[piece.key] = width
-                  publishNatural()
-                }}
-                style={[styles.word, fontsLoaded && { fontFamily: "AmiriQuran" }]}
+              <View
+                key={line.map(piece => piece.key).join("|")}
+                style={[
+                  styles.line,
+                  { minHeight: lineHeight },
+                  last ? [styles.ragged, { columnGap: gap }] : styles.justify,
+                ]}
               >
-                {piece.text}
-              </Text>
+                {line.map(piece => renderPiece(piece, false))}
+              </View>
             )
-          }
-          return (
-            <View
-              key={piece.key}
-              onLayout={event => {
-                const width = event.nativeEvent.layout.width
-                const prev = widths.current[piece.key]
-                if (prev != null && Math.abs(prev - width) < 0.5) return
-                widths.current[piece.key] = width
-                publishNatural()
-              }}
-              style={styles.verseEndBadge}
-            >
-              <Text style={styles.verseEndText}>{piece.verseNumber}</Text>
-            </View>
-          )
-        })}
-      </View>
+          })
+        : null}
     </View>
   )
 }
@@ -90,47 +146,36 @@ export default function MushafFittedLine({
 const styles = StyleSheet.create({
   slot: {
     width: "100%",
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
   },
   line: {
+    width: "100%",
     flexDirection: "row-reverse",
-    justifyContent: "space-between",
     alignItems: "center",
   },
-  full: {
-    width: "100%",
+  justify: {
+    justifyContent: "space-between",
   },
-  center: {
-    justifyContent: "center",
-    gap: 8,
+  ragged: {
+    justifyContent: "flex-start",
+  },
+  wrap: {
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    alignContent: "flex-start",
   },
   word: {
-    fontSize: 28,
-    color: "#071018",
-    lineHeight: 58,
-    fontWeight: "400",
-    // Amiri Quran has no bold cut. A sharp copy of the same ink thickens
-    // the strokes without changing size, spacing, or the fitted line.
-    textShadowColor: "#071018",
-    textShadowOffset: { width: 0.55, height: 0 },
-    textShadowRadius: 0.2,
+    flexShrink: 0,
+    ...MUSHAF_INK,
   },
   verseEndBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
     borderWidth: 1.25,
     borderColor: "#8B6914",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F5EDD6",
     flexShrink: 0,
-    marginHorizontal: 1,
   },
   verseEndText: {
-    fontSize: 11,
     color: "#1A1A1A",
     fontWeight: "700",
     textAlign: "center",

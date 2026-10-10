@@ -1,7 +1,0 @@
-{
-  "platforms": ["apple"],
-  "apple": {
-    "modules": ["PrayerAlarmModule"],
-    "podspecPath": "ios/PrayerAlarm.podspec"
-  }
-}

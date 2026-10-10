@@ -1,6 +1,7 @@
 import { useTheme } from "@/context/themeContext"
 import { getMakkahPlace } from "@/lib/makkahPlaces"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { openGoogleMapsUrl } from "@/lib/openMaps"
 import { Ionicons } from "@expo/vector-icons"
 import { ResizeMode, Video } from "expo-av"
 import { useLocalSearchParams, useRouter } from "expo-router"

@@ -3,7 +3,8 @@ import { normalizeSearchText } from "../lib/searchNormalize"
 import { searchSurahs, type SearchableSurah } from "../lib/surahSearch"
 import { resolveHomeQuranCard } from "../lib/homeQuranCard"
 import { showKasraWithShadda } from "../lib/quranArabicMarks"
-import { buildMushafBlocks } from "../lib/mushafLines"
+import { buildMushafBlocks, packMushafPieces } from "../lib/mushafLines"
+import { isUsableMushafPage } from "../lib/mushafPageValidity"
 
 function assertEqual(actual: unknown, expected: unknown, label: string) {
   const a = JSON.stringify(actual)
@@ -159,12 +160,145 @@ assertEqual(showKasraWithShadda("\u0645\u0650\u0646"), "\u0645\u0650\u0646", "pl
       ],
     },
   ])
-  const line = blocks.find(b => b.type === "line")
-  if (!line || line.type !== "line") throw new Error("expected a mushaf line")
+  const line = blocks.find(b => b.type === "paragraph")
+  if (!line || line.type !== "paragraph") throw new Error("expected a mushaf paragraph")
   assertEqual(
     line.pieces.filter(p => p.type === "word").map(p => p.type === "word" ? p.text : ""),
     ["فَأَعْرِضْ", "عَنْهُمْ", "وَٱنتَظِرْ", "إِنَّهُم", "مُّنتَظِرُونَ"],
-    "page line keeps the source words",
+    "page paragraph keeps the source words",
+  )
+  assertEqual(
+    line.pieces.at(-1),
+    { type: "end", verseNumber: 30, key: "32:30-end" },
+    "ayah marker follows the last word",
+  )
+}
+
+{
+  const blocks = buildMushafBlocks([
+    {
+      verse_number: 1,
+      verse_key: "67:1",
+      juz_number: 29,
+      words: [
+        { text_uthmani: "تَبَارَكَ", line_number: 1, page_number: 562, char_type_name: "word", position: 1 },
+        { text_uthmani: "١", line_number: 1, page_number: 562, char_type_name: "end", position: 2 },
+      ],
+    },
+    {
+      verse_number: 2,
+      verse_key: "67:2",
+      juz_number: 29,
+      words: [
+        { text_uthmani: "ٱلَّذِى", line_number: 2, page_number: 562, char_type_name: "word", position: 1 },
+        { text_uthmani: "٢", line_number: 3, page_number: 562, char_type_name: "end", position: 2 },
+      ],
+    },
+  ])
+  assertEqual(blocks.map(block => block.type), ["surahStart", "paragraph"], "surah header stays its own block")
+  const paragraph = blocks[1]
+  if (paragraph.type !== "paragraph") throw new Error("expected one paragraph")
+  assertEqual(
+    paragraph.pieces.map(piece => piece.type === "word" ? piece.text : piece.verseNumber),
+    ["تَبَارَكَ", 1, "ٱلَّذِى", 2],
+    "verses continue in one paragraph across line numbers",
+  )
+}
+
+{
+  const mid = buildMushafBlocks([
+    {
+      verse_number: 5,
+      verse_key: "28:5",
+      juz_number: 20,
+      words: [
+        { text_uthmani: "وَنُرِيدُ", line_number: 1, page_number: 386, char_type_name: "word", position: 1 },
+        { text_uthmani: "٥", line_number: 1, page_number: 386, char_type_name: "end", position: 2 },
+      ],
+    },
+    {
+      verse_number: 6,
+      verse_key: "28:6",
+      juz_number: 20,
+      words: [
+        { text_uthmani: "وَنُمَكِّنَ", line_number: 8, page_number: 386, char_type_name: "word", position: 1 },
+      ],
+    },
+  ])
+  assertEqual(mid.map(block => block.type), ["paragraph"], "a page that starts mid-surah has no extra header")
+  const midParagraph = mid[0]
+  if (midParagraph.type !== "paragraph") throw new Error("expected the mid-surah paragraph")
+  assertEqual(
+    midParagraph.pieces.map(piece => piece.type === "word" ? piece.text : piece.verseNumber),
+    ["وَنُرِيدُ", 5, "وَنُمَكِّنَ"],
+    "mid-surah verses stay in one paragraph",
+  )
+}
+
+{
+  const joined = buildMushafBlocks([
+    {
+      verse_number: 1,
+      verse_key: "28:1",
+      juz_number: 20,
+      words: [
+        { text_uthmani: "طسم", line_number: 2, page_number: 385, char_type_name: "word", position: 1 },
+      ],
+    },
+    {
+      verse_number: 88,
+      verse_key: "27:88",
+      juz_number: 20,
+      words: [
+        { text_uthmani: "صُنْعَ", line_number: 1, page_number: 385, char_type_name: "word", position: 1 },
+      ],
+    },
+  ])
+  assertEqual(
+    joined.map(block => block.type),
+    ["paragraph", "surahStart", "paragraph"],
+    "two surahs stay in order even if the response is unsorted",
+  )
+  const texts = joined.flatMap(block => block.type === "paragraph" ? block.pieces.map(piece => piece.type === "word" ? piece.text : "") : [])
+  assertEqual(texts.filter(Boolean), ["صُنْعَ", "طسم"], "neither surah's words are dropped")
+}
+
+assertEqual(isUsableMushafPage(null), false, "null page is not usable")
+assertEqual(isUsableMushafPage({ verses: [], juzNumber: 1 }), false, "empty verse list is not usable")
+assertEqual(
+  isUsableMushafPage({
+    juzNumber: 20,
+    verses: [{ verse_number: 1, verse_key: "28:1", juz_number: 20, words: [] }],
+  }),
+  false,
+  "a verse with no words is not usable",
+)
+assertEqual(
+  isUsableMushafPage({
+    juzNumber: 20,
+    verses: [{
+      verse_number: 1,
+      verse_key: "28:1",
+      juz_number: 20,
+      words: [{ text_uthmani: "طسم", line_number: 1, page_number: 385, char_type_name: "word", position: 1 }],
+    }],
+  }),
+  true,
+  "a page with text is usable",
+)
+
+{
+  const pieces = [
+    { key: "a", width: 30 },
+    { key: "end", width: 16 },
+    { key: "b", width: 30 },
+    { key: "c", width: 40 },
+  ]
+  const lines = packMushafPieces(pieces, piece => piece.width, 100, 8)
+  assertEqual(
+    lines.map(line => line.map(piece => piece.key)),
+    [["a", "end", "b"], ["c"]],
+    "marker stays with the verse and the next word wraps only when it no longer fits",
   )
 }
 
