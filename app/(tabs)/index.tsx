@@ -814,7 +814,7 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.donateSub}>{t("maidaboSub")}</Text>
+              <Text style={styles.donateTitle}>Maidabo Foundation</Text>
             </View>
           </View>
           <View style={styles.donateDivider} />
