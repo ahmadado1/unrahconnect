@@ -1,20 +1,20 @@
-import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
+import TouchableOpacity from "@/app/components/AppPressable";
 import LegalAgreementText from "@/app/components/LegalAgreementText";
+import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { useTheme } from "@/context/themeContext";
+import { errorMessageKey, isNetworkError } from "@/lib/networkError";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native"
-import TouchableOpacity from "@/app/components/AppPressable"
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { isExpoGo } from "../../lib/runtime";
+import { supabase, supabaseAnonKey, supabaseUrl } from "../../lib/supabase";
 import AppButton from "../components/AppButton";
 import PhoneLogin from "../components/PhoneLogin";
 import SelectDropdown from "../components/SelectDropdown";
-import { supabase } from "../../lib/supabase";
-import { isExpoGo } from "../../lib/runtime";
-import { errorMessageKey, isNetworkError } from "@/lib/networkError";
 
 // ─── GOOGLE SIGN IN ───────────────────────────────────────────────────────────
 // Native module only exists in dev/production builds — not Expo Go.
@@ -32,6 +32,27 @@ if (!isExpoGo) {
   }
 }
 
+// ─── WELCOME EMAIL ────────────────────────────────────────────────────────────
+// Sends the welcome email through our Supabase Edge Function.
+// Uses the same key as lib/supabase.ts (the old hard-coded key was out of date).
+function sendWelcomeEmail(name: string, email: string) {
+  if (!email) return
+  fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${supabaseAnonKey}`,
+    },
+    body: JSON.stringify({
+      guest_name: name || "Pilgrim",
+      guest_email: email,
+    }),
+  })
+    .then(r => r.text())
+    .then(txt => console.log("Welcome email response:", txt))
+    .catch(e => console.log("Welcome email error:", e))
+}
+
 export default function LoginScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -44,6 +65,8 @@ export default function LoginScreen() {
   const [fullName, setFullName] = useState("")
   const [gender, setGender] = useState<"male" | "female">("male")
   const [phoneOpen, setPhoneOpen] = useState(false)
+  // Phone login button is hidden until the switch in Supabase (app_config) is turned on
+  const [phoneEnabled, setPhoneEnabled] = useState(false)
   const { t } = useTranslation()
 
   // Configure Google Sign In on mount
@@ -53,6 +76,23 @@ export default function LoginScreen() {
         webClientId: "655574174670-j7sbj6stpb9fglnon5mkb20ikui15nt2.apps.googleusercontent.com",
         iosClientId: "655574174670-0776g80gopifqrtltranoa1ao570co22.apps.googleusercontent.com",
       })
+    }
+  }, [])
+
+  // Read the phone login on/off switch from Supabase.
+  // If the table doesn't exist or there's no internet, the button simply stays hidden.
+  useEffect(() => {
+    let active = true
+    supabase
+      .from("app_config")
+      .select("value")
+      .eq("key", "phone_login_enabled")
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (active && !error) setPhoneEnabled(data?.value === true)
+      })
+    return () => {
+      active = false
     }
   }, [])
 
@@ -106,18 +146,7 @@ export default function LoginScreen() {
             setError(t("somethingWentWrong"))
           }
         } else {
-          fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
-            },
-            body: JSON.stringify({
-              guest_name: fullName,
-              guest_email: email,
-            })
-          }).then(r => r.text()).then(txt => console.log("Welcome email response:", txt))
-            .catch(e => console.log("Welcome email error:", e))
+          sendWelcomeEmail(fullName, email)
           // Agent code is collected on the profile setup screen
           router.replace("/auth/setup" as any)
         }
@@ -145,70 +174,50 @@ export default function LoginScreen() {
   }
 
   // ─── GOOGLE SIGN IN ────────────────────────────────────────────────────────
-const handleGoogleSignIn = async () => {
-  if (GoogleSignin) {
+
+  const handleGoogleSignIn = async () => {
+    if (!GoogleSignin) {
+      setError("Google Sign In only works in the installed app. Please use email/password.")
+      return
+    }
     try {
       await GoogleSignin.hasPlayServices()
       const userInfo = await GoogleSignin.signIn()
       const idToken = userInfo.data?.idToken ?? (userInfo as any).idToken
+      if (!idToken) return // user closed the Google sheet
 
-      if (idToken) {
-        console.log("Got idToken, exchanging with Supabase...")
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-        })
-        console.log("Supabase error:", error)
-        if (error) {
-          setError(isNetworkError(error) ? t("networkError") : error.message)
-        } else {
-          const { data: { user } } = await supabase.auth.getUser()
-          const profileComplete = user?.user_metadata?.profile_complete
-          if (!profileComplete) {
-            fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ"
-              },
-              body: JSON.stringify({
-                guest_name: user?.user_metadata?.full_name || "Pilgrim",
-                guest_email: user?.email || "",
-              })
-            }).catch(e => console.log("Welcome email error:", e))
-            router.replace("/auth/setup" as any)
-          } else {
-            router.replace("/(tabs)")
-          }}
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: idToken,
+      })
+      if (error) {
+        console.log("Supabase Google error:", error.message)
+        setError(isNetworkError(error) ? t("networkError") : t("somethingWentWrong"))
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      const profileComplete = user?.user_metadata?.profile_complete
+      if (!profileComplete) {
+        sendWelcomeEmail(user?.user_metadata?.full_name || "Pilgrim", user?.email || "")
+        router.replace("/auth/setup" as any)
+      } else {
+        router.replace("/(tabs)")
       }
     } catch (err: any) {
-      // TEMP debug — show raw Google Sign-In error on device (remove after diagnosing)
-      const raw = (() => {
-        try {
-          return JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
-        } catch {
-          return String(err)
-        }
-      })()
-      const detail =
-        `code: ${String(err?.code)}\n` +
-        `message: ${String(err?.message)}\n` +
-        `statusCode: ${String(err?.statusCode)}\n` +
-        `full:\n${raw}`
-      console.log("Google error full:", detail)
-      Alert.alert("Google Sign-In error (debug)", detail.slice(0, 3500))
-      if (statusCodes && err.code === statusCodes.SIGN_IN_CANCELLED) {
+      console.log("Google Sign-In error:", err?.code, err?.message)
+      if (statusCodes && err?.code === statusCodes.SIGN_IN_CANCELLED) {
         // User cancelled — do nothing
+      } else if (isNetworkError(err)) {
+        setError(t("networkError"))
       } else {
-        setError(detail.slice(0, 500))
+        setError(t("somethingWentWrong"))
       }
     }
-  } else {
-    setError("Google Sign In only works in the installed app. Please use email/password.")
   }
-}
 
-  // ─── Apple Sign In ────────────────────────────────────────────────────────────────
+  // ─── APPLE SIGN IN ─────────────────────────────────────────────────────────
+
   const handleAppleSignIn = async () => {
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -255,18 +264,7 @@ const handleGoogleSignIn = async () => {
       const resolvedName = user?.user_metadata?.full_name || appleFullName || "Pilgrim"
 
       if (!profileComplete) {
-        fetch("https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-welcome-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYWJ1aXB5bWJheWxob2xtbW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODM3OTcsImV4cCI6MjA2MTg1OTc5N30.yT2HGTjPkPlvGQDMpKSoMATCIRHmjFZKhTzD4Oau5MQ",
-          },
-          body: JSON.stringify({
-            guest_name: resolvedName,
-            guest_email: user?.email || "",
-          }),
-        }).catch(e => console.log("Welcome email error:", e))
+        sendWelcomeEmail(resolvedName, user?.email || "")
         router.replace("/auth/setup" as any)
       } else {
         router.replace("/(tabs)")
@@ -282,11 +280,13 @@ const handleGoogleSignIn = async () => {
     }
   }
 
-
+  // ─── PHONE LOGIN SCREEN ────────────────────────────────────────────────────
 
   if (phoneOpen) {
     return <PhoneLogin onBack={() => setPhoneOpen(false)} />
   }
+
+  // ─── MAIN SCREEN ───────────────────────────────────────────────────────────
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -418,7 +418,7 @@ const handleGoogleSignIn = async () => {
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
             ) : null}
 
-            {/* Social sign-in — always visible (Impact-style: below primary CTA) */}
+            {/* Social sign-in — always visible (below primary CTA) */}
             <View style={styles.socialSection}>
               <View style={styles.divider}>
                 <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
@@ -455,15 +455,18 @@ const handleGoogleSignIn = async () => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.phoneBtn}
-                onPress={() => setPhoneOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t("continueWithPhone")}
-              >
-                <Ionicons name="call-outline" size={20} color="#C9A84C" />
-                <Text style={styles.phoneBtnText}>{t("continueWithPhone")}</Text>
-              </TouchableOpacity>
+              {/* Phone login — only shown when phone_login_enabled is true in Supabase */}
+              {phoneEnabled && (
+                <TouchableOpacity
+                  style={styles.phoneBtn}
+                  onPress={() => setPhoneOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("continueWithPhone")}
+                >
+                  <Ionicons name="call-outline" size={20} color="#C9A84C" />
+                  <Text style={styles.phoneBtnText}>{t("continueWithPhone")}</Text>
+                </TouchableOpacity>
+              )}
 
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
             </View>
