@@ -7,7 +7,6 @@
     "icon": "./assets/images/logo.jpg",
     "scheme": "umrahconnect",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.umrahconnect.app",
@@ -40,7 +39,6 @@
       },
       "package": "com.myumrahconnect.app",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "googleServicesFile": "./google-services.json",
       "config": {
@@ -69,18 +67,6 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/logo.jpg"
-    },
-    "notification": {
-      "icon": "./assets/images/logo.jpg",
-      "color": "#1E3A5F",
-      "sounds": [
-        "./assets/adhan/adhan_abdulbasit_lock.wav",
-        "./assets/adhan/adhan_abdulbasit_fajr_lock.wav",
-        "./assets/adhan/adhan_trablsy_lock.wav",
-        "./assets/adhan/adhan_trablsy_fajr_lock.wav",
-        "./assets/adhan/adhan_alafasy_lock.wav",
-        "./assets/adhan/adhan_alafasy_fajr_lock.wav"
-      ]
     },
     "plugins": [
       "expo-router",
@@ -141,7 +127,7 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "16.4"
           },
           "android": {
             "compileSdkVersion": 36,
@@ -152,7 +138,9 @@
             "extraProguardRules": "# react-native-reanimated: JNI and TurboModule classes are called by reflection. R8 removes them and animations crash in release.\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-keep class com.facebook.react.fabric.** { *; }\n\n# react-native-worklets: Reanimated 4 runs worklets through this package. R8 strips the JNI entry points.\n-keep class com.swmansion.worklets.** { *; }\n\n# @react-native-google-signin: the native module and Play Services sign-in types are loaded by name. R8 drops them and Google sign-in crashes in release.\n-keep class com.reactnativegooglesignin.** { *; }\n-keep class com.google.android.gms.auth.** { *; }\n-keep class com.google.android.gms.auth.api.signin.** { *; }\n-keep class com.google.android.gms.common.api.** { *; }\n\n# @supabase/supabase-js is JavaScript bundled by Metro. R8 never sees it, so it has no Java keep rule.\n\n# expo-notifications: the library keep file is not applied as consumer rules. Android creates the Firebase messaging service from the manifest.\n-keep class expo.modules.notifications.** { *; }\n\n# react-native-svg: native view classes are created by name. R8 removes them and SVG renders blank.\n-keep public class com.horcrux.svg.** { *; }\n\n# react-native-maps: ships no consumer rules. Map views and markers are created by reflection.\n-keep class com.rnmaps.** { *; }\n\n# react-native-gesture-handler: handler classes are created by name and ship no consumer rules.\n-keep class com.swmansion.gesturehandler.** { *; }\n\n# react-native-screens: screen and fragment classes are restored by name. R8 breaks navigation in release.\n-keep class com.swmansion.rnscreens.** { *; }\n\n# react-native-webview: the view manager and message events are reached by reflection.\n-keep class com.reactnativecommunity.webview.** { *; }\n\n# @react-native-async-storage/async-storage: the storage module is looked up by name.\n-keep class com.reactnativecommunity.asyncstorage.** { *; }\n\n# react-native-safe-area-context: inset views are created by name. Edge-to-edge padding depends on them.\n-keep class com.th3rdwave.safeareacontext.** { *; }\n\n# @react-native-community/datetimepicker: picker modules are created by name and ship no ProGuard rules.\n-keep class com.reactcommunity.rndatetimepicker.** { *; }\n\n# expo-task-manager: its keep rule is not wired as a consumer file. Background tasks are started by class name.\n-keep class expo.modules.taskManager.** { *; }\n\n# Google Sign-In, Reanimated, and Expo find classes through annotations and generic signatures.\n-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod\n"
           }
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

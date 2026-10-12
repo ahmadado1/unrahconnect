@@ -6,10 +6,10 @@ import MadinahPlacesSection from "@/app/components/MadinahPlacesSection"
 import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
+import { considerStoreReview } from "@/lib/storeReviewPrompt"
 import { getUmrahProgress, markPhaseComplete, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect } from "@react-navigation/native"
-import { useLocalSearchParams, useRouter } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import HeroBackground from "@/app/components/HeroBackground"
 import ScreenState from "@/app/components/ScreenState"
@@ -73,6 +73,7 @@ export default function PhaseDetailScreen() {
   const handleMarkComplete = async () => {
     const newState = await markPhaseComplete(phaseId ?? "")
     setIsCompleted(newState ?? false)
+    if (newState === true) void considerStoreReview()
   }
 
   const goToUmrahGuide = useCallback(() => {
@@ -120,7 +121,7 @@ export default function PhaseDetailScreen() {
             <>
               <HeroBackground
                 source={headerImageSource}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 imageStyle={styles.headerImage}
               />
               <LinearGradient

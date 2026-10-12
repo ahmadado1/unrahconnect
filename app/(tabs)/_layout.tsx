@@ -2,7 +2,7 @@ import { useTheme } from "@/context/themeContext";
 import { isNativeBuild } from "@/lib/runtime";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -81,24 +81,24 @@ function NativeTabsLayout() {
       disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="index">
-        <Label>{t("home")}</Label>
-        <Icon sf={{ default: "house", selected: "house.fill" }} drawable="ic_menu_view" />
+        <NativeTabs.Trigger.Label>{t("home")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} drawable="ic_menu_view" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="umrah">
-        <Label>{t("guide")}</Label>
-        <Icon sf={{ default: "book", selected: "book.fill" }} drawable="ic_menu_today" />
+        <NativeTabs.Trigger.Label>{t("guide")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "book", selected: "book.fill" }} drawable="ic_menu_today" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="maps">
-        <Label>{t("maps")}</Label>
-        <Icon sf={{ default: "map", selected: "map.fill" }} drawable="ic_menu_mylocation" />
+        <NativeTabs.Trigger.Label>{t("maps")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "map", selected: "map.fill" }} drawable="ic_menu_mylocation" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="services">
-        <Label>{t("services")}</Label>
-        <Icon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} drawable="ic_menu_manage" />
+        <NativeTabs.Trigger.Label>{t("services")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} drawable="ic_menu_manage" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="me">
-        <Label>{t("me")}</Label>
-        <Icon sf={{ default: "person", selected: "person.fill" }} drawable="ic_menu_myplaces" />
+        <NativeTabs.Trigger.Label>{t("me")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} drawable="ic_menu_myplaces" />
       </NativeTabs.Trigger>
     </NativeTabs>
   )

@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   notFoundText: { fontSize: 16, marginBottom: 12 },
   backLink: { color: "#C9A84C", fontWeight: "600" },
   hero: { height: 260, justifyContent: "flex-end", backgroundColor: "#1E3A5F" },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(30,58,95,0.72)" },
+  heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(30,58,95,0.72)" },
   backBtn: {
     position: "absolute",
     left: 16,

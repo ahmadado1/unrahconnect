@@ -2,6 +2,7 @@ import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon, ICON_NAVY } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { createMushafJumpId } from "@/lib/mushafJump"
 import {
   SEARCH_CATEGORY_COLORS,
   SEARCH_QUICK_CHIPS,
@@ -58,9 +59,22 @@ export default function SearchScreen() {
   const handlePress = (item: SearchResult) => {
     if (item.action === "link") {
       openExternalUrl(router, item.target, item.title)
-    } else {
-      router.push(item.target as any)
+      return
     }
+    const surahMatch = item.target.match(/^\/quran\/(\d+)$/)
+    if (surahMatch) {
+      router.push({
+        pathname: "/quran/[surah]",
+        params: {
+          surah: surahMatch[1],
+          ayah: "1",
+          resume: "0",
+          jump: String(createMushafJumpId()),
+        },
+      })
+      return
+    }
+    router.push(item.target as any)
   }
 
   return (

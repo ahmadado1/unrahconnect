@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   hero: { height: 260, justifyContent: "flex-end", padding: 16, backgroundColor: "#1E3A5F" },
   logoHero: { backgroundColor: "#F5F5F5", justifyContent: "flex-end" },
   logoBox: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     margin: 40,
     marginTop: 70,
     backgroundColor: "#fff",

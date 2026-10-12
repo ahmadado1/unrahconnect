@@ -21,6 +21,8 @@ const PAGE_API =
 
 export type MushafWord = {
   text_uthmani: string
+  /** Same word in KFGQPC encoding (e.g. sukun is U+06E1). Missing on older caches. */
+  text_qpc_hafs?: string
   line_number: number
   page_number: number
   char_type_name: string
@@ -44,7 +46,17 @@ function pageFilePath(page: number) {
 }
 
 export function pageApiUrl(page: number) {
-  return `${PAGE_API}/${page}?words=true&word_fields=text_uthmani,line_number,page_number&fields=juz_number`
+  return `${PAGE_API}/${page}?words=true&word_fields=text_uthmani,text_qpc_hafs,line_number,page_number&fields=juz_number`
+}
+
+/** True when every word on the page carries its KFGQPC-encoded text. */
+export function pageHasQpcHafsText(data: MushafPageData | null | undefined): boolean {
+  if (!data?.verses?.length) return false
+  return data.verses.every(verse =>
+    (verse.words ?? []).every(
+      word => word.char_type_name === "end" || !word.text_uthmani?.trim() || Boolean(word.text_qpc_hafs?.trim()),
+    ),
+  )
 }
 
 export function extractJuzNumber(verses: MushafVerse[], pageHint?: number): number {
@@ -66,6 +78,7 @@ export function slimPageDataFromJson(json: { verses?: any[] }, pageHint?: number
     juz_number: verse.juz_number,
     words: (verse.words ?? []).map((word: any) => ({
       text_uthmani: word.text_uthmani ?? "",
+      ...(word.text_qpc_hafs ? { text_qpc_hafs: word.text_qpc_hafs } : {}),
       line_number: word.line_number,
       page_number: word.page_number,
       char_type_name: word.char_type_name,
@@ -291,6 +304,27 @@ export function fetchAndCachePage(
   })
 
   inflightPages.set(page, promise)
+  return promise
+}
+
+const refreshingPages = new Map<number, Promise<MushafPageData | null>>()
+
+/** Fetch a page from the network even if cached, and overwrite the cache on success. */
+export function refreshPageFromNetwork(page: number): Promise<MushafPageData | null> {
+  const existing = refreshingPages.get(page)
+  if (existing) return existing
+
+  const promise = enqueuePageTask(async () => {
+    try {
+      return await fetchPageOnce(page)
+    } catch {
+      return null
+    }
+  }, "high").finally(() => {
+    refreshingPages.delete(page)
+  })
+
+  refreshingPages.set(page, promise)
   return promise
 }
 

@@ -14,8 +14,7 @@ import {
 import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect } from "@react-navigation/native"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -326,7 +325,7 @@ const cardStyles = StyleSheet.create({
     position: "relative",
   },
   logoBox: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     margin: 20,
     backgroundColor: "#fff",
     borderRadius: 8,

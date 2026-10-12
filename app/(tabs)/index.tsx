@@ -7,11 +7,11 @@ import i18n from "@/i18n";
 import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
 import { resolveHomeQuranCard, type HomeQuranCardState } from "@/lib/homeQuranCard";
 import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
-import { openDonationPage } from "@/lib/openAffiliateWebView";
 import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { loadLastReadState } from "@/lib/quranLastRead";
 import { loadSurahPreviewText } from "@/lib/quranPreviewText";
 import { getQuranReadMode } from "@/lib/quranReadMode";
+import { createMushafJumpId } from "@/lib/mushafJump";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
 import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +27,7 @@ import {
   Easing,
   Image,
   ImageBackground,
+  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -441,6 +442,7 @@ export default function HomeScreen() {
         ayah: String(homeQuranCard.ayah),
         resume: "0",
         mode,
+        jump: String(createMushafJumpId()),
         expand: "1",
       },
     })
@@ -705,7 +707,7 @@ export default function HomeScreen() {
         <View style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <ImageBackground
             source={require("../../assets/images/prayer-mosque.jpg")}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             imageStyle={{ opacity: 0.08, borderRadius: ui.radius }}
           />
           <View style={styles.dhikrHeader}>
@@ -822,10 +824,10 @@ export default function HomeScreen() {
           <View style={styles.donateBtnRow}>
             <TouchableOpacity
               style={styles.donateBtn}
-              onPress={() => void openDonationPage("https://maidabofoundation.com/")}
+              onPress={() => void Linking.openURL("https://maidabofoundation.com/").catch(() => {})}
             >
               <Ionicons name="heart" size={16} color="#fff" />
-              <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
+              <Text style={styles.donateBtnText}>{t("learnMore")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -872,7 +874,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,20,0.6)",
   },
   heroInner: { flexGrow: 1, justifyContent: "space-between" },

@@ -24,6 +24,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
 import { auditAllMushafPages, purgeEmptyCachedPages } from "../lib/quranPageCache";
 import { clearLocalAuth, getValidSession, supabase } from "../lib/supabase";
+import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
 
@@ -267,11 +268,12 @@ const checkAuth = async () => {
             <QuranBackgroundDownload />
             {/* Always mount Stack so notification/auth navigation never races ahead of the root layout */}
             <AppStack />
+            <StoreReviewPrompt />
 
             {status === "loading" && (
               <View
                 style={{
-                  ...StyleSheet.absoluteFillObject,
+                  ...StyleSheet.absoluteFill,
                   backgroundColor: "#F5F0E8",
                   alignItems: "center",
                   justifyContent: "center",

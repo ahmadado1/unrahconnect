@@ -16,6 +16,7 @@ import {
 } from "@/lib/kahfWeekly"
 import { mushafLineHeight, useMushafFontSize } from "@/lib/mushafFontSize"
 import { juzForPage } from "@/lib/mushafJuz"
+import { considerStoreReview } from "@/lib/storeReviewPrompt"
 import { scheduleAlKahfReminder } from "@/lib/notifications"
 import {
   fetchAndCachePage,
@@ -362,24 +363,41 @@ export default function KahfReadingScreen() {
   )
 
   const ayahByPageRef = useRef<Record<number, number>>({})
+  const readyRef = useRef(ready)
+  readyRef.current = ready
+  const kahfReviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const kahfReviewNoted = useRef(false)
+  const armKahfReview = useCallback(() => {
+    if (!readyRef.current || kahfReviewNoted.current || kahfReviewTimer.current) return
+    kahfReviewTimer.current = setTimeout(() => {
+      kahfReviewTimer.current = null
+      if (!readyRef.current) return
+      kahfReviewNoted.current = true
+      void considerStoreReview()
+    }, 2000)
+  }, [])
   const onMaxAyah = useCallback(
     (ayah: number, page: number) => {
       ayahByPageRef.current[page] = ayah
       if (page === currentPageRef.current) persistProgress(ayah, page)
+      if (ayah >= KAHF_AYAH_COUNT) armKahfReview()
     },
-    [persistProgress],
+    [persistProgress, armKahfReview],
   )
 
   useEffect(() => {
     if (!ready) return
     const ayah = ayahByPageRef.current[currentPage]
     if (ayah) persistProgress(ayah, currentPage)
-  }, [currentPage, ready, persistProgress])
+    const maxAyah = Math.max(0, ...Object.values(ayahByPageRef.current))
+    if (maxAyah >= KAHF_AYAH_COUNT) armKahfReview()
+  }, [currentPage, ready, persistProgress, armKahfReview])
 
   const onMarkComplete = useCallback(async () => {
     const next = await markKahfWeekComplete()
     setProgress(next)
     await scheduleAlKahfReminder().catch(() => {})
+    if (next) void considerStoreReview()
   }, [])
 
   useEffect(() => {

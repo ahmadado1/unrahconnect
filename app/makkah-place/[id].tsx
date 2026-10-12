@@ -3,10 +3,9 @@ import { getMakkahPlace } from "@/lib/makkahPlaces"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { openGoogleMapsUrl } from "@/lib/openMaps"
 import { Ionicons } from "@expo/vector-icons"
-import { ResizeMode, Video } from "expo-av"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useRef } from "react"
+import { useVideoPlayer, VideoView } from "expo-video"
 import { useTranslation } from "react-i18next"
 import {
   Linking,
@@ -34,9 +33,11 @@ export default function MakkahPlaceDetailScreen() {
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const videoRef = useRef<Video>(null)
-
   const place = getMakkahPlace(id || "")
+  const videoSource = place?.videoKey ? VIDEOS[place.videoKey] : null
+  const player = useVideoPlayer(videoSource, (p) => {
+    p.loop = true
+  })
 
   if (!place) {
     return (
@@ -48,8 +49,6 @@ export default function MakkahPlaceDetailScreen() {
       </View>
     )
   }
-
-  const videoSource = place.videoKey ? VIDEOS[place.videoKey] : null
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -69,13 +68,11 @@ export default function MakkahPlaceDetailScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {videoSource ? (
           <View style={styles.videoWrap}>
-            <Video
-              ref={videoRef}
+            <VideoView
+              player={player}
               style={styles.video}
-              source={videoSource}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              isLooping
+              nativeControls
+              contentFit="contain"
             />
           </View>
         ) : null}

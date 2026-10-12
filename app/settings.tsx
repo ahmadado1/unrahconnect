@@ -20,6 +20,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 // Icons
 import { ensureQuranForLanguage } from "@/lib/quranDownload"
+import { openStoreListing } from "@/lib/storeReviewPrompt"
 import { applyRtlForLanguage } from "@/lib/rtl"
 import { scheduleDailyDhikrReminders } from "@/lib/notifications"
 import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown"
@@ -163,7 +164,10 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("app")}</Text>
 
           {/* Rate the app */}
-          <TouchableOpacity style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: theme.border }]}
+            onPress={() => { void openStoreListing() }}
+          >
             <View style={[styles.settingIcon, { backgroundColor: "#C9A84C" }]}>
               <Ionicons name="star" size={18} color="#1E3A5F" />
             </View>
@@ -318,7 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   langSheet: {

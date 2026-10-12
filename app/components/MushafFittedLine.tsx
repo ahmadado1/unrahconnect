@@ -1,6 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
 import { toArabicIndic } from "../../lib/mushafFontSize"
+import {
+  mushafFontMetrics,
+  mushafWordText,
+  UTHMANI_MUSHAF_FONT,
+  type MushafFontConfig,
+} from "../../lib/mushafFonts"
 import { packMushafPieces, type MushafBlock, type MushafLinePiece } from "../../lib/mushafLines"
 
 type ParagraphBlock = Extract<MushafBlock, { type: "paragraph" }>
@@ -15,9 +21,6 @@ export const MUSHAF_INK = {
   fontWeight: "400" as const,
 }
 
-/** Body leading. Header and Bismillah keep their own spacing. */
-const BODY_LEADING = 1.75
-
 function markerMetrics(verseNumber: number, fontSize: number) {
   const digitSize = Math.max(13, Math.round(fontSize * 0.5))
   const label = toArabicIndic(verseNumber)
@@ -30,16 +33,36 @@ function markerMetrics(verseNumber: number, fontSize: number) {
  * One surah section, wrapped to the frame. Full lines are justified.
  * The last line stays on the right. The font size is never reduced.
  */
+function pieceIsVerse(piece: MushafLinePiece, verseKey: string) {
+  return piece.key.startsWith(`${verseKey}-`)
+}
+
 export default function MushafFittedLine({
   block,
   fontsLoaded,
   fontSize,
+  mushafFont = UTHMANI_MUSHAF_FONT,
+  anchorVerseKey,
+  anchorRef,
+  highlighted = false,
+  onSettled,
+  onAnchorLayout,
 }: {
   block: ParagraphBlock
   fontsLoaded: boolean
   fontSize: number
+  /** Arabic body font; ayah markers keep their own face and size. */
+  mushafFont?: MushafFontConfig
+  /** `surah:ayah` of a verse to scroll to once lines have their final positions. */
+  anchorVerseKey?: string
+  anchorRef?: { current: View | null }
+  highlighted?: boolean
+  /** Fires once after the packed lines have laid out. */
+  onSettled?: () => void
+  /** Fires when the first line of anchorVerseKey is laid out. */
+  onAnchorLayout?: () => void
 }) {
-  const lineHeight = Math.round(fontSize * BODY_LEADING)
+  const { fontSize: wordSize, lineHeight } = mushafFontMetrics(mushafFont, fontSize)
   const gap = Math.max(4, Math.round(fontSize * 0.16))
   const [boxWidth, setBoxWidth] = useState(0)
   const [widths, setWidths] = useState<Record<string, number>>({})
@@ -47,7 +70,7 @@ export default function MushafFittedLine({
 
   useEffect(() => {
     setWidths({})
-  }, [fontSize, pieceKey])
+  }, [fontSize, pieceKey, mushafFont.id])
 
   const ready =
     fontsLoaded &&
@@ -60,12 +83,33 @@ export default function MushafFittedLine({
       : Math.max(1, widths[piece.key] ?? 1)
 
   const lines = ready ? packMushafPieces(block.pieces, widthOf, boxWidth - 1, gap) : []
+  const settledRef = useRef(false)
+  const laidOutRef = useRef(new Set<number>())
+  const onSettledRef = useRef(onSettled)
+  onSettledRef.current = onSettled
+  if (!ready) {
+    settledRef.current = false
+    laidOutRef.current.clear()
+  }
+
+  const markLineLaidOut = (index: number) => {
+    if (!ready) return
+    laidOutRef.current.add(index)
+    if (settledRef.current || laidOutRef.current.size < lines.length) return
+    settledRef.current = true
+    onSettledRef.current?.()
+  }
+
+  useEffect(() => {
+    if (!ready || lines.length === 0 || laidOutRef.current.size < lines.length) return
+    onSettledRef.current?.()
+  }, [ready, lines.length, pieceKey, fontSize, mushafFont.id, boxWidth])
 
   if (!fontsLoaded) {
     return <View style={{ width: "100%", minHeight: lineHeight }} />
   }
 
-  const wordStyle = [styles.word, { fontSize, lineHeight, fontFamily: MUSHAF_FONT }]
+  const wordStyle = [styles.word, { fontSize: wordSize, lineHeight, fontFamily: mushafFont.family }]
 
   const rememberWidth = (key: string, width: number) => {
     setWidths(current => {
@@ -87,7 +131,7 @@ export default function MushafFittedLine({
               : undefined
           }
         >
-          {piece.text}
+          {mushafWordText(mushafFont, piece)}
         </Text>
       )
     }
@@ -123,21 +167,36 @@ export default function MushafFittedLine({
         </View>
       ) : null}
       {ready
-        ? lines.map((line, index) => {
-            const last = index === lines.length - 1
-            return (
-              <View
-                key={line.map(piece => piece.key).join("|")}
-                style={[
-                  styles.line,
-                  { minHeight: lineHeight },
-                  last ? [styles.ragged, { columnGap: gap }] : styles.justify,
-                ]}
-              >
-                {line.map(piece => renderPiece(piece, false))}
-              </View>
-            )
-          })
+        ? (() => {
+            let anchorPlaced = false
+            return lines.map((line, index) => {
+              const last = index === lines.length - 1
+              const matchesAnchor = anchorVerseKey
+                ? line.some(piece => pieceIsVerse(piece, anchorVerseKey))
+                : false
+              const isAnchorStart = matchesAnchor && !anchorPlaced
+              if (matchesAnchor) anchorPlaced = true
+              return (
+                <View
+                  key={line.map(piece => piece.key).join("|")}
+                  ref={isAnchorStart ? anchorRef : undefined}
+                  collapsable={isAnchorStart ? false : undefined}
+                  onLayout={() => {
+                    markLineLaidOut(index)
+                    if (isAnchorStart) onAnchorLayout?.()
+                  }}
+                  style={[
+                    styles.line,
+                    { minHeight: lineHeight },
+                    last ? [styles.ragged, { columnGap: gap }] : styles.justify,
+                    highlighted && matchesAnchor && styles.lineGlow,
+                  ]}
+                >
+                  {line.map(piece => renderPiece(piece, false))}
+                </View>
+              )
+            })
+          })()
         : null}
     </View>
   )
@@ -162,6 +221,14 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "flex-start",
     alignContent: "flex-start",
+  },
+  lineGlow: {
+    backgroundColor: "rgba(201,168,76,0.32)",
+    borderRadius: 6,
+    shadowColor: "#C9A84C",
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
   },
   word: {
     flexShrink: 0,

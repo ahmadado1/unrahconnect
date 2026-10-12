@@ -88,12 +88,12 @@ export default function HeroBackground({
         locations={[0, 0.62, 1]}
         start={{ x: 0.15, y: 0 }}
         end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <Animated.View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFillObject, { opacity }]}
+        style={[StyleSheet.absoluteFill, { opacity }]}
       >
         <Image
           source={source}
@@ -106,7 +106,7 @@ export default function HeroBackground({
             onError?.()
             if (!onError) reveal()
           }}
-          style={[StyleSheet.absoluteFillObject, imageStyle]}
+          style={[StyleSheet.absoluteFill, imageStyle]}
         />
       </Animated.View>
       {showSpinner ? (

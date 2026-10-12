@@ -1,7 +1,7 @@
 import type { MushafVerse } from "./quranPageCache"
 
 export type MushafLinePiece =
-  | { type: "word"; text: string; key: string }
+  | { type: "word"; text: string; qpcText?: string; key: string }
   | { type: "end"; verseNumber: number; key: string }
 
 export type MushafBlock =
@@ -63,6 +63,7 @@ export function buildMushafBlocks(verses: MushafVerse[]): MushafBlock[] {
         paragraph.pieces.push({
           type: "word",
           text: word.text_uthmani,
+          ...(word.text_qpc_hafs ? { qpcText: word.text_qpc_hafs } : {}),
           key: `${verse.verse_key}-${word.position}`,
         })
       }

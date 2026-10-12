@@ -1,5 +1,4 @@
 import { isGoogleMapsUrl, openGoogleMapsUrl } from "@/lib/openMaps"
-import * as WebBrowser from "expo-web-browser"
 import { Linking } from "react-native"
 
 /** In-app WebView route for websites and affiliate clicks. */
@@ -71,10 +70,8 @@ export function isDonationUrl(url: string): boolean {
 /** Charity donations open in the system browser, never inside the app. */
 export async function openDonationPage(url = "https://maidabofoundation.com/") {
   try {
-    await WebBrowser.openBrowserAsync(url)
-  } catch {
     await Linking.openURL(url)
-  }
+  } catch {}
 }
 
 /** Open http(s) websites in-app; keep tel/maps/WhatsApp/store links native. */

@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   webWrap: { flex: 1, backgroundColor: "#fff" },
   webview: { flex: 1 },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.35)",

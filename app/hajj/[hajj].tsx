@@ -5,10 +5,10 @@ import PhaseStepsSection from "@/app/components/PhaseStepsSection"
 import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
+import { considerStoreReview } from "@/lib/storeReviewPrompt"
 import { getHajjProgress, markHajjPhaseComplete, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect } from "@react-navigation/native"
-import { useLocalSearchParams, useRouter } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import HeroBackground from "@/app/components/HeroBackground"
 import ScreenState from "@/app/components/ScreenState"
@@ -72,6 +72,7 @@ export default function HajjPhaseDetailScreen() {
   const handleMarkComplete = async () => {
     const newState = await markHajjPhaseComplete(phaseId ?? "")
     setIsCompleted(newState ?? false)
+    if (newState === true) void considerStoreReview()
   }
 
   const goToHajjGuide = useCallback(() => {
@@ -119,7 +120,7 @@ export default function HajjPhaseDetailScreen() {
             <>
               <HeroBackground
                 source={headerImageSource}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 imageStyle={styles.headerImage}
               />
               <LinearGradient

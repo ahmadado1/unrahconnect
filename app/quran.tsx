@@ -13,6 +13,7 @@ import {
   type QuranReadMode,
 } from "@/lib/quranReadMode"
 import { getSurahMeta } from "@/lib/quranSurahMeta"
+import { createMushafJumpId } from "@/lib/mushafJump"
 import { QURAN_QUICK_LINKS } from "@/lib/quickLinks"
 import { searchSurahs } from "@/lib/surahSearch"
 import type { LastReadEntry } from "@/lib/lastReadRegister"
@@ -210,6 +211,7 @@ export default function QuranScreen() {
         type: item.revelationType,
         resume: "0",
         mode: readMode ?? "verses",
+        jump: String(createMushafJumpId()),
         ...(options?.ayah ? { ayah: String(options.ayah) } : {}),
       },
     })
@@ -233,6 +235,7 @@ export default function QuranScreen() {
         type: meta.revelationType,
         resume: "0",
         mode: readMode ?? "verses",
+        jump: String(createMushafJumpId()),
         ...(ayah ? { ayah: String(ayah) } : {}),
       },
     })

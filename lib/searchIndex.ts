@@ -5,7 +5,6 @@ import { MADINAH_PLACES } from "@/lib/madinahPlaces"
 import { MAKKAH_PLACES } from "@/lib/makkahPlaces"
 import { RESTAURANTS } from "@/lib/restaurants"
 import { TRAVEL_AGENT_COUNTRIES } from "@/lib/travelAgents"
-
 export type SearchCategory =
   | "Home"
   | "Maps"
@@ -975,12 +974,12 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
     item({
       id: "maidabo",
       title: "Maidabo Foundation",
-      subtitle: "Donate · Support education and healthcare",
+      subtitle: "Education and healthcare foundation",
       icon: "heart",
       category: "Features",
       action: "link",
       target: "https://maidabofoundation.com/",
-      keywords: kw("maidabo", "donate", "charity", "foundation"),
+      keywords: kw("maidabo", "foundation"),
     })
   )
 

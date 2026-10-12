@@ -95,7 +95,7 @@ export default function HotelDetailScreen() {
             <>
               <HeroBackground
                 source={{ uri: imageUri }}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 onError={handleImageError}
               />
               <View style={styles.heroOverlay} />
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   logoImage: { width: "80%", height: "80%" },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(30,58,95,0.55)",
   },
   heroContent: {

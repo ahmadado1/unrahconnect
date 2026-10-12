@@ -17,8 +17,7 @@ import { affiliateWebViewHref, openExternalUrl } from "@/lib/openAffiliateWebVie
 import { applyStayToBookingUrl } from "@/lib/stayLinks"
 import { supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect } from "@react-navigation/native"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -782,7 +781,7 @@ const cardStyles = StyleSheet.create({
     position: "relative",
   },
   logoBox: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     margin: 28,
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -927,7 +926,7 @@ const styles = StyleSheet.create({
 
   // Partner picker
   partnerRoot: { flex: 1, justifyContent: "flex-end" },
-  partnerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  partnerBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.45)" },
   partnerSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

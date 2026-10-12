@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
+import { openStoreListing } from "@/lib/storeReviewPrompt"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,6 +42,7 @@ export default function MeScreen() {
     { icon: "briefcase-outline", labelKey: "agentDashboard", route: "/agent/dashboard", agentOnly: true },
     { icon: "notifications-outline", labelKey: "notifications", route: "/notifications" },
     { icon: "settings-outline", labelKey: "settings", route: "/settings" },
+    { icon: "star-outline", labelKey: "rateApp", action: () => { void openStoreListing() } },
     { icon: "information-circle-outline", labelKey: "aboutUs", route: "/about" },
     { icon: "call-outline", labelKey: "contactUs", route: "/contact" },
     {

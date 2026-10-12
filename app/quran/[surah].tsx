@@ -1,11 +1,24 @@
-import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
-import MushafFontSizer from "@/app/components/MushafFontSizer"
+import MushafFittedLine, { MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
-import QuranReadModeToggle from "@/app/components/QuranReadModeToggle"
+import MushafSettingsDrawer, {
+  MushafFontSection,
+  MushafReadModeSection,
+  MushafTextSizeSection,
+} from "@/components/MushafSettingsDrawer"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
-import { useMushafFontSize, mushafLineHeight } from "@/lib/mushafFontSize"
+import { considerStoreReview } from "@/lib/storeReviewPrompt"
+import { useMushafFontSize } from "@/lib/mushafFontSize"
+import {
+  MUSHAF_FONT_ASSETS,
+  mushafFontMetrics,
+  QPC_HAFS_BISMILLAH,
+  useMushafFont,
+  UTHMANI_MUSHAF_FONT,
+  type MushafFontConfig,
+} from "@/lib/mushafFonts"
 import { juzForPage } from "@/lib/mushafJuz"
+import { createMushafJumpId } from "@/lib/mushafJump"
 import {
   getCachedQuranReadMode,
   getQuranReadMode,
@@ -18,13 +31,13 @@ import { KAHF_AYAH_COUNT, saveKahfWeeklyProgress } from "@/lib/kahfWeekly"
 import { scheduleAlKahfReminder, scheduleAlMulkReminder } from "@/lib/notifications"
 import { recordQuranLastRead } from "@/lib/quranLastRead"
 import { getSurahMeta } from "@/lib/quranSurahMeta"
-import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
+import { useFonts } from "@expo-google-fonts/scheherazade-new"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useKeepAwake } from "expo-keep-awake"
 import { useFocusEffect, useLocalSearchParams, useRouter, Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
@@ -37,7 +50,9 @@ import {
   fetchAndCachePage,
   getFirstVerseOnPage,
   isUsableMushafPage,
+  pageHasQpcHafsText,
   preloadAdjacentPages,
+  refreshPageFromNetwork,
   type MushafPageData,
 } from "../../lib/quranPageCache"
 import {
@@ -126,70 +141,117 @@ function SurahBanner({
   )
 }
 
-function BismillahLine({ fontsLoaded, fontSize }: { fontsLoaded: boolean; fontSize: number }) {
+function BismillahLine({
+  fontsLoaded,
+  fontSize,
+  mushafFont,
+}: {
+  fontsLoaded: boolean
+  fontSize: number
+  mushafFont: MushafFontConfig
+}) {
   if (!fontsLoaded) return null
-  const lineHeight = mushafLineHeight(fontSize)
+  const metrics = mushafFontMetrics(mushafFont, fontSize)
   return (
     <View style={mStyles.bismillahRow}>
       <Text
         style={[
           mStyles.bismillahText,
-          { fontSize, lineHeight, fontFamily: MUSHAF_FONT },
+          {
+            fontSize: metrics.fontSize,
+            lineHeight: metrics.bismillahLineHeight,
+            fontFamily: mushafFont.family,
+          },
         ]}
       >
-        {BISMILLAH}
+        {mushafFont.textField === "text_qpc_hafs" ? QPC_HAFS_BISMILLAH : BISMILLAH}
       </Text>
     </View>
   )
+}
+
+type MushafFocus = {
+  id: number
+  surah: number
+  ayah: number
+  page: number
+}
+
+function paragraphHasVerse(block: MushafBlock, verseKey: string) {
+  return block.type === "paragraph" && block.pieces.some(piece => piece.key.startsWith(`${verseKey}-`))
 }
 
 function MushafTextFlow({
   blocks,
   fontsLoaded,
   surahNames,
-  targetSurah,
-  didScrollToSurah,
   fontSize,
+  mushafFont,
+  headerSurah,
+  headerHighlighted,
+  headerRef,
+  verseKey,
+  verseHighlighted,
+  verseAnchorRef,
+  onParagraphSettled,
+  onAnchorLayout,
 }: {
   blocks: MushafBlock[]
   fontsLoaded: boolean
   surahNames: Record<number, string>
-  targetSurah?: number
-  didScrollToSurah: MutableRefObject<boolean>
   fontSize: number
+  mushafFont: MushafFontConfig
+  headerSurah?: number
+  headerHighlighted: boolean
+  headerRef?: { current: View | null }
+  verseKey?: string
+  verseHighlighted: boolean
+  verseAnchorRef?: { current: View | null }
+  onParagraphSettled: (blockKey: string) => void
+  onAnchorLayout?: () => void
 }) {
   return (
     <View style={mStyles.textFlow}>
       {blocks.map(block => {
         if (block.type === "surahStart") {
           const { surahNumber } = block
+          const isTarget = headerSurah === surahNumber
           return (
             <View
               key={block.key}
+              ref={isTarget ? headerRef : undefined}
+              collapsable={isTarget ? false : undefined}
+              onLayout={isTarget ? onAnchorLayout : undefined}
               style={mStyles.flowSurahBlock}
-              onLayout={() => {
-                if (!targetSurah || surahNumber !== targetSurah || didScrollToSurah.current) return
-                didScrollToSurah.current = true
-              }}
             >
+              {isTarget && headerHighlighted ? (
+                <View pointerEvents="none" style={mStyles.headerGlow} />
+              ) : null}
               <SurahBanner
                 name={surahNames[surahNumber] ?? ""}
                 fontsLoaded={fontsLoaded}
                 fontSize={fontSize}
               />
               {surahNumber !== 9 && surahNumber !== 1 && (
-                <BismillahLine fontsLoaded={fontsLoaded} fontSize={fontSize} />
+                <BismillahLine fontsLoaded={fontsLoaded} fontSize={fontSize} mushafFont={mushafFont} />
               )}
             </View>
           )
         }
 
+        const isVerseAnchor = Boolean(verseKey && paragraphHasVerse(block, verseKey))
         return (
           <MushafFittedLine
             key={block.key}
             block={block}
             fontsLoaded={fontsLoaded}
             fontSize={fontSize}
+            mushafFont={mushafFont}
+            anchorVerseKey={isVerseAnchor ? verseKey : undefined}
+            anchorRef={isVerseAnchor ? verseAnchorRef : undefined}
+            highlighted={isVerseAnchor && verseHighlighted}
+            onSettled={() => onParagraphSettled(block.key)}
+            onAnchorLayout={isVerseAnchor ? onAnchorLayout : undefined}
           />
         )
       })}
@@ -202,23 +264,40 @@ function MushafPageContent({
   fontsLoaded,
   surahNames,
   targetSurah,
+  focus,
   pageHeight,
   fontSize,
+  mushafFont,
+  surahEndKey,
+  onSurahEndReady,
 }: {
   pageNumber: number
   fontsLoaded: boolean
   surahNames: Record<number, string>
   targetSurah?: number
+  /** Set only for the page opened from a surah, ayah, or jump. Swiping does not set this. */
+  focus: MushafFocus | null
   pageHeight: number
   fontSize: number
+  mushafFont: MushafFontConfig
+  /** `surah:ayah` of the last ayah. Set only on the page currently on screen. */
+  surahEndKey?: string
+  onSurahEndReady?: () => void
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
-  const didScrollToSurah = useRef(false)
+  const [highlighted, setHighlighted] = useState(false)
+  const [qpcSettled, setQpcSettled] = useState(mushafFont.textField !== "text_qpc_hafs")
+  const [settledIds, setSettledIds] = useState<Record<string, true>>({})
   const scrollRef = useRef<ScrollView>(null)
+  const contentRef = useRef<View>(null)
+  const portRef = useRef<View>(null)
+  const anchorRef = useRef<View>(null)
+  const alignRef = useRef<() => void>(() => {})
+  const alignedKey = useRef("")
 
   useEffect(() => {
     let active = true
@@ -226,7 +305,7 @@ function MushafPageContent({
     setLoading(true)
     setError(false)
     setPageData(null)
-    didScrollToSurah.current = false
+    setHighlighted(false)
 
     fetchAndCachePage(requested).then(data => {
       if (!active || requested !== pageNumber) return
@@ -246,10 +325,113 @@ function MushafPageContent({
     }
   }, [pageNumber, retryCount])
 
+  const needsQpcText = mushafFont.textField === "text_qpc_hafs"
+  const hasQpcText = pageHasQpcHafsText(pageData)
+
+  // Pages cached before text_qpc_hafs was requested: fetch once, keep showing Scheherazade New until then.
   useEffect(() => {
-    didScrollToSurah.current = false
-    scrollRef.current?.scrollTo({ y: 0, animated: false })
-  }, [pageNumber, targetSurah])
+    if (!isUsableMushafPage(pageData)) {
+      setQpcSettled(false)
+      return
+    }
+    if (!needsQpcText || hasQpcText) {
+      setQpcSettled(true)
+      return
+    }
+    let active = true
+    setQpcSettled(false)
+    refreshPageFromNetwork(pageNumber).then(fresh => {
+      if (!active) return
+      if (pageHasQpcHafsText(fresh)) setPageData(fresh)
+      else setQpcSettled(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [needsQpcText, hasQpcText, pageData, pageNumber])
+
+  const pageFont = needsQpcText && !hasQpcText ? UTHMANI_MUSHAF_FONT : mushafFont
+  const flowBlocks = isUsableMushafPage(pageData) ? buildMushafBlocks(pageData.verses) : []
+  const paragraphCount = flowBlocks.filter(block => block.type === "paragraph").length
+  const focusKey = focus ? `${focus.id}:${focus.page}:${focus.surah}:${focus.ayah}` : ""
+  const layoutKey = `${pageNumber}:${pageFont.id}:${fontSize}:${hasQpcText}:${pageData?.verses.length ?? 0}`
+  const toHeader = !focus || focus.ayah <= 1
+  const verseKey = focus && focus.ayah > 1 ? `${focus.surah}:${focus.ayah}` : undefined
+  const startsAtTop =
+    flowBlocks[0]?.type === "surahStart" && flowBlocks[0].surahNumber === focus?.surah
+
+  const paragraphsSettled =
+    paragraphCount === 0 ||
+    flowBlocks.every(block => block.type !== "paragraph" || settledIds[`${layoutKey}:${block.key}`])
+
+  const onParagraphSettled = useCallback((blockKey: string) => {
+    const id = `${layoutKey}:${blockKey}`
+    setSettledIds(prev => (prev[id] ? prev : { ...prev, [id]: true }))
+  }, [layoutKey])
+
+  alignRef.current = () => {
+    if (!focus || focus.page !== pageNumber || !focusKey) return
+    if (alignedKey.current === focusKey) return
+    if (toHeader && startsAtTop && flowBlocks.length > 0) {
+      alignedKey.current = focusKey
+      return
+    }
+    const anchor = anchorRef.current
+    const content = contentRef.current
+    const port = portRef.current
+    const scroll = scrollRef.current
+    if (!anchor || !content || !port || !scroll) return
+    anchor.measureInWindow((_ax, anchorY, _aw, anchorH) => {
+      if (alignedKey.current === focusKey || anchorH < 2) return
+      content.measureInWindow((_cx, contentY) => {
+        const yInContent = anchorY - contentY
+        if (!Number.isFinite(yInContent) || yInContent < 1) return
+        port.measureInWindow((_px, portY) => {
+          if (alignedKey.current === focusKey) return
+          const delta = anchorY - portY
+          if (delta < 40 && delta > -16) {
+            if (!paragraphsSettled) return
+            alignedKey.current = focusKey
+            setHighlighted(true)
+            return
+          }
+          scroll.scrollTo({ y: Math.max(0, yInContent - 12), animated: false })
+        })
+      })
+    })
+  }
+
+  useEffect(() => {
+    if (!focus || focus.page !== pageNumber || !focusKey) return
+    if (toHeader && startsAtTop && flowBlocks.length > 0) return
+    alignedKey.current = ""
+    const started = Date.now()
+    let frame = 0
+    let alive = true
+    const tick = () => {
+      if (!alive) return
+      alignRef.current()
+      if (alignedKey.current === focusKey) return
+      if (Date.now() - started < 4000) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => {
+      alive = false
+      cancelAnimationFrame(frame)
+    }
+  }, [focus, focusKey, pageNumber, pageData, fontsLoaded, qpcSettled, startsAtTop, toHeader, flowBlocks.length, layoutKey])
+
+  useEffect(() => {
+    if (!highlighted) return
+    const timer = setTimeout(() => setHighlighted(false), 1500)
+    return () => clearTimeout(timer)
+  }, [highlighted])
+
+  useEffect(() => {
+    if (!onSurahEndReady || !surahEndKey || loading || error || !isUsableMushafPage(pageData)) return
+    if (!pageData.verses.some(verse => verse.verse_key === surahEndKey)) return
+    onSurahEndReady()
+  }, [onSurahEndReady, surahEndKey, loading, error, pageData])
 
   if (loading) {
     return (
@@ -280,7 +462,6 @@ function MushafPageContent({
 
   const primarySurah = parseInt(pageData.verses[0]?.verse_key.split(":")[0] ?? "1", 10)
   const primarySurahName = surahNames[targetSurah ?? primarySurah] ?? surahNames[primarySurah] ?? ""
-  const flowBlocks = buildMushafBlocks(pageData.verses)
   // Prefer API juz; always clamp via Madani page→juz so layout never glues juz+page (e.g. "Juz 350")
   const juzNumber = juzForPage(pageNumber)
 
@@ -295,6 +476,7 @@ function MushafPageContent({
         </Text>
       </View>
 
+      <View ref={portRef} style={mStyles.pageScroll} collapsable={false}>
       <ScrollView
         ref={scrollRef}
         style={mStyles.pageScroll}
@@ -303,7 +485,9 @@ function MushafPageContent({
         nestedScrollEnabled
         directionalLockEnabled
         scrollEventThrottle={16}
+        onContentSizeChange={() => alignRef.current()}
       >
+        <View ref={contentRef} collapsable={false} onLayout={() => alignRef.current()}>
         <View style={mStyles.pageFrameOuter}>
           <View style={mStyles.pageFrameInner}>
             <View style={mStyles.pageContent}>
@@ -316,9 +500,16 @@ function MushafPageContent({
                 blocks={flowBlocks}
                 fontsLoaded={fontsLoaded}
                 surahNames={surahNames}
-                targetSurah={targetSurah}
-                didScrollToSurah={didScrollToSurah}
                 fontSize={fontSize}
+                mushafFont={pageFont}
+                headerSurah={focus && toHeader ? focus.surah : undefined}
+                headerHighlighted={highlighted && toHeader}
+                headerRef={toHeader ? anchorRef : undefined}
+                verseKey={verseKey}
+                verseHighlighted={highlighted && !toHeader}
+                verseAnchorRef={verseKey ? anchorRef : undefined}
+                onParagraphSettled={onParagraphSettled}
+                onAnchorLayout={() => alignRef.current()}
               />
 
               <View style={mStyles.ornamentBottom}>
@@ -328,7 +519,9 @@ function MushafPageContent({
             </View>
           </View>
         </View>
+        </View>
       </ScrollView>
+      </View>
     </View>
   )
 }
@@ -341,8 +534,13 @@ function MushafView({
   fontsLoaded,
   targetSurah,
   targetAyah,
+  mushafFocus,
   onJump,
-  onSwitchToVerses,
+  onOpenSettings,
+  fontSize,
+  mushafFont,
+  surahEndKey,
+  onSurahEndReady,
 }: {
   currentPage: number
   setCurrentPage: (p: number) => void
@@ -351,11 +549,15 @@ function MushafView({
   fontsLoaded: boolean
   targetSurah?: number
   targetAyah?: number
+  mushafFocus: MushafFocus | null
   onJump: (target: QuranJumpTarget) => void
-  onSwitchToVerses: () => void
+  onOpenSettings: () => void
+  fontSize: number
+  mushafFont: MushafFontConfig
+  surahEndKey?: string
+  onSurahEndReady?: () => void
 }) {
   const { t } = useTranslation()
-  const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
   const flatListRef = useRef<GestureFlatList<number>>(null)
   /**
    * RTL mushaf order: index 0 = page 604 … last = page 1.
@@ -409,22 +611,24 @@ function MushafView({
     preloadAdjacentPages(currentPage)
   }, [currentPage])
 
-  // Sync pager when page changes via Prev/Next / jump (not from swipe itself)
+  // Sync pager when page changes via Prev/Next / jump (not from swipe itself).
+  // A new jump shows the page immediately so the inner scroll can measure it.
   useEffect(() => {
     if (pageFromSwipeRef.current) {
       pageFromSwipeRef.current = false
       return
     }
-    const animated = hasSyncedPagerRef.current
+    const jumping = mushafFocus?.page === indexToPage(pageIndex)
+    const animated = hasSyncedPagerRef.current && !jumping
     hasSyncedPagerRef.current = true
     const timer = setTimeout(() => {
       flatListRef.current?.scrollToIndex({
         index: pageIndex,
         animated,
       })
-    }, 50)
+    }, jumping ? 0 : 50)
     return () => clearTimeout(timer)
-  }, [pageIndex, targetSurah])
+  }, [pageIndex, targetSurah, mushafFocus?.id])
 
   return (
     <GestureHandlerRootView style={mStyles.mushafRoot}>
@@ -435,12 +639,6 @@ function MushafView({
         </TouchableOpacity>
 
         <View style={mStyles.mushafHeaderActions}>
-          <MushafFontSizer
-            onDecrease={decrease}
-            onIncrease={increase}
-            canDecrease={canDecrease}
-            canIncrease={canIncrease}
-          />
           <TouchableOpacity
             onPress={() => setJumpOpen(true)}
             style={mStyles.mushafToggleBtn}
@@ -450,12 +648,11 @@ function MushafView({
             <Text style={mStyles.mushafToggleText}>{t("quranGoTo")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={onSwitchToVerses}
-            style={mStyles.mushafToggleBtn}
-            accessibilityLabel={t("quranSwitchToVerses")}
+            onPress={onOpenSettings}
+            style={[mStyles.mushafToggleBtn, mStyles.mushafMenuBtn]}
+            accessibilityLabel={t("mushafSettingsOpen")}
           >
-            <Ionicons name="list-outline" size={16} color="#C9A84C" />
-            <Text style={mStyles.mushafToggleText}>{t("quranReadModeVersesShort")}</Text>
+            <Ionicons name="menu" size={18} color="#C9A84C" />
           </TouchableOpacity>
         </View>
       </View>
@@ -477,6 +674,7 @@ function MushafView({
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={pageIndex}
         keyExtractor={item => item.toString()}
+        extraData={`${mushafFont.id}:${fontSize}:${mushafFocus?.id ?? 0}:${mushafFocus?.page ?? 0}:${mushafFocus?.surah ?? 0}:${mushafFocus?.ayah ?? 0}`}
         style={mStyles.mushafPager}
         onLayout={event => {
           const height = event.nativeEvent.layout.height
@@ -504,8 +702,12 @@ function MushafView({
             fontsLoaded={fontsLoaded}
             surahNames={surahNames}
             targetSurah={targetSurah}
+            focus={mushafFocus && item === mushafFocus.page ? mushafFocus : null}
             pageHeight={pageHeight}
             fontSize={fontSize}
+            mushafFont={mushafFont}
+            surahEndKey={item === currentPage ? surahEndKey : undefined}
+            onSurahEndReady={item === currentPage ? onSurahEndReady : undefined}
           />
         )}
         onScrollToIndexFailed={info => {
@@ -557,7 +759,7 @@ export default function SurahScreen() {
   const [scrollToVerseIndex, setScrollToVerseIndex] = useState<number | null>(null)
   const listRef = useRef<FlatList>(null)
   const didScrollForSurahRef = useRef<string | null>(null)
-  const { surah, name, arabicName, verses, type, resume, ayah, mode, expand } = useLocalSearchParams<{
+  const { surah, name, arabicName, verses, type, resume, ayah, mode, expand, jump } = useLocalSearchParams<{
     surah: string
     name: string
     arabicName: string
@@ -567,6 +769,7 @@ export default function SurahScreen() {
     ayah?: string
     mode?: string
     expand?: string
+    jump?: string
   }>()
   const shouldResume = resume === "1"
   const requestedAyah = ayah ? Number(ayah) : NaN
@@ -580,6 +783,10 @@ export default function SurahScreen() {
 
   const [viewMode, setViewMode] = useState<QuranReadMode>(resolveInitialMode)
   const [jumpOpen, setJumpOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
+  const { font: mushafFont, setFontId } = useMushafFont()
   const [visibleVerseNumber, setVisibleVerseNumber] = useState(1)
 
   const initialLang = normalizeReadLanguage(i18n.language)
@@ -593,6 +800,12 @@ export default function SurahScreen() {
   const [currentPage, setCurrentPage] = useState(
     () => initialAyahVerse?.page || initialCached?.[0]?.page || 1,
   )
+  const [mushafFocus, setMushafFocus] = useState<MushafFocus>(() => ({
+    id: createMushafJumpId(),
+    page: initialAyahVerse?.page || initialCached?.[0]?.page || 1,
+    surah: initialSurahNum,
+    ayah: Number.isFinite(requestedAyah) ? requestedAyah : 1,
+  }))
   const [verseList, setVerseList] = useState<Verse[]>(() => initialCached ?? [])
   const [loading, setLoading] = useState(() => !initialCached?.length)
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
@@ -600,6 +813,30 @@ export default function SurahScreen() {
   const loadRequestRef = useRef(0)
   const switchingRef = useRef(false)
   const lastAyahRef = useRef(1)
+  const reviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reviewNotedRef = useRef(false)
+
+  const disarmSurahReview = useCallback(() => {
+    if (!reviewTimerRef.current) return
+    clearTimeout(reviewTimerRef.current)
+    reviewTimerRef.current = null
+  }, [])
+
+  const armSurahReview = useCallback(() => {
+    if (reviewNotedRef.current || reviewTimerRef.current || loading) return
+    reviewTimerRef.current = setTimeout(() => {
+      reviewTimerRef.current = null
+      reviewNotedRef.current = true
+      void considerStoreReview()
+    }, 2000)
+  }, [loading])
+
+  useEffect(() => {
+    if (viewMode !== "mushaf" || loading) return
+    const ayahCount = Number(verses)
+    const last = verseList.find(verse => verse.number === ayahCount)
+    if (!last || last.page !== currentPage) disarmSurahReview()
+  }, [viewMode, loading, verses, verseList, currentPage, disarmSurahReview])
 
   useEffect(() => {
     if (viewMode === "mushaf") {
@@ -646,11 +883,7 @@ export default function SurahScreen() {
     else if (mode === "text") setViewMode("verses")
   }, [mode, surah])
 
-  const [fontsLoaded] = useFonts({
-    ScheherazadeNew_400Regular,
-    ScheherazadeNew_700Bold,
-    AmiriQuran: require("../../assets/fonts/AmiriQuran-Regular.ttf"),
-  })
+  const [fontsLoaded] = useFonts(MUSHAF_FONT_ASSETS)
 
   useFocusEffect(
     useCallback(() => {
@@ -670,6 +903,27 @@ export default function SurahScreen() {
     setViewMode(next)
     await setQuranReadMode(next)
   }
+
+  const focusMushaf = (page: number, ayahNumber: number) => {
+    setMushafFocus({
+      id: createMushafJumpId(),
+      page,
+      surah: Number(surah),
+      ayah: ayahNumber,
+    })
+  }
+
+  const appliedJump = useRef(typeof jump === "string" ? jump : undefined)
+  useEffect(() => {
+    const jumpId = Array.isArray(jump) ? jump[0] : jump
+    if (!jumpId || appliedJump.current === jumpId) return
+    const ayahNum = Number.isFinite(requestedAyah) && requestedAyah >= 1 ? requestedAyah : 1
+    const cached = peekCachedSurah(Number(surah), normalizeReadLanguage(i18n.language))
+    const page = cached?.find(verse => verse.number === ayahNum)?.page || cached?.[0]?.page
+    if (!page) return
+    appliedJump.current = jumpId
+    focusMushaf(page, ayahNum)
+  }, [jump, surah, requestedAyah])
 
   /** Mushaf → Verse: land on the first ayah of the current page (may change surah). */
   const switchToVerses = async () => {
@@ -729,6 +983,7 @@ export default function SurahScreen() {
         currentPage ||
         1
       setCurrentPage(page)
+      focusMushaf(page, ayahNum)
       await persistViewMode("mushaf")
     } finally {
       switchingRef.current = false
@@ -771,6 +1026,7 @@ export default function SurahScreen() {
 
     if (sameSurah) {
       setCurrentPage(target.page)
+      focusMushaf(target.page, target.ayah)
       const idx = verseList.findIndex(v => v.number === target.ayah)
       didScrollForSurahRef.current = null
       setScrollToVerseIndex(idx >= 0 ? idx : 0)
@@ -788,6 +1044,7 @@ export default function SurahScreen() {
         resume: "0",
         ayah: String(target.ayah),
         mode: viewMode === "mushaf" ? "mushaf" : "verses",
+        jump: String(createMushafJumpId()),
       },
     })
   }
@@ -817,6 +1074,7 @@ export default function SurahScreen() {
     const page = loaded[target]?.page || loaded[0]?.page || 1
     setCurrentPage(page)
     setScrollToVerseIndex(target)
+    focusMushaf(page, loaded[target]?.number || 1)
   }
 
   useEffect(() => {
@@ -1015,7 +1273,15 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
 
   // ─── RENDER ────────────────────────────────────────────────────────────────
 
+  const selectReadMode = (next: QuranReadMode) => {
+    if (next === viewMode) return
+    setSettingsOpen(false)
+    if (next === "verses") void switchToVerses()
+    else void switchToMushaf()
+  }
+
   return (
+  <GestureHandlerRootView style={styles.screen}>
   <Reanimated.View
     style={[styles.screen, { backgroundColor: theme.background }]}
     entering={expandFromCard ? ZoomIn.duration(380) : FadeIn.duration(160)}
@@ -1038,8 +1304,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         fontsLoaded={fontsLoaded}
         targetSurah={Number(surah) || undefined}
         targetAyah={Number.isFinite(requestedAyah) ? requestedAyah : scrollToVerseIndex != null ? verseList[scrollToVerseIndex]?.number : 1}
+        mushafFocus={mushafFocus}
         onJump={handleJump}
-        onSwitchToVerses={switchToVerses}
+        onOpenSettings={() => setSettingsOpen(true)}
+        fontSize={fontSize}
+        mushafFont={mushafFont}
+        surahEndKey={Number(verses) > 0 ? `${surah}:${verses}` : undefined}
+        onSurahEndReady={armSurahReview}
       />
     ) : (
       <>
@@ -1058,7 +1329,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                 <Ionicons name="search-outline" size={18} color="#C9A84C" />
                 <Text style={styles.jumpBtnLabel}>{t("quranGoTo")}</Text>
               </TouchableOpacity>
-              <QuranReadModeToggle mode="verses" onToggle={switchToMushaf} />
+              <TouchableOpacity
+                onPress={() => setSettingsOpen(true)}
+                style={styles.jumpBtn}
+                accessibilityLabel={t("mushafSettingsOpen")}
+              >
+                <Ionicons name="menu" size={18} color="#C9A84C" />
+              </TouchableOpacity>
             </View>
           </View>
           <Text style={[styles.headerArabic, fontsLoaded && { fontFamily: "ScheherazadeNew_700Bold" }]}>
@@ -1130,6 +1407,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                 const last = viewableItems[viewableItems.length - 1]?.item
                 if (first?.number) setVisibleVerseNumber(first.number)
                 if (last?.number) saveProgress(last.number)
+                const ayahCount = Number(verses)
+                if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) {
+                  armSurahReview()
+                } else {
+                  disarmSurahReview()
+                }
               }
             }}
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
@@ -1158,6 +1441,18 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       </>
     )}
   </Reanimated.View>
+  <MushafSettingsDrawer visible={settingsOpen} onClose={closeSettings}>
+    <MushafReadModeSection mode={viewMode} onSelect={selectReadMode} />
+    <MushafTextSizeSection
+      fontSize={fontSize}
+      onDecrease={decrease}
+      onIncrease={increase}
+      canDecrease={canDecrease}
+      canIncrease={canIncrease}
+    />
+    <MushafFontSection selectedId={mushafFont.id} onSelect={setFontId} fontsLoaded={fontsLoaded} />
+  </MushafSettingsDrawer>
+  </GestureHandlerRootView>
 )
 }
 
@@ -1271,6 +1566,9 @@ const mStyles = StyleSheet.create({
   mushafToggleText: {
     color: "#C9A84C",
     fontSize: 12,
+  },
+  mushafMenuBtn: {
+    paddingHorizontal: 7,
   },
   mushafPager: {
     flex: 1,
@@ -1448,6 +1746,19 @@ const mStyles = StyleSheet.create({
   },
   flowSurahBlock: {
     width: "100%",
+  },
+  headerGlow: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(201,168,76,0.28)",
+    borderRadius: 8,
+    shadowColor: "#C9A84C",
+    shadowOpacity: 0.95,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
   },
   navBar: {
     flexDirection: "row",
