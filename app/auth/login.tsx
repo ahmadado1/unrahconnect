@@ -124,7 +124,9 @@ export default function LoginScreen() {
   // ─── EMAIL AUTH ────────────────────────────────────────────────────────────
 
   const handleAuth = async () => {
-    if (!email || !password) { setError(t("fillAllFields")); return }
+    // Keyboards often add a trailing space (or a capital letter) after autocomplete; Supabase rejects that as "invalid format".
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail || !password) { setError(t("fillAllFields")); return }
     if (isSignUp && !fullName) { setError(t("enterFullName")); return }
     if (password.length < 6) { setError(t("passwordMinLength")); return }
     setLoading(true)
@@ -133,8 +135,8 @@ export default function LoginScreen() {
     try {
       if (isSignUp) {
         const { error: signUpError } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { full_name: fullName, gender } }
+          email: cleanEmail, password,
+          options: { data: { full_name: fullName.trim(), gender } }
         })
         if (signUpError) {
           if (isNetworkError(signUpError)) {
@@ -146,12 +148,12 @@ export default function LoginScreen() {
             setError(t("somethingWentWrong"))
           }
         } else {
-          sendWelcomeEmail(fullName, email)
+          sendWelcomeEmail(fullName, cleanEmail)
           // Agent code is collected on the profile setup screen
           router.replace("/auth/setup" as any)
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
         if (error) {
           if (isNetworkError(error)) {
             setError(t("networkError"))
@@ -381,6 +383,9 @@ export default function LoginScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
               />
             </View>
 

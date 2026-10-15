@@ -439,3 +439,8 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/ai-guide/deno.json"
 entrypoint = "./functions/ai-guide/index.ts"
+
+[functions.agent-emails]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/agent-emails/index.ts"

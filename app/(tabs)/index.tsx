@@ -1,4 +1,5 @@
 import TouchableOpacity from "@/app/components/AppPressable";
+import { usePremium } from "@/lib/premium"
 import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
 import QuranHomeCard from "@/app/components/QuranHomeCard";
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
@@ -7,18 +8,18 @@ import i18n from "@/i18n";
 import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
 import { resolveHomeQuranCard, type HomeQuranCardState } from "@/lib/homeQuranCard";
 import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
+import { createMushafJumpId } from "@/lib/mushafJump";
 import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMinute, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes";
 import { loadLastReadState } from "@/lib/quranLastRead";
 import { loadSurahPreviewText } from "@/lib/quranPreviewText";
 import { getQuranReadMode } from "@/lib/quranReadMode";
-import { createMushafJumpId } from "@/lib/mushafJump";
 import { getUmrahProgress, supabase } from "@/lib/supabase";
 import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -36,6 +37,7 @@ import {
   type AppStateStatus,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 const UMRAH_PHASE_TITLE_KEYS = [
   "phase_umrah_1_title",
@@ -306,6 +308,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
 
+  const premium = usePremium()
   const [userName, setUserName] = useState("")
   const [user, setUser] = useState<any>(null)
   const [isAgent, setIsAgent] = useState(false)
@@ -606,7 +609,15 @@ export default function HomeScreen() {
 
             {/* Greeting */}
             <View style={styles.heroContent}>
-              <Text style={styles.assalamu}>{t("greeting")}, {userName || t("pilgrim")}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Text style={styles.assalamu}>{t("greeting")}, {userName || t("pilgrim")}</Text>
+                {premium.isPremium ? (
+                  <View style={styles.premiumChip}>
+                    <Ionicons name="star" size={10} color="#1E3A5F" />
+                    <Text style={styles.premiumChipText}>{t("premiumBadge")}</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.heroGreeting}>{t("whereGlobalizationMatters")}</Text>
               <Text style={styles.heroVerse}>{ayah}</Text>
               <Text style={styles.heroVerseRef}>{ayahRef}</Text>
@@ -862,6 +873,8 @@ export default function HomeScreen() {
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  premiumChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#C9A84C", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  premiumChipText: { color: "#1E3A5F", fontSize: 10, fontWeight: "bold" },
   screen: { flex: 1 },
 
   // Hero

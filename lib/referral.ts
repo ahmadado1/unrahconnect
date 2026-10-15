@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { getAgentByCode, joinAgent, normalizeAgentCode } from "@/lib/agents"
 import { supabase } from "./supabase"
 
 const REFERRAL_KEY = "pending_referral_code"
 
 export function normalizeReferralCode(code: string) {
-  return code.trim().toUpperCase()
+  return normalizeAgentCode(code)
 }
 
 export async function saveReferralCode(code: string) {
@@ -22,23 +23,19 @@ export async function clearReferral() {
 }
 
 export async function isValidReferralCode(referralCode: string): Promise<boolean> {
-  const normalized = normalizeReferralCode(referralCode)
-  if (!normalized) return false
-
-  const { data } = await supabase
-    .from("agents")
-    .select("id")
-    .eq("referral_code", normalized)
-    .maybeSingle()
-
-  return !!data
+  try {
+    const agent = await getAgentByCode(referralCode)
+    return !!agent
+  } catch {
+    return false
+  }
 }
 
 export async function pilgrimHasAgent(pilgrimId: string): Promise<boolean> {
   const { data } = await supabase
-    .from("pilgrim_agent")
-    .select("id")
-    .eq("pilgrim_id", pilgrimId)
+    .from("agent_pilgrims")
+    .select("user_id")
+    .eq("user_id", pilgrimId)
     .maybeSingle()
 
   return !!data
@@ -57,25 +54,9 @@ export async function linkPilgrimToAgent(referralCode: string): Promise<boolean>
       return true
     }
 
-    const { data: agent } = await supabase
-      .from("agents")
-      .select("id")
-      .eq("referral_code", normalized)
-      .maybeSingle()
-
-    if (!agent) return false
-
-    const { error } = await supabase.from("pilgrim_agent").insert({
-      pilgrim_id: user.id,
-      agent_id: agent.id,
-      referral_code: normalized,
-    })
-
-    if (error) {
-      console.log("Link pilgrim error:", error.message)
-      return false
-    }
-
+    // Existing profile and setup screens have no share toggle, and the
+    // dashboard shows phone and email, so this path keeps sharing on.
+    await joinAgent(normalized, true)
     await clearReferral()
     return true
   } catch (e) {

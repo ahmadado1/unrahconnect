@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  Alert,
   AppState,
   Modal,
   ScrollView,
@@ -25,11 +26,13 @@ import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribe
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile, resolveAdhanId } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
+import { usePremium } from "@/lib/premium"
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
   name: opt.name,
   style: opt.style,
+  premium: Boolean((opt as { premium?: boolean }).premium),
 }))
 
 const PREVIEW_MS = 12_000
@@ -39,6 +42,7 @@ export default function GuideScreen() {
   const { theme, isDark } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const premium = usePremium()
   const [adhanPickerOpen, setAdhanPickerOpen] = useState(false)
   const [selectedAdhan, setSelectedAdhan] = useState<string>(DEFAULT_ADHAN_ID)
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -118,6 +122,11 @@ export default function GuideScreen() {
   }
 
   const handleSelectAdhan = async (id: string) => {
+    // Premium voices: free users can listen to the preview, but not pick it.
+    if (ADHANS.find(adhan => adhan.id === id)?.premium && !premium.isPremium) {
+      Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+      return
+    }
     try {
       await stopPreview()
       setSelectedAdhan(id)
@@ -372,6 +381,7 @@ export default function GuideScreen() {
                     selectedAdhan === adhan.id && { color: "#C9A84C", fontWeight: "600" }
                   ]}>
                     {adhan.name}
+                    {adhan.premium ? "  ⭐" : ""}
                   </Text>
                   <Text style={[styles.fajrMeta, { color: theme.textSecondary }]}>
                     {adhan.style}

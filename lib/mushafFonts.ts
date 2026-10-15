@@ -1,10 +1,19 @@
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold } from "@expo-google-fonts/scheherazade-new"
+import { Lateef_400Regular } from "@expo-google-fonts/lateef"
+import { NotoNaskhArabic_400Regular } from "@expo-google-fonts/noto-naskh-arabic"
+import { readCachedPremium } from "@/lib/premium"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useCallback, useEffect, useState } from "react"
 
 const STORAGE_KEY = "mushaf_font"
 
-export type MushafFontId = "scheherazade" | "kfgqpc_hafs" | "amiri_quran" | "scheherazade_bold"
+export type MushafFontId =
+  | "scheherazade"
+  | "kfgqpc_hafs"
+  | "amiri_quran"
+  | "scheherazade_bold"
+  | "noto_naskh"
+  | "lateef"
 
 /**
  * Which encoding of the same Quran text the font is built for. KFGQPC fonts
@@ -85,12 +94,36 @@ export const MUSHAF_FONTS: readonly MushafFontConfig[] = [
     bismillahLineHeight: 2,
     premium: false,
   },
+  // ─── Premium fonts ─────────────────────────────────────────────────────────
+  // Sizes are first guesses: check a few pages (2, 421, 604) and tweak sizeScale / lineHeight if words wrap or marks clip.
+  {
+    id: "noto_naskh",
+    name: "Noto Naskh Arabic",
+    family: "NotoNaskhArabic_400Regular",
+    textField: "text_uthmani",
+    sizeScale: 0.92,
+    lineHeight: 2,
+    bismillahLineHeight: 2.1,
+    premium: true,
+  },
+  {
+    id: "lateef",
+    name: "Lateef",
+    family: "Lateef_400Regular",
+    textField: "text_uthmani",
+    sizeScale: 1.25,
+    lineHeight: 1.7,
+    bismillahLineHeight: 1.9,
+    premium: true,
+  },
 ]
 
 /** Pass to expo-font useFonts on screens that render the mushaf. */
 export const MUSHAF_FONT_ASSETS = {
   ScheherazadeNew_400Regular,
   ScheherazadeNew_700Bold,
+  NotoNaskhArabic_400Regular,
+  Lateef_400Regular,
   AmiriQuran: require("../assets/fonts/AmiriQuran-Regular.ttf"),
   KFGQPCHafsUthmanicScript: require("../assets/fonts/KFGQPCHafsUthmanicScript-v18.ttf"),
 }
@@ -141,9 +174,10 @@ export function useMushafFont() {
   useEffect(() => {
     if (cachedFontId) return
     let cancelled = false
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(raw => {
-        const id = getMushafFont(raw).id
+    Promise.all([AsyncStorage.getItem(STORAGE_KEY), readCachedPremium()])
+      .then(([raw, premium]) => {
+        const saved = getMushafFont(raw)
+        const id = saved.premium && !premium.isPremium ? DEFAULT_MUSHAF_FONT_ID : saved.id
         cachedFontId = id
         if (!cancelled) setFontIdState(id)
       })

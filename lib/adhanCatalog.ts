@@ -3,6 +3,10 @@
  * Fajr uses `adhan_<id>_fajr` when that sheikh has a Fajr take.
  *
  * Files live in assets/adhan. Rebuild them with scripts/fetch-adhan-assets.mjs.
+ *
+ * premium: true = only for Premium users (free users can still preview it).
+ * To add a Premium voice: put adhan_<id>.mp3 (+ _fajr) in assets/adhan, run the script,
+ * add an entry here with premium: true, and add its files to FULL_TRACKS / LOCK_TRACKS.
  */
 export const ADHAN_RECITERS = [
   {
@@ -11,6 +15,7 @@ export const ADHAN_RECITERS = [
     name: "Sheikh Abdul Basit Abdus Samad",
     style: "Egyptian",
     fajrLabel: "Abdul Basit Fajr",
+    premium: false,
   },
   {
     id: "trablsy",
@@ -18,6 +23,7 @@ export const ADHAN_RECITERS = [
     name: "Sheikh Ahmad Al-Trablsy",
     style: "Kuwaiti",
     fajrLabel: "Al-Trablsy Fajr",
+    premium: false,
   },
   {
     id: "alafasy",
@@ -25,6 +31,7 @@ export const ADHAN_RECITERS = [
     name: "Sheikh Mishary Rashid Alafasy",
     style: "Kuwaiti",
     fajrLabel: "Mishary Fajr",
+    premium: false,
   },
 ] as const
 

@@ -11,6 +11,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { openStoreListing } from "@/lib/storeReviewPrompt"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { usePremium } from "@/lib/premium"
 
 type MenuItem = {
   icon: keyof typeof Ionicons.glyphMap
@@ -32,6 +33,7 @@ export default function MeScreen() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
   }, [])
 
+  const premium = usePremium()
   const fullName = user?.user_metadata?.full_name || t("pilgrim")
   const isAgent = user?.user_metadata?.user_type === "agent"
   const agencyName = user?.user_metadata?.agency_name
@@ -65,11 +67,19 @@ export default function MeScreen() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <View style={styles.avatar}>
+        <View style={[styles.avatar, premium.isPremium && styles.avatarPremium]}>
           <Text style={styles.avatarText}>{fullName[0]?.toUpperCase() || "?"}</Text>
         </View>
         <Text style={styles.userName}>{fullName}</Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
+        <Text style={styles.userEmail}>{user?.email || (user?.phone ? `+${String(user.phone).replace(/^\+/, "")}` : "")}</Text>
+
+        {/* Premium badge (status only — no prices or links in the app) */}
+        {premium.isPremium && (
+          <View style={styles.premiumBadge}>
+            <Ionicons name="star" size={12} color="#1E3A5F" />
+            <Text style={styles.premiumBadgeText}>{t("premiumBadge")}</Text>
+          </View>
+        )}
 
         {/* Agent badge */}
         {isAgent && (
@@ -140,6 +150,8 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
+  premiumBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#C9A84C", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginTop: 8 },
+  premiumBadgeText: { color: "#1E3A5F", fontSize: 12, fontWeight: "bold" },
   screen: { flex: 1 },
   header: {
     backgroundColor: NAVY, alignItems: "center",
@@ -151,6 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 16, marginBottom: 12,
   },
   avatarText: { fontSize: 28, fontWeight: "bold", color: NAVY },
+  avatarPremium: { borderWidth: 3, borderColor: "#F3E3B5" },
   userName: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   userEmail: { color: "rgba(255,255,255,0.6)", fontSize: 13, marginTop: 4 },
   agentBadge: {

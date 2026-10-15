@@ -1,11 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 import { appKnowledge } from "./appKnowledge.ts"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")
+// Supabase fills these in automatically for every Edge Function.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? ""
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+
+type Quota = { allowed: boolean; reason?: string; used?: number; limit?: number | null; premium?: boolean }
+
+/**
+ * Free users get 12 questions per 7 days, Premium is unlimited (rule lives in SQL: ai_use_request).
+ * Uses the user's own login token, so the database knows who is asking.
+ * If the check itself fails (for example the SQL was not run yet), we let the question through.
+ */
+async function checkQuota(authHeader: string): Promise<Quota | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !authHeader) return null
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    })
+    const { data, error } = await client.rpc("ai_use_request")
+    if (error) {
+      console.error("ai quota check failed:", error.message)
+      return null
+    }
+    return data as Quota
+  } catch (e) {
+    console.error("ai quota check failed:", e)
+    return null
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers": "x-ai-remaining",
 }
 
 const OFF_TOPIC_REPLY =
@@ -201,6 +232,21 @@ serve(async (req) => {
       })
     }
 
+    // ─── Weekly limit for free users ─────────────────────────────────────────
+    const quota = await checkQuota(req.headers.get("Authorization") ?? "")
+    if (quota && !quota.allowed) {
+      return new Response(
+        JSON.stringify({ error: quota.reason === "login" ? "ai_login" : "ai_limit", used: quota.used, limit: quota.limit }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+    // How many free questions are left this week ("" = unlimited / unknown).
+    const remaining =
+      quota && typeof quota.limit === "number" && typeof quota.used === "number"
+        ? String(Math.max(0, quota.limit - quota.used))
+        : ""
+    const quotaHeaders: Record<string, string> = remaining ? { "x-ai-remaining": remaining } : {}
+
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -233,7 +279,7 @@ serve(async (req) => {
       const data = await anthropicRes.json()
       const reply = data.content?.[0]?.text ?? "Sorry, I couldn't generate a response."
       return new Response(JSON.stringify({ reply }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...quotaHeaders, "Content-Type": "application/json" },
       })
     }
 
@@ -309,6 +355,7 @@ serve(async (req) => {
     return new Response(stream, {
       headers: {
         ...corsHeaders,
+        ...quotaHeaders,
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",

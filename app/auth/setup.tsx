@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import LanguageDropdown from "../components/LanguageDropdown"
 import PhoneInput from "../components/PhoneInput"
 import SelectDropdown from "../components/SelectDropdown"
-import { COUNTRY_DIALS, NATIONALITIES } from "@/lib/countries"
+import { NATIONALITIES } from "@/lib/countries"
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { supabase } from "../../lib/supabase"
 
@@ -21,12 +21,17 @@ const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
   label: n.label,
 }))
 
-const COUNTRY_OPTIONS = COUNTRY_DIALS.map(c => ({
-  id: c.name,
-  label: c.name,
-  prefix: c.code,
-}))
 
+/** Rejects if the request takes too long, so the button never stays on "Saving..." forever. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("The request took too long. Check your connection and try again.")), ms)
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (error) => { clearTimeout(timer); reject(error) },
+    )
+  })
+}
 
 export default function SetupScreen() {
   const router = useRouter()
@@ -43,8 +48,6 @@ export default function SetupScreen() {
   const [nationality, setNationality] = useState("")
   const [gender, setGender] = useState<"male" | "female" | "">("")
 
-  const [agencyName, setAgencyName] = useState("")
-  const [agencyCountry, setAgencyCountry] = useState("")
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -70,7 +73,7 @@ export default function SetupScreen() {
         setNameFromProvider(true)
       }
 
-      const savedPhone = (user.user_metadata?.phone || "").trim()
+      const savedPhone = (user.user_metadata?.phone || (user.phone ? `+${user.phone.replace(/^\+/, "")}` : "")).trim()
       if (savedPhone) setPhone(savedPhone)
       const savedNationality = (user.user_metadata?.nationality || "").trim()
       if (savedNationality) setNationality(savedNationality)
@@ -84,6 +87,24 @@ export default function SetupScreen() {
       if (code) setReferralCode(normalizeReferralCode(code))
     })
   }, [])
+
+  // Agents: the agency details and documents are filled in on the website.
+  // Here we only save that this account is an agent and show where to go next.
+  const finishAgent = async () => {
+    setError("")
+    setLoading(true)
+    try {
+      await withTimeout(supabase.auth.updateUser({
+        data: { user_type: "agent", language: selectedLang, profile_complete: true },
+      }), 20000)
+      router.replace("/agent/welcome" as any)
+    } catch (e) {
+      console.log("Setup error:", e)
+      setError(t("somethingWentWrong"))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const finishSetup = async () => {
     setError("")
@@ -112,7 +133,7 @@ export default function SetupScreen() {
 
       const code = userType === "pilgrim" ? normalizeReferralCode(referralCode) : ""
 
-      await supabase.auth.updateUser({
+      await withTimeout(supabase.auth.updateUser({
         data: {
           ...(resolvedName ? { full_name: resolvedName } : {}),
           ...(phone.trim() ? { phone: phone.trim() } : {}),
@@ -121,41 +142,18 @@ export default function SetupScreen() {
           ...(code ? { agent_code: code } : {}),
           language: selectedLang,
           user_type: userType,
-          ...(userType === "agent" && agencyName.trim()
-            ? { agency_name: agencyName.trim() }
-            : {}),
-          ...(userType === "agent" && agencyCountry.trim()
-            ? { agency_country: agencyCountry.trim() }
-            : {}),
           profile_complete: true,
         },
-      })
+      }), 20000)
 
-      if (userType === "agent") {
-        if (agencyName.trim()) {
-          const { data: { user: freshUser } } = await supabase.auth.getUser()
-          const { error: insertError } = await supabase.from("agents").insert({
-            user_id: freshUser?.id,
-            agency_name: agencyName.trim(),
-            owner_name: resolvedName || "Agent",
-            phone: phone.trim() || null,
-            email: freshUser?.email,
-            nationality: nationality.trim() || null,
-            country: agencyCountry.trim() || null,
-            plan: "trial",
-          })
-          if (insertError) {
-            console.log("Agent insert error:", insertError.message)
-          }
-        }
-        router.replace("/auth/plans" as any)
-      } else {
+      {
         if (code) {
           await linkPilgrimToAgent(code)
         }
         router.replace("/(tabs)")
       }
-    } catch {
+    } catch (e) {
+      console.log("Setup error:", e)
       setError(t("somethingWentWrong"))
     } finally {
       setLoading(false)
@@ -171,7 +169,7 @@ export default function SetupScreen() {
           {step === 1 ? t("welcomeSetup") : userType === "agent" ? t("agencySetup") : t("yourProfile")}
         </Text>
         <Text style={styles.headerSub}>
-          {step === 1 ? t("tellUsWhoYouAre") : t("setupOptionalHint")}
+          {step === 1 ? t("tellUsWhoYouAre") : userType === "agent" ? t("agentFormHint") : t("setupOptionalHint")}
         </Text>
       </View>
 
@@ -228,15 +226,18 @@ export default function SetupScreen() {
               )}
             </TouchableOpacity>
 
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
             <TouchableOpacity
-              style={[styles.btn, !userType && { opacity: 0.5 }]}
+              style={[styles.btn, (!userType || loading) && { opacity: 0.5 }]}
               onPress={() => {
                 setLangOpen(false)
-                if (userType) setStep(2)
+                if (userType === "agent") finishAgent()
+                else if (userType) setStep(2)
               }}
-              disabled={!userType}
+              disabled={!userType || loading}
             >
-              <Text style={styles.btnText}>{t("continueBtn")}</Text>
+              <Text style={styles.btnText}>{loading ? t("saving") : t("continueBtn")}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -246,7 +247,7 @@ export default function SetupScreen() {
             {/* Hide Full Name when Apple/Google already provided it */}
             {!nameFromProvider ? (
               <>
-                <Text style={[styles.label, { color: theme.text }]}>{t("fullName")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{userType === "agent" ? t("agentOwnerName") : t("fullName")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
                   placeholder={t("enterFullName")}
@@ -312,28 +313,6 @@ export default function SetupScreen() {
               </>
             )}
 
-            {userType === "agent" && (
-              <>
-                <Text style={[styles.label, { color: theme.text }]}>{t("agencyName")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                  placeholder={t("yourAgencyName")}
-                  placeholderTextColor={theme.textSecondary}
-                  value={agencyName}
-                  onChangeText={setAgencyName}
-                  autoCapitalize="words"
-                />
-                <SelectDropdown
-                  label={t("agencyCountry")}
-                  placeholder={t("countryPlaceholder")}
-                  value={agencyCountry}
-                  options={COUNTRY_OPTIONS}
-                  onChange={setAgencyCountry}
-                  searchPlaceholder={t("search") || "Search"}
-                />
-              </>
-            )}
-
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <TouchableOpacity
@@ -345,18 +324,20 @@ export default function SetupScreen() {
                 {loading
                   ? t("saving")
                   : userType === "agent"
-                    ? t("seeplans")
+                    ? t("agentSubmit")
                     : t("startJourney")}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.skipBtn}
-              onPress={finishSetup}
-              disabled={loading}
-            >
-              <Text style={styles.skipText}>{t("skipForNow")}</Text>
-            </TouchableOpacity>
+            {userType !== "agent" ? (
+              <TouchableOpacity
+                style={styles.skipBtn}
+                onPress={finishSetup}
+                disabled={loading}
+              >
+                <Text style={styles.skipText}>{t("skipForNow")}</Text>
+              </TouchableOpacity>
+            ) : null}
 
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)}>
               <Text style={styles.backText}>{t("back")}</Text>
@@ -383,6 +364,7 @@ const styles = StyleSheet.create({
   typeSub: { fontSize: 12, lineHeight: 18 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 16 },
   input: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 0.5, marginBottom: 4 },
+  textarea: { minHeight: 96 },
   inputApplied: { borderColor: "#C9A84C", borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.05)" },
   inputError: { borderColor: "#E24B4A", borderWidth: 1 },
   fieldError: { color: "#E24B4A", fontSize: 12, marginTop: 4, marginBottom: 4 },

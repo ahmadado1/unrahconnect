@@ -24,6 +24,10 @@ import {
 import TouchableOpacity from "@/app/components/AppPressable"
 import Markdown from "react-native-markdown-display"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { usePremium } from "@/lib/premium"
+
+// Must match free_limit in the SQL function ai_use_request.
+const AI_FREE_WEEKLY = 12
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
@@ -496,7 +500,7 @@ function buildProgressContext(completedIds) {
   }
 }
 
-async function streamAiGuide({ body, onText, signal }) {
+async function streamAiGuide({ body, onText, signal, onQuota }) {
   const { data: sessionData } = await supabase.auth.getSession()
   const accessToken = sessionData?.session?.access_token || supabaseAnonKey
 
@@ -522,8 +526,15 @@ async function streamAiGuide({ body, onText, signal }) {
     } catch {
       // ignore
     }
+    // Weekly free limit reached (or not logged in): the screen shows a friendly message.
+    if (message === "ai_limit" || message === "ai_login") onQuota?.(0)
     throw new Error(message)
   }
+
+  // Free questions left this week. Empty header = Premium (unlimited) or unknown.
+  const remainingHeader = response.headers.get("x-ai-remaining")
+  if (remainingHeader !== null && remainingHeader !== "") onQuota?.(Number(remainingHeader))
+  else onQuota?.(null)
 
   // Legacy JSON fallback if edge function didn't stream
   if (contentType.includes("application/json")) {
@@ -708,6 +719,37 @@ export default function AIGuideScreen() {
     )
   }
 
+  // Free questions left this week (null = Premium/unlimited or not known yet).
+  const [aiRemaining, setAiRemaining] = useState(null)
+  const premium = usePremium()
+
+  // On open: count this week's questions so the header shows "8 of 12 left" straight away.
+  useEffect(() => {
+    if (premium.isPremium) {
+      setAiRemaining(null)
+      return
+    }
+    let active = true
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const { count, error } = await supabase
+          .from("ai_usage")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", session.user.id)
+          .gt("created_at", weekAgo)
+        if (!error && active) setAiRemaining(Math.max(0, AI_FREE_WEEKLY - (count ?? 0)))
+      } catch {
+        // offline: the count appears after the next question
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [premium.isPremium])
+
   const sendMessage = async (text) => {
     const trimmed = text.trim()
     if (!trimmed || loading) return
@@ -750,6 +792,7 @@ export default function AIGuideScreen() {
 
       const fullReply = await streamAiGuide({
         signal: controller.signal,
+        onQuota: setAiRemaining,
         body: {
           messages: apiMessages,
           language,
@@ -801,7 +844,10 @@ export default function AIGuideScreen() {
       )
     } catch (err) {
       if (err?.name === "AbortError") return
-      const key = await getInvokeErrorKey(err)
+      const limitHit = err?.message === "ai_limit" || err?.message === "ai_login"
+      const key = limitHit
+        ? err.message === "ai_login" ? "aiLoginNeeded" : "aiLimitReached"
+        : await getInvokeErrorKey(err)
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
@@ -905,6 +951,18 @@ export default function AIGuideScreen() {
           <Text style={styles.headerSub}>
             {userName !== "Pilgrim" ? `Helping ${userName}` : "Your Umrah companion"}
           </Text>
+          {premium.isPremium ? (
+            <View style={[styles.planPill, styles.planPillPremium]}>
+              <Ionicons name="star" size={10} color="#1E3A5F" />
+              <Text style={[styles.planPillText, { color: "#1E3A5F" }]}>{t("aiUnlimited")}</Text>
+            </View>
+          ) : aiRemaining !== null ? (
+            <View style={styles.planPill}>
+              <Text style={styles.planPillText}>
+                {t("aiFreeOfTotal", { left: aiRemaining, total: AI_FREE_WEEKLY })}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <TouchableOpacity
           onPress={confirmClearChat}
@@ -951,6 +1009,7 @@ export default function AIGuideScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         />
+
 
         <View
           style={[
@@ -999,6 +1058,9 @@ export default function AIGuideScreen() {
 }
 
 const styles = StyleSheet.create({
+  planPill: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "center", marginTop: 4, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.14)" },
+  planPillPremium: { backgroundColor: "#C9A84C" },
+  planPillText: { fontSize: 11, fontWeight: "700", color: "#E8D5A3" },
   screen: { flex: 1 },
   flex: { flex: 1 },
   header: {

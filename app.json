@@ -57,7 +57,8 @@
         "android.permission.WAKE_LOCK",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "com.android.vending.BILLING"
       ],
       "blockedPermissions": [
         "android.permission.ACTIVITY_RECOGNITION",
@@ -140,7 +141,14 @@
         }
       ],
       "expo-asset",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "UmrahConnect uses the camera to scan your travel agent's QR code.",
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

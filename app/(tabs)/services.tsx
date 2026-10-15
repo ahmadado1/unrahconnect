@@ -88,7 +88,7 @@ const LIST: {
   borderDark: string
 }[] = [
   { id: "restaurants", sectionKey: "serviceFood", icon: "restaurant", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", fill: "#FFF6F0", fillDark: "#2A221C", border: "#F3D5C4", borderDark: "#5A4034" },
-  { id: "agents", icon: "handshake", titleKey: "findAgent", subKey: "findAgentSub", route: "/travel-agents", fill: "#F4F7FB", fillDark: "#1A2433", border: "#D5DEE8", borderDark: "#3A4A5C" },
+  { id: "agents", icon: "handshake", titleKey: "findAgent", subKey: "findAgentSub", route: "/agent", fill: "#F4F7FB", fillDark: "#1A2433", border: "#D5DEE8", borderDark: "#3A4A5C" },
   { id: "hospitals", icon: "medkit", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", fill: "#F3F8F4", fillDark: "#1A2820", border: "#D3E6D8", borderDark: "#3A5644" },
   { id: "transport", sectionKey: "transport", icon: "train", titleKey: "transport", subKey: "transportSub", route: "/services/transport", fill: "#F3F7F8", fillDark: "#1A2628", border: "#D0E0E4", borderDark: "#3A5258" },
   { id: "shopping", sectionKey: "shopping", icon: "bag", titleKey: "shopping", subKey: "shoppingSub", route: "/services/shopping", fill: "#FBF6F8", fillDark: "#2A2226", border: "#E8D6DE", borderDark: "#5A4450" },

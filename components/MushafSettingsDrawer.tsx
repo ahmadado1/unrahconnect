@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  Alert,
   BackHandler,
   I18nManager,
   Pressable,
@@ -29,6 +30,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { usePremium } from "@/lib/premium"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
@@ -172,11 +174,13 @@ function FontOption({
   font,
   selected,
   fontsLoaded,
+  locked = false,
   onPress,
 }: {
   font: MushafFontConfig
   selected: boolean
   fontsLoaded: boolean
+  locked?: boolean
   onPress: () => void
 }) {
   const { t } = useTranslation()
@@ -194,25 +198,35 @@ function FontOption({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.option, selected && styles.optionSelected]}
+      style={[styles.option, font.premium && styles.optionPremium, selected && styles.optionSelected]}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={note ? `${label}, ${note}` : label}
     >
       <View style={[styles.optionTop, { flexDirection: row }]}>
         <View style={styles.optionLabels}>
-          <Text style={[styles.optionLabel, { textAlign }]}>{label}</Text>
+          <View style={{ flexDirection: row, alignItems: "center", gap: 6 }}>
+            <Text style={[styles.optionLabel, { textAlign }]}>{label}</Text>
+            {font.premium ? (
+              <View style={styles.proPill}>
+                <Ionicons name="star" size={9} color={NAVY} />
+                <Text style={styles.proPillText}>{t("premiumBadge").toUpperCase()}</Text>
+              </View>
+            ) : null}
+          </View>
           {note ? <Text style={[styles.optionNote, { textAlign }]}>{note}</Text> : null}
+          {locked ? <Text style={[styles.lockedNote, { textAlign }]}>{t("premiumUnlocks")}</Text> : null}
         </View>
         <Ionicons
-          name={selected ? "checkmark-circle" : "ellipse-outline"}
-          size={22}
-          color={selected ? GOLD : "rgba(255,255,255,0.3)"}
+          name={selected ? "checkmark-circle" : locked ? "lock-closed" : "ellipse-outline"}
+          size={selected ? 22 : 20}
+          color={selected || locked ? GOLD : "rgba(255,255,255,0.3)"}
         />
       </View>
       <Text
         style={[
           styles.preview,
+          locked && styles.previewLocked,
           {
             fontSize: previewSize,
             lineHeight: Math.round(previewSize * font.lineHeight),
@@ -328,17 +342,40 @@ export function MushafFontSection({
   fontsLoaded: boolean
 }) {
   const { t } = useTranslation()
+  const { isPremium } = usePremium()
   return (
     <MushafSettingsSection title={t("mushafFontSection")}>
-      {MUSHAF_FONTS.map(font => (
-        <FontOption
-          key={font.id}
-          font={font}
-          selected={font.id === selectedId}
-          fontsLoaded={fontsLoaded}
-          onPress={() => onSelect(font.id)}
-        />
-      ))}
+      {[false, true].map(premiumGroup => {
+        const fonts = MUSHAF_FONTS.filter(font => font.premium === premiumGroup)
+        if (!fonts.length) return null
+        return (
+          <View key={String(premiumGroup)} style={{ gap: 10 }}>
+            {premiumGroup ? (
+              <View style={styles.proHeader}>
+                <Ionicons name="star" size={12} color={GOLD} />
+                <Text style={styles.proHeaderText}>{t("premiumFontsSection")}</Text>
+                {isPremium ? <Text style={styles.proHeaderOn}>{t("premiumUnlockedShort")}</Text> : null}
+              </View>
+            ) : null}
+            {fonts.map(font => (
+              <FontOption
+                key={font.id}
+                font={font}
+                selected={font.id === selectedId}
+                fontsLoaded={fontsLoaded}
+                locked={font.premium && !isPremium}
+                onPress={() => {
+                  if (font.premium && !isPremium) {
+                    Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+                    return
+                  }
+                  onSelect(font.id)
+                }}
+              />
+            ))}
+          </View>
+        )
+      })}
     </MushafSettingsSection>
   )
 }
@@ -411,6 +448,49 @@ const styles = StyleSheet.create({
   optionSelected: {
     borderColor: GOLD,
     backgroundColor: "rgba(201,168,76,0.12)",
+  },
+  optionPremium: {
+    borderColor: "rgba(201,168,76,0.45)",
+    backgroundColor: "rgba(201,168,76,0.06)",
+  },
+  proPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: GOLD,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  proPillText: {
+    color: NAVY,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  lockedNote: {
+    color: GOLD,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  previewLocked: {
+    opacity: 0.55,
+  },
+  proHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+  },
+  proHeaderText: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  proHeaderOn: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 11,
   },
   optionTop: {
     alignItems: "center",

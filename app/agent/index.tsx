@@ -1,222 +1,277 @@
+// Find an Agent: verified, paid agencies from the website's Agent Zone (active_agents view).
+// Featured agencies are shown first with a gold badge; verified ones get a blue ✓.
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
+import { getActiveAgents, type PublicAgent } from "@/lib/agents"
 import { Ionicons } from "@expo/vector-icons"
-import { useRouter } from "expo-router"
+import { Image } from "expo-image"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from "react-native"
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { supabase } from "../../lib/supabase"
 
-type Agent = {
-    id: string
-    agency_name: string
-    owner_name: string
-    phone: string
-    email: string
-    nationality: string
-    country: string
-    bio: string
-    years_experience: number
-    pilgrims_managed: number
-    verified: boolean
-    plan: string
+const NAVY = "#1E3A5F"
+const GOLD = "#C9A84C"
+const BLUE = "#1D9BF0"
+
+/** Featured first, then verified, then A–Z. */
+function sortAgents(list: PublicAgent[]) {
+  return [...list].sort((a, b) => {
+    if (a.plan !== b.plan) return a.plan === "featured" ? -1 : 1
+    if (a.verified !== b.verified) return a.verified ? -1 : 1
+    return a.business_name.localeCompare(b.business_name)
+  })
+}
+
+export default function FindAgentScreen() {
+  const router = useRouter()
+  const insets = useSafeAreaInsets()
+  const { theme } = useTheme()
+  const { t } = useTranslation()
+  const params = useLocalSearchParams<{ country?: string }>()
+
+  const [agents, setAgents] = useState<PublicAgent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [search, setSearch] = useState("")
+  const [country, setCountry] = useState<string>(params.country ? String(params.country) : "")
+
+  const load = useCallback(async () => {
+    try {
+      setFailed(false)
+      const rows = await getActiveAgents()
+      setAgents(sortAgents(rows))
+    } catch (e) {
+      console.log("Find agent load error:", e)
+      setFailed(true)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  // Countries that have at least one agency, for the filter chips.
+  const countries = useMemo(() => {
+    const set = new Map<string, string>()
+    for (const agent of agents) {
+      const name = agent.country?.trim()
+      if (name) set.set(name.toLowerCase(), name)
+    }
+    return [...set.values()].sort((a, b) => a.localeCompare(b))
+  }, [agents])
+
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const wanted = country.trim().toLowerCase()
+    return agents.filter((agent) => {
+      if (wanted && agent.country?.toLowerCase() !== wanted) return false
+      if (!q) return true
+      return (
+        agent.business_name.toLowerCase().includes(q) ||
+        (agent.country || "").toLowerCase().includes(q) ||
+        agent.cities.some((city) => city.toLowerCase().includes(q)) ||
+        (agent.description || "").toLowerCase().includes(q)
+      )
+    })
+  }, [agents, search, country])
+
+  const renderAgent = ({ item }: { item: PublicAgent }) => {
+    const featured = item.plan === "featured"
+    const place = [item.country, item.cities.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: featured ? GOLD : theme.border },
+          featured && styles.cardFeatured,
+        ]}
+        onPress={() => router.push(`/agent/${item.id}` as any)}
+      >
+        {item.logo_url ? (
+          <Image source={{ uri: item.logo_url }} style={styles.logo} contentFit="cover" />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{item.business_name?.charAt(0)?.toUpperCase() || "A"}</Text>
+          </View>
+        )}
+
+        <View style={{ flex: 1 }}>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+              {item.business_name}
+            </Text>
+            {item.verified ? (
+              <Ionicons name="checkmark-circle" size={16} color={BLUE} accessibilityLabel={t("agentVerified")} />
+            ) : null}
+          </View>
+
+          {place ? (
+            <View style={styles.metaRow}>
+              <Ionicons name="location-outline" size={12} color={GOLD} />
+              <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
+                {place}
+              </Text>
+            </View>
+          ) : null}
+
+          {item.description ? (
+            <Text style={[styles.desc, { color: theme.textSecondary }]} numberOfLines={2}>
+              {item.description}
+            </Text>
+          ) : null}
+
+          <View style={styles.badges}>
+            {featured ? (
+              <View style={styles.featuredBadge}>
+                <AppIcon name="star" size={10} color={NAVY} />
+                <Text style={styles.featuredText}>{t("featured")}</Text>
+              </View>
+            ) : null}
+            {item.verified ? (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={10} color={BLUE} />
+                <Text style={styles.verifiedText}>{t("agentVerified")}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        <Ionicons name="chevron-forward" size={20} color={GOLD} />
+      </TouchableOpacity>
+    )
   }
 
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <StatusBar style="light" />
 
-  export default function BrowseAgentsScreen() {
-    const router = useRouter()
-    const insets = useSafeAreaInsets()
-    const { theme } = useTheme()
-    const { t } = useTranslation()
-    const [agents, setAgents] = useState<Agent[]>([])
-    const [filtered, setFiltered] = useState<Agent[]>([])
-    const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState("")
-
-    useEffect(() => {
-        fetchAgents()
-      }, [])
-    
-      useEffect(() => {
-        if (!search.trim()) {
-          setFiltered(agents)
-          return
-        }
-        const q = search.toLowerCase()
-        setFiltered(agents.filter(a =>
-          a.agency_name.toLowerCase().includes(q) ||
-          a.country.toLowerCase().includes(q) ||
-          a.nationality.toLowerCase().includes(q)
-        ))
-      }, [search, agents])
-
-      const fetchAgents = async () => {
-        try {
-          const { data, error } = await supabase
-            .from("agents")
-            .select("*")
-            .order("created_at", { ascending: false })
-          if (data) {
-            setAgents(data)
-            setFiltered(data)
-          }
-        } catch (e) {
-          console.log("Fetch agents error:", e)
-        } finally {
-          setLoading(false)
-        }
-      }
-      
-
-      const renderAgent = ({ item }: { item: Agent }) => (
-        <TouchableOpacity
-          style={[styles.agentCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={() => router.push(`/agent/${item.id}` as any)}
-        >
-          {/* Avatar */}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.agency_name?.charAt(0)?.toUpperCase() || "A"}
-            </Text>
-          </View>
-
-          <View style={{ flex: 1 }}>
-        {/* Agency name + verified badge */}
-        <View style={styles.nameRow}>
-          <Text style={[styles.agencyName, { color: theme.text }]}>{item.agency_name}</Text>
-          {item.verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={14} color="#C9A84C" />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={[styles.ownerName, { color: theme.textSecondary }]}>{item.owner_name}</Text>
-
-        {/* Country + nationality */}
-        <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={12} color="#C9A84C" />
-          <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.country}</Text>
-          {item.pilgrims_managed > 0 && (
-            <>
-              <Text style={[styles.metaDot, { color: theme.textSecondary }]}>·</Text>
-              <Ionicons name="people-outline" size={12} color="#C9A84C" />
-              <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                {item.pilgrims_managed} pilgrims
-              </Text>
-            </>
-          )}
-        </View>
-
-            {/* Plan badge */}
-            <View style={styles.planBadge}>
-            {item.plan === "pro" ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <AppIcon name="star" size={10} color="#C9A84C" />
-                <Text style={styles.planText}>Pro</Text>
-              </View>
-            ) : (
-              <Text style={styles.planText}>
-                {item.plan === "basic" ? "Basic" : "Trial"}
-              </Text>
-            )}
-            </View>
-        </View>
-
-        <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
         </TouchableOpacity>
-    )
-
-
-    return (
-        <View style={[styles.screen, { backgroundColor: theme.background }]}>
-          <StatusBar style="light" />
-    
-          {/* Header */}
-          <View style={[styles.header, { paddingTop: insets.top }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Find an Agent</Text>
-              <Text style={styles.headerSub}>Browse verified travel agencies</Text>
-            </View>
-          </View>
-
-          {/* Search */}
-        <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="search" size={16} color={theme.textSecondary} />
-            <TextInput
-            style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search by agency name or country..."
-            placeholderTextColor={theme.textSecondary}
-            value={search}
-            onChangeText={setSearch}
-            autoCapitalize="none"
-            />
-            {search ? (
-            <TouchableOpacity onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
-            </TouchableOpacity>
-            ) : null}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>{t("findAgent")}</Text>
+          <Text style={styles.headerSub}>{t("findAgentSub")}</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => router.push("/agent/scan" as any)}
+          style={styles.scanBtn}
+          accessibilityLabel={t("agentScanQr")}
+        >
+          <Ionicons name="qr-code-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-        {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#C9A84C" size="large" />
-        </View>
-      ) : filtered.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <AnimatedHeroIcon name="business" size={48} accent="gold" />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("noAgentsFound")}</Text>
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            {t("noAgentsSub")}
-          </Text>
+      <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Ionicons name="search" size={16} color={theme.textSecondary} />
+        <TextInput
+          style={[styles.searchInput, { color: theme.text }]}
+          placeholder={t("agentsSearchPlaceholder")}
+          placeholderTextColor={theme.textSecondary}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch("")}>
+            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {countries.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={{ flexGrow: 0 }}>
+          {["", ...countries].map((name) => {
+            const active = country.toLowerCase() === name.toLowerCase()
+            return (
+              <TouchableOpacity
+                key={name || "all"}
+                onPress={() => setCountry(name)}
+                style={[styles.chip, { borderColor: active ? NAVY : theme.border, backgroundColor: active ? NAVY : theme.card }]}
+              >
+                <Text style={[styles.chipText, { color: active ? "#fff" : theme.text }]}>{name || t("agentsAll")}</Text>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
+      ) : null}
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={GOLD} size="large" />
         </View>
       ) : (
         <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
+          data={shown}
+          keyExtractor={(item) => item.id}
           renderItem={renderAgent}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, shown.length === 0 && { flexGrow: 1 }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={GOLD} />}
+          ListHeaderComponent={
+            shown.length ? (
+              <Text style={[styles.count, { color: theme.textSecondary }]}>
+                {t("agentsCount", { count: shown.length })}
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <AnimatedHeroIcon name="business" size={48} accent="gold" />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                {failed ? t("agentsLoadError") : t("noAgentsFound")}
+              </Text>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                {failed ? t("agentsPullToRetry") : t("agentsEmptyBody")}
+              </Text>
+            </View>
+          }
         />
       )}
     </View>
   )
 }
 
-
 const styles = StyleSheet.create({
-    screen: { flex: 1 },
-    header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 16, flexDirection: "row", alignItems: "center", gap: 12 },
-    backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 6 },
-    headerTitle: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-    headerSub: { color: "#C9A84C", fontSize: 12, marginTop: 1 },
-    searchBar: { flexDirection: "row", alignItems: "center", gap: 10, margin: 16, borderRadius: 12, padding: 12, borderWidth: 0.5 },
-    searchInput: { flex: 1, fontSize: 14 },
-    loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
-    list: { padding: 16, gap: 12, paddingBottom: 100 },
-    agentCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, borderWidth: 0.5 },
-    avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#1E3A5F", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-    avatarText: { fontSize: 20, fontWeight: "bold", color: "#C9A84C" },
-    nameRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
-    agencyName: { fontSize: 15, fontWeight: "bold" },
-    verifiedBadge: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(201,168,76,0.15)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-    verifiedText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
-    ownerName: { fontSize: 12, marginBottom: 4 },
-    metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
-    metaText: { fontSize: 11 },
-    metaDot: { fontSize: 11 },
-    planBadge: { backgroundColor: "rgba(201,168,76,0.1)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start" },
-    planText: { fontSize: 10, color: "#C9A84C", fontWeight: "600" },
-    emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 32 },
-    emptyTitle: { fontSize: 18, fontWeight: "bold" },
-    emptyText: { fontSize: 14, textAlign: "center", color: "#888" },
-  })
-  
+  screen: { flex: 1 },
+  header: { backgroundColor: NAVY, padding: 20, paddingBottom: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 6 },
+  scanBtn: { backgroundColor: "rgba(201,168,76,0.35)", borderRadius: 20, padding: 8 },
+  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  headerSub: { color: GOLD, fontSize: 12, marginTop: 1 },
+  searchBar: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 16, marginBottom: 10, borderRadius: 12, padding: 12, borderWidth: 0.5 },
+  searchInput: { flex: 1, fontSize: 14 },
+  chips: { paddingHorizontal: 16, gap: 8, paddingBottom: 6 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  chipText: { fontSize: 13, fontWeight: "600" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  list: { padding: 16, gap: 12, paddingBottom: 100 },
+  count: { fontSize: 12, marginBottom: 2 },
+  card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, borderWidth: 0.5 },
+  cardFeatured: { borderWidth: 1.5 },
+  logo: { width: 52, height: 52, borderRadius: 12, backgroundColor: "#F1F4F8" },
+  avatar: { width: 52, height: 52, borderRadius: 12, backgroundColor: NAVY, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontSize: 20, fontWeight: "bold", color: GOLD },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 3 },
+  name: { fontSize: 15, fontWeight: "bold", flexShrink: 1 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  meta: { fontSize: 12, flexShrink: 1 },
+  desc: { fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  badges: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  featuredBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: GOLD, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  featuredText: { fontSize: 10, color: NAVY, fontWeight: "700" },
+  verifiedBadge: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(29,155,240,0.12)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  verifiedText: { fontSize: 10, color: BLUE, fontWeight: "700" },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 32 },
+  emptyTitle: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
+  emptyText: { fontSize: 14, textAlign: "center" },
+})

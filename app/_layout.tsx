@@ -15,7 +15,8 @@ import {
   scheduleJourneyReminders,
   setupPrayerNotificationChannel,
 } from "@/lib/notifications";
-import { normalizeReferralCode, saveReferralCode } from "@/lib/referral";
+import { getPendingReferral, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
+import { agentCodeFromScan } from "@/lib/agents";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
@@ -153,21 +154,23 @@ export default function RootLayout() {
     requestNotificationPermission().then(async granted => {
       if (!granted) return
       await setupPrayerNotificationChannel().catch(console.log)
+      // Prayers + Adhkar first: they matter most and need no slow network calls.
+      await reschedulePrayerNotificationsFromCache().catch(console.log)
       const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
       if (notifEnabled !== "false") {
-        await scheduleDailyVerseNotification().catch(console.log)
         await scheduleDailyDhikrReminders().catch(console.log)
-        await scheduleIslamicDateReminders().catch(console.log)
-        await scheduleAlKahfReminder().catch(console.log)
         await scheduleAlMulkReminder().catch(console.log)
+        await scheduleAlKahfReminder().catch(console.log)
+        await scheduleDailyVerseNotification().catch(console.log)
         await scheduleJourneyReminders().catch(console.log)
+        await scheduleIslamicDateReminders().catch(console.log)
       }
-      await reschedulePrayerNotificationsFromCache().catch(console.log)
     })
 
     const handleDeepLink = async (url: string) => {
       const parsed = ExpoLinking.parse(url)
-      const ref = parsed.queryParams?.ref as string
+      // ?ref=AGT-… (old join links) or /a/AGT-… (agent QR posters)
+      const ref = (parsed.queryParams?.ref as string) || agentCodeFromScan(url) || ""
       if (ref) {
         await saveReferralCode(normalizeReferralCode(ref))
         console.log("Referral code saved:", ref)
@@ -183,6 +186,15 @@ export default function RootLayout() {
     })
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // A pilgrim who tapped "Join" or scanned an agent QR before signing in gets linked now.
+      // Deferred with setTimeout: calling Supabase inside this callback can lock up other auth calls.
+      if (event === "SIGNED_IN" && session?.user?.user_metadata?.profile_complete) {
+        setTimeout(() => {
+          void getPendingReferral().then(code => {
+            if (code) void linkPilgrimToAgent(code)
+          })
+        }, 0)
+      }
       if (event === "SIGNED_OUT") {
         setStatus("login")
         router.replace("/auth/login")

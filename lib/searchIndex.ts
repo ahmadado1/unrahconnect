@@ -336,7 +336,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       icon: "handshake",
       category: "Services",
       action: "navigate",
-      target: "/travel-agents",
+      target: "/agent",
       keywords: kw("agent", "agents", "travel agent", "package", "tour", "agency"),
       boost: 12,
     }),
@@ -910,7 +910,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
         countryCode: c.id === "nigeria" ? "NG" : c.id === "egypt" ? "EG" : c.id.slice(0, 2).toUpperCase(),
         category: "Agents",
         action: "navigate",
-        target: `/travel-agents/${c.id}`,
+        target: `/agent?country=${encodeURIComponent(c.name)}`,
         keywords: kw(c.name, "travel agent", "agents", "umrah package", c.id),
         boost: c.comingSoon ? 2 : 9,
       })

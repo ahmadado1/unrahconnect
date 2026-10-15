@@ -37,6 +37,7 @@ import { loadLastReadState } from "@/lib/quranLastRead"
 import { ayahCountForSurah } from "@/lib/quranSurahMeta"
 import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
 import { getHajjProgress, getUmrahProgress } from "@/lib/supabase"
+import { isPremiumNow } from "@/lib/premium"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Location from "expo-location"
@@ -58,6 +59,89 @@ const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v15"
 const PRAYER_HORIZON_DAYS = 12
 const IOS_PENDING_LIMIT = 64
 const IOS_RESERVED_SLOTS = 4
+/**
+ * iPhone keeps at most 64 scheduled alerts in total and silently drops the rest.
+ * Budget (worst case): prayers 7 days × 5 = 35, Islamic dates 6, Adhkar 2, Mulk 2,
+ * Kahf 4, journey 5, test 1 = 55. That always stays under 64, so nothing gets dropped.
+ */
+const IOS_PRAYER_MAX_DAYS = 7
+const ISLAMIC_LOOKAHEAD_DAYS = 60
+const ISLAMIC_MAX_ALERTS = 6
+
+type DesiredAlert = {
+  identifier: string
+  at: number
+  /** Fingerprint of time + sound + language. Same fingerprint = alert is already right, leave it. */
+  sig: string
+  request: Notifications.NotificationRequestInput
+}
+
+function alertSig(notification: Notifications.NotificationRequest) {
+  const data = notification.content.data as Record<string, unknown> | undefined
+  return String(data?.sig ?? "")
+}
+
+/**
+ * Make one group of alerts match the list we want, WITHOUT cancelling everything first.
+ * Old way: cancel all → schedule again. If iOS paused the app halfway (you opened it for a
+ * second and left), you were left with no Adhan / no Adhkar for the day.
+ * New way: keep the ones that are already correct, remove only wrong ones, add only missing ones
+ * (soonest first, so the next prayers are always there).
+ */
+async function syncAlertGroup(isMine: (identifier: string) => boolean, desired: DesiredAlert[]) {
+  const pending = await Notifications.getAllScheduledNotificationsAsync()
+  const wanted = new Map(desired.map(alert => [alert.identifier, alert]))
+  const keep = new Set<string>()
+
+  for (const notification of pending) {
+    if (!isMine(notification.identifier)) continue
+    const want = wanted.get(notification.identifier)
+    if (want && alertSig(notification) === want.sig) {
+      keep.add(notification.identifier)
+      continue
+    }
+    await Notifications.cancelScheduledNotificationAsync(notification.identifier).catch(() => {})
+  }
+
+  let added = 0
+  for (const alert of [...desired].sort((a, b) => a.at - b.at)) {
+    if (keep.has(alert.identifier)) continue
+    try {
+      await Notifications.scheduleNotificationAsync({
+        ...alert.request,
+        identifier: alert.identifier,
+        content: {
+          ...alert.request.content,
+          data: { ...(alert.request.content.data ?? {}), sig: alert.sig },
+        },
+      })
+      added++
+    } catch (error) {
+      console.log(`[Notifications] Could not schedule ${alert.identifier}:`, error)
+    }
+  }
+  return { kept: keep.size, added }
+}
+
+function isPrayerAlertId(identifier: string) {
+  return (
+    (identifier.startsWith("prayer-") && identifier !== "prayer-adhan-test") ||
+    identifier.startsWith("adhan-soon-") ||
+    identifier === "adhan-reopen"
+  )
+}
+
+/** Dev only: how many alerts are waiting on this phone (iPhone max is 64). */
+async function logPendingAlerts(label: string) {
+  if (!__DEV__) return
+  const pending = await Notifications.getAllScheduledNotificationsAsync()
+  const groups: Record<string, number> = {}
+  for (const n of pending) {
+    const key = n.identifier.split("-").slice(0, 2).join("-")
+    groups[key] = (groups[key] ?? 0) + 1
+  }
+  console.log(`[Notifications] ${label}: ${pending.length} pending`, groups)
+}
 
 export function getPrayerChannelId(adhanId: string, isFajr = false) {
   return isFajr
@@ -415,7 +499,6 @@ export async function schedulePrayerNotifications(
       return
     }
     await setupPrayerNotificationChannel(adhanId)
-    await cancelPrayerNotifications()
 
     const regularChannelId =
       Platform.OS === "android" ? getPrayerChannelId(adhanId, false) : null
@@ -445,17 +528,16 @@ export async function schedulePrayerNotifications(
             return { ...today, date }
           })
 
+    // How many days fit? Count everything that is not a prayer alert.
     const pending = await Notifications.getAllScheduledNotificationsAsync()
-    const room =
-      Platform.OS === "ios"
-        ? Math.max(0, IOS_PENDING_LIMIT - IOS_RESERVED_SLOTS - pending.length)
-        : PRAYER_HORIZON_DAYS * 5
+    const others = pending.filter(n => !isPrayerAlertId(n.identifier)).length
+    const room = Math.max(0, IOS_PENDING_LIMIT - IOS_RESERVED_SLOTS - others)
     const dayLimit =
       Platform.OS === "ios"
-        ? Math.min(PRAYER_HORIZON_DAYS, Math.floor(room / 5))
+        ? Math.max(1, Math.min(IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
         : PRAYER_HORIZON_DAYS
 
-    let scheduledOk = 0
+    const desired: DesiredAlert[] = []
     for (const day of horizon.slice(0, dayLimit)) {
       const rows = prayerRows({
         fajr: day.fajr,
@@ -477,9 +559,11 @@ export async function schedulePrayerNotifications(
         const copy = prayerNotificationCopy(prayer.name, prayer.time)
         const dateKey = localDateKey(when)
 
-        try {
-          await Notifications.scheduleNotificationAsync({
-            identifier: `prayer-${prayer.name.toLowerCase()}-${dateKey}`,
+        desired.push({
+          identifier: `prayer-${prayer.name.toLowerCase()}-${dateKey}`,
+          at: when.getTime(),
+          sig: `${when.getTime()}|${sound}|${channelId ?? ""}|${i18n.language}`,
+          request: {
             content: {
               title: copy.title,
               body: copy.body,
@@ -498,18 +582,16 @@ export async function schedulePrayerNotifications(
               date: when,
               ...(Platform.OS === "android" && channelId ? { channelId } : {}),
             },
-          })
-          scheduledOk++
-        } catch (error) {
-          if (Platform.OS !== "android") throw error
-          console.log(`[Notifications] ${prayer.name} ${dateKey} scheduled without an exact alarm:`, error)
-        }
+          },
+        })
       }
     }
 
+    const result = await syncAlertGroup(isPrayerAlertId, desired)
     console.log(
-      `[Notifications] Scheduled ${scheduledOk} prayer alerts over ${dayLimit} days (adhan ${adhanId}, ${Platform.OS})`
+      `[Notifications] Prayer alerts: ${desired.length} over ${dayLimit} days (kept ${result.kept}, added ${result.added}, adhan ${adhanId}, ${Platform.OS})`
     )
+    await logPendingAlerts("after prayers")
   }
 
   const next = schedulePrayerChain.then(run, run)
@@ -657,21 +739,12 @@ export async function scheduleDailyDhikrReminders() {
     })
   }
 
-  // Cancel legacy + current slots
-  const cancelIds = [
-    "dhikr-reminder",
-    "dhikr-reminder-morning",
-    "dhikr-reminder-evening",
-    "adhkar-reminder-morning",
-    "adhkar-reminder-evening",
-  ]
-  for (const id of cancelIds) {
+  // Old ids from earlier versions
+  for (const id of ["dhikr-reminder", "dhikr-reminder-morning", "dhikr-reminder-evening"]) {
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
   }
 
-  if (slots.length === 0) return true
-
-  if (Platform.OS === "android") {
+  if (Platform.OS === "android" && slots.length > 0) {
     await Notifications.setNotificationChannelAsync("adhkar-reminders", {
       name: "Morning & Evening Adhkar",
       importance: Notifications.AndroidImportance.DEFAULT,
@@ -681,9 +754,11 @@ export async function scheduleDailyDhikrReminders() {
     })
   }
 
-  for (const slot of slots) {
-    await Notifications.scheduleNotificationAsync({
-      identifier: slot.id,
+  const desired: DesiredAlert[] = slots.map(slot => ({
+    identifier: slot.id,
+    at: nextLocalTime(slot.hour, slot.minute).getTime(),
+    sig: `${slot.hour}:${slot.minute}|${i18n.language}`,
+    request: {
       content: {
         title: slot.title,
         body: slot.body,
@@ -701,9 +776,10 @@ export async function scheduleDailyDhikrReminders() {
         minute: slot.minute,
         ...(Platform.OS === "android" ? { channelId: "adhkar-reminders" } : {}),
       },
-    })
-  }
+    },
+  }))
 
+  await syncAlertGroup(id => id.startsWith("adhkar-reminder-"), desired)
   return true
 }
 
@@ -851,13 +927,18 @@ export async function scheduleAlMulkReminder() {
   await ensureQuranReminderChannel()
 
   const now = new Date()
+  // Premium = guided: "continue from ayah X", "finish before you sleep", no reminder if already read.
+  // Free = the same simple "Read Surah Al-Mulk" reminder every night.
+  const guided = await isPremiumNow()
   const lastRead = (await loadLastReadState()).entries.find(e => e.surahNumber === AL_MULK_SURAH_NUMBER)
   const readToday = Boolean(lastRead && isSameLocalDay(lastRead.registeredAt, now))
-  const tonightKind = mulkNotifKind({
-    lastAyah: lastRead?.ayah ?? null,
-    ayahCount: ayahCountForSurah(AL_MULK_SURAH_NUMBER),
-    readToday,
-  })
+  const tonightKind: MulkNotifKind = guided
+    ? mulkNotifKind({
+        lastAyah: lastRead?.ayah ?? null,
+        ayahCount: ayahCountForSurah(AL_MULK_SURAH_NUMBER),
+        readToday,
+      })
+    : "start"
 
   const tonight = nextLocalTime(22, 0, now)
   const isTonight = tonight.getDate() === now.getDate() && tonight.getMonth() === now.getMonth()
@@ -923,7 +1004,10 @@ export async function scheduleAlKahfReminder() {
   }
 
   const now = new Date()
-  const progress = await loadKahfWeeklyProgress(now)
+  // Premium = guided by this week's reading progress (continue / finish / skip when done, plus a Friday-evening nudge).
+  // Free = simple reminders: Thursday night "start" and Friday morning "don't miss".
+  const guided = await isPremiumNow()
+  const progress = guided ? await loadKahfWeeklyProgress(now) : emptyKahfProgress(now)
 
   await Notifications.scheduleNotificationAsync({
     identifier: "al-kahf-thursday-eve",
@@ -955,7 +1039,7 @@ export async function scheduleAlKahfReminder() {
     await scheduleKahfDate("al-kahf-friday-next", following, "dontMiss")
   }
 
-  const eveKind = kahfNotifKind("FriEve", progress)
+  const eveKind = guided ? kahfNotifKind("FriEve", progress) : "skip"
   const eveningAt = eveKind === "skip" ? null : await fridayEveningDate(now)
   if (eveningAt) {
     await scheduleKahfDate("al-kahf-friday-evening", eveningAt, eveKind)
@@ -1205,12 +1289,6 @@ export async function scheduleIslamicDateReminders() {
   const events = await fetchAndCacheIslamicEvents()
   if (!events.length) return false
 
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync()
-  for (const notif of scheduled) {
-    if (notif.identifier.startsWith("islamic-")) {
-      await Notifications.cancelScheduledNotificationAsync(notif.identifier)
-    }
-  }
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("islamic-events", {
@@ -1228,14 +1306,16 @@ export async function scheduleIslamicDateReminders() {
     ISLAMIC_EVENTS_HIJRI.filter(e => e.eveReminder).map(e => e.id)
   )
 
-  let scheduledCount = 0
+  const horizonEnd = now + ISLAMIC_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000
+  const desired: DesiredAlert[] = []
 
-  for (const event of events) {
-    const dayOf = buildEventDate(event, 8, 0)
-    if (dayOf && dayOf.getTime() > now) {
-      const copy = getEventNotificationCopy(event, "day")
-      await Notifications.scheduleNotificationAsync({
-        identifier: `islamic-${event.id}-day`,
+  const islamicAlert = (identifier: string, date: Date, event: IslamicEvent, kind: "day" | "eve"): DesiredAlert => {
+    const copy = getEventNotificationCopy(event, kind)
+    return {
+      identifier,
+      at: date.getTime(),
+      sig: `${date.getTime()}|${i18n.language}`,
+      request: {
         content: {
           title: copy.title,
           body: copy.body,
@@ -1249,53 +1329,39 @@ export async function scheduleIslamicDateReminders() {
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: dayOf,
+          date,
           ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
         },
-      })
-      scheduledCount++
+      },
+    }
+  }
+
+  for (const event of events) {
+    const dayOf = buildEventDate(event, 8, 0)
+    if (dayOf && dayOf.getTime() > now) {
+      desired.push(islamicAlert(`islamic-${event.id}-day`, dayOf, event, "day"))
     }
 
     if (!eveIds.has(event.baseId)) continue
 
     // Laylatul Qadr: evening of the day itself (night of power)
     const isLaylatulQadr = event.baseId === "laylatul-qadr"
-    const eve = isLaylatulQadr
-      ? buildEventDate(event, 20, 0)
-      : (() => {
-          const d = buildEventDate(event, 20, 0)
-          if (!d) return null
-          d.setDate(d.getDate() - 1)
-          return d
-        })()
-
+    const eve = buildEventDate(event, 20, 0)
+    if (eve && !isLaylatulQadr) eve.setDate(eve.getDate() - 1)
     if (eve && eve.getTime() > now) {
-      const copy = getEventNotificationCopy(event, "eve")
-      await Notifications.scheduleNotificationAsync({
-        identifier: `islamic-${event.id}-eve`,
-        content: {
-          title: copy.title,
-          body: copy.body,
-          sound: true,
-          data: {
-            screen: "islamic-calendar",
-            eventId: event.id,
-            baseId: event.baseId,
-          },
-          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: eve,
-          ...(Platform.OS === "android" ? { channelId: "islamic-events" } : {}),
-        },
-      })
-      scheduledCount++
+      desired.push(islamicAlert(`islamic-${event.id}-eve`, eve, event, "eve"))
     }
   }
 
-  console.log(`Scheduled ${scheduledCount} Islamic calendar notifications`)
-  return scheduledCount > 0
+  // Only the next few: the rest get scheduled later when the app is opened again.
+  const soon = desired
+    .filter(alert => alert.at <= horizonEnd)
+    .sort((a, b) => a.at - b.at)
+    .slice(0, ISLAMIC_MAX_ALERTS)
+
+  await syncAlertGroup(id => id.startsWith("islamic-"), soon)
+  console.log(`Scheduled ${soon.length} Islamic calendar notifications`)
+  return soon.length > 0
 }
 
 function buildEventDate(event: IslamicEvent, hour: number, minute: number) {

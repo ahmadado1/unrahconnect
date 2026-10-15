@@ -21,6 +21,8 @@ import { sendAccountEmail } from "@/lib/accountEmails"
 import { isNetworkError } from "@/lib/networkError"
 import { isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { supabase } from "../lib/supabase"
+import { usePremium } from "@/lib/premium"
+import PremiumPlanCard from "./components/PremiumPlanCard"
 
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
   id: n.id,
@@ -41,6 +43,7 @@ export default function ProfileScreen() {
   const [agentCode, setAgentCode] = useState("")
   const [agentCodeError, setAgentCodeError] = useState("")
   const { t } = useTranslation()
+  const premium = usePremium()
 
   const [passwordModal, setPasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState("")
@@ -60,7 +63,7 @@ export default function ProfileScreen() {
     if (user) {
       setUser(user)
       setFullName(user.user_metadata?.full_name || "")
-      setPhone(user.user_metadata?.phone || "")
+      setPhone(user.user_metadata?.phone || (user.phone ? `+${user.phone.replace(/^\+/, "")}` : ""))
       setNationality(user.user_metadata?.nationality || "")
       const g = user.user_metadata?.gender
       setGender(g === "male" || g === "female" ? g : "")
@@ -218,13 +221,19 @@ export default function ProfileScreen() {
       </View>
 
       <View style={[styles.avatarSection, { backgroundColor: theme.header }]}>
-        <View style={styles.avatar}>
+        <View style={[styles.avatar, premium.isPremium && styles.avatarPremium]}>
           <Text style={styles.avatarText}>
             {fullName ? fullName[0].toUpperCase() : "?"}
           </Text>
         </View>
         <Text style={styles.userName}>{fullName || "Your Name"}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
+        {premium.isPremium ? (
+          <View style={styles.premiumChip}>
+            <Ionicons name="star" size={11} color="#1E3A5F" />
+            <Text style={styles.premiumChipText}>{t("premiumBadge")}</Text>
+          </View>
+        ) : null}
         <Text style={styles.memberSince}>
           {t("memberSince")}{" "}
           {user
@@ -235,6 +244,8 @@ export default function ProfileScreen() {
             : ""}
         </Text>
       </View>
+
+      <PremiumPlanCard />
 
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
@@ -499,6 +510,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarText: { fontSize: 32, fontWeight: "bold", color: "#1E3A5F" },
+  avatarPremium: { borderWidth: 3, borderColor: "#F3E3B5" },
+  premiumChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#C9A84C", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginTop: 6 },
+  premiumChipText: { color: "#1E3A5F", fontSize: 11, fontWeight: "bold" },
   userName: { fontSize: 20, fontWeight: "bold", color: "#fff", marginBottom: 4 },
   userEmail: { fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 4 },
   memberSince: { fontSize: 12, color: "#C9A84C", marginTop: 4 },
