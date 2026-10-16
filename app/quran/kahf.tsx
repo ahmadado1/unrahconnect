@@ -1,4 +1,5 @@
 import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
+import IsolatedSurahListenCard from "@/app/components/IsolatedSurahListenCard"
 import MushafFontSizer from "@/app/components/MushafFontSizer"
 import { useTheme } from "@/context/themeContext"
 import { AL_KAHF_SURAH_NUMBER } from "@/lib/alKahfWindow"
@@ -27,7 +28,8 @@ import {
 } from "@/lib/quranPageCache"
 import { recordQuranLastRead } from "@/lib/quranLastRead"
 import { getSurahMeta } from "@/lib/quranSurahMeta"
-import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
+import { useFonts } from "expo-font"
+import { UC_QURAN_FONTS } from "@/lib/mushafFonts"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
 import { useKeepAwake } from "expo-keep-awake"
@@ -69,6 +71,7 @@ function KahfPage({
   onMarkComplete,
   pageHeight,
   fontSize,
+  header,
 }: {
   pageNumber: number
   fontsLoaded: boolean
@@ -78,6 +81,8 @@ function KahfPage({
   onMarkComplete: () => void
   pageHeight: number
   fontSize: number
+  /** Shown at the top of the page and scrolls away with it (the "Listen" card) */
+  header?: React.ReactNode
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
@@ -163,6 +168,7 @@ function KahfPage({
         nestedScrollEnabled
         directionalLockEnabled
       >
+        {header}
         <View style={styles.pageFrameOuter}>
           <View style={styles.pageFrameInner}>
             <View style={styles.pageContent}>
@@ -261,10 +267,7 @@ export default function KahfReadingScreen() {
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
   const insets = useSafeAreaInsets()
-  const [fontsLoaded] = useFonts({
-    ScheherazadeNew_400Regular,
-    ScheherazadeNew_700Bold,
-  })
+  const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
   const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
 
   const [range, setRange] = useState({
@@ -476,6 +479,7 @@ export default function KahfReadingScreen() {
             })}
       </Text>
 
+
       <FlatList
         ref={flatListRef}
         data={pages}
@@ -517,6 +521,15 @@ export default function KahfReadingScreen() {
             onMarkComplete={onMarkComplete}
             pageHeight={pageHeight}
             fontSize={fontSize}
+            header={
+              // Premium: listen instead of reading. Sits on top of every page and scrolls away,
+              // so the page can be read full screen. Ticks the surah when the recitation ends.
+              <IsolatedSurahListenCard
+                surah={AL_KAHF_SURAH_NUMBER}
+                done={Boolean(progress?.completed)}
+                onListened={onMarkComplete}
+              />
+            }
           />
         )}
         onScrollToIndexFailed={info => {

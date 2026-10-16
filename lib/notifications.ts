@@ -6,6 +6,7 @@ import {
   type IslamicEvent,
 } from "@/lib/islamicEvents"
 import { playPrayerAdhan } from "@/lib/adhanAudio"
+import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification, type PrayerName } from "@/lib/prayerConstants"
 import {
   ADHAN_RECITERS,
@@ -62,7 +63,7 @@ const IOS_RESERVED_SLOTS = 4
 /**
  * iPhone keeps at most 64 scheduled alerts in total and silently drops the rest.
  * Budget (worst case): prayers 7 days × 5 = 35, Islamic dates 6, Adhkar 2, Mulk 2,
- * Kahf 4, journey 5, test 1 = 55. That always stays under 64, so nothing gets dropped.
+ * Kahf 4, Salawat 2 (Premium, Friday), journey 5, test 1 = 57. That always stays under 64, so nothing gets dropped.
  */
 const IOS_PRAYER_MAX_DAYS = 7
 const ISLAMIC_LOOKAHEAD_DAYS = 60
@@ -891,7 +892,7 @@ function mulkNotifContent(kind: MulkNotifKind = "start") {
     sound: true as const,
     data: {
       screen: "al-mulk",
-      route: "/quran/67",
+      route: "/quran/mulk",
       surah: 67,
     },
     ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
@@ -932,8 +933,13 @@ export async function scheduleAlMulkReminder() {
   const guided = await isPremiumNow()
   const lastRead = (await loadLastReadState()).entries.find(e => e.surahNumber === AL_MULK_SURAH_NUMBER)
   const readToday = Boolean(lastRead && isSameLocalDay(lastRead.registeredAt, now))
+  // Ticked tonight (read to the end, or listened to the end) → no reminder tonight.
+  const { isMulkCompleteTonight } = await import("@/lib/mulkNightly")
+  const doneTonight = await isMulkCompleteTonight(now).catch(() => false)
   const tonightKind: MulkNotifKind = guided
-    ? mulkNotifKind({
+    ? doneTonight
+      ? "skip"
+      : mulkNotifKind({
         lastAyah: lastRead?.ayah ?? null,
         ayahCount: ayahCountForSurah(AL_MULK_SURAH_NUMBER),
         readToday,
@@ -967,6 +973,43 @@ export async function scheduleAlMulkReminder() {
     },
   })
 
+  return true
+}
+
+// ─── Friday Salawat on the Prophet ﷺ (Premium) ─────────────────────────────
+// Two gentle reminders on the next Friday (10:00 and 16:30). Tapping opens the dhikr counter.
+const SALAWAT_NOTIF_IDS = ["salawat-friday-am", "salawat-friday-pm"]
+
+export async function scheduleSalawatReminder() {
+  for (const id of SALAWAT_NOTIF_IDS) {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+  }
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+  if (!(await isPremiumNow())) return false
+
+  await ensureQuranReminderChannel()
+  const now = new Date()
+  const times = [nextWeekdayAt(5, 10, 0, now), nextWeekdayAt(5, 16, 30, now)]
+  for (let i = 0; i < times.length; i++) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: SALAWAT_NOTIF_IDS[i],
+      content: {
+        title: i18n.t("salawatNotifTitle", { defaultValue: "Jumu'ah Mubarak ﷺ" }),
+        body: i18n.t("salawatNotifBody", {
+          defaultValue: "Send blessings on the Prophet ﷺ today. Tap to count your Salawat.",
+        }),
+        sound: true,
+        data: { screen: "dhikr", route: "/dhikr", id: "salawat" },
+        ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: times[i],
+        ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+      },
+    })
+  }
   return true
 }
 
@@ -1397,6 +1440,7 @@ export function handlePrayerNotificationForeground(
   foregroundPrayer = prayerName
   foregroundPrayerAt = Date.now()
   void playPrayerAdhan(prayerName, { fromStart: true })
+  triggerPrayerAlert(prayerName, { playSound: false, forceShow: true })
   return true
 }
 
@@ -1413,6 +1457,8 @@ export function handlePrayerNotificationOpen(
   navigateToGuide()
 
   if (prayerName) {
+    // Full-screen prayer popup on top of the Guide tab.
+    setTimeout(() => triggerPrayerAlert(prayerName, { playSound: false, forceShow: true }), 400)
     const justStartedHere =
       foregroundPrayer === prayerName && Date.now() - foregroundPrayerAt < 8000
     if (!justStartedHere) {

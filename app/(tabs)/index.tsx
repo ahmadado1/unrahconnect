@@ -1,5 +1,10 @@
 import TouchableOpacity from "@/app/components/AppPressable";
 import { usePremium } from "@/lib/premium"
+import GlowText from "@/app/components/GlowText"
+import PremiumEndingBanner from "@/app/components/PremiumEndingBanner"
+import PremiumJourneyCard from "@/app/components/PremiumJourneyCard"
+import QuranBigPlayer from "@/app/components/QuranBigPlayer"
+import { dhikrForToday } from "@/lib/dhikrList"
 import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
 import QuranHomeCard from "@/app/components/QuranHomeCard";
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
@@ -61,14 +66,7 @@ function getAdhkarWindow(now = new Date()): "morning" | "evening" | null {
 
 // ─── DHIKR LIST ──────────────────────────────────────────────────────────────
 
-const DHIKR_LIST = [
-  { arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", translit: "SubhanAllah wa bihamdihi", meaning: "Glory and praise be to Allah" },
-  { arabic: "الْحَمْدُ لِلَّهِ", translit: "Alhamdulillah", meaning: "All praise is due to Allah" },
-  { arabic: "لَا إِلَهَ إِلَّا اللَّهُ", translit: "La ilaha illallah", meaning: "There is no god but Allah" },
-  { arabic: "اللَّهُ أَكْبَرُ", translit: "Allahu Akbar", meaning: "Allah is the Greatest" },
-  { arabic: "أَسْتَغْفِرُ اللَّهَ", translit: "Astaghfirullah", meaning: "I seek forgiveness from Allah" },
-  { arabic: "سُبْحَانَ اللَّهِ الْعَظِيمِ", translit: "SubhanAllah il-Azeem", meaning: "Glory be to Allah the Magnificent" },
-]
+// The list lives in lib/dhikrList.ts (a new one each day, Salawat on Friday).
 
 // ─── CIRCULAR TIMER ──────────────────────────────────────────────────────────
 
@@ -319,7 +317,7 @@ export default function HomeScreen() {
   const [locationName, setLocationName] = useState("")
   const [minutesLeft, setMinutesLeft] = useState(0)
   const [umrahProgress, setUmrahProgress] = useState({ step: 1, phase: "", total: UMRAH_TOTAL_PHASES, percent: 0 })
-  const [dhikr, setDhikr] = useState(() => DHIKR_LIST[new Date().getDay() % DHIKR_LIST.length])
+  const [dhikr, setDhikr] = useState(() => dhikrForToday())
   const [dhikrFaved, setDhikrFaved] = useState(false)
   const [bookings, setBookings] = useState<any[]>([])
   const [adhkarWindow, setAdhkarWindow] = useState<"morning" | "evening" | null>(() => getAdhkarWindow())
@@ -433,6 +431,9 @@ export default function HomeScreen() {
   }, [])
 
   const openHomeQuranCard = useCallback(async () => {
+    // Al-Kahf (Friday) and Al-Mulk (10pm–3am) open their own isolated readers.
+    if (homeQuranCard.kind === "kahf") return router.push("/quran/kahf" as any)
+    if (homeQuranCard.kind === "mulk") return router.push("/quran/mulk" as any)
     const mode = (await getQuranReadMode()) ?? "mushaf"
     router.push({
       pathname: "/quran/[surah]",
@@ -452,7 +453,7 @@ export default function HomeScreen() {
   }, [homeQuranCard, router])
 
   const refreshDhikr = useCallback(() => {
-    setDhikr(DHIKR_LIST[Math.floor(Math.random() * DHIKR_LIST.length)])
+    setDhikr(dhikrForToday())
     setDhikrFaved(false)
   }, [])
 
@@ -656,7 +657,13 @@ export default function HomeScreen() {
           <CircularTimer minutesLeft={minutesLeft} total={minutesLeft} />
         </HeroBackground>
 
-        {/* ── CONTINUE UMRAH JOURNEY ── */}
+        {/* ── Premium ends in the next 3 days ── */}
+        <PremiumEndingBanner />
+
+        {/* ── PREMIUM: UmrahConnect Guide → Trip Planner. FREE: Continue My Umrah Journey ── */}
+        {premium.isPremium ? (
+          <PremiumJourneyCard />
+        ) : (
         <TouchableOpacity
           style={[styles.journeyCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={() => router.push("/umrah-guide" as any)}
@@ -679,6 +686,7 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.text} />
           </View>
         </TouchableOpacity>
+        )}
 
         {/* Adhkar — under Umrah Journey; morning 8–11am, evening 5–6pm only */}
         {adhkarWindow === "morning" && (
@@ -715,7 +723,11 @@ export default function HomeScreen() {
         )}
 
         {/* ── TODAY'S DHIKR ── */}
-        <View style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <TouchableOpacity
+          style={[styles.dhikrCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          onPress={() => router.push({ pathname: "/dhikr", params: { id: dhikr.id } } as any)}
+          activeOpacity={0.9}
+        >
           <ImageBackground
             source={require("../../assets/images/prayer-mosque.jpg")}
             style={StyleSheet.absoluteFill}
@@ -726,16 +738,17 @@ export default function HomeScreen() {
               <View style={styles.dhikrIconBox}>
                 <AppIcon name="mosque" size={16} color="#fff" />
               </View>
-              <Text style={[styles.dhikrLabel, { color: theme.text }]}>Today's Dhikr</Text>
+              <Text style={[styles.dhikrLabel, { color: theme.text }]}>{t("dk_todayLabel")}</Text>
             </View>
             <TouchableOpacity onPress={() => setDhikrFaved(!dhikrFaved)}>
               <Ionicons name={dhikrFaved ? "heart" : "heart-outline"} size={20} color={dhikrFaved ? "#C9A84C" : theme.textSecondary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.dhikrArabic}>{dhikr.arabic}</Text>
-          <Text style={styles.dhikrTranslit}>'{dhikr.translit}'</Text>
+          <GlowText style={styles.dhikrArabic}>{dhikr.arabic}</GlowText>
+          <Text style={styles.dhikrTranslit}>&apos;{dhikr.translit}&apos;</Text>
           <Text style={[styles.dhikrMeaning, { color: theme.textSecondary }]}>({dhikr.meaning})</Text>
-        </View>
+          <Text style={styles.dhikrCountHint}>{t("dk_countHint")}</Text>
+        </TouchableOpacity>
 
         {/* ── QURAN PREVIEW (Mulk at night, Kahf on Friday, else last read) ── */}
         <QuranHomeCard
@@ -745,6 +758,13 @@ export default function HomeScreen() {
           loading={!homeQuranPreview}
           onPress={openHomeQuranCard}
         />
+
+        {/* ── LISTEN TO THE QURAN (Premium: continue where you stopped) ── */}
+        {/* Quran player: first time it opens the reciter / surah chooser, then shows the last surah.
+            Premium continues at the exact second; free starts that surah again. */}
+        <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+          <QuranBigPlayer variant="home" />
+        </View>
 
         {/* ── ISLAMIC (HIJRI) CALENDAR ── */}
         <TouchableOpacity
@@ -982,6 +1002,7 @@ const styles = StyleSheet.create({
   dhikrArabic: { fontSize: 28, color: "#1E3A5F", textAlign: "center", lineHeight: 50, marginBottom: 8 },
   dhikrTranslit: { color: "#C9A84C", fontSize: 14, textAlign: "center", fontStyle: "italic", marginBottom: 4 },
   dhikrMeaning: { fontSize: 13, textAlign: "center" },
+  dhikrCountHint: { color: "#C9A84C", fontSize: 11, fontWeight: "700", textAlign: "center", marginTop: 8 },
 
   // Hijri calendar card (mini month preview)
   hijriCard: {

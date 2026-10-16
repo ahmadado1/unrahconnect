@@ -2,7 +2,8 @@ import AppPressable from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import type { HomeQuranCardState } from "@/lib/homeQuranCard"
 import { cardShadow, ui } from "@/lib/ui"
-import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new"
+import { useFonts } from "expo-font"
+import { UC_QURAN_FONTS } from "@/lib/mushafFonts"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
@@ -33,7 +34,7 @@ export default function QuranHomeCard({
   onPress,
 }: Props) {
   const { theme } = useTheme()
-  const [fontsLoaded] = useFonts({ ScheherazadeNew_400Regular })
+  const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
   const showBismillah = card.surahNumber !== NO_BISMILLAH_SURAH
   const verses = stripLeadingBismillah(previewText)
   const fadeColors = theme.dark
@@ -56,7 +57,7 @@ export default function QuranHomeCard({
           style={[
             styles.bismillah,
             { color: theme.text },
-            fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+            fontsLoaded && { fontFamily: "UCScheherazade" },
           ]}
         >
           {BISMILLAH}
@@ -74,7 +75,7 @@ export default function QuranHomeCard({
             style={[
               styles.previewArabic,
               { color: theme.text },
-              fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" },
+              fontsLoaded && { fontFamily: "UCScheherazade" },
             ]}
           >
             {verses}

@@ -15,6 +15,7 @@ import {
   QPC_HAFS_BISMILLAH,
   useMushafFont,
   UTHMANI_MUSHAF_FONT,
+  verseModeFont,
   type MushafFontConfig,
 } from "@/lib/mushafFonts"
 import { juzForPage } from "@/lib/mushafJuz"
@@ -39,12 +40,24 @@ import { useFocusEffect, useLocalSearchParams, useRouter, Stack } from "expo-rou
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, AppState, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
+import VerseReciterPicker from "@/app/components/VerseReciterPicker"
+import { usePremium } from "@/lib/premium"
+import {
+  getVerseReciter,
+  loadVerseReciterId,
+  pauseQuran,
+  playVerse,
+  resumeQuran,
+  saveVerseReciterId,
+  stopQuranAudio,
+} from "@/lib/quranAudio"
+import { useQuranPlayback } from "@/lib/useQuranPlayback"
 import { buildMushafBlocks, type MushafBlock } from "../../lib/mushafLines"
 import {
   fetchAndCachePage,
@@ -787,6 +800,15 @@ export default function SurahScreen() {
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
   const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
   const { font: mushafFont, setFontId } = useMushafFont()
+  // Read (verse) mode uses the same font as the Mushaf (Madinah font → Amiri Quran, see verseModeFont)
+  // and the same text size setting.
+  const verseFont = verseModeFont(mushafFont)
+  const verseMetrics = mushafFontMetrics(verseFont, fontSize - 2)
+  const verseTextStyle = {
+    fontFamily: verseFont.family,
+    fontSize: verseMetrics.fontSize,
+    lineHeight: Math.round(verseMetrics.fontSize * Math.max(1.9, verseFont.lineHeight)),
+  }
   const [visibleVerseNumber, setVisibleVerseNumber] = useState(1)
 
   const initialLang = normalizeReadLanguage(i18n.language)
@@ -809,6 +831,38 @@ export default function SurahScreen() {
   const [verseList, setVerseList] = useState<Verse[]>(() => initialCached ?? [])
   const [loading, setLoading] = useState(() => !initialCached?.length)
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set())
+
+  // ─── Verse audio (EveryAyah) ───────────────────────────────────────────────
+  const playback = useQuranPlayback()
+  const { isPremium } = usePremium()
+  const [reciterId, setReciterId] = useState("alafasy")
+  const [reciterPickerOpen, setReciterPickerOpen] = useState(false)
+  const surahNumber = Number(surah)
+  const playingHere = playback.kind === "verse" && playback.surah === surahNumber
+
+  useEffect(() => {
+    loadVerseReciterId().then(id => {
+      const saved = getVerseReciter(id)
+      // A Premium reciter saved earlier falls back to a free one if Premium ended.
+      setReciterId(!saved.free && !isPremium ? "alafasy" : saved.id)
+    })
+  }, [isPremium])
+
+  const onVersePlay = (ayahNumber: number) => {
+    if (playingHere && playback.ayah === ayahNumber) {
+      if (playback.playing) pauseQuran()
+      else resumeQuran()
+      return
+    }
+    void playVerse({
+      surah: surahNumber,
+      ayah: ayahNumber,
+      lastAyah: Number(verses) || ayahNumber,
+      reciter: getVerseReciter(reciterId),
+      continuous: true,
+      title: String(name || ""),
+    })
+  }
   const saveTimer = useRef<any>(null)
   const loadRequestRef = useRef(0)
   const switchingRef = useRef(false)
@@ -849,6 +903,42 @@ export default function SurahScreen() {
     lastAyahRef.current = visibleVerseNumber || 1
   }, [viewMode, currentPage, verseList, visibleVerseNumber])
 
+  // Save the exact spot WHILE reading (page in Mushaf mode, verse in Verses mode),
+  // so Last Read is right even if the app is closed without pressing back.
+  const lastPageRef = useRef(currentPage)
+  lastPageRef.current = currentPage
+  const viewModeRef = useRef(viewMode)
+  viewModeRef.current = viewMode
+  useEffect(() => {
+    if (loading || !Number(surah)) return
+    const timer = setTimeout(() => {
+      void recordQuranLastRead({
+        surahNumber: Number(surah),
+        englishName: String(name ?? ""),
+        arabicName: String(arabicName ?? ""),
+        ayah: lastAyahRef.current || 1,
+        page: viewMode === "mushaf" ? currentPage : undefined,
+        mode: viewMode,
+      })
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [loading, surah, name, arabicName, viewMode, currentPage, visibleVerseNumber])
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", next => {
+      if (next !== "background" || !Number(surah)) return
+      void recordQuranLastRead({
+        surahNumber: Number(surah),
+        englishName: String(name ?? ""),
+        arabicName: String(arabicName ?? ""),
+        ayah: lastAyahRef.current || 1,
+        page: viewModeRef.current === "mushaf" ? lastPageRef.current : undefined,
+        mode: viewModeRef.current,
+      })
+    })
+    return () => sub.remove()
+  }, [surah, name, arabicName])
+
   // Register Last Read on exit (back, tab change, or jump to another Surah) — not on enter.
   useFocusEffect(
     useCallback(() => {
@@ -862,6 +952,8 @@ export default function SurahScreen() {
           englishName: capturedName,
           arabicName: capturedArabic,
           ayah: lastAyahRef.current || 1,
+          page: viewModeRef.current === "mushaf" ? lastPageRef.current : undefined,
+          mode: viewModeRef.current,
         })
         const ayah = lastAyahRef.current || 1
         if (capturedSurah === AL_KAHF_SURAH_NUMBER) {
@@ -1237,25 +1329,59 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     }, 2000)
   }
 
+  // Follow the recitation: keep the ayah being read on screen.
+  useEffect(() => {
+    if (!playingHere || viewMode !== "verses" || !playback.ayah) return
+    const index = verseList.findIndex(v => v.number === playback.ayah)
+    if (index < 0) return
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 })
+  }, [playingHere, playback.ayah, viewMode, verseList])
+
   // ─── RENDER VERSE ──────────────────────────────────────────────────────────
 
-  const renderVerse = ({ item }: { item: Verse }) => (
-    <View style={[styles.verseCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+  const renderVerse = ({ item }: { item: Verse }) => {
+    const isCurrent = playingHere && playback.ayah === item.number
+    return (
+    <View
+      style={[
+        styles.verseCard,
+        { backgroundColor: theme.card, borderColor: theme.border },
+        isCurrent && styles.verseCardPlaying,
+      ]}
+    >
       <View style={styles.verseTop}>
         <View style={styles.verseBadge}>
           <Text style={styles.verseBadgeText}>{item.number}</Text>
         </View>
-        <TouchableOpacity onPress={() => toggleBookmark(item)}>
-          <Ionicons
-            name={bookmarked.has(item.number) ? "bookmark" : "bookmark-outline"}
-            size={18} color={theme.gold}
-          />
-        </TouchableOpacity>
+        <View style={styles.verseActions}>
+          {/* ▶ Listen to this ayah (and carry on to the next ones) */}
+          <TouchableOpacity
+            onPress={() => onVersePlay(item.number)}
+            hitSlop={8}
+            accessibilityLabel={t("qaPlayVerse")}
+          >
+            {isCurrent && playback.loading ? (
+              <ActivityIndicator size="small" color={theme.gold} />
+            ) : (
+              <Ionicons
+                name={isCurrent && playback.playing ? "pause-circle" : "play-circle-outline"}
+                size={22}
+                color={theme.gold}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => toggleBookmark(item)}>
+            <Ionicons
+              name={bookmarked.has(item.number) ? "bookmark" : "bookmark-outline"}
+              size={18} color={theme.gold}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       <Text
         style={[
           styles.verseArabic,
-          fontsLoaded && { fontFamily: "AmiriQuran" },
+          fontsLoaded && verseTextStyle,
         ]}
       >
         {item.text}
@@ -1269,7 +1395,8 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         </>
       ) : null}
     </View>
-  )
+    )
+  }
 
   // ─── RENDER ────────────────────────────────────────────────────────────────
 
@@ -1321,6 +1448,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               <Text style={styles.backText}>{t("quran")}</Text>
             </TouchableOpacity>
             <View style={styles.headerTopActions}>
+              <TouchableOpacity
+                onPress={() => setReciterPickerOpen(true)}
+                style={styles.jumpBtn}
+                accessibilityLabel={t("qaChooseReciter")}
+              >
+                <Ionicons name="headset-outline" size={18} color="#C9A84C" />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setJumpOpen(true)}
                 style={styles.jumpBtn}
@@ -1420,7 +1554,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               if (Number(surah) === 9) return null
               return (
                 <View style={[styles.bismillahCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: "AmiriQuran" }, { color: theme.text }]}>
+                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: verseFont.family }, { color: theme.text }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
                   <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
@@ -1440,7 +1574,52 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         )}
       </>
     )}
+
+    {/* ─── Mini player while an ayah of this surah is playing ─── */}
+    {playingHere ? (
+      <View style={[styles.playerBar, { bottom: insets.bottom + 12 }]}>
+        <Ionicons name="headset" size={18} color="#C9A84C" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.playerTitle} numberOfLines={1}>
+            {t("qaNowAyah", { surah: name, ayah: playback.ayah ?? "" })}
+          </Text>
+          <Text style={styles.playerSub} numberOfLines={1}>
+            {playback.error ? t("qaError") : playback.reciterName}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => setReciterPickerOpen(true)} hitSlop={8}>
+          <Ionicons name="people-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => (playback.playing ? pauseQuran() : resumeQuran())} hitSlop={8}>
+          <Ionicons name={playback.playing ? "pause" : "play"} size={22} color="#C9A84C" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => void stopQuranAudio()} hitSlop={8}>
+          <Ionicons name="close" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    ) : null}
   </Reanimated.View>
+  <VerseReciterPicker
+    visible={reciterPickerOpen}
+    selectedId={reciterId}
+    onClose={() => setReciterPickerOpen(false)}
+    onSelect={reciter => {
+      setReciterId(reciter.id)
+      void saveVerseReciterId(reciter.id)
+      setReciterPickerOpen(false)
+      // Switch voice straight away if something is playing.
+      if (playingHere && playback.ayah) {
+        void playVerse({
+          surah: surahNumber,
+          ayah: playback.ayah,
+          lastAyah: Number(verses) || playback.ayah,
+          reciter,
+          continuous: true,
+          title: String(name || ""),
+        })
+      }
+    }}
+  />
   <MushafSettingsDrawer visible={settingsOpen} onClose={closeSettings}>
     <MushafReadModeSection mode={viewMode} onSelect={selectReadMode} />
     <MushafTextSizeSection
@@ -1500,6 +1679,11 @@ const styles = StyleSheet.create({
   bismillahText: { fontSize: 26, textAlign: "center", marginBottom: 8 },
   bismillahTranslation: { fontSize: 12, textAlign: "center", lineHeight: 18 },
   verseCard: { borderRadius: 16, padding: 16, borderWidth: 0.5 },
+  verseCardPlaying: { borderColor: "#C9A84C", borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.08)" },
+  verseActions: { flexDirection: "row", alignItems: "center", gap: 14 },
+  playerBar: { position: "absolute", left: 12, right: 12, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#1E3A5F", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  playerTitle: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  playerSub: { color: "#E8D5A3", fontSize: 11, marginTop: 1 },
   verseTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   verseBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#F5EDD6", borderWidth: 1, borderColor: "#8B6914", alignItems: "center", justifyContent: "center" },
   verseBadgeText: { color: "#1A1A1A", fontSize: 12, fontWeight: "700" },

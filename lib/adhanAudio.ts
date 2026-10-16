@@ -261,6 +261,8 @@ export async function playAdhan(
   currentPrayer = prayerName
   expectPlaying = true
   void stopAdhanPreview()
+  // The Adhan always wins over Quran recitation.
+  void import("./quranAudio").then(m => m.stopQuranAudio()).catch(() => {})
 
   const allowFallback = opts?.allowFallback !== false
   const selected = await getSelectedAdhanId()

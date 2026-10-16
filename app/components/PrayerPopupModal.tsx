@@ -10,7 +10,7 @@ import {
 } from "@/lib/prayerTracker"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ActivityIndicator,
@@ -39,15 +39,16 @@ const PRAYER_I18N_KEYS: Record<PrayerName, string> = {
   Isha: "prayerNameIsha",
 }
 
-const LOCAL_MOSQUE_IMAGE = require("../../assets/images/prayer-mosque.jpg")
+// Background: our own mosque photos only (no internet photos, they can be wrong).
+// Day prayers use the sunset mosque, night prayers (Fajr, Maghrib, Isha) the night mosque.
+const DAY_MOSQUE_IMAGE = require("../../assets/images/prayer-mosque.jpg")
+const NIGHT_MOSQUE_IMAGE = require("../../assets/images/mosque.jpeg")
 
-/** Remote backups — Unsplash mosque / masjid photos */
-const MOSQUE_IMAGE_URLS = [
-  "https://images.unsplash.com/photo-1519817650390-64a93db51149?w=800&q=80&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1542379653-b928db2b757b?w=800&q=80&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1564769662533-4f00a87b4056?w=800&q=80&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1573408301185-9519eb9de7b1?w=800&q=80&auto=format&fit=crop",
-]
+function mosqueImageFor(prayerName: PrayerName | null) {
+  return prayerName === "Fajr" || prayerName === "Maghrib" || prayerName === "Isha"
+    ? NIGHT_MOSQUE_IMAGE
+    : DAY_MOSQUE_IMAGE
+}
 
 function formatPrayerClock(time: string | undefined) {
   if (!time) return "--:--"
@@ -89,8 +90,11 @@ export default function PrayerPopupModal({
   >([])
   const [marking, setMarking] = useState(false)
   const [alreadyMarked, setAlreadyMarked] = useState(false)
-  const [bgSource, setBgSource] = useState<ImageSourcePropType>(LOCAL_MOSQUE_IMAGE)
-  const remoteIndexRef = useRef(0)
+  // Which prayer's photo failed to load (then we show the other mosque photo).
+  const [failedFor, setFailedFor] = useState<PrayerName | null>(null)
+  const preferred = mosqueImageFor(prayerName)
+  const bgSource: ImageSourcePropType =
+    failedFor === prayerName ? (preferred === DAY_MOSQUE_IMAGE ? NIGHT_MOSQUE_IMAGE : DAY_MOSQUE_IMAGE) : preferred
 
   const info = prayerName ? PRAYER_INFO[prayerName] : null
 
@@ -113,9 +117,6 @@ export default function PrayerPopupModal({
   useEffect(() => {
     if (!visible || !prayerName) return
 
-    // Prefer bundled mosque image; remotes are fallback only
-    remoteIndexRef.current = 0
-    setBgSource(LOCAL_MOSQUE_IMAGE)
 
     let cancelled = false
     ;(async () => {
@@ -150,11 +151,9 @@ export default function PrayerPopupModal({
     setTimeout(() => router.push(path), 180)
   }
 
+  // If one photo fails, use the other mosque photo (never a random internet picture).
   const handleImageError = () => {
-    if (remoteIndexRef.current >= MOSQUE_IMAGE_URLS.length) return
-    const uri = MOSQUE_IMAGE_URLS[remoteIndexRef.current]
-    remoteIndexRef.current += 1
-    setBgSource({ uri })
+    setFailedFor(prayerName)
   }
 
   return (

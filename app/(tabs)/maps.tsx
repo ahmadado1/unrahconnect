@@ -78,6 +78,27 @@ export default function MapsScreen() {
           <Ionicons name="chevron-forward" size={20} color={GOLD} />
         </TouchableOpacity>
 
+        {/* Offline map (Premium): works with no internet in Makkah and Madinah */}
+        <TouchableOpacity
+          style={[styles.offlineCard, { backgroundColor: NAVY }]}
+          onPress={() => router.push("/offline-map" as any)}
+        >
+          <View style={styles.offlineIcon}>
+            <Ionicons name="cloud-offline" size={22} color={NAVY} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.offlineTitle}>{t("om_cardTitle")}</Text>
+              <View style={styles.proPill}>
+                <Ionicons name="star" size={8} color={NAVY} />
+                <Text style={styles.proText}>{t("premiumBadge").toUpperCase()}</Text>
+              </View>
+            </View>
+            <Text style={styles.offlineSub}>{t("om_cardSub")}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={GOLD} />
+        </TouchableOpacity>
+
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
 
         {LOCATIONS.map(loc => (
@@ -146,6 +167,12 @@ const styles = StyleSheet.create({
     marginBottom: ui.gap,
     ...cardShadow,
   },
+  offlineCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: ui.cardPad, borderRadius: ui.radius, marginTop: ui.gap, borderWidth: 1, borderColor: "rgba(201,168,76,0.5)", ...cardShadow },
+  offlineIcon: { width: 44, height: 44, borderRadius: ui.radiusSm, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
+  offlineTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  offlineSub: { color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 2 },
+  proPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: GOLD, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
+  proText: { color: NAVY, fontSize: 8, fontWeight: "800" },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },
 })

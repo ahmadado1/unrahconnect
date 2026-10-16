@@ -12,8 +12,9 @@ import { packMushafPieces, type MushafBlock, type MushafLinePiece } from "../../
 type ParagraphBlock = Extract<MushafBlock, { type: "paragraph" }>
 
 /** Scheherazade New, registered with expo-font. Never substitute a system face. */
-export const MUSHAF_FONT = "ScheherazadeNew_400Regular"
-export const MUSHAF_FONT_BOLD = "ScheherazadeNew_700Bold"
+// Fixed Scheherazade (kasra under the letter with shadda). Load with UC_QURAN_FONTS / MUSHAF_FONT_ASSETS.
+export const MUSHAF_FONT = "UCScheherazade"
+export const MUSHAF_FONT_BOLD = "UCScheherazadeBold"
 
 /** Same dark ink as the earlier readable mushaf. Weight stays regular. */
 export const MUSHAF_INK = {

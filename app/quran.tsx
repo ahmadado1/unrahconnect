@@ -15,6 +15,7 @@ import {
 import { getSurahMeta } from "@/lib/quranSurahMeta"
 import { createMushafJumpId } from "@/lib/mushafJump"
 import { QURAN_QUICK_LINKS } from "@/lib/quickLinks"
+import { AL_MULK_SURAH_NUMBER, isMulkNightWindow } from "@/lib/homeQuranCard"
 import { searchSurahs } from "@/lib/surahSearch"
 import type { LastReadEntry } from "@/lib/lastReadRegister"
 import { ScheherazadeNew_400Regular, ScheherazadeNew_700Bold, useFonts } from "@expo-google-fonts/scheherazade-new"
@@ -200,7 +201,7 @@ export default function QuranScreen() {
     }
   }
 
-  const goToSurah = (item: Surah, options?: { ayah?: number }) => {
+  const goToSurah = (item: Surah, options?: { ayah?: number; mode?: "mushaf" | "verses" }) => {
     router.push({
       pathname: "/quran/[surah]",
       params: {
@@ -210,17 +211,22 @@ export default function QuranScreen() {
         verses: String(item.numberOfAyahs),
         type: item.revelationType,
         resume: "0",
-        mode: readMode ?? "verses",
+        mode: options?.mode ?? readMode ?? "verses",
         jump: String(createMushafJumpId()),
         ...(options?.ayah ? { ayah: String(options.ayah) } : {}),
       },
     })
   }
 
-  const openSurahByNumber = (surahNumber: number, ayah?: number) => {
+  const openSurahByNumber = (surahNumber: number, ayah?: number, modeOverride?: "mushaf" | "verses") => {
+    // Al-Mulk at night (10pm–3am) → its own page with the nightly tick (and listening for Premium).
+    if (surahNumber === AL_MULK_SURAH_NUMBER && isMulkNightWindow()) {
+      router.push("/quran/mulk" as any)
+      return
+    }
     const item = surahs.find(s => s.number === surahNumber)
     if (item) {
-      goToSurah(item, { ayah })
+      goToSurah(item, { ayah, mode: modeOverride })
       return
     }
     const meta = getSurahMeta(surahNumber)
@@ -234,7 +240,7 @@ export default function QuranScreen() {
         verses: String(meta.ayahCount),
         type: meta.revelationType,
         resume: "0",
-        mode: readMode ?? "verses",
+        mode: modeOverride ?? readMode ?? "verses",
         jump: String(createMushafJumpId()),
         ...(ayah ? { ayah: String(ayah) } : {}),
       },
@@ -297,6 +303,14 @@ export default function QuranScreen() {
             {modeReady && readMode ? (
               <QuranReadModeToggle mode={readMode} onToggle={handleToggleReadMode} />
             ) : null}
+            {/* 🎧 Listen: whole-surah recitations */}
+            <TouchableOpacity
+              style={styles.bookmarkBtn}
+              onPress={() => router.push("/quran-listen" as any)}
+              accessibilityLabel={t("qaListenTitle")}
+            >
+              <Ionicons name="headset" size={20} color="#C9A84C" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.bookmarkBtn}
               onPress={() => router.push("/quran/bookmark")}
@@ -366,7 +380,7 @@ export default function QuranScreen() {
                       <TouchableOpacity
                         key={`${entry.surahNumber}-${entry.registeredAt}-${index}`}
                         style={[styles.linkChip, { borderColor: theme.gold }]}
-                        onPress={() => openSurahByNumber(entry.surahNumber, entry.ayah)}
+                        onPress={() => openSurahByNumber(entry.surahNumber, entry.ayah, entry.mode)}
                       >
                         <Text style={[styles.linkChipText, { color: theme.text }]} numberOfLines={1}>
                           {entry.englishName}

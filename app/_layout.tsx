@@ -9,6 +9,7 @@ import {
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
   scheduleAlMulkReminder,
+  scheduleSalawatReminder,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
@@ -63,6 +64,9 @@ export default function RootLayout() {
       identifier === "journey-reminder-umrah"
     ) {
       router.push("/umrah-guide")
+    } else if (identifier.startsWith("salawat") || data?.screen === "dhikr") {
+      // Friday Salawat reminder → dhikr counter
+      router.push({ pathname: "/dhikr", params: { id: String(data?.id ?? "salawat") } } as any)
     } else if (identifier === "daily-verse") {
       router.push("/quran")
     } else if (
@@ -75,21 +79,11 @@ export default function RootLayout() {
     } else if (
       identifier.startsWith("al-mulk") ||
       data?.screen === "al-mulk" ||
+      data?.route === "/quran/mulk" ||
       data?.route === "/quran/67"
     ) {
-      router.push({
-        pathname: "/quran/[surah]",
-        params: {
-          surah: "67",
-          name: "Al-Mulk",
-          arabicName: "الملك",
-          verses: "30",
-          type: "Meccan",
-          ayah: "1",
-          resume: "0",
-          expand: "1",
-        },
-      } as any)
+      // Isolated Mulk reader (read or, with Premium, listen).
+      router.push("/quran/mulk" as any)
     } else if (
       identifier === "adhkar-reminder-morning" ||
       identifier === "dhikr-reminder-morning" ||
@@ -161,6 +155,7 @@ export default function RootLayout() {
         await scheduleDailyDhikrReminders().catch(console.log)
         await scheduleAlMulkReminder().catch(console.log)
         await scheduleAlKahfReminder().catch(console.log)
+        await scheduleSalawatReminder().catch(console.log)
         await scheduleDailyVerseNotification().catch(console.log)
         await scheduleJourneyReminders().catch(console.log)
         await scheduleIslamicDateReminders().catch(console.log)
@@ -345,9 +340,16 @@ function AppStack() {
       <Stack.Screen name="hajj" />
       <Stack.Screen name="hajj/[hajj]" />
       <Stack.Screen name="umrah-guide" />
+      <Stack.Screen name="start-guide" />
       <Stack.Screen name="quran" />
+      <Stack.Screen name="quran-listen" />
+      <Stack.Screen name="dhikr" />
+      <Stack.Screen name="offline-map" />
+      <Stack.Screen name="quran-player" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+      <Stack.Screen name="trip-planner" />
       <Stack.Screen name="quran/[surah]" />
       <Stack.Screen name="quran/kahf" />
+      <Stack.Screen name="quran/mulk" />
       <Stack.Screen name="quran/bookmark" />
       <Stack.Screen name="duas" />
       <Stack.Screen name="islamic-calendar" />

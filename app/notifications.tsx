@@ -8,6 +8,7 @@ import {
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
   scheduleAlMulkReminder,
+  scheduleSalawatReminder,
   scheduleDailyDhikrReminders,
   scheduleIslamicDateReminders,
   scheduleJourneyReminders,
@@ -123,6 +124,7 @@ export default function NotificationsScreen() {
     await scheduleIslamicDateReminders().catch(console.log)
     await scheduleAlKahfReminder().catch(console.log)
     await scheduleAlMulkReminder().catch(console.log)
+    await scheduleSalawatReminder().catch(console.log)
     await scheduleJourneyReminders().catch(console.log)
     if (prayerAlerts) {
       await reschedulePrayerNotificationsFromCache().catch(console.log)

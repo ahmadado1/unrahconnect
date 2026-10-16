@@ -1,0 +1,766 @@
+// Isolated Surah Al-Mulk reader (shown on Home 10pm–3am and from the nightly reminder).
+// Same as the Kahf reader, but the tick resets every night. Premium can listen instead of reading.
+import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
+import IsolatedSurahListenCard from "@/app/components/IsolatedSurahListenCard"
+import MushafFontSizer from "@/app/components/MushafFontSizer"
+import { useTheme } from "@/context/themeContext"
+import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
+import { buildMushafBlocks } from "@/lib/mushafLines"
+import {
+  MULK_AYAH_COUNT,
+  MULK_FALLBACK_END_PAGE,
+  MULK_FALLBACK_START_PAGE,
+  mulkProgressFraction,
+  loadMulkNightlyProgress,
+  markMulkNightComplete,
+  resolveMulkPageRange,
+  saveMulkNightlyProgress,
+  type MulkNightlyProgress,
+} from "@/lib/mulkNightly"
+import { mushafLineHeight, useMushafFontSize } from "@/lib/mushafFontSize"
+import { juzForPage } from "@/lib/mushafJuz"
+import { considerStoreReview } from "@/lib/storeReviewPrompt"
+import { scheduleAlMulkReminder } from "@/lib/notifications"
+import {
+  fetchAndCachePage,
+  isUsableMushafPage,
+  preloadAdjacentPages,
+  type MushafPageData,
+  type MushafVerse,
+} from "@/lib/quranPageCache"
+import { recordQuranLastRead } from "@/lib/quranLastRead"
+import { getSurahMeta } from "@/lib/quranSurahMeta"
+import { useFonts } from "expo-font"
+import { UC_QURAN_FONTS } from "@/lib/mushafFonts"
+import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect, useRouter } from "expo-router"
+import { useKeepAwake } from "expo-keep-awake"
+import { StatusBar } from "expo-status-bar"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
+import TouchableOpacity from "@/app/components/AppPressable"
+import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+
+const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
+const { width: SCREEN_WIDTH } = Dimensions.get("window")
+const meta = getSurahMeta(AL_MULK_SURAH_NUMBER)
+
+function mulkVersesOnPage(data: MushafPageData | null): MushafVerse[] {
+  if (!data?.verses?.length) return []
+  return data.verses.filter(v => v.verse_key.startsWith(`${AL_MULK_SURAH_NUMBER}:`))
+}
+
+function maxAyahOnPage(verses: MushafVerse[]): number {
+  if (!verses.length) return 0
+  return Math.max(...verses.map(v => v.verse_number))
+}
+
+function MulkPage({
+  pageNumber,
+  fontsLoaded,
+  isLast,
+  completed,
+  onMaxAyah,
+  onMarkComplete,
+  pageHeight,
+  fontSize,
+  header,
+}: {
+  pageNumber: number
+  fontsLoaded: boolean
+  isLast: boolean
+  completed: boolean
+  onMaxAyah: (ayah: number, page: number) => void
+  onMarkComplete: () => void
+  pageHeight: number
+  fontSize: number
+  /** Shown at the top of the page and scrolls away with it (the "Listen" card) */
+  header?: React.ReactNode
+}) {
+  const { t } = useTranslation()
+  const [pageData, setPageData] = useState<MushafPageData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const onMaxAyahRef = useRef(onMaxAyah)
+  onMaxAyahRef.current = onMaxAyah
+
+  useEffect(() => {
+    let active = true
+    const requested = pageNumber
+    setLoading(true)
+    setError(false)
+    setPageData(null)
+    fetchAndCachePage(requested).then(data => {
+      if (!active || requested !== pageNumber) return
+      if (!isUsableMushafPage(data)) {
+        setPageData(null)
+        setError(true)
+        setLoading(false)
+        return
+      }
+      setPageData(data)
+      setError(false)
+      setLoading(false)
+      const ayah = maxAyahOnPage(mulkVersesOnPage(data))
+      if (ayah > 0) onMaxAyahRef.current(ayah, requested)
+    })
+    return () => {
+      active = false
+    }
+  }, [pageNumber, retryCount])
+
+  if (loading) {
+    return (
+      <View style={styles.pageContainer}>
+        <View style={styles.pageLoading}>
+          <ActivityIndicator color="#8B6914" size="large" />
+        </View>
+      </View>
+    )
+  }
+
+  if (error || !isUsableMushafPage(pageData)) {
+    return (
+      <View style={styles.pageContainer}>
+        <View style={styles.pageLoading}>
+          <Text style={styles.pageError}>{t("quranPageLoadFailed")}</Text>
+          <TouchableOpacity
+            onPress={() => setRetryCount(count => count + 1)}
+            style={styles.pageRetry}
+            accessibilityLabel={t("quranPageRetry")}
+          >
+            <Text style={styles.pageRetryText}>{t("quranPageRetry")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
+
+  const verses = mulkVersesOnPage(pageData)
+  const flowBlocks = buildMushafBlocks(verses)
+  const juzNumber = juzForPage(pageNumber)
+
+  const pageStyle = [styles.pageContainer, pageHeight > 0 && { height: pageHeight }]
+
+  return (
+    <View style={pageStyle}>
+      <View style={styles.pageMetaBar}>
+        <Text style={styles.metaText}>{t("quranJuz", { number: juzNumber })}</Text>
+        <Text style={styles.metaSeparator}>·</Text>
+        <Text style={styles.metaText}>{t("quranPage", { number: pageNumber })}</Text>
+        <Text style={[styles.metaText, styles.metaSurah]} numberOfLines={1}>
+          {meta?.arabicName ?? "الملك"}
+        </Text>
+      </View>
+
+      <ScrollView
+        style={styles.pageScroll}
+        contentContainerStyle={styles.pageScrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        directionalLockEnabled
+      >
+        {header}
+        <View style={styles.pageFrameOuter}>
+          <View style={styles.pageFrameInner}>
+            <View style={styles.pageContent}>
+              <View style={styles.ornamentTop}>
+                <View style={styles.borderLineOuter} />
+                <View style={styles.borderLineInner} />
+              </View>
+
+              <View style={styles.textFlow}>
+                {flowBlocks.map(block => {
+                  if (block.type === "surahStart") {
+                    const lineHeight = mushafLineHeight(fontSize)
+                    return (
+                      <View key={block.key} style={styles.flowSurahBlock}>
+                        <View style={styles.surahBanner}>
+                          <View style={styles.surahBannerFrame}>
+                            <View style={styles.surahBannerInner}>
+                              {fontsLoaded ? (
+                                <Text
+                                  style={[
+                                    styles.surahBannerText,
+                                    {
+                                      fontFamily: MUSHAF_FONT_BOLD,
+                                      fontSize: Math.round(fontSize * 0.95),
+                                    },
+                                  ]}
+                                >
+                                  {meta?.arabicName ?? "سورة الملك"}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
+                        </View>
+                        <View style={styles.bismillahRow}>
+                          {fontsLoaded ? (
+                            <Text
+                              style={[
+                                styles.bismillahText,
+                                { fontFamily: MUSHAF_FONT, fontSize, lineHeight },
+                              ]}
+                            >
+                              {BISMILLAH}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    )
+                  }
+                  return (
+                    <MushafFittedLine
+                      key={block.key}
+                      block={block}
+                      fontsLoaded={fontsLoaded}
+                      fontSize={fontSize}
+                    />
+                  )
+                })}
+              </View>
+
+              <View style={styles.ornamentBottom}>
+                <View style={styles.borderLineInner} />
+                <View style={styles.borderLineOuter} />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {isLast ? (
+          <View style={styles.completeWrap}>
+            <Text style={styles.completeHint}>{t("alMulkMarkHint")}</Text>
+            {completed ? (
+              <View style={styles.completedBadge}>
+                <Ionicons name="checkmark-circle" size={22} color="#2D6A4F" />
+                <Text style={styles.completedBadgeText}>{t("alMulkCompletedBadge")}</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.completeBtn}
+                onPress={onMarkComplete}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="checkmark-circle-outline" size={22} color="#1E3A5F" />
+                <Text style={styles.completeBtnText}>{t("alKahfCompleteBtn")}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
+      </ScrollView>
+    </View>
+  )
+}
+
+export default function MulkReadingScreen() {
+  useKeepAwake()
+  const router = useRouter()
+  const { theme } = useTheme()
+  const { t, i18n } = useTranslation()
+  const insets = useSafeAreaInsets()
+  const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
+  const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
+
+  const [range, setRange] = useState({
+    start: MULK_FALLBACK_START_PAGE,
+    end: MULK_FALLBACK_END_PAGE,
+  })
+  const [currentPage, setCurrentPage] = useState(MULK_FALLBACK_START_PAGE)
+  const [progress, setProgress] = useState<MulkNightlyProgress | null>(null)
+  const [ready, setReady] = useState(false)
+  const [pageHeight, setPageHeight] = useState(0)
+  const flatListRef = useRef<FlatList<number>>(null)
+  const pageFromSwipeRef = useRef(false)
+  const hasSyncedPagerRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentPageRef = useRef(currentPage)
+  currentPageRef.current = currentPage
+
+  /**
+   * Same order as the main mushaf: the first Mulk page sits at the end of the
+   * pager, so a swipe to the right advances, the way a printed mushaf turns.
+   */
+  const pages = useMemo(() => {
+    const list: number[] = []
+    for (let p = range.end; p >= range.start; p--) list.push(p)
+    return list
+  }, [range.start, range.end])
+
+  const pageIndex = Math.min(
+    Math.max(range.end - currentPage, 0),
+    Math.max(pages.length - 1, 0),
+  )
+  const mulkPageNumber = Math.min(
+    Math.max(currentPage - range.start + 1, 1),
+    Math.max(pages.length, 1),
+  )
+  const isLast = currentPage >= range.end
+  const fraction = progress ? mulkProgressFraction(progress) : 0
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const [stored, pagesRange] = await Promise.all([
+        loadMulkNightlyProgress(),
+        resolveMulkPageRange(i18n.language),
+      ])
+      if (cancelled) return
+      setRange(pagesRange)
+      setProgress(stored)
+      const resumePage =
+        stored.pageNumber >= pagesRange.start && stored.pageNumber <= pagesRange.end
+          ? stored.pageNumber
+          : pagesRange.start
+      setCurrentPage(stored.completed ? pagesRange.start : resumePage)
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    preloadAdjacentPages(currentPage)
+  }, [currentPage, ready])
+
+  const persistProgress = useCallback((ayah: number, page: number) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      void saveMulkNightlyProgress({ verseNumber: ayah, pageNumber: page }).then(next => {
+        setProgress(prev => {
+          const becameStarted = (!prev || prev.verseNumber <= 0) && next.verseNumber > 0
+          const becameDone = Boolean(next.completed && !prev?.completed)
+          if (becameStarted || becameDone) {
+            void scheduleAlMulkReminder().catch(() => {})
+          }
+          return next
+        })
+      })
+    }, 400)
+  }, [])
+
+  const lastReadAyahRef = useRef(1)
+  lastReadAyahRef.current = progress?.verseNumber || 1
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        void recordQuranLastRead({
+          surahNumber: AL_MULK_SURAH_NUMBER,
+          englishName: meta?.englishName ?? "Al-Mulk",
+          arabicName: meta?.arabicName ?? "الملك",
+          ayah: lastReadAyahRef.current || 1,
+        })
+      }
+    }, []),
+  )
+
+  const ayahByPageRef = useRef<Record<number, number>>({})
+  const readyRef = useRef(ready)
+  readyRef.current = ready
+  const mulkReviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mulkReviewNoted = useRef(false)
+  const armMulkReview = useCallback(() => {
+    if (!readyRef.current || mulkReviewNoted.current || mulkReviewTimer.current) return
+    mulkReviewTimer.current = setTimeout(() => {
+      mulkReviewTimer.current = null
+      if (!readyRef.current) return
+      mulkReviewNoted.current = true
+      void considerStoreReview()
+    }, 2000)
+  }, [])
+  const onMaxAyah = useCallback(
+    (ayah: number, page: number) => {
+      ayahByPageRef.current[page] = ayah
+      if (page === currentPageRef.current) persistProgress(ayah, page)
+      if (ayah >= MULK_AYAH_COUNT) armMulkReview()
+    },
+    [persistProgress, armMulkReview],
+  )
+
+  useEffect(() => {
+    if (!ready) return
+    const ayah = ayahByPageRef.current[currentPage]
+    if (ayah) persistProgress(ayah, currentPage)
+    const maxAyah = Math.max(0, ...Object.values(ayahByPageRef.current))
+    if (maxAyah >= MULK_AYAH_COUNT) armMulkReview()
+  }, [currentPage, ready, persistProgress, armMulkReview])
+
+  const onMarkComplete = useCallback(async () => {
+    const next = await markMulkNightComplete()
+    setProgress(next)
+    await scheduleAlMulkReminder().catch(() => {})
+    if (next) void considerStoreReview()
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    if (pageFromSwipeRef.current) {
+      pageFromSwipeRef.current = false
+      return
+    }
+    const animated = hasSyncedPagerRef.current
+    hasSyncedPagerRef.current = true
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToIndex({ index: pageIndex, animated })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [pageIndex, ready])
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [])
+
+  const goToPage = (page: number) => {
+    const next = Math.min(range.end, Math.max(range.start, page))
+    setCurrentPage(next)
+    void saveMulkNightlyProgress({ pageNumber: next }).then(setProgress)
+  }
+
+  if (!ready) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, backgroundColor: "#1E3A5F" }]}>
+        <StatusBar style="light" />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color="#C9A84C" />
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <StatusBar style="light" />
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Text style={styles.headerBack}>{t("quran")}</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTitles}>
+          <Text
+            style={[
+              styles.headerArabic,
+              fontsLoaded && { fontFamily: MUSHAF_FONT_BOLD },
+            ]}
+          >
+            {fontsLoaded ? (meta?.arabicName ?? "الملك") : " "}
+          </Text>
+          <Text style={styles.headerEnglish}>{t("alMulkCardTitle")}</Text>
+        </View>
+        <MushafFontSizer
+          onDecrease={decrease}
+          onIncrease={increase}
+          canDecrease={canDecrease}
+          canIncrease={canIncrease}
+        />
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${Math.round(fraction * 100)}%` }]} />
+      </View>
+      <Text style={[styles.progressLabel, { color: theme.textSecondary }]}>
+        {progress?.completed
+          ? t("alMulkCompletedBadge")
+          : t("alKahfHomeProgress", {
+              read: progress?.verseNumber ?? 0,
+              total: MULK_AYAH_COUNT,
+            })}
+      </Text>
+
+
+      <FlatList
+        ref={flatListRef}
+        data={pages}
+        horizontal
+        pagingEnabled
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        initialScrollIndex={pageIndex}
+        keyExtractor={item => String(item)}
+        style={styles.pager}
+        onLayout={event => {
+          const height = event.nativeEvent.layout.height
+          setPageHeight(current => (Math.abs(current - height) < 1 ? current : height))
+        }}
+        windowSize={5}
+        maxToRenderPerBatch={3}
+        initialNumToRender={2}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
+        onMomentumScrollEnd={e => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH)
+          const newPage = pages[index]
+          if (!newPage || newPage === currentPage) return
+          pageFromSwipeRef.current = true
+          setCurrentPage(newPage)
+          void saveMulkNightlyProgress({ pageNumber: newPage }).then(setProgress)
+        }}
+        renderItem={({ item }) => (
+          <MulkPage
+            key={item}
+            pageNumber={item}
+            fontsLoaded={fontsLoaded}
+            isLast={item === range.end}
+            completed={Boolean(progress?.completed)}
+            onMaxAyah={onMaxAyah}
+            onMarkComplete={onMarkComplete}
+            pageHeight={pageHeight}
+            fontSize={fontSize}
+            header={
+              // Premium: listen instead of reading. Sits on top of every page and scrolls away,
+              // so the page can be read full screen. Ticks the surah when the recitation ends.
+              <IsolatedSurahListenCard
+                surah={AL_MULK_SURAH_NUMBER}
+                done={Boolean(progress?.completed)}
+                onListened={onMarkComplete}
+              />
+            }
+          />
+        )}
+        onScrollToIndexFailed={info => {
+          flatListRef.current?.scrollToOffset({
+            offset: SCREEN_WIDTH * info.index,
+            animated: false,
+          })
+        }}
+      />
+
+      <View style={[styles.navBar, { paddingBottom: insets.bottom + 6 }]}>
+        <TouchableOpacity
+          onPress={() => goToPage(currentPage + 1)}
+          style={styles.navBtnRow}
+          disabled={isLast}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={18}
+            color={isLast ? "rgba(201,168,76,0.35)" : "#C9A84C"}
+          />
+          <Text style={[styles.navLabel, isLast && styles.navLabelDisabled]}>
+            {t("quranNext")}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.navCenter}>
+          <Text style={styles.navPage}>
+            {t("alMulkPageOf", {
+              current: mulkPageNumber,
+              total: pages.length,
+            })}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => goToPage(currentPage - 1)}
+          style={styles.navBtnRow}
+          disabled={currentPage <= range.start}
+        >
+          <Text
+            style={[
+              styles.navLabel,
+              currentPage <= range.start && styles.navLabelDisabled,
+            ]}
+          >
+            {t("quranPrev")}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={currentPage <= range.start ? "rgba(201,168,76,0.35)" : "#C9A84C"}
+          />
+        </TouchableOpacity>
+      </View>
+    </GestureHandlerRootView>
+  )
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#FAF6EE" },
+  loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E3A5F",
+  },
+  headerBtn: { flexDirection: "row", alignItems: "center", gap: 4, minWidth: 72 },
+  headerBack: { color: "#fff", fontSize: 14 },
+  headerTitles: { flex: 1, alignItems: "center" },
+  headerArabic: { color: "#C9A84C", fontSize: 20 },
+  headerEnglish: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "rgba(201,168,76,0.2)",
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: "#C9A84C",
+  },
+  progressLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingVertical: 6,
+    backgroundColor: "#FAF6EE",
+  },
+  pager: { flex: 1 },
+  pageContainer: {
+    flex: 1,
+    width: SCREEN_WIDTH,
+    backgroundColor: "#FAF6EE",
+  },
+  pageMetaBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(139,105,20,0.25)",
+  },
+  metaText: {
+    color: "#8B6914",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  metaSeparator: { color: "rgba(139,105,20,0.45)", fontSize: 12, fontWeight: "600" },
+  metaSurah: { color: "#C9A84C", flex: 1, textAlign: "right", marginLeft: "auto" },
+  pageScroll: { flex: 1, minHeight: 0 },
+  pageScrollContent: { flexGrow: 1, paddingBottom: 8, paddingHorizontal: 4 },
+  pageLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  pageError: { color: "#8B6914", fontSize: 14, textAlign: "center" },
+  pageRetry: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#8B6914",
+  },
+  pageRetryText: { color: "#8B6914", fontSize: 14, fontWeight: "700" },
+  pageFrameOuter: {
+    marginHorizontal: 4,
+    marginVertical: 8,
+    borderWidth: 2.5,
+    borderColor: "#8B6914",
+    padding: 4,
+    backgroundColor: "#FAF6EE",
+  },
+  pageFrameInner: {
+    borderWidth: 1,
+    borderColor: "#8B6914",
+  },
+  pageContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  ornamentTop: { marginBottom: 8 },
+  ornamentBottom: { marginTop: 8 },
+  borderLineOuter: { height: 2.5, backgroundColor: "#8B6914", borderRadius: 1 },
+  borderLineInner: {
+    height: 1,
+    backgroundColor: "#8B6914",
+    marginVertical: 4,
+    borderRadius: 1,
+  },
+  textFlow: {
+    width: "100%",
+  },
+  flowSurahBlock: { width: "100%" },
+  surahBanner: { alignItems: "center", marginVertical: 8, width: "100%" },
+  surahBannerFrame: {
+    borderWidth: 1,
+    borderColor: "#8B6914",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    backgroundColor: "#F5EDD6",
+  },
+  surahBannerInner: {
+    borderWidth: 1,
+    borderColor: "#8B6914",
+    paddingHorizontal: 28,
+    paddingVertical: 8,
+    backgroundColor: "#FAF6EE",
+  },
+  surahBannerText: { fontSize: 22, color: "#5C3D00", textAlign: "center" },
+  bismillahRow: {
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: "rgba(139,105,20,0.3)",
+    marginBottom: 6,
+    width: "100%",
+  },
+  bismillahText: {
+    fontSize: 28,
+    textAlign: "center",
+    lineHeight: 64,
+    ...MUSHAF_INK,
+  },
+  completeWrap: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    alignItems: "center",
+    gap: 12,
+  },
+  completeHint: {
+    fontSize: 13,
+    color: "#8B6914",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  completeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#C9A84C",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  completeBtnText: { color: "#1E3A5F", fontSize: 15, fontWeight: "800" },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "rgba(45,106,79,0.12)",
+  },
+  completedBadgeText: { color: "#2D6A4F", fontSize: 14, fontWeight: "700" },
+  navBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    backgroundColor: "#1E3A5F",
+  },
+  navBtnRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  navCenter: { alignItems: "center" },
+  navLabel: { color: "#C9A84C", fontSize: 13, fontWeight: "600" },
+  navLabelDisabled: { color: "rgba(201,168,76,0.35)" },
+  navPage: { color: "#fff", fontSize: 14, fontWeight: "600" },
+})

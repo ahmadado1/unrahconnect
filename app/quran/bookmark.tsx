@@ -1,6 +1,7 @@
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
-import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new"
+import { useFonts } from "expo-font"
+import { UC_QURAN_FONTS } from "@/lib/mushafFonts"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -42,7 +43,7 @@ export default function BookmarksScreen() {
   const [loading, setLoading] = useState(true)
 
   // Load Scheherazade font for Arabic text
-  const [fontsLoaded] = useFonts({ ScheherazadeNew_400Regular })
+  const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
 
   // Fetch bookmarks on mount
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function BookmarksScreen() {
       {/* Arabic text */}
       <Text style={[
         styles.arabicText,
-        fontsLoaded && { fontFamily: "ScheherazadeNew_400Regular" }
+        fontsLoaded && { fontFamily: "UCScheherazade" }
       ]}>
         {item.verse_text}
       </Text>

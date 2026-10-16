@@ -29,6 +29,9 @@ const STORAGE_KEY = "aviasales_places_v1"
 const OLD_ORIGIN_KEY = "aviasales_from_v1"
 const RECENT_LIMIT = 3
 
+/** Search results remembered while the app is open, so going back to a word is instant. */
+const searchCache = new Map<string, FlightPlace[]>()
+
 type ToChoice = "JED" | "MED" | "other"
 type PickerField = "depart" | "return" | null
 type StoredPlaces = { recent: FlightPlace[]; from: FlightPlace | null }
@@ -88,19 +91,51 @@ function PlaceField({
 
   const picks = useMemo(() => withRecentFirst(recent), [recent])
   const term = query.trim()
-  const showSearchResults = focused && term.length >= 2 && !failed && results != null
-  const shown = showSearchResults ? results : picks
+
+  // Instant matches from the cities we already know (recent + popular), so the list reacts on every key.
+  const localMatches = useMemo(() => {
+    if (term.length < 1) return picks
+    const q = term.toLowerCase()
+    return picks.filter(
+      place =>
+        place.city.toLowerCase().includes(q) ||
+        place.code.toLowerCase().startsWith(q) ||
+        place.country.toLowerCase().startsWith(q)
+    )
+  }, [picks, term])
+
+  // Online results: the instant matches first, then the online ones (no duplicates).
+  const shown = useMemo(() => {
+    if (!focused || term.length < 2 || failed || results == null) return localMatches
+    const seen = new Set<string>()
+    const merged: FlightPlace[] = []
+    for (const place of [...localMatches, ...results]) {
+      const key = `${place.code}-${place.city}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(place)
+    }
+    return merged.slice(0, 12)
+  }, [focused, term, failed, results, localMatches])
 
   useEffect(() => {
     if (!focused || term.length < 2) {
-      setResults(null)
-      setFailed(false)
-      setLoading(false)
-      return
+      const reset = setTimeout(() => setLoading(false), 0)
+      return () => clearTimeout(reset)
     }
 
-    setResults(null)
-    setFailed(false)
+    // Typed this before? Show it straight away, no network.
+    const cached = searchCache.get(`${language}:${term.toLowerCase()}`)
+    if (cached) {
+      const show = setTimeout(() => {
+        setResults(cached)
+        setFailed(false)
+        setLoading(false)
+      }, 0)
+      return () => clearTimeout(show)
+    }
+
+    // Keep the previous results on screen while the new ones load (no flashing / jumping).
     let cancelled = false
     const controller = new AbortController()
     const wait = setTimeout(() => {
@@ -109,19 +144,19 @@ function PlaceField({
       searchFlightPlaces(term, language, controller.signal)
         .then(places => {
           if (cancelled) return
+          searchCache.set(`${language}:${term.toLowerCase()}`, places)
           setResults(places)
           setFailed(false)
         })
         .catch(() => {
           if (cancelled) return
-          setResults(null)
           setFailed(true)
         })
         .finally(() => {
           clearTimeout(kill)
           if (!cancelled) setLoading(false)
         })
-    }, 300)
+    }, 250)
 
     return () => {
       cancelled = true
@@ -168,8 +203,8 @@ function PlaceField({
       />
       {focused ? (
         <View style={[styles.results, { borderColor: theme.border, backgroundColor: theme.background }]}>
-          {loading ? <ActivityIndicator color={GOLD} style={styles.spinner} /> : null}
-          {showSearchResults && results?.length === 0 ? (
+          {loading && shown.length === 0 ? <ActivityIndicator color={GOLD} style={styles.spinner} /> : null}
+          {!loading && term.length >= 2 && shown.length === 0 ? (
             <Text style={[styles.empty, { color: theme.textSecondary }]}>{t("flightNoCities")}</Text>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled style={styles.resultsScroll}>

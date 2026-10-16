@@ -6,6 +6,10 @@ export type LastReadEntry = {
   arabicName: string
   ayah: number
   registeredAt: number
+  /** Mushaf page the reader was on (mushaf mode) */
+  page?: number
+  /** How they were reading: "mushaf" or "verses" */
+  mode?: "mushaf" | "verses"
 }
 
 export type LastReadState = {
@@ -44,4 +48,16 @@ export function registerLastRead(
     entries: [newEntry, ...entries].slice(0, LAST_READ_MAX_VISIBLE),
     registrationCount: count + 1,
   }
+}
+
+/**
+ * Live update while reading: if the newest entry is the same Surah, just move it
+ * to the new ayah/page (no new chip). Otherwise add it like a normal registration.
+ */
+export function upsertLatestLastRead(current: LastReadState, newEntry: LastReadEntry): LastReadState {
+  const entries = Array.isArray(current?.entries) ? current.entries : []
+  if (entries[0]?.surahNumber === newEntry.surahNumber) {
+    return { entries: [newEntry, ...entries.slice(1)], registrationCount: current.registrationCount }
+  }
+  return registerLastRead(current, newEntry)
 }

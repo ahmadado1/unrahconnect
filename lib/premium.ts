@@ -53,8 +53,9 @@ export async function refreshPremium(): Promise<PremiumState> {
     else await AsyncStorage.removeItem(CACHE_KEY)
     // Premium just started or ended: switch Mulk / Kahf reminders between simple and guided.
     if (stateFrom(before).isPremium !== stateFrom(until).isPremium) {
-      const { scheduleAlKahfReminder, scheduleAlMulkReminder } = await import("./notifications")
+      const { scheduleAlKahfReminder, scheduleAlMulkReminder, scheduleSalawatReminder } = await import("./notifications")
       void scheduleAlMulkReminder().catch(() => {})
+      void scheduleSalawatReminder().catch(() => {})
       void scheduleAlKahfReminder().catch(() => {})
     }
     return stateFrom(until)

@@ -66,7 +66,7 @@ export const MUSHAF_FONTS: readonly MushafFontConfig[] = [
     id: "scheherazade_bold",
     name: "Scheherazade New",
     noteKey: "mushafFontBold",
-    family: "ScheherazadeNew_700Bold",
+    family: "UCScheherazadeBold",
     textField: "text_uthmani",
     sizeScale: 0.95,
     lineHeight: 1.85,
@@ -81,25 +81,25 @@ export const MUSHAF_FONTS: readonly MushafFontConfig[] = [
     sizeScale: 1.1,
     lineHeight: 1.8,
     bismillahLineHeight: 2,
-    premium: false,
+    premium: true,
   },
   {
     id: "scheherazade",
     name: "Scheherazade New",
     noteKey: "mushafFontClassic",
-    family: "ScheherazadeNew_400Regular",
+    family: "UCScheherazade",
     textField: "text_uthmani",
     sizeScale: 1,
     lineHeight: 1.75,
     bismillahLineHeight: 2,
-    premium: false,
+    premium: true,
   },
   // ─── Premium fonts ─────────────────────────────────────────────────────────
   // Sizes are first guesses: check a few pages (2, 421, 604) and tweak sizeScale / lineHeight if words wrap or marks clip.
   {
     id: "noto_naskh",
     name: "Noto Naskh Arabic",
-    family: "NotoNaskhArabic_400Regular",
+    family: "UCNotoNaskh",
     textField: "text_uthmani",
     sizeScale: 0.92,
     lineHeight: 2,
@@ -109,7 +109,7 @@ export const MUSHAF_FONTS: readonly MushafFontConfig[] = [
   {
     id: "lateef",
     name: "Lateef",
-    family: "Lateef_400Regular",
+    family: "UCLateef",
     textField: "text_uthmani",
     sizeScale: 1.25,
     lineHeight: 1.7,
@@ -118,8 +118,24 @@ export const MUSHAF_FONTS: readonly MushafFontConfig[] = [
   },
 ]
 
+/**
+ * Fixed copies of Scheherazade New, Lateef and Noto Naskh ("UC ..." fonts in assets/fonts).
+ * The original fonts join shadda + kasra into one mark drawn ABOVE the letter, so a learner
+ * can read the kasra as a fatha (e.g. رَبِّ). These copies keep the kasra BELOW the letter,
+ * like the Madinah Mushaf and Amiri: SIL's own "kasra lowered" option (cv62) is switched on
+ * permanently in Scheherazade/Lateef, and Noto's shadda+kasra ligature is removed.
+ * Modified under the SIL Open Font License, so they carry their own "UC" names.
+ */
+export const UC_QURAN_FONTS = {
+  UCScheherazade: require("../assets/fonts/UCScheherazade-Regular.ttf"),
+  UCScheherazadeBold: require("../assets/fonts/UCScheherazade-Bold.ttf"),
+}
+
 /** Pass to expo-font useFonts on screens that render the mushaf. */
 export const MUSHAF_FONT_ASSETS = {
+  ...UC_QURAN_FONTS,
+  UCLateef: require("../assets/fonts/UCLateef-Regular.ttf"),
+  UCNotoNaskh: require("../assets/fonts/UCNotoNaskh-Regular.ttf"),
   ScheherazadeNew_400Regular,
   ScheherazadeNew_700Bold,
   NotoNaskhArabic_400Regular,
@@ -153,6 +169,14 @@ export function getMushafFont(id: string | null | undefined): MushafFontConfig {
 }
 
 export const DEFAULT_MUSHAF_FONT = getMushafFont(DEFAULT_MUSHAF_FONT_ID)
+
+/**
+ * Font for Read (verse) mode. Verse mode text comes from alquran.cloud (no KFGQPC encoding),
+ * so the Madinah font shows as Amiri Quran there (same style, correct marks). Every other font is used as chosen.
+ */
+export function verseModeFont(font: MushafFontConfig): MushafFontConfig {
+  return font.textField === "text_qpc_hafs" ? getMushafFont("amiri_quran") : font
+}
 
 /** For text that only has text_uthmani (no QPC encoding) or screens that don't load KFGQPC. */
 export const UTHMANI_MUSHAF_FONT = getMushafFont("scheherazade")

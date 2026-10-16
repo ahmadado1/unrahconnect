@@ -42,6 +42,7 @@ export default function MeScreen() {
     { icon: "person-outline", labelKey: "profile", route: "/profile" },
     { icon: "heart-outline", labelKey: "favorites", route: "/favorites" },
     { icon: "briefcase-outline", labelKey: "agentDashboard", route: "/agent/dashboard", agentOnly: true },
+    { icon: "map-outline", labelKey: "sgMenu", route: "/start-guide" },
     { icon: "notifications-outline", labelKey: "notifications", route: "/notifications" },
     { icon: "settings-outline", labelKey: "settings", route: "/settings" },
     { icon: "star-outline", labelKey: "rateApp", action: () => { void openStoreListing() } },

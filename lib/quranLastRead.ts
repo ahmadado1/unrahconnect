@@ -2,6 +2,7 @@ import { supabase } from "./supabase"
 import {
   emptyLastReadState,
   registerLastRead,
+  upsertLatestLastRead,
   type LastReadEntry,
   type LastReadState,
 } from "./lastReadRegister"
@@ -100,6 +101,11 @@ export async function loadLastReadState(): Promise<LastReadState> {
   return readStoredState()
 }
 
+/**
+ * Save where the user is reading.
+ * Same Surah as the newest chip → that chip is updated (saved while reading, so it survives
+ * the app being closed). A different Surah → a new chip.
+ */
 export async function recordQuranLastRead(
   entry: Omit<LastReadEntry, "registeredAt">,
 ): Promise<LastReadState> {
@@ -107,7 +113,7 @@ export async function recordQuranLastRead(
     .then(async () => {
       if (!entry.surahNumber) return readStoredState()
       const current = await readStoredState()
-      const next = registerLastRead(current, {
+      const next = upsertLatestLastRead(current, {
         ...entry,
         registeredAt: Date.now(),
       })
