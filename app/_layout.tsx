@@ -145,21 +145,38 @@ export default function RootLayout() {
   useEffect(() => {
     checkAuth()
 
-    requestNotificationPermission().then(async granted => {
-      if (!granted) return
-      await setupPrayerNotificationChannel().catch(console.log)
-      // Prayers + Adhkar first: they matter most and need no slow network calls.
-      await reschedulePrayerNotificationsFromCache().catch(console.log)
-      const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
-      if (notifEnabled !== "false") {
-        await scheduleDailyDhikrReminders().catch(console.log)
-        await scheduleAlMulkReminder().catch(console.log)
-        await scheduleAlKahfReminder().catch(console.log)
-        await scheduleSalawatReminder().catch(console.log)
-        await scheduleDailyVerseNotification().catch(console.log)
-        await scheduleJourneyReminders().catch(console.log)
-        await scheduleIslamicDateReminders().catch(console.log)
+    // Book every reminder ahead. Runs at start AND every time the app comes back to the screen
+    // (at most every 20 minutes): a built app can stay alive in the background for days
+    // (e.g. while playing Quran), and Al-Mulk / Kahf / adhkar are only booked a few days ahead.
+    let lastBooking = 0
+    let booking = false
+    const bookReminders = async () => {
+      if (booking || Date.now() - lastBooking < 20 * 60 * 1000) return
+      booking = true
+      lastBooking = Date.now()
+      try {
+        const granted = await requestNotificationPermission()
+        if (!granted) return
+        await setupPrayerNotificationChannel().catch(console.log)
+        // Prayers + Adhkar first: they matter most and need no slow network calls.
+        await reschedulePrayerNotificationsFromCache().catch(console.log)
+        const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+        if (notifEnabled !== "false") {
+          await scheduleDailyDhikrReminders().catch(console.log)
+          await scheduleAlMulkReminder().catch(console.log)
+          await scheduleAlKahfReminder().catch(console.log)
+          await scheduleSalawatReminder().catch(console.log)
+          await scheduleDailyVerseNotification().catch(console.log)
+          await scheduleJourneyReminders().catch(console.log)
+          await scheduleIslamicDateReminders().catch(console.log)
+        }
+      } finally {
+        booking = false
       }
+    }
+    void bookReminders()
+    const bookingSub = AppState.addEventListener("change", state => {
+      if (state === "active") void bookReminders()
     })
 
     const handleDeepLink = async (url: string) => {
@@ -233,6 +250,7 @@ export default function RootLayout() {
       authListener.subscription.unsubscribe()
       responseListener.remove()
       linkingSub.remove()
+      bookingSub.remove()
     }
   }, [])
 
@@ -345,6 +363,7 @@ function AppStack() {
       <Stack.Screen name="quran-listen" />
       <Stack.Screen name="dhikr" />
       <Stack.Screen name="offline-map" />
+      <Stack.Screen name="notification-check" />
       <Stack.Screen name="quran-player" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       <Stack.Screen name="trip-planner" />
       <Stack.Screen name="quran/[surah]" />

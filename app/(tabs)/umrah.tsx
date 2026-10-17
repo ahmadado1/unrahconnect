@@ -1,11 +1,13 @@
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { isAlKahfReminderWindow } from "@/lib/alKahfWindow"
+import { isMulkNightWindow } from "@/lib/homeQuranCard"
+import { isMulkCompleteTonight } from "@/lib/mulkNightly"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useRouter } from "expo-router"
+import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
@@ -88,6 +90,14 @@ export default function GuideScreen() {
   }, [])
 
   const showAlKahfCard = isAlKahfReminderWindow(prayerTimes, now)
+  // Surah Al-Mulk card: only at night, 10pm–3am (same idea as the Friday Kahf card).
+  const showAlMulkCard = isMulkNightWindow(now)
+  const [mulkDone, setMulkDone] = useState(false)
+  useFocusEffect(
+    useCallback(() => {
+      void isMulkCompleteTonight().then(setMulkDone).catch(() => {})
+    }, [])
+  )
   const stopPreviewRef = useRef<() => Promise<void>>(async () => {})
 
   const stopPreview = async () => {
@@ -277,6 +287,27 @@ export default function GuideScreen() {
                 <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
                   {t("alKahfCardDesc")}
                 </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+            </TouchableOpacity>
+          ) : null}
+
+          {showAlMulkCard ? (
+            <TouchableOpacity
+              style={[
+                styles.guideCard,
+                styles.alKahfCard,
+                { backgroundColor: theme.card, borderColor: theme.gold },
+              ]}
+              onPress={() => router.push("/quran/mulk" as any)}
+            >
+              <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a2240" : "#E8ECF8" }]}>
+                <Ionicons name="moon" size={26} color={GOLD} />
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>{t("alMulkCardTitle")}</Text>
+                <Text style={styles.cardSub}>{mulkDone ? `✓ ${t("alMulkCompletedBadge")}` : t("alMulkCardSub")}</Text>
+                <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("alMulkCardDesc")}</Text>
               </View>
               <Ionicons name="chevron-forward" size={22} color={theme.gold} />
             </TouchableOpacity>

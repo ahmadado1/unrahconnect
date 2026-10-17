@@ -1,0 +1,8 @@
+UCScheherazade-Regular.ttf, UCScheherazade-Bold.ttf  - modified from Scheherazade New (SIL International), SIL Open Font License 1.1 (see ScheherazadeNew-OFL.txt)
+UCLateef-Regular.ttf                                 - modified from Lateef (SIL International), SIL Open Font License 1.1
+UCNotoNaskh-Regular.ttf                              - modified from Noto Naskh Arabic (Google), SIL Open Font License 1.1
+
+Change made by UmrahConnect: the kasra is kept BELOW the letter when it comes with a shadda
+(SIL "cv62" made the default in Scheherazade/Lateef; the shadda+kasra ligature removed from Noto Naskh),
+so it cannot be misread as a fatha. Renamed "UC ..." as the OFL requires for modified versions.
+Full OFL text: https://openfontlicense.org

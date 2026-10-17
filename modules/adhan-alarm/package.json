@@ -1,0 +1,11 @@
+{
+  "name": "adhan-alarm",
+  "version": "1.0.0",
+  "description": "iPhone (iOS 26+): the full Adhan as a system alarm with AlarmKit (lock screen, silent mode, Stop button).",
+  "main": "index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

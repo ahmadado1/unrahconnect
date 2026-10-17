@@ -255,7 +255,52 @@ function teardown() {
   player = null
 }
 
+// ─── Prayer time while the Quran is playing ─────────────────────────────────
+// Someone listening in the app (e.g. at the gym with headphones) would not hear the short
+// notification sound over the Quran. So while the Quran plays we check the prayer times:
+// at prayer time the Quran pauses (spot saved) and the Adhan plays. If a system alarm / native
+// player already plays the Adhan (iPhone AlarmKit, Android player), we only pause the Quran.
+let lastPrayerCheck = 0
+const handledPrayers = new Set<string>()
+
+async function checkPrayerTime() {
+  try {
+    const { readCachedPrayerTimes, timeToMinutes } = await import("./prayerTimes")
+    const { loadOffPrayers, prayerAlertsOn, SYSTEM_ADHAN_KEY, ALERT_PRAYERS } = await import("./prayerToggles")
+    if (!(await prayerAlertsOn())) return
+    const times = await readCachedPrayerTimes()
+    if (!times) return
+    const now = new Date()
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+    const off = await loadOffPrayers()
+    for (const name of ALERT_PRAYERS) {
+      const at = timeToMinutes((times as unknown as Record<string, string>)[name] ?? "")
+      // Within the first 2 minutes of the prayer time, once per prayer per day.
+      if (at < 0 || nowMin < at || nowMin > at + 2) continue
+      const key = `${now.toDateString()}:${name}`
+      if (handledPrayers.has(key) || off.has(name)) return
+      handledPrayers.add(key)
+      const systemAdhan = (await AsyncStorage.getItem(SYSTEM_ADHAN_KEY)) === "true"
+      if (systemAdhan) {
+        pauseQuran()
+      } else {
+        const { playAdhan } = await import("./adhanAudio")
+        // playAdhan stops the Quran itself (the Adhan always wins).
+        await playAdhan(name as import("./prayerConstants").PrayerName, { forceRestart: true, continueIfPlaying: false })
+      }
+      return
+    }
+  } catch (e) {
+    console.log("[Quran audio] prayer check failed:", e)
+  }
+}
+
 function onStatus(status: AudioStatus) {
+  // Every ~15 s while playing: is it prayer time? (These updates keep coming with the screen locked.)
+  if (status.playing && Date.now() - lastPrayerCheck > 15000) {
+    lastPrayerCheck = Date.now()
+    void checkPrayerTime()
+  }
   if (pendingSeek !== null && status.isLoaded && player) {
     const to = pendingSeek
     pendingSeek = null

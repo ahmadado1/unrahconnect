@@ -2,6 +2,7 @@
 // Plays the full Adhan for a prayer (and the short Guide-tab preview).
 // Audio keeps playing when the screen locks, and shows lock-screen controls.
 
+import { isNativeAdhanPlaying, stopNativeAdhan } from "@/modules/exact-alarm"
 import { DEFAULT_ADHAN_ID, getAdhanFile, getAdhanLockFile } from "@/lib/adhanCatalog"
 import type { PrayerName } from "@/lib/prayerConstants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -258,6 +259,8 @@ export async function playAdhan(
   prayerName: PrayerName,
   opts?: PlayAdhanOptions
 ): Promise<boolean> {
+  // Android: the background player is already playing this Adhan. Don't start a second one.
+  if (isNativeAdhanPlaying()) return true
   currentPrayer = prayerName
   expectPlaying = true
   void stopAdhanPreview()
@@ -309,6 +312,8 @@ export async function playPrayerAdhan(
 }
 
 export async function stopAdhan() {
+  // Android: also stop the background full-Adhan player if it is playing.
+  stopNativeAdhan()
   userStopped = true
   expectPlaying = false
   await teardownPlayer()

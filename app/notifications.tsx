@@ -2,6 +2,9 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
+import { ALERT_PRAYERS, loadOffPrayers, setPrayerAlertOn, type AlertPrayer } from "@/lib/prayerToggles"
+import { DEFAULT_ADHAN_ID, getAdhanFullSoundName } from "@/lib/adhanCatalog"
+import { iosAlarmsAvailable, iosHasSound, testIosAdhanAlarm } from "@/modules/adhan-alarm"
 import {
   cancelAllNotifications,
   requestNotificationPermission,
@@ -14,11 +17,11 @@ import {
   scheduleJourneyReminders,
   scheduleTestAdhanNotification,
   setupPrayerNotificationChannel,
+  cancelPrayerAlertsOnly,
 } from "@/lib/notifications"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
-import * as Notifications from "expo-notifications"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useState } from "react"
@@ -69,12 +72,19 @@ export default function NotificationsScreen() {
 
   const [master, setMaster] = useState(true)
   const [prayerAlerts, setPrayerAlerts] = useState(true)
+  const [offPrayers, setOffPrayers] = useState<Set<string>>(new Set())
   const [morningAdhkar, setMorningAdhkar] = useState(true)
   const [eveningAdhkar, setEveningAdhkar] = useState(true)
   const [islamicDates, setIslamicDates] = useState(true)
   const [morningTime, setMorningTime] = useState(() => parseStoredTime(null, null, 8, 0))
   const [eveningTime, setEveningTime] = useState(() => parseStoredTime(null, null, 17, 0))
   const [pickerTarget, setPickerTarget] = useState<"morning" | "evening" | null>(null)
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadOffPrayers().then(setOffPrayers)
+    }, [])
+  )
 
   const loadPrefs = useCallback(async () => {
     const [
@@ -149,14 +159,17 @@ export default function NotificationsScreen() {
     if (val) {
       await reschedulePrayerNotificationsFromCache().catch(console.log)
     } else {
-      const all = await Notifications.getAllScheduledNotificationsAsync()
-      for (const n of all) {
-        if (n.identifier.startsWith("prayer-") || n.identifier.startsWith("adhan-soon-") || n.identifier === "adhan-reopen") {
-          await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})
-        }
-      }
-      
+      // Removes the notifications AND the full-Adhan alarms (Android player / iPhone AlarmKit).
+      await cancelPrayerAlertsOnly().catch(console.log)
     }
+  }
+
+  // ─── Per-prayer on/off ───────────────────────────────────────────────────
+  const togglePrayer = async (prayer: AlertPrayer) => {
+    const turnOn = offPrayers.has(prayer)
+    const next = await setPrayerAlertOn(prayer, turnOn)
+    setOffPrayers(new Set(next))
+    if (master && prayerAlerts) await reschedulePrayerNotificationsFromCache().catch(console.log)
   }
 
   const rescheduleAdhkar = async () => {
@@ -310,6 +323,73 @@ export default function NotificationsScreen() {
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
           />
+          {/* What is really scheduled + phone settings that can hide notifications */}
+          <TouchableOpacity style={[styles.row, { borderBottomColor: theme.border }]} onPress={() => router.push("/notification-check" as any)}>
+            <View style={[styles.iconWrap, { backgroundColor: "#2F855A" }]}>
+              <Ionicons name="checkmark-done-outline" size={18} color="#fff" />
+            </View>
+            <View style={styles.info}>
+              <Text style={[styles.label, { color: theme.text }]}>{t("nc_title")}</Text>
+              <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("nc_rowSub")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+          </TouchableOpacity>
+
+          {/* iPhone (iOS 26+): test the full-Adhan alarm in 1 minute */}
+          {Platform.OS === "ios" && iosAlarmsAvailable() ? (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: theme.border }]}
+              onPress={async () => {
+                const adhanId = (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
+                const sound = getAdhanFullSoundName(adhanId, false).replace(/\.mp3$/, "_alarm.caf")
+                const ok = await testIosAdhanAlarm({
+                  at: Date.now() + 60_000,
+                  title: t("adhanAlarmTestTitle"),
+                  sound,
+                  stop: t("adhanAlarmStop"),
+                })
+                Alert.alert(
+                  ok ? t("adhanAlarmTestSet") : t("adhanAlarmTestFail"),
+                  ok ? t(iosHasSound(sound) ? "adhanAlarmTestSetBody" : "adhanAlarmTestNoSound") : t("adhanAlarmTestFailBody")
+                )
+              }}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: "#C9A84C" }]}>
+                <Ionicons name="alarm-outline" size={18} color="#1E3A5F" />
+              </View>
+              <View style={styles.info}>
+                <Text style={[styles.label, { color: theme.text }]}>{t("adhanAlarmTest")}</Text>
+                <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("adhanAlarmTestSub")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Per-prayer switches: tap a prayer to turn its Adhan on/off */}
+          {prayerAlerts && master ? (
+            <View style={styles.prayerChips}>
+              <Text style={[styles.sub, { color: theme.textSecondary, width: "100%", marginBottom: 6 }]}>
+                {t("perPrayerHint")}
+              </Text>
+              {ALERT_PRAYERS.map(p => {
+                const on = !offPrayers.has(p)
+                return (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => void togglePrayer(p)}
+                    style={[styles.prayerChip, { borderColor: theme.gold }, on && { backgroundColor: "#1E3A5F", borderColor: "#1E3A5F" }]}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: on }}
+                  >
+                    <Ionicons name={on ? "notifications" : "notifications-off-outline"} size={14} color={on ? "#C9A84C" : theme.textSecondary} />
+                    <Text style={[styles.prayerChipText, { color: on ? "#fff" : theme.textSecondary }]}>
+                      {t(`prayerName${p}`, { defaultValue: p })}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          ) : null}
           <Text style={[styles.sub, { color: theme.textSecondary, paddingLeft: 48, paddingBottom: 8 }]}>
             {t("adhanOpenVsClosedNote")}
           </Text>
@@ -479,6 +559,9 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  prayerChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingLeft: 48, paddingRight: 16, paddingBottom: 12 },
+  prayerChip: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
+  prayerChipText: { fontSize: 13, fontWeight: "700" },
   screen: { flex: 1 },
   header: {
     padding: 20,

@@ -22,6 +22,30 @@ class ExactAlarmModule : Module() {
       alarmManager.canScheduleExactAlarms()
     }
 
+    // ─── Full Adhan player ───────────────────────────────────────────────
+    /** json = [{ id, at (ms), title, body, sound (raw file name without .mp3) }]. Returns how many were set. */
+    Function("scheduleAdhanAlarms") { json: String ->
+      val context = appContext.reactContext ?: return@Function 0
+      AdhanAlarms.schedule(context, json)
+    }
+
+    Function("cancelAdhanAlarms") {
+      val context = appContext.reactContext ?: return@Function false
+      AdhanAlarms.cancelAll(context)
+      true
+    }
+
+    Function("stopAdhanPlayer") {
+      val context = appContext.reactContext ?: return@Function false
+      val stop = Intent(context, AdhanService::class.java).apply { action = AdhanService.ACTION_STOP }
+      if (AdhanService.isPlaying) context.startService(stop)
+      true
+    }
+
+    Function("isAdhanPlaying") {
+      AdhanService.isPlaying
+    }
+
     Function("openExactAlarmSettings") {
       val activity = appContext.currentActivity
       val context = activity ?: appContext.reactContext ?: return@Function false

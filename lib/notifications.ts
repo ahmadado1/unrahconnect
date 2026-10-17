@@ -39,6 +39,7 @@ import { ayahCountForSurah } from "@/lib/quranSurahMeta"
 import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
 import { getHajjProgress, getUmrahProgress } from "@/lib/supabase"
 import { isPremiumNow } from "@/lib/premium"
+import { loadOffPrayers, SYSTEM_ADHAN_KEY } from "@/lib/prayerToggles"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Location from "expo-location"
@@ -47,7 +48,19 @@ import {
   AndroidAudioContentType,
   AndroidAudioUsage,
 } from "expo-notifications"
-import { canScheduleExactAlarms, openExactAlarmSettings } from "@/modules/exact-alarm"
+import {
+  canScheduleExactAlarms,
+  cancelAdhanAlarms,
+  hasNativeAdhanPlayer,
+  openExactAlarmSettings,
+  scheduleAdhanAlarms,
+} from "@/modules/exact-alarm"
+import {
+  cancelIosAdhanAlarms,
+  iosAlarmsAvailable,
+  requestIosAlarmPermission,
+  scheduleIosAdhanAlarms,
+} from "@/modules/adhan-alarm"
 import { Alert, AppState, Platform } from "react-native"
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
@@ -434,6 +447,9 @@ async function loadHorizon(lat: number, lng: number, today: HorizonDay): Promise
 }
 
 async function cancelPrayerNotifications() {
+  // Android full-Adhan player alarms and iPhone AlarmKit alarms too (no-ops elsewhere / older builds).
+  cancelAdhanAlarms()
+  void cancelIosAdhanAlarms()
   const scheduled = await Notifications.getAllScheduledNotificationsAsync()
   await Promise.all(
     scheduled
@@ -538,6 +554,8 @@ export async function schedulePrayerNotifications(
         ? Math.max(1, Math.min(IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
         : PRAYER_HORIZON_DAYS
 
+    // Prayers the user switched off (Notifications → per-prayer switches).
+    const offPrayers = await loadOffPrayers()
     const desired: DesiredAlert[] = []
     for (const day of horizon.slice(0, dayLimit)) {
       const rows = prayerRows({
@@ -548,6 +566,7 @@ export async function schedulePrayerNotifications(
         isha: day.isha,
       })
       for (const prayer of rows) {
+        if (offPrayers.has(prayer.name)) continue
         const parsed = parsePrayerTimeHourMinute(prayer.time)
         if (!parsed) continue
         const when = new Date(day.date)
@@ -585,6 +604,63 @@ export async function schedulePrayerNotifications(
             },
           },
         })
+      }
+    }
+
+    // Android with the native Adhan player (new builds): a background player plays the FULL Adhan
+    // on the alarm volume (lock screen / other apps) and shows its own notification with a Stop button.
+    // So the normal prayer notifications are not scheduled, otherwise the Adhan would play twice.
+    // Older builds (no native player) keep the notification-sound way below.
+    if (Platform.OS === "android" && hasNativeAdhanPlayer()) {
+      const alarms = desired.map(d => {
+        const content = d.request.content as { title?: string; body?: string; sound?: unknown }
+        return {
+          id: d.identifier,
+          at: d.at,
+          title: String(content.title ?? ""),
+          body: String(content.body ?? ""),
+          sound: String(content.sound ?? "").replace(/\.(mp3|wav)$/i, ""),
+        }
+      })
+      const set = scheduleAdhanAlarms(alarms)
+      if (set > 0 || alarms.length === 0) {
+        await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "true").catch(() => {})
+        await syncAlertGroup(isPrayerAlertId, [])
+        console.log(`[Notifications] Android full-Adhan player: ${set} prayer alarms set (adhan ${adhanId})`)
+        return
+      }
+      console.warn("[Notifications] Native Adhan player failed, using notification sounds instead")
+    }
+
+    // iPhone (iOS 26+, new builds): the FULL Adhan as a system alarm (AlarmKit). It rings on the lock
+    // screen, over other apps and in silent mode, with a Stop button. The normal prayer notification
+    // still comes (tap → prayer popup) but without sound, so the Adhan never plays twice.
+    // If the user says no to alarms (or turns them off in Settings) we keep the 30-second notification sound.
+    if (Platform.OS === "ios" && iosAlarmsAvailable()) {
+      const allowed = await requestIosAlarmPermission()
+      if (allowed) {
+        const alarms = desired.map(d => {
+          const data = (d.request.content.data ?? {}) as { prayerName?: string }
+          const isFajr = data.prayerName === "Fajr"
+          return {
+            at: d.at,
+            title: String(d.request.content.title ?? data.prayerName ?? "Adhan").slice(0, 24),
+            sound: getAdhanFullSoundName(adhanId, isFajr).replace(/\.mp3$/, "_alarm.caf"),
+            stop: i18n.t("adhanAlarmStop", { defaultValue: "Stop" }),
+          }
+        })
+        const set = await scheduleIosAdhanAlarms(alarms)
+        await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, set > 0 ? "true" : "false").catch(() => {})
+        if (set > 0) {
+          for (const d of desired) {
+            d.request.content.sound = false
+            d.sig = `${d.sig}|alarm`
+          }
+          console.log(`[Notifications] iPhone AlarmKit: ${set} full-Adhan alarms set (adhan ${adhanId})`)
+        }
+      } else {
+        await cancelIosAdhanAlarms()
+        await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
       }
     }
 
@@ -1424,6 +1500,16 @@ function buildEventDate(event: IslamicEvent, hour: number, minute: number) {
 
 export async function cancelAllNotifications() {
   await Notifications.cancelAllScheduledNotificationsAsync()
+  // Also the full-Adhan alarms (Android player / iPhone AlarmKit).
+  cancelAdhanAlarms()
+  await cancelIosAdhanAlarms()
+  await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
+}
+
+/** Turn every prayer Adhan alert off (keeps other reminders). */
+export async function cancelPrayerAlertsOnly() {
+  await cancelPrayerNotifications()
+  await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
 }
 
 let foregroundPrayer: PrayerName | null = null
@@ -1439,7 +1525,10 @@ export function handlePrayerNotificationForeground(
   if (!prayerName) return false
   foregroundPrayer = prayerName
   foregroundPrayerAt = Date.now()
-  void playPrayerAdhan(prayerName, { fromStart: true })
+  // iPhone alarm / Android player already plays the full Adhan: don't start a second one in the app.
+  void AsyncStorage.getItem(SYSTEM_ADHAN_KEY).then(v => {
+    if (v !== "true") void playPrayerAdhan(prayerName, { fromStart: true })
+  })
   triggerPrayerAlert(prayerName, { playSound: false, forceShow: true })
   return true
 }
@@ -1464,9 +1553,13 @@ export function handlePrayerNotificationOpen(
     if (!justStartedHere) {
       const prayerAt = Number(data?.prayerAt)
       setTimeout(() => {
-        void playPrayerAdhan(prayerName, {
-          fromStart: false,
-          prayerAtMs: Number.isFinite(prayerAt) ? prayerAt : undefined,
+        // Skip when the iPhone alarm / Android player plays the Adhan (no double Adhan).
+        void AsyncStorage.getItem(SYSTEM_ADHAN_KEY).then(v => {
+          if (v === "true") return
+          void playPrayerAdhan(prayerName, {
+            fromStart: false,
+            prayerAtMs: Number.isFinite(prayerAt) ? prayerAt : undefined,
+          })
         })
       }, 350)
     }

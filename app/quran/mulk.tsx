@@ -560,7 +560,7 @@ export default function MulkReadingScreen() {
 
         <View style={styles.navCenter}>
           <Text style={styles.navPage}>
-            {t("alMulkPageOf", {
+            {t("alKahfPageOf", {
               current: mulkPageNumber,
               total: pages.length,
             })}

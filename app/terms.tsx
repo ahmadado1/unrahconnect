@@ -49,6 +49,9 @@ export default function TermsScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("termsLiabilityTitle")}</Text>
         <Text style={[styles.body, { color: theme.textSecondary }]}>{t("termsLiabilityBody")}</Text>
 
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("termsPremiumTitle")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("termsPremiumBody")}</Text>
+
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("termsChangesTitle")}</Text>
         <Text style={[styles.body, { color: theme.textSecondary }]}>{t("termsChangesBody")}</Text>
 

@@ -1,7 +1,7 @@
 {
   "name": "exact-alarm",
   "version": "1.0.0",
-  "description": "Checks Android exact-alarm access and opens the Alarms & reminders screen.",
+  "description": "Android: exact-alarm access, and the full Adhan player (plays at prayer time on the lock screen, with a Stop button).",
   "main": "index.ts",
   "peerDependencies": {
     "expo": "*",

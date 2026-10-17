@@ -4,6 +4,10 @@ import { Platform } from "react-native"
 type ExactAlarmNative = {
   canScheduleExactAlarms: () => boolean
   openExactAlarmSettings: () => boolean
+  scheduleAdhanAlarms?: (json: string) => number
+  cancelAdhanAlarms?: () => boolean
+  stopAdhanPlayer?: () => boolean
+  isAdhanPlaying?: () => boolean
 }
 
 function getNative(): ExactAlarmNative | null {
@@ -31,6 +35,58 @@ export function openExactAlarmSettings(): boolean {
   if (Platform.OS !== "android") return false
   try {
     return getNative()?.openExactAlarmSettings() === true
+  } catch {
+    return false
+  }
+}
+
+// ─── Full Adhan player (Android) ────────────────────────────────────────────
+// At prayer time a small background player plays the FULL Adhan on the alarm volume,
+// even with the screen locked or another app open, with a Stop button in the notification.
+// Only in builds that include this native code; older builds return false and keep the old way.
+
+export type AdhanAlarm = {
+  /** Stable id per prayer, e.g. "prayer-dhuhr-2026-10-17" */
+  id: string
+  /** Time in ms */
+  at: number
+  title: string
+  body: string
+  /** Raw sound name without ".mp3", e.g. "adhan_alafasy_fajr" */
+  sound: string
+}
+
+/** True when this build has the native Adhan player. */
+export function hasNativeAdhanPlayer(): boolean {
+  if (Platform.OS !== "android") return false
+  return typeof getNative()?.scheduleAdhanAlarms === "function"
+}
+
+/** Replace all Adhan alarms. Returns how many were set (0 if not available). */
+export function scheduleAdhanAlarms(alarms: AdhanAlarm[]): number {
+  if (!hasNativeAdhanPlayer()) return 0
+  try {
+    return getNative()?.scheduleAdhanAlarms?.(JSON.stringify(alarms)) ?? 0
+  } catch {
+    return 0
+  }
+}
+
+export function cancelAdhanAlarms() {
+  try {
+    getNative()?.cancelAdhanAlarms?.()
+  } catch {}
+}
+
+export function stopNativeAdhan() {
+  try {
+    getNative()?.stopAdhanPlayer?.()
+  } catch {}
+}
+
+export function isNativeAdhanPlaying(): boolean {
+  try {
+    return getNative()?.isAdhanPlaying?.() === true
   } catch {
     return false
   }
