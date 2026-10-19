@@ -18,9 +18,9 @@ const PLACE_IMAGES: Record<string, ImageSourcePropType> = {
   "4": require("../../assets/photos/jannat-al-baqi.jpg"),
   "5": require("../../assets/photos/masjid-quba.jpg"),
   "6": require("../../assets/photos/masjid-qiblatayn.jpg"),
-  "7": require("../../assets/photos/uhud-mountain.png"),
+  "7": require("../../assets/photos/uhud-mountain.jpg"),
   "8": require("../../assets/photos/seven-mosques.jpg"),
-  "9": require("../../assets/photos/jabal-ayr.png"),
+  "9": require("../../assets/photos/jabal-ayr.jpg"),
 }
 
 export default function MadinahPlacesSection({ badgeColor }: Props) {
