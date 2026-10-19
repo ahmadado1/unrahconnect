@@ -44,3 +44,6 @@ app-example
 /android
 .thumbs/
 assets/more adhan/
+
+# Files the app does not use (kept on disk, not uploaded)
+_unused_assets/
