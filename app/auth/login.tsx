@@ -312,7 +312,7 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Login / Sign up switch — Login first and selected by default */}
+          {/* Login / Sign up switch. Login first and selected by default */}
           <View style={[styles.modeSwitch, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <TouchableOpacity
               style={[styles.modeTab, !isSignUp && styles.modeTabActive]}
@@ -423,7 +423,7 @@ export default function LoginScreen() {
               <LegalAgreementText style={[styles.legalText, { color: theme.textSecondary }]} />
             ) : null}
 
-            {/* Social sign-in — always visible (below primary CTA) */}
+            {/* Social sign-in, always visible (below primary CTA) */}
             <View style={styles.socialSection}>
               <View style={styles.divider}>
                 <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
@@ -433,7 +433,7 @@ export default function LoginScreen() {
                 <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
               </View>
 
-              {/* Apple first on iOS — platform convention */}
+              {/* Apple first on iOS, platform convention */}
               {Platform.OS === "ios" && (
                 <TouchableOpacity
                   style={[styles.socialBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
@@ -460,7 +460,7 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Phone login — only shown when phone_login_enabled is true in Supabase */}
+              {/* Phone login, only shown when phone_login_enabled is true in Supabase */}
               {phoneEnabled && (
                 <TouchableOpacity
                   style={styles.phoneBtn}

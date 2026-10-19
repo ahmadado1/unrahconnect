@@ -19,11 +19,12 @@
           "comgooglemaps"
         ],
         "UIBackgroundModes": [
-          "audio"
+          "audio",
+          "fetch"
         ],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
-        "NSAlarmKitUsageDescription": "UmrahConnect uses alarms to play the full Adhan at prayer time, even when your iPhone is locked or on silent."
+        "NSAlarmKitUsageDescription": "UmrahConnect can use alarms for prayer times."
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"
@@ -128,12 +129,18 @@
             "./assets/adhan/adhan_trablsy_fajr.mp3",
             "./assets/adhan/adhan_alafasy.mp3",
             "./assets/adhan/adhan_alafasy_fajr.mp3",
-            "./assets/adhan/adhan_abdulbasit_alarm.caf",
-            "./assets/adhan/adhan_abdulbasit_fajr_alarm.caf",
-            "./assets/adhan/adhan_trablsy_alarm.caf",
-            "./assets/adhan/adhan_trablsy_fajr_alarm.caf",
-            "./assets/adhan/adhan_alafasy_alarm.caf",
-            "./assets/adhan/adhan_alafasy_fajr_alarm.caf"
+            "./assets/adhan/adhan_qassas_lock.wav",
+            "./assets/adhan/adhan_qassas_fajr_lock.wav",
+            "./assets/adhan/adhan_qassas.mp3",
+            "./assets/adhan/adhan_qassas_fajr.mp3",
+            "./assets/adhan/adhan_mulla_lock.wav",
+            "./assets/adhan/adhan_mulla_fajr_lock.wav",
+            "./assets/adhan/adhan_mulla.mp3",
+            "./assets/adhan/adhan_mulla_fajr.mp3",
+            "./assets/adhan/adhan_hadrawi_lock.wav",
+            "./assets/adhan/adhan_hadrawi_fajr_lock.wav",
+            "./assets/adhan/adhan_hadrawi.mp3",
+            "./assets/adhan/adhan_hadrawi_fajr.mp3"
           ]
         }
       ],

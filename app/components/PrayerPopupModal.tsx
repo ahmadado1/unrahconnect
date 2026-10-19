@@ -171,7 +171,7 @@ export default function PrayerPopupModal({
               { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20 },
             ]}
           >
-            {/* Top bar — Mark as Prayed (small pill, top right) */}
+            {/* Top bar: Mark as Prayed (small pill, top right) */}
             <View style={styles.topBar}>
               <TouchableOpacity onPress={onSnooze} hitSlop={12} style={styles.snoozeHit}>
                 <Ionicons name="time-outline" size={18} color="rgba(255,255,255,0.55)" />

@@ -59,7 +59,7 @@ serve(async (req) => {
       `,
       {
         title: "Welcome to UmrahConnect",
-        preheader: `Assalamu Alaikum ${guest_name} — your UmrahConnect account is ready.`,
+        preheader: `Assalamu Alaikum ${guest_name}, your UmrahConnect account is ready.`,
       }
     )
 

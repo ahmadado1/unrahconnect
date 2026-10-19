@@ -23,9 +23,9 @@ Me: your name and email. Profile, Favorites, Notifications, Settings, About Us, 
 
 FEATURES
 Umrah steps (Guide → Umrah Guide). Seven phases, with duas, tips, and progress: 1 Madinah Visit, 2 Entering Ihram, 3 Arriving in Makkah, 4 Tawaf (Circumambulation), 5 Sa'i, 6 Halq / Taqsir, 7 Umrah Complete.
-Hajj steps (Guide → Hajj Guide). Nine phases: 1 Preparation & Ihram, 2 Arriving in Makkah, 3 Day of Tarwiyah — Mina, 4 Day of Arafah, 5 Muzdalifah, 6 Day of Eid — Jamarat, 7 Days of Tashreeq, 8 Tawaf Al-Wadaa, 9 Hajj Complete.
+Hajj steps (Guide → Hajj Guide). Nine phases: 1 Preparation & Ihram, 2 Arriving in Makkah, 3 Day of Tarwiyah, Mina, 4 Day of Arafah, 5 Muzdalifah, 6 Day of Eid, Jamarat, 7 Days of Tashreeq, 8 Tawaf Al-Wadaa, 9 Hajj Complete.
 Duas and tasbih: Home → Quick Access → Duas. The Duas screen includes the Tasbih Counter.
-Adhkar: Home cards "أذكار الصباح — Morning Adhkar" and "أذكار المساء — Evening Adhkar".
+Adhkar: Home cards "أذكار الصباح: Morning Adhkar" and "أذكار المساء: Evening Adhkar".
 Prayer times and Adhan: Home and Guide. Location is used for prayer times. Adhan can play in the app and as a notification, including on the lock screen. Fajr uses a special Adhan.
 Quran: Guide → Quran Reader. Mushaf View (page by page) and Verse View (Arabic plus translation). Surah list, search, Go to, Bookmarks, and Last read. The mushaf font, text size, and reading view are in the Mushaf settings drawer (menu button in the reader). There is no Quran recitation audio in the app. Audio in the app is the Adhan only.
 Offline Quran: the app downloads the mushaf pages and the translation for your language in the background. A "Downloading Quran..." bar shows on Guide. After that, reading works without internet. Changing language downloads that language’s translation.

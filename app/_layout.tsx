@@ -1,10 +1,14 @@
+import { loginPurchases, logoutPurchases, setupPurchases } from "@/lib/purchases"
+import { registerBackgroundRebook } from "@/lib/backgroundRebook"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider, useTheme } from "@/context/themeContext";
 import "@/i18n";
 import {
+  handleAdhanAction,
   handlePrayerNotificationForeground,
   handlePrayerNotificationOpen,
+  registerAdhanCategory,
   requestNotificationPermission,
   reschedulePrayerNotificationsFromCache,
   scheduleAlKahfReminder,
@@ -197,7 +201,15 @@ export default function RootLayout() {
       handleDeepLink(url)
     })
 
+    // In-app purchases: start RevenueCat for the logged-in account.
+    void supabase.auth.getSession().then(({ data }) => {
+      void setupPurchases(data.session?.user.id)
+    })
+
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Keep RevenueCat on the same account as the app (purchases belong to the account).
+      if (event === "SIGNED_IN" && session?.user?.id) setTimeout(() => void loginPurchases(session.user.id), 0)
+      if (event === "SIGNED_OUT") setTimeout(() => void logoutPurchases(), 0)
       // A pilgrim who tapped "Join" or scanned an agent QR before signing in gets linked now.
       // Deferred with setTimeout: calling Supabase inside this callback can lock up other auth calls.
       if (event === "SIGNED_IN" && session?.user?.user_metadata?.profile_complete) {
@@ -218,6 +230,9 @@ export default function RootLayout() {
       }
     })
 
+    void registerAdhanCategory()
+    void registerBackgroundRebook()
+
     Notifications.getLastNotificationResponseAsync().then(async response => {
       if (!response) return
       const identifier = response.notification.request.identifier
@@ -226,6 +241,7 @@ export default function RootLayout() {
       const lastHandled = await AsyncStorage.getItem("last_handled_notification_response")
       if (lastHandled === responseKey) return
       await AsyncStorage.setItem("last_handled_notification_response", responseKey)
+      if (handleAdhanAction(response)) return
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
       openNotificationRef.current(identifier, data, deliveredAt)
     })
@@ -242,6 +258,8 @@ export default function RootLayout() {
       const deliveredAt = response.notification.date
       const responseKey = `${identifier}:${String(deliveredAt ?? "")}`
       void AsyncStorage.setItem("last_handled_notification_response", responseKey)
+      // Stop button / swipe away on the iPhone Adhan: stop the rest of the Adhan, open nothing.
+      if (handleAdhanAction(response)) return
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
       openNotificationRef.current(identifier, data, deliveredAt)
     })
@@ -366,6 +384,7 @@ function AppStack() {
       <Stack.Screen name="notification-check" />
       <Stack.Screen name="quran-player" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       <Stack.Screen name="trip-planner" />
+      <Stack.Screen name="premium" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       <Stack.Screen name="quran/[surah]" />
       <Stack.Screen name="quran/kahf" />
       <Stack.Screen name="quran/mulk" />

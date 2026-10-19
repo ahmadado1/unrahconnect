@@ -144,7 +144,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
     item({
       id: "qibla",
       title: t("qiblaDirection", { defaultValue: "Qibla Direction" }),
-      subtitle: "Compass toward the Kaaba — works offline",
+      subtitle: "Compass toward the Kaaba, works offline",
       icon: "compass",
       category: "Features",
       action: "navigate",
@@ -511,7 +511,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
     item({
       id: "saudia",
       title: "Saudia Airlines",
-      subtitle: "Official Saudi carrier — Jeddah & Madinah",
+      subtitle: "Official Saudi carrier: Jeddah & Madinah",
       icon: "airplane",
       category: "Flights",
       action: "navigate",

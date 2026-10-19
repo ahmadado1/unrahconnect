@@ -5,6 +5,8 @@
 // Premium: a big player card (previous/next surah, ±15s, tap the bar to jump, open full page)
 // and it continues exactly where you stopped last time. Free: the small player bar.
 // Audio keeps playing when the screen locks.
+import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import TouchableOpacity from "@/app/components/AppPressable"
 import QuranBigPlayer from "@/app/components/QuranBigPlayer"
 import { useTheme } from "@/context/themeContext"
@@ -30,7 +32,7 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, View } from "react-native"
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -47,7 +49,9 @@ export default function QuranListenScreen() {
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
   const { t } = useTranslation()
-  const { isPremium } = usePremium()
+  const { isPremium: hasPremium } = usePremium()
+  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
+  const isPremium = hasPremium || QURAN_AUDIO_FREE
   const playback = useQuranPlayback()
 
   const [reciters, setReciters] = useState<SurahReciter[]>([])
@@ -121,7 +125,7 @@ export default function QuranListenScreen() {
             <Text style={[styles.rowSub, { color: theme.textSecondary }]} numberOfLines={1}>{item.moshafName}</Text>
           ) : null}
         </View>
-        {item.free ? (
+        {QURAN_AUDIO_FREE ? null : item.free ? (
           <Text style={styles.freeTag}>{t("qaFree")}</Text>
         ) : (
           <View style={styles.pro}>
@@ -148,7 +152,7 @@ export default function QuranListenScreen() {
 
   const chooseReciter = (next: SurahReciter) => {
     if (!next.free && !isPremium) {
-      Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+      showPremiumPrompt()
       return
     }
     setReciter(next)

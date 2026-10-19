@@ -125,10 +125,10 @@ export const FLIGHT_PLATFORMS: FlightPlatform[] = [
     id: "saudia",
     name: "Saudia Airlines",
     icon: "airplane",
-    tagline: "Official Saudi carrier — direct to Jeddah & Madinah",
+    tagline: "Official Saudi carrier, direct to Jeddah & Madinah",
     description:
-      "Saudi Arabia’s national airline with direct flights into Jeddah (King Abdulaziz) and Madinah (Prince Mohammad Bin Abdulaziz) — ideal for Umrah and Hajj journeys.",
-    pilgrimTip: "Book early for Ramadan and Hajj season — seats and baggage options fill up fast.",
+      "Saudi Arabia’s national airline with direct flights into Jeddah (King Abdulaziz) and Madinah (Prince Mohammad Bin Abdulaziz), ideal for Umrah and Hajj journeys.",
+    pilgrimTip: "Book early for Ramadan and Hajj season, seats and baggage options fill up fast.",
     website: "https://www.saudia.com",
     websiteLabel: "saudia.com",
     brandColor: "#006400",
@@ -155,7 +155,7 @@ export const FLIGHT_PLATFORMS: FlightPlatform[] = [
     icon: "airplane",
     tagline: "Find the best flight deals worldwide",
     description:
-      "Skyscanner helps you discover flexible dates and competitive fares worldwide — useful when comparing routes into Jeddah or Madinah.",
+      "Skyscanner helps you discover flexible dates and competitive fares worldwide, useful when comparing routes into Jeddah or Madinah.",
     pilgrimTip: "Try “Whole month” search around your Umrah dates to catch lower fares.",
     website: "https://www.skyscanner.com",
     websiteLabel: "skyscanner.com",

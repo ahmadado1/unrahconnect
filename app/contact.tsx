@@ -37,7 +37,7 @@ export default function ContactScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Top section — always navy */}
+        {/* Top section, always navy */}
         <View style={[styles.topSection, { backgroundColor: theme.header }]}>
           <AnimatedHeroIcon name="call" size={50} accent="gold" style={{ marginBottom: 12 }} />
           <Text style={styles.topTitle}>{t("getInTouch")}</Text>

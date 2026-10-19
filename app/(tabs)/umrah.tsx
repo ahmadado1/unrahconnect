@@ -1,3 +1,4 @@
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { isAlKahfReminderWindow } from "@/lib/alKahfWindow"
@@ -10,7 +11,6 @@ import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  Alert,
   AppState,
   Modal,
   ScrollView,
@@ -134,7 +134,7 @@ export default function GuideScreen() {
   const handleSelectAdhan = async (id: string) => {
     // Premium voices: free users can listen to the preview, but not pick it.
     if (ADHANS.find(adhan => adhan.id === id)?.premium && !premium.isPremium) {
-      Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+      showPremiumPrompt()
       return
     }
     try {
@@ -263,6 +263,21 @@ export default function GuideScreen() {
               <Text style={[styles.cardTitle, { color: theme.text }]}>{t("quranReader")}</Text>
               <Text style={styles.cardSub}>{t("quranReaderSub")}</Text>
               <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("quranReaderDesc")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+          </TouchableOpacity>
+
+          {/* Listen to the Quran: opens the reciter / surah screen */}
+          <TouchableOpacity
+            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/quran-listen" as any)}
+          >
+            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+              <Ionicons name="headset" size={26} color={GOLD} />
+            </View>
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("qaListenTitle")}</Text>
+              <Text style={styles.cardSub}>{t("qaHomeSub")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>

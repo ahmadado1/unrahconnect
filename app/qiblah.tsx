@@ -287,7 +287,7 @@ export default function QiblahScreen() {
     if (headingAccuracy === null || headingAccuracy < 0) return null
     if (headingAccuracy <= 15) return { text: "High accuracy", color: "#2E8B57" }
     if (headingAccuracy <= 35) return { text: "Medium accuracy", color: "#C9A84C" }
-    return { text: "Low accuracy — calibrate compass", color: "#E07A5F" }
+    return { text: "Low accuracy, calibrate compass", color: "#E07A5F" }
   }, [headingAccuracy])
 
   const offsetDeg =

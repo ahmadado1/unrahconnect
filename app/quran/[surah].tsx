@@ -1,3 +1,6 @@
+import SurahAudioDownload from "@/app/components/SurahAudioDownload"
+import SurahInfoSheet from "@/app/components/SurahInfoSheet"
+import TafsirSheet from "@/app/components/TafsirSheet"
 import MushafFittedLine, { MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
 import MushafSettingsDrawer, {
@@ -38,9 +41,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useKeepAwake } from "expo-keep-awake"
 import { useFocusEffect, useLocalSearchParams, useRouter, Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, AppState, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, AppState, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
@@ -94,6 +97,7 @@ type Verse = {
 
 // MushafVerse and MushafPageData imported from lib/quranPageCache
 
+const VERSE_VIEWABILITY = { itemVisiblePercentThreshold: 50 }
 const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 const MUSHAF_PAGE_COUNT = 604
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
@@ -763,10 +767,82 @@ function MushafView({
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
+// One verse card in Read (verse) mode. memo() keeps the long list smooth: a card only
+// re-renders when its own data changes (playing, bookmark, font), not on every scroll.
+type VerseRowProps = {
+  verse: Verse
+  isCurrent: boolean
+  isLoading: boolean
+  isPlaying: boolean
+  isBookmarked: boolean
+  arabicStyle: any
+  cardColor: string
+  borderColor: string
+  gold: string
+  translationColor: string
+  playLabel: string
+  onPlay: (ayah: number) => void
+  onBookmark: (verse: Verse) => void
+  onTafsir: (ayah: number) => void
+  tafsirLabel: string
+}
+
+const VerseRow = memo(function VerseRow({
+  verse,
+  isCurrent,
+  isLoading,
+  isPlaying,
+  isBookmarked,
+  arabicStyle,
+  cardColor,
+  borderColor,
+  gold,
+  translationColor,
+  playLabel,
+  onPlay,
+  onBookmark,
+  onTafsir,
+  tafsirLabel,
+}: VerseRowProps) {
+  return (
+    <View style={[styles.verseCard, { backgroundColor: cardColor, borderColor }, isCurrent && styles.verseCardPlaying]}>
+      <View style={styles.verseTop}>
+        <View style={styles.verseBadge}>
+          <Text style={styles.verseBadgeText}>{verse.number}</Text>
+        </View>
+        <View style={styles.verseActions}>
+          {/* ▶ Listen to this ayah */}
+          <TouchableOpacity onPress={() => onPlay(verse.number)} hitSlop={8} accessibilityLabel={playLabel}>
+            {isCurrent && isLoading ? (
+              <ActivityIndicator size="small" color={gold} />
+            ) : (
+              <Ionicons name={isCurrent && isPlaying ? "pause-circle" : "play-circle-outline"} size={22} color={gold} />
+            )}
+          </TouchableOpacity>
+          {/* Tafsir: short explanation of this verse */}
+          <TouchableOpacity onPress={() => onTafsir(verse.number)} hitSlop={8} accessibilityLabel={tafsirLabel}>
+            <Ionicons name="book-outline" size={19} color={gold} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onBookmark(verse)}>
+            <Ionicons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={18} color={gold} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Text style={arabicStyle}>{verse.text}</Text>
+      {verse.translation ? (
+        <>
+          <View style={styles.verseDivider} />
+          <Text style={[styles.verseTranslation, { color: translationColor }]}>{verse.translation}</Text>
+        </>
+      ) : null}
+    </View>
+  )
+})
+
 export default function SurahScreen() {
   useKeepAwake()
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, isDark } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [scrollToVerseIndex, setScrollToVerseIndex] = useState<number | null>(null)
@@ -804,12 +880,17 @@ export default function SurahScreen() {
   // and the same text size setting.
   const verseFont = verseModeFont(mushafFont)
   const verseMetrics = mushafFontMetrics(verseFont, fontSize - 2)
+  // Same ink as the Mushaf page (soft navy-black, not pure black). Dark mode uses the light theme text.
   const verseTextStyle = {
+    color: isDark ? theme.text : MUSHAF_INK.color,
     fontFamily: verseFont.family,
     fontSize: verseMetrics.fontSize,
     lineHeight: Math.round(verseMetrics.fontSize * Math.max(1.9, verseFont.lineHeight)),
   }
   const [visibleVerseNumber, setVisibleVerseNumber] = useState(1)
+  // Tafsir sheet (verse number) and "About this surah" sheet
+  const [tafsirAyah, setTafsirAyah] = useState<number | null>(null)
+  const [surahInfoOpen, setSurahInfoOpen] = useState(false)
 
   const initialLang = normalizeReadLanguage(i18n.language)
   const initialSurahNum = surah ? Number(surah) : 0
@@ -859,7 +940,7 @@ export default function SurahScreen() {
       ayah: ayahNumber,
       lastAyah: Number(verses) || ayahNumber,
       reciter: getVerseReciter(reciterId),
-      continuous: true,
+      continuous: false, // play only this verse, then stop
       title: String(name || ""),
     })
   }
@@ -1276,7 +1357,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      console.log("No session — user not logged in")
+      console.log("No session, user not logged in")
       return
     }
 
@@ -1339,62 +1420,62 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
 
   // ─── RENDER VERSE ──────────────────────────────────────────────────────────
 
+  // Stable handlers for the verse cards (they always call the latest version).
+  const versePlayRef = useRef(onVersePlay)
+  const bookmarkRef = useRef(toggleBookmark)
+  useEffect(() => {
+    versePlayRef.current = onVersePlay
+    bookmarkRef.current = toggleBookmark
+  })
+  const handleVersePlay = useCallback((ayah: number) => versePlayRef.current(ayah), [])
+  const handleBookmark = useCallback((verse: Verse) => {
+    void bookmarkRef.current(verse)
+  }, [])
+
+  const verseArabicStyle = useMemo(
+    () => [styles.verseArabic, { color: verseTextStyle.color }, fontsLoaded && verseTextStyle],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fontsLoaded, verseTextStyle.color, verseTextStyle.fontFamily, verseTextStyle.fontSize, verseTextStyle.lineHeight]
+  )
+  const playLabel = t("qaPlayVerse")
+  const tafsirLabel = t("tafsirTitle")
+
+  // Which verses are on screen (stable function: FlatList must not get a new one each render).
+  const viewableRef = useRef<(items: any[]) => void>(() => {})
+  useEffect(() => {
+    viewableRef.current = viewableItems => {
+      if (viewableItems.length === 0) return
+      const first = viewableItems[0]?.item
+      const last = viewableItems[viewableItems.length - 1]?.item
+      if (first?.number) setVisibleVerseNumber(prev => (prev === first.number ? prev : first.number))
+      if (last?.number) saveProgress(last.number)
+      const ayahCount = Number(verses)
+      if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) armSurahReview()
+      else disarmSurahReview()
+    }
+  })
+  const handleViewableItems = useCallback(({ viewableItems }: { viewableItems: any[] }) => viewableRef.current(viewableItems), [])
+
   const renderVerse = ({ item }: { item: Verse }) => {
     const isCurrent = playingHere && playback.ayah === item.number
     return (
-    <View
-      style={[
-        styles.verseCard,
-        { backgroundColor: theme.card, borderColor: theme.border },
-        isCurrent && styles.verseCardPlaying,
-      ]}
-    >
-      <View style={styles.verseTop}>
-        <View style={styles.verseBadge}>
-          <Text style={styles.verseBadgeText}>{item.number}</Text>
-        </View>
-        <View style={styles.verseActions}>
-          {/* ▶ Listen to this ayah (and carry on to the next ones) */}
-          <TouchableOpacity
-            onPress={() => onVersePlay(item.number)}
-            hitSlop={8}
-            accessibilityLabel={t("qaPlayVerse")}
-          >
-            {isCurrent && playback.loading ? (
-              <ActivityIndicator size="small" color={theme.gold} />
-            ) : (
-              <Ionicons
-                name={isCurrent && playback.playing ? "pause-circle" : "play-circle-outline"}
-                size={22}
-                color={theme.gold}
-              />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleBookmark(item)}>
-            <Ionicons
-              name={bookmarked.has(item.number) ? "bookmark" : "bookmark-outline"}
-              size={18} color={theme.gold}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-      <Text
-        style={[
-          styles.verseArabic,
-          fontsLoaded && verseTextStyle,
-        ]}
-      >
-        {item.text}
-      </Text>
-      {item.translation ? (
-        <>
-          <View style={styles.verseDivider} />
-          <Text style={[styles.verseTranslation, { color: theme.textSecondary }]}>
-            {item.translation}
-          </Text>
-        </>
-      ) : null}
-    </View>
+      <VerseRow
+        verse={item}
+        isCurrent={isCurrent}
+        isLoading={isCurrent && playback.loading}
+        isPlaying={isCurrent && playback.playing}
+        isBookmarked={bookmarked.has(item.number)}
+        arabicStyle={verseArabicStyle}
+        cardColor={theme.card}
+        borderColor={theme.border}
+        gold={theme.gold}
+        translationColor={theme.textSecondary}
+        playLabel={playLabel}
+        onPlay={handleVersePlay}
+        onBookmark={handleBookmark}
+        onTafsir={setTafsirAyah}
+        tafsirLabel={tafsirLabel}
+      />
     )
   }
 
@@ -1448,6 +1529,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               <Text style={styles.backText}>{t("quran")}</Text>
             </TouchableOpacity>
             <View style={styles.headerTopActions}>
+              <TouchableOpacity
+                onPress={() => setSurahInfoOpen(true)}
+                style={styles.jumpBtn}
+                accessibilityLabel={t("surahInfoTitle")}
+              >
+                <Ionicons name="information-circle-outline" size={19} color="#C9A84C" />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setReciterPickerOpen(true)}
                 style={styles.jumpBtn}
@@ -1535,41 +1623,35 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                 })
               }, 250)
             }}
-            onViewableItemsChanged={({ viewableItems }) => {
-              if (viewableItems.length > 0) {
-                const first = viewableItems[0]?.item
-                const last = viewableItems[viewableItems.length - 1]?.item
-                if (first?.number) setVisibleVerseNumber(first.number)
-                if (last?.number) saveProgress(last.number)
-                const ayahCount = Number(verses)
-                if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) {
-                  armSurahReview()
-                } else {
-                  disarmSurahReview()
-                }
-              }
-            }}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-            ListHeaderComponent={() => {
-              if (Number(surah) === 9) return null
-              return (
+            onViewableItemsChanged={handleViewableItems}
+            viewabilityConfig={VERSE_VIEWABILITY}
+            windowSize={7}
+            maxToRenderPerBatch={6}
+            updateCellsBatchingPeriod={60}
+            removeClippedSubviews={Platform.OS === "android"}
+            ListHeaderComponent={
+              <>
+              {/* Download this surah's audio to listen with no internet */}
+              <SurahAudioDownload surah={surahNumber} variant="card" />
+              {Number(surah) === 9 ? null : (
                 <View style={[styles.bismillahCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: verseFont.family }, { color: theme.text }]}>
+                  <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: verseFont.family }, { color: isDark ? theme.text : MUSHAF_INK.color }]}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
                   <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
                     In the name of Allah, the Most Gracious, the Most Merciful
                   </Text>
                 </View>
-              )
-            }}
-            ListFooterComponent={() => (
+              )}
+              </>
+            }
+            ListFooterComponent={
               <View style={styles.footer}>
                 <View style={styles.footerLine} />
                 <Text style={[styles.footerText, { color: theme.textSecondary }]}>End of {name}</Text>
                 <View style={styles.footerLine} />
               </View>
-            )}
+            }
           />
         )}
       </>
@@ -1599,6 +1681,14 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       </View>
     ) : null}
   </Reanimated.View>
+  <TafsirSheet
+    visible={tafsirAyah !== null}
+    surah={surahNumber}
+    ayah={tafsirAyah ?? 1}
+    surahName={String(name || "")}
+    onClose={() => setTafsirAyah(null)}
+  />
+  <SurahInfoSheet visible={surahInfoOpen} surah={surahNumber} onClose={() => setSurahInfoOpen(false)} />
   <VerseReciterPicker
     visible={reciterPickerOpen}
     selectedId={reciterId}
@@ -1614,7 +1704,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
           ayah: playback.ayah,
           lastAyah: Number(verses) || playback.ayah,
           reciter,
-          continuous: true,
+          continuous: false,
           title: String(name || ""),
         })
       }
@@ -1677,7 +1767,7 @@ const styles = StyleSheet.create({
   readList: { padding: 16, paddingBottom: 100, gap: 12 },
   bismillahCard: { borderRadius: 16, padding: 20, alignItems: "center", borderWidth: 0.5, marginBottom: 4 },
   bismillahText: { fontSize: 26, textAlign: "center", marginBottom: 8 },
-  bismillahTranslation: { fontSize: 12, textAlign: "center", lineHeight: 18 },
+  bismillahTranslation: { fontSize: 14, textAlign: "center", lineHeight: 21 },
   verseCard: { borderRadius: 16, padding: 16, borderWidth: 0.5 },
   verseCardPlaying: { borderColor: "#C9A84C", borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.08)" },
   verseActions: { flexDirection: "row", alignItems: "center", gap: 14 },
@@ -1689,7 +1779,7 @@ const styles = StyleSheet.create({
   verseBadgeText: { color: "#1A1A1A", fontSize: 12, fontWeight: "700" },
   verseArabic: { fontSize: 26, textAlign: "justify", writingDirection: "rtl", lineHeight: 50, marginBottom: 14, fontWeight: "400" } as any,
   verseDivider: { height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", marginBottom: 12 },
-  verseTranslation: { fontSize: 13, lineHeight: 22 },
+  verseTranslation: { fontSize: 16, lineHeight: 27 },
   footer: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, paddingBottom: 40 },
   footerLine: { flex: 1, height: 0.5, backgroundColor: "#C9A84C" },
   footerText: { fontSize: 12, fontWeight: "600" },

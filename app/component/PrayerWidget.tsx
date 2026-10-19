@@ -168,8 +168,8 @@ export default function PrayerWidget() {
         <View>
           <Text style={styles.nextLabel}>
             {currentPrayer
-              ? `${t("currentPrayer")} — ${prayerLabel(currentPrayer.name)}`
-              : `${t("nextPrayer")} — ${prayerLabel(nextPrayer.name)}`}
+              ? `${t("currentPrayer")}: ${prayerLabel(currentPrayer.name)}`
+              : `${t("nextPrayer")}: ${prayerLabel(nextPrayer.name)}`}
           </Text>
           <Text style={styles.nextTime}>
             {currentPrayer ? currentPrayer.time : nextPrayer.time}

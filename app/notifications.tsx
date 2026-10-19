@@ -3,8 +3,6 @@ import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
 import { ALERT_PRAYERS, loadOffPrayers, setPrayerAlertOn, type AlertPrayer } from "@/lib/prayerToggles"
-import { DEFAULT_ADHAN_ID, getAdhanFullSoundName } from "@/lib/adhanCatalog"
-import { iosAlarmsAvailable, iosHasSound, testIosAdhanAlarm } from "@/modules/adhan-alarm"
 import {
   cancelAllNotifications,
   requestNotificationPermission,
@@ -16,6 +14,7 @@ import {
   scheduleIslamicDateReminders,
   scheduleJourneyReminders,
   scheduleTestAdhanNotification,
+  scheduleTestFullAdhan,
   setupPrayerNotificationChannel,
   cancelPrayerAlertsOnly,
 } from "@/lib/notifications"
@@ -335,31 +334,28 @@ export default function NotificationsScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
           </TouchableOpacity>
 
-          {/* iPhone (iOS 26+): test the full-Adhan alarm in 1 minute */}
-          {Platform.OS === "ios" && iosAlarmsAvailable() ? (
+          {/* iPhone: test the full Adhan (30-second parts back to back), starting in 20 seconds */}
+          {Platform.OS === "ios" ? (
             <TouchableOpacity
               style={[styles.row, { borderBottomColor: theme.border }]}
               onPress={async () => {
-                const adhanId = (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
-                const sound = getAdhanFullSoundName(adhanId, false).replace(/\.mp3$/, "_alarm.caf")
-                const ok = await testIosAdhanAlarm({
-                  at: Date.now() + 60_000,
-                  title: t("adhanAlarmTestTitle"),
-                  sound,
-                  stop: t("adhanAlarmStop"),
-                })
+                const result = await scheduleTestFullAdhan(20)
                 Alert.alert(
-                  ok ? t("adhanAlarmTestSet") : t("adhanAlarmTestFail"),
-                  ok ? t(iosHasSound(sound) ? "adhanAlarmTestSetBody" : "adhanAlarmTestNoSound") : t("adhanAlarmTestFailBody")
+                  result === "ok" ? t("fullAdhanTestSet") : t("fullAdhanTestFail"),
+                  result === "ok"
+                    ? t("fullAdhanTestSetBody")
+                    : result === "downloading"
+                      ? t("fullAdhanTestDownloading")
+                      : t("fullAdhanTestUnsupported")
                 )
               }}
             >
               <View style={[styles.iconWrap, { backgroundColor: "#C9A84C" }]}>
-                <Ionicons name="alarm-outline" size={18} color="#1E3A5F" />
+                <Ionicons name="volume-high-outline" size={18} color="#1E3A5F" />
               </View>
               <View style={styles.info}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("adhanAlarmTest")}</Text>
-                <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("adhanAlarmTestSub")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("fullAdhanTest")}</Text>
+                <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("fullAdhanTestSub")}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
             </TouchableOpacity>

@@ -3,7 +3,7 @@ import { usePremium } from "@/lib/premium"
 import GlowText from "@/app/components/GlowText"
 import PremiumEndingBanner from "@/app/components/PremiumEndingBanner"
 import PremiumJourneyCard from "@/app/components/PremiumJourneyCard"
-import QuranBigPlayer from "@/app/components/QuranBigPlayer"
+import QuranHomePlayer from "@/app/components/QuranHomePlayer"
 import { dhikrForToday } from "@/lib/dhikrList"
 import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
 import QuranHomeCard from "@/app/components/QuranHomeCard";
@@ -353,7 +353,7 @@ export default function HomeScreen() {
       const data = await res.json()
       if (data.code === 200) {
         const text = `"${data.data.text}"`
-        const ref = `Quran — ${data.data.surah.englishName} ${data.data.numberInSurah}`
+        const ref = `Quran: ${data.data.surah.englishName} ${data.data.numberInSurah}`
         setAyah(text)
         setAyahRef(ref)
         await AsyncStorage.setItem("cached_verse", JSON.stringify({ text, ref, edition }))
@@ -688,7 +688,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
         )}
 
-        {/* Adhkar — under Umrah Journey; morning 8–11am, evening 5–6pm only */}
+        {/* Adhkar, under Umrah Journey; morning 8–11am, evening 5–6pm only */}
         {adhkarWindow === "morning" && (
           <TouchableOpacity
             style={[styles.adhkarHomeCard, { backgroundColor: theme.card, borderColor: theme.border }]}
@@ -760,10 +760,10 @@ export default function HomeScreen() {
         />
 
         {/* ── LISTEN TO THE QURAN (Premium: continue where you stopped) ── */}
-        {/* Quran player: first time it opens the reciter / surah chooser, then shows the last surah.
-            Premium continues at the exact second; free starts that surah again. */}
+        {/* Quran player: Premium gets the big player (continues at the exact second),
+            free users get the small player (starts the last surah again). */}
         <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-          <QuranBigPlayer variant="home" />
+          <QuranHomePlayer />
         </View>
 
         {/* ── ISLAMIC (HIJRI) CALENDAR ── */}

@@ -4,10 +4,13 @@
 //                    After that it shows the last surah you listened to.
 //   variant="full" → the full-page player (app/quran-player.tsx, Premium).
 // Premium continues at the exact second you stopped. Free users start that surah again from the beginning.
+import SurahAudioDownload from "@/app/components/SurahAudioDownload"
+import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { usePremium } from "@/lib/premium"
 import {
   continueListenSpot,
+  currentSurahReciter,
   playSurah,
   getQuranProgress,
   loadListenSpot,
@@ -42,7 +45,9 @@ export const surahTitle = (n: number) => `${n}. ${getSurahMeta(n)?.englishName ?
 export default function QuranBigPlayer({ variant }: { variant: "card" | "full" | "home" }) {
   const router = useRouter()
   const { t } = useTranslation()
-  const { isPremium } = usePremium()
+  const { isPremium: hasPremium } = usePremium()
+  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
+  const isPremium = hasPremium || QURAN_AUDIO_FREE
   const playback = useQuranPlayback()
   const [progress, setProgress] = useState({ position: 0, duration: 0 })
   const [spot, setSpot] = useState<ListenSpot | null>(null)
@@ -163,6 +168,14 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
             {live && playback.error ? t("qaError") : reciterName}
           </Text>
         </View>
+        {/* Download this surah to listen offline (full player and Listen screen card) */}
+        {!home && surahNo && (live ? currentSurahReciter() : spot?.reciter) ? (
+          <SurahAudioDownload
+            surah={surahNo}
+            variant="player"
+            reciter={(live ? currentSurahReciter() : { ...spot!.reciter, surahs: new Set(spot!.reciter.surahs) }) as any}
+          />
+        ) : null}
         {!full ? (
           <>
             {/* Full-page player is Premium; free users go to the reciter / surah list instead */}

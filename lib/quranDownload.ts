@@ -157,7 +157,7 @@ async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
   if (!surahListOk) {
     const listRetry = await downloadSurahList()
     if (!listRetry) {
-      reportProgress("Download paused — will retry", "paused")
+      reportProgress("Download paused, will retry", "paused")
       return false
     }
   }
@@ -184,7 +184,7 @@ async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
   let missingPages = await getMissingPageNumbers()
   if (missingPages.length > 0) {
     pagesDone = TOTAL_MUSHAF_PAGES - missingPages.length
-    reportProgress("Download paused — will retry", "paused")
+    reportProgress("Download paused, will retry", "paused")
     return false
   }
 
@@ -203,13 +203,13 @@ async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
   missingSurahs = await getMissingSurahNumbers(language)
   surahsDone = 114 - missingSurahs.length
   if (missingSurahs.length > 0) {
-    reportProgress("Download paused — will retry", "paused")
+    reportProgress("Download paused, will retry", "paused")
     return false
   }
 
   const listFinal = await downloadSurahList()
   if (!listFinal) {
-    reportProgress("Download paused — will retry", "paused")
+    reportProgress("Download paused, will retry", "paused")
     return false
   }
 

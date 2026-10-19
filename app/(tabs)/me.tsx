@@ -39,6 +39,7 @@ export default function MeScreen() {
   const agencyName = user?.user_metadata?.agency_name
 
   const menuItems: MenuItem[] = [
+    { icon: "star-outline", labelKey: "pw_menu", route: "/premium" },
     { icon: "person-outline", labelKey: "profile", route: "/profile" },
     { icon: "heart-outline", labelKey: "favorites", route: "/favorites" },
     { icon: "briefcase-outline", labelKey: "agentDashboard", route: "/agent/dashboard", agentOnly: true },
@@ -74,7 +75,7 @@ export default function MeScreen() {
         <Text style={styles.userName}>{fullName}</Text>
         <Text style={styles.userEmail}>{user?.email || (user?.phone ? `+${String(user.phone).replace(/^\+/, "")}` : "")}</Text>
 
-        {/* Premium badge (status only — no prices or links in the app) */}
+        {/* Premium badge (status only, no prices or links in the app) */}
         {premium.isPremium && (
           <View style={styles.premiumBadge}>
             <Ionicons name="star" size={12} color="#1E3A5F" />
@@ -100,7 +101,7 @@ export default function MeScreen() {
         automaticallyAdjustContentInsets={false}
       >
 
-        {/* Agent quick stats — only for agents */}
+        {/* Agent quick stats, only for agents */}
         {isAgent && (
           <TouchableOpacity
             style={styles.agentCard}

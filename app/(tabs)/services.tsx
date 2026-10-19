@@ -16,7 +16,7 @@ type Cover = {
   titleKey: string
   subKey: string
   route: string
-  mark: "hotel" | "aviasales" | "saily" | "airalo"
+  mark: "hotel" | "aviasales" | "saily" | "airalo" | "food" | "agent"
   accent: readonly [string, string, ...string[]]
   fill: readonly [string, string]
   fillDark: readonly [string, string]
@@ -73,6 +73,30 @@ const COVERS: Cover[] = [
     border: "#F3C2B4",
     borderDark: "#6A4038",
   },
+  {
+    id: "restaurants",
+    titleKey: "restaurantsTitle",
+    subKey: "restaurantsSub",
+    route: "/restaurants",
+    mark: "food",
+    accent: ["#F59E0B", "#EF6C3A", "#E0483B"],
+    fill: ["#FFF4E8", "#FFE4D6"],
+    fillDark: ["#2E2216", "#2A1A16"],
+    border: "#F5C9A6",
+    borderDark: "#6A4430",
+  },
+  {
+    id: "agents",
+    titleKey: "findAgent",
+    subKey: "findAgentSub",
+    route: "/agent",
+    mark: "agent",
+    accent: ["#1E3A5F", "#3B6FA8", "#C9A84C"],
+    fill: ["#EEF4FB", "#DCE8F6"],
+    fillDark: ["#17243A", "#14203A"],
+    border: "#BFD3EA",
+    borderDark: "#34507A",
+  },
 ]
 
 const LIST: {
@@ -87,8 +111,6 @@ const LIST: {
   border: string
   borderDark: string
 }[] = [
-  { id: "restaurants", sectionKey: "serviceFood", icon: "restaurant", titleKey: "restaurantsTitle", subKey: "restaurantsSub", route: "/restaurants", fill: "#FFF6F0", fillDark: "#2A221C", border: "#F3D5C4", borderDark: "#5A4034" },
-  { id: "agents", icon: "handshake", titleKey: "findAgent", subKey: "findAgentSub", route: "/agent", fill: "#F4F7FB", fillDark: "#1A2433", border: "#D5DEE8", borderDark: "#3A4A5C" },
   { id: "hospitals", icon: "medkit", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", fill: "#F3F8F4", fillDark: "#1A2820", border: "#D3E6D8", borderDark: "#3A5644" },
   { id: "transport", sectionKey: "transport", icon: "train", titleKey: "transport", subKey: "transportSub", route: "/services/transport", fill: "#F3F7F8", fillDark: "#1A2628", border: "#D0E0E4", borderDark: "#3A5258" },
   { id: "shopping", sectionKey: "shopping", icon: "bag", titleKey: "shopping", subKey: "shoppingSub", route: "/services/shopping", fill: "#FBF6F8", fillDark: "#2A2226", border: "#E8D6DE", borderDark: "#5A4450" },
@@ -100,6 +122,20 @@ function CoverMark({ mark }: { mark: Cover["mark"] }) {
     return (
       <View style={styles.hotelMark}>
         <AppIcon name="bed" size={20} />
+      </View>
+    )
+  }
+  if (mark === "food") {
+    return (
+      <View style={[styles.hotelMark, { backgroundColor: "rgba(239,108,58,0.18)" }]}>
+        <AppIcon name="restaurant" size={20} />
+      </View>
+    )
+  }
+  if (mark === "agent") {
+    return (
+      <View style={[styles.hotelMark, { backgroundColor: "rgba(59,111,168,0.18)" }]}>
+        <AppIcon name="handshake" size={20} />
       </View>
     )
   }

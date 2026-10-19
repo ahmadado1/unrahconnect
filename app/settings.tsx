@@ -66,7 +66,7 @@ export default function SettingsScreen() {
             {t("preferences")}
           </Text>
 
-          {/* Language — modal list (Android Alert only supports 3 buttons) */}
+          {/* Language, modal list (Android Alert only supports 3 buttons) */}
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: theme.border }]}
             onPress={() => setLanguageModalOpen(true)}
@@ -83,7 +83,7 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
 
-          {/* Notifications — dedicated screen */}
+          {/* Notifications, dedicated screen */}
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: theme.border }]}
             onPress={() => router.push("/notifications")}
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
             style={[styles.settingRow, { borderBottomColor: theme.border, borderBottomWidth: 0 }]}
             onPress={() =>
               Share.share({
-                message: "Check out UmrahConnect — the complete Umrah & Hajj companion app!",
+                message: "Check out UmrahConnect, the complete Umrah & Hajj companion app!",
               })
             }
           >

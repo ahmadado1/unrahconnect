@@ -1,5 +1,6 @@
 // Full-page Quran player (Premium). Opened from the big player card on the Listen screen
 // or from the "Continue listening" card on Home.
+import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import TouchableOpacity from "@/app/components/AppPressable"
 import QuranBigPlayer from "@/app/components/QuranBigPlayer"
 import { usePremium } from "@/lib/premium"
@@ -15,7 +16,9 @@ export default function QuranPlayerScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const { isPremium } = usePremium()
+  const { isPremium: hasPremium } = usePremium()
+  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
+  const isPremium = hasPremium || QURAN_AUDIO_FREE
 
   return (
     <LinearGradient colors={["#0F2140", "#1E3A5F", "#0F2140"]} style={styles.screen}>

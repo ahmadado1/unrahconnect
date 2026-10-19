@@ -5,7 +5,7 @@ import {
   ISLAMIC_EVENTS_HIJRI,
   type IslamicEvent,
 } from "@/lib/islamicEvents"
-import { playPrayerAdhan } from "@/lib/adhanAudio"
+import { playPrayerAdhan, stopAdhan } from "@/lib/adhanAudio"
 import { triggerPrayerAlert } from "@/lib/prayerAlert"
 import { DEFAULT_ADHAN_ID, prayerNameFromNotification, type PrayerName } from "@/lib/prayerConstants"
 import {
@@ -58,10 +58,17 @@ import {
 import {
   cancelIosAdhanAlarms,
   iosAlarmsAvailable,
-  requestIosAlarmPermission,
-  scheduleIosAdhanAlarms,
 } from "@/modules/adhan-alarm"
 import { Alert, AppState, Platform } from "react-native"
+import { adhanPartSounds, chainSupported, ensureAdhanParts, PART_STEP_SECONDS } from "@/lib/adhanChain"
+
+/** One background download of the Adhan parts at a time. */
+let partsDownloadRunning = false
+
+/** iPhone: notification category of the first Adhan part (Stop button + "dismissed" event). */
+export const ADHAN_CATEGORY = "uc-adhan"
+/** iPhone full Adhan in parts: days that get at least the first part (the rest of the room goes to full Adhans). */
+const IOS_CHAIN_MIN_DAYS = 2
 
 export const PRAYER_CHANNEL_ID = "prayer-adhan"
 /**
@@ -139,7 +146,7 @@ async function syncAlertGroup(isMine: (identifier: string) => boolean, desired: 
 
 function isPrayerAlertId(identifier: string) {
   return (
-    (identifier.startsWith("prayer-") && identifier !== "prayer-adhan-test") ||
+    (identifier.startsWith("prayer-") && !identifier.startsWith("prayer-adhan-test")) ||
     identifier.startsWith("adhan-soon-") ||
     identifier === "adhan-reopen"
   )
@@ -170,7 +177,11 @@ export function getNotificationAdhanSound(adhanId: string, isFajr = false) {
 }
 
 async function getSelectedAdhanId() {
-  return (await AsyncStorage.getItem("selected_adhan")) || DEFAULT_ADHAN_ID
+  const id = resolveAdhanId(await AsyncStorage.getItem("selected_adhan"))
+  // A Premium voice falls back to the free default when Premium has ended.
+  const premiumVoice = ADHAN_RECITERS.find(r => r.id === id)?.premium
+  if (premiumVoice && !(await isPremiumNow())) return DEFAULT_ADHAN_ID
+  return id
 }
 
 async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
@@ -257,6 +268,10 @@ Notifications.setNotificationHandler({
     const identifier = notification.request.identifier
     const appIsOpen = AppState.currentState === "active"
     const prayerWhileOpen = identifier.startsWith("prayer-") && appIsOpen
+    const isAdhanPart = Boolean((notification.request.content.data as { adhanPart?: number } | undefined)?.adhanPart)
+    if (isAdhanPart && appIsOpen) {
+      return { shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: false, shouldShowList: false }
+    }
     return {
       shouldShowAlert: true,
       // While the app is open the full Adhan plays inside the app, from the start.
@@ -496,13 +511,13 @@ export async function schedulePrayerNotifications(
   const run = async () => {
     const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
     if (notifEnabled === "false") {
-      console.warn("[Notifications] Skipping prayer schedule — master notifications off")
+      console.warn("[Notifications] Skipping prayer schedule, master notifications off")
       await cancelPrayerNotifications()
       return
     }
     const prayerAlerts = (await AsyncStorage.getItem("prayer_alerts_enabled")) !== "false"
     if (!prayerAlerts) {
-      console.warn("[Notifications] Skipping prayer schedule — prayer alerts off")
+      console.warn("[Notifications] Skipping prayer schedule, prayer alerts off")
       await cancelPrayerNotifications()
       return
     }
@@ -511,7 +526,7 @@ export async function schedulePrayerNotifications(
 
     const granted = await requestNotificationPermission()
     if (!granted) {
-      console.warn("[Notifications] Skipping prayer schedule — permission not granted")
+      console.warn("[Notifications] Skipping prayer schedule, permission not granted")
       await cancelPrayerNotifications()
       return
     }
@@ -549,9 +564,10 @@ export async function schedulePrayerNotifications(
     const pending = await Notifications.getAllScheduledNotificationsAsync()
     const others = pending.filter(n => !isPrayerAlertId(n.identifier)).length
     const room = Math.max(0, IOS_PENDING_LIMIT - IOS_RESERVED_SLOTS - others)
+    const iosChain = Platform.OS === "ios" && chainSupported()
     const dayLimit =
       Platform.OS === "ios"
-        ? Math.max(1, Math.min(IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
+        ? Math.max(1, Math.min(iosChain ? IOS_CHAIN_MIN_DAYS : IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
         : PRAYER_HORIZON_DAYS
 
     // Prayers the user switched off (Notifications → per-prayer switches).
@@ -632,35 +648,71 @@ export async function schedulePrayerNotifications(
       console.warn("[Notifications] Native Adhan player failed, using notification sounds instead")
     }
 
-    // iPhone (iOS 26+, new builds): the FULL Adhan as a system alarm (AlarmKit). It rings on the lock
-    // screen, over other apps and in silent mode, with a Stop button. The normal prayer notification
-    // still comes (tap → prayer popup) but without sound, so the Adhan never plays twice.
-    // If the user says no to alarms (or turns them off in Settings) we keep the 30-second notification sound.
-    if (Platform.OS === "ios" && iosAlarmsAvailable()) {
-      const allowed = await requestIosAlarmPermission()
-      if (allowed) {
-        const alarms = desired.map(d => {
-          const data = (d.request.content.data ?? {}) as { prayerName?: string }
-          const isFajr = data.prayerName === "Fajr"
-          return {
-            at: d.at,
-            title: String(d.request.content.title ?? data.prayerName ?? "Adhan").slice(0, 24),
-            sound: getAdhanFullSoundName(adhanId, isFajr).replace(/\.mp3$/, "_alarm.caf"),
-            stop: i18n.t("adhanAlarmStop", { defaultValue: "Stop" }),
+    // iPhone: the FULL Adhan in 30-second parts (see lib/adhanChain.ts).
+    // The prayer notification plays part 1. Parts 2, 3, ... follow every 29 seconds as notifications
+    // with no title and no text, so iPhone only plays their sound: one notification, the whole Adhan.
+    // Only the next prayers get all parts (iPhone keeps 64 alerts); the others get part 1 (30 seconds)
+    // and become full when the app books again (app opened, background refresh).
+    if (Platform.OS === "ios") {
+      // AlarmKit is not used any more (its sounds are also limited to 30 seconds): remove old alarms.
+      if (iosAlarmsAvailable()) await cancelIosAdhanAlarms()
+      await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
+      if (iosChain) {
+        const [regularParts, fajrParts] = await Promise.all([
+          adhanPartSounds(adhanId, false),
+          adhanPartSounds(adhanId, true),
+        ])
+        // Parts not on the phone yet (first time, or a new voice): book the normal 30-second Adhan
+        // now, download the parts in the background, then book again with the full Adhan.
+        // Never wait for the download here: a slow connection must not delay the prayer alerts.
+        if (regularParts.length === 0 || fajrParts.length === 0) {
+          if (!partsDownloadRunning) {
+            partsDownloadRunning = true
+            void ensureAdhanParts(adhanId)
+              .then(async ok => {
+                const ready = (await adhanPartSounds(adhanId, false)).length > 0
+                if (ok && ready) await reschedulePrayerNotificationsFromCache(adhanId).catch(() => false)
+              })
+              .catch(() => {})
+              .finally(() => {
+                partsDownloadRunning = false
+              })
           }
-        })
-        const set = await scheduleIosAdhanAlarms(alarms)
-        await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, set > 0 ? "true" : "false").catch(() => {})
-        if (set > 0) {
-          for (const d of desired) {
-            d.request.content.sound = false
-            d.sig = `${d.sig}|alarm`
-          }
-          console.log(`[Notifications] iPhone AlarmKit: ${set} full-Adhan alarms set (adhan ${adhanId})`)
         }
-      } else {
-        await cancelIosAdhanAlarms()
-        await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
+        let budget = Math.max(0, room - desired.length)
+        const extra: DesiredAlert[] = []
+        for (const d of [...desired].sort((a, b) => a.at - b.at)) {
+          const data = (d.request.content.data ?? {}) as { prayerName?: string; prayerAt?: number }
+          const parts = data.prayerName === "Fajr" ? fajrParts : regularParts
+          if (parts.length < 2) continue
+          if (budget < parts.length - 1) break
+          budget -= parts.length - 1
+          d.request.content.sound = parts[0]
+          d.request.content.categoryIdentifier = ADHAN_CATEGORY
+          d.request.content.data = { ...data, chain: d.identifier }
+          d.sig = `${d.sig}|chain:${parts[0]}:${parts.length}`
+          parts.slice(1).forEach((sound, i) => {
+            const at = d.at + (i + 1) * PART_STEP_SECONDS * 1000
+            extra.push({
+              identifier: `${d.identifier}-p${String(i + 2).padStart(2, "0")}`,
+              at,
+              sig: `${at}|${sound}`,
+              request: {
+                content: {
+                  // No title / text: iPhone plays the sound without showing a new notification.
+                  title: "",
+                  body: "",
+                  sound,
+                  interruptionLevel: "timeSensitive" as const,
+                  data: { chain: d.identifier, adhanPart: i + 2, prayerName: data.prayerName, prayerAt: d.at },
+                },
+                trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
+              },
+            })
+          })
+        }
+        desired.push(...extra)
+        if (extra.length) console.log(`[Notifications] iPhone full Adhan: ${extra.length} extra parts booked (adhan ${adhanId})`)
       }
     }
 
@@ -677,12 +729,54 @@ export async function schedulePrayerNotifications(
 }
 
 /**
+ * iPhone test: the FULL Adhan in parts, starting in `seconds`. Uses the same parts as prayer time.
+ * Returns "ok", "downloading" (parts not on the phone yet / no internet) or "unsupported" (old build).
+ */
+export async function scheduleTestFullAdhan(seconds = 20): Promise<"ok" | "downloading" | "unsupported"> {
+  if (!chainSupported()) return "unsupported"
+  const granted = await requestNotificationPermission()
+  if (!granted) return "unsupported"
+  const adhanId = resolveAdhanId(await getSelectedAdhanId())
+  await ensureAdhanParts(adhanId).catch(() => false)
+  const parts = await adhanPartSounds(adhanId, false)
+  if (parts.length === 0) return "downloading"
+  await stopAdhanChain("prayer-adhan-test")
+  const start = Date.now() + seconds * 1000
+  const copy = prayerNotificationCopy("Dhuhr", "")
+  for (let i = 0; i < parts.length; i++) {
+    const at = start + i * PART_STEP_SECONDS * 1000
+    await Notifications.scheduleNotificationAsync({
+      identifier: i === 0 ? "prayer-adhan-test" : `prayer-adhan-test-p${String(i + 1).padStart(2, "0")}`,
+      content:
+        i === 0
+          ? {
+              title: copy.title,
+              body: i18n.t("adhanTestBody", { defaultValue: "Test: the full Adhan, lock your phone now." }),
+              sound: parts[0],
+              categoryIdentifier: ADHAN_CATEGORY,
+              interruptionLevel: "timeSensitive" as const,
+              data: { chain: "prayer-adhan-test", adhanTest: true },
+            }
+          : {
+              title: "",
+              body: "",
+              sound: parts[i],
+              interruptionLevel: "timeSensitive" as const,
+              data: { chain: "prayer-adhan-test", adhanPart: i + 1 },
+            },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
+    })
+  }
+  return "ok"
+}
+
+/**
  * Fire a one-off Adhan lock-sound notification in ~60s so you can lock the phone and verify audio.
  */
 export async function scheduleTestAdhanNotification(seconds = 15) {
   const granted = await requestNotificationPermission()
   if (!granted) {
-    console.warn("[Notifications] Test Adhan blocked — permission not granted")
+    console.warn("[Notifications] Test Adhan blocked, permission not granted")
     return false
   }
 
@@ -707,7 +801,7 @@ export async function scheduleTestAdhanNotification(seconds = 15) {
     identifier: "prayer-adhan-test",
     content: {
       title: "Test Prayer Notification",
-      body: "Testing Adhan sound — lock your phone now",
+      body: "Testing Adhan sound, lock your phone now",
       sound,
       priority: Notifications.AndroidNotificationPriority.MAX,
       ...(Platform.OS === "ios"
@@ -885,14 +979,14 @@ function kahfNotifCopy(kind: KahfNotifKind): { title: string; body: string } {
       return {
         title: i18n.t("alKahfNotifFriFinishTitle", { defaultValue: "Finish your Kahf" }),
         body: i18n.t("alKahfNotifFriFinishBody", {
-          defaultValue: "You're almost there — finish Surah Al-Kahf before Friday ends.",
+          defaultValue: "You're almost there, finish Surah Al-Kahf before Friday ends.",
         }),
       }
     case "dontMiss":
       return {
         title: i18n.t("alKahfNotifFriDontMissTitle", { defaultValue: "Don't miss Surah Al-Kahf today" }),
         body: i18n.t("alKahfNotifFriDontMissBody", {
-          defaultValue: "It's Friday — take a moment to read Surah Al-Kahf.",
+          defaultValue: "It's Friday, take a moment to read Surah Al-Kahf.",
         }),
       }
     case "start":
@@ -900,7 +994,7 @@ function kahfNotifCopy(kind: KahfNotifKind): { title: string; body: string } {
       return {
         title: i18n.t("alKahfNotifThuStartTitle", { defaultValue: "Start reciting Surah Al-Kahf" }),
         body: i18n.t("alKahfNotifThuStartBody", {
-          defaultValue: "Tomorrow is Friday — start Surah Al-Kahf when you're ready.",
+          defaultValue: "Tomorrow is Friday, start Surah Al-Kahf when you're ready.",
         }),
       }
   }
@@ -1188,7 +1282,7 @@ function journeyNotifCopy(
       title: i18n.t(`${prefix}FinishTitle`, { defaultValue: `Finish your ${label} journey` }),
       body: i18n.t(`${prefix}FinishBody`, {
         phase: phaseName,
-        defaultValue: `You're on ${phaseName} — open UmrahConnect to finish.`,
+        defaultValue: `You're on ${phaseName}, open UmrahConnect to finish.`,
       }),
     }
   }
@@ -1512,6 +1606,63 @@ export async function cancelPrayerAlertsOnly() {
   await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "false").catch(() => {})
 }
 
+/**
+ * Stop the rest of a full Adhan (iPhone parts): cancel the parts still waiting and clear
+ * the ones already delivered. Used by the Stop button, swiping the notification away,
+ * opening the app (the app then plays the Adhan itself) and the app being open at prayer time.
+ */
+export async function stopAdhanChain(chainId?: string | null) {
+  if (!chainId) return
+  try {
+    const pending = await Notifications.getAllScheduledNotificationsAsync()
+    for (const n of pending) {
+      if (n.identifier.startsWith(`${chainId}-p`)) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})
+      }
+    }
+    const delivered = await Notifications.getPresentedNotificationsAsync()
+    for (const n of delivered) {
+      if (n.request.identifier.startsWith(`${chainId}-p`)) {
+        await Notifications.dismissNotificationAsync(n.request.identifier).catch(() => {})
+      }
+    }
+  } catch {}
+}
+
+/** iPhone: Stop button on the Adhan notification; swiping it away also stops the Adhan. */
+export async function registerAdhanCategory() {
+  if (Platform.OS !== "ios") return
+  try {
+    await Notifications.setNotificationCategoryAsync(
+      ADHAN_CATEGORY,
+      [
+        {
+          identifier: "stop-adhan",
+          buttonTitle: i18n.t("adhanStop", { defaultValue: "Stop Adhan" }),
+          options: { opensAppToForeground: false, isDestructive: true },
+        },
+      ],
+      { customDismissAction: true }
+    )
+  } catch {}
+}
+
+/**
+ * Stop button or swipe-away on the iPhone Adhan notification: stop the rest of the Adhan.
+ * Returns true when the response was one of these (then the app should not open a screen).
+ */
+export function handleAdhanAction(response: Notifications.NotificationResponse): boolean {
+  const action = response.actionIdentifier
+  const isStop = action === "stop-adhan"
+  const isDismiss = action === "com.apple.UNNotificationDismissActionIdentifier"
+  if (!isStop && !isDismiss) return false
+  const data = response.notification.request.content.data as Record<string, unknown> | undefined
+  const chain = typeof data?.chain === "string" ? data.chain : response.notification.request.identifier
+  void stopAdhanChain(chain)
+  void stopAdhan().catch(() => {})
+  return true
+}
+
 let foregroundPrayer: PrayerName | null = null
 let foregroundPrayerAt = 0
 
@@ -1521,8 +1672,11 @@ export function handlePrayerNotificationForeground(
   data: Record<string, unknown> | undefined
 ) {
   if (!identifier.startsWith("prayer-")) return false
+  if (data?.adhanPart) return true
   const prayerName = prayerNameFromNotification(identifier, data)
   if (!prayerName) return false
+  // The app plays the full Adhan itself, so the iPhone parts are not needed.
+  void stopAdhanChain(typeof data?.chain === "string" ? data.chain : null)
   foregroundPrayer = prayerName
   foregroundPrayerAt = Date.now()
   // iPhone alarm / Android player already plays the full Adhan: don't start a second one in the app.
@@ -1541,6 +1695,9 @@ export function handlePrayerNotificationOpen(
   _deliveredAt?: Date | number | string | null
 ) {
   if (!identifier.startsWith("prayer-")) return false
+
+  // iPhone full Adhan in parts: the app takes over, so cancel the remaining parts.
+  void stopAdhanChain(typeof data?.chain === "string" ? data.chain : identifier.replace(/-p\d+$/, ""))
 
   const prayerName = prayerNameFromNotification(identifier, data)
   navigateToGuide()

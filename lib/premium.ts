@@ -1,9 +1,13 @@
 // Premium in the app.
-// The website sells Premium and writes "premium until <date>" into Supabase (user_premium).
-// The app only READS it: no prices, no payment links (App Store / Play rules).
+// Two ways to have Premium, the LATER date wins:
+//  - Website payment (OPay, MyNita, PayPal): "premium_until" in Supabase (user_premium).
+//  - In-app purchase (App Store / Google Play, via RevenueCat): "store_until" in Supabase,
+//    plus the answer RevenueCat gives the phone right after buying (lib/purchases.ts).
+// The app never shows website prices or payment links (App Store / Play rules).
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useCallback, useEffect, useState } from "react"
 import { AppState } from "react-native"
+import { onStorePremiumChange, readStorePremiumUntil, refreshStorePremium } from "./purchases"
 import { supabase } from "./supabase"
 
 const CACHE_KEY = "premium_until"
@@ -24,10 +28,20 @@ function stateFrom(until: string | null): PremiumState {
   return { isPremium: Boolean(day && day >= todayKey()), until: day }
 }
 
+/** The later of two dates ("YYYY-MM-DD..." or null). */
+function later(a: string | null, b: string | null) {
+  const x = a ? a.slice(0, 10) : null
+  const y = b ? b.slice(0, 10) : null
+  if (!x) return y
+  if (!y) return x
+  return x > y ? x : y
+}
+
 /** Last known answer, saved on the phone (works offline and in notification code). */
 export async function readCachedPremium(): Promise<PremiumState> {
   try {
-    return stateFrom(await AsyncStorage.getItem(CACHE_KEY))
+    const [web, store] = await Promise.all([AsyncStorage.getItem(CACHE_KEY), readStorePremiumUntil()])
+    return stateFrom(later(web, store))
   } catch {
     return stateFrom(null)
   }
@@ -41,18 +55,19 @@ export async function refreshPremium(): Promise<PremiumState> {
       await AsyncStorage.removeItem(CACHE_KEY)
       return stateFrom(null)
     }
-    const { data, error } = await supabase
-      .from("user_premium")
-      .select("premium_until")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
+    const before = (await readCachedPremium()).isPremium
+    const [{ data, error }, storeLocal] = await Promise.all([
+      supabase.from("user_premium").select("premium_until, store_until").eq("user_id", session.user.id).maybeSingle(),
+      refreshStorePremium(),
+    ])
     if (error) throw error
-    const until = (data?.premium_until as string | null) ?? null
-    const before = await AsyncStorage.getItem(CACHE_KEY)
-    if (until) await AsyncStorage.setItem(CACHE_KEY, until)
+    // Website Premium, plus store Premium the server knows about (bought on another phone).
+    const web = later((data?.premium_until as string | null) ?? null, (data?.store_until as string | null) ?? null)
+    if (web) await AsyncStorage.setItem(CACHE_KEY, web)
     else await AsyncStorage.removeItem(CACHE_KEY)
+    const until = later(web, storeLocal)
     // Premium just started or ended: switch Mulk / Kahf reminders between simple and guided.
-    if (stateFrom(before).isPremium !== stateFrom(until).isPremium) {
+    if (before !== stateFrom(until).isPremium) {
       const { scheduleAlKahfReminder, scheduleAlMulkReminder, scheduleSalawatReminder } = await import("./notifications")
       void scheduleAlMulkReminder().catch(() => {})
       void scheduleSalawatReminder().catch(() => {})
@@ -89,9 +104,14 @@ export function usePremium() {
     const sub = AppState.addEventListener("change", s => {
       if (s === "active") void refresh()
     })
+    // Just bought / restored in the app: show Premium at once.
+    const off = onStorePremiumChange(() => {
+      void readCachedPremium().then(next => active && setState(next))
+    })
     return () => {
       active = false
       sub.remove()
+      off()
     }
   }, [refresh])
 

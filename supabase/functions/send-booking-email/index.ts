@@ -90,7 +90,7 @@ serve(async (req) => {
         </p>
       `,
       {
-        title: `Booking request — ${hotel_name}`,
+        title: `Booking request, ${hotel_name}`,
         preheader: `Booking request received for ${hotel_name}. Our team will confirm within 24 hours.`,
       }
     )
@@ -99,7 +99,7 @@ serve(async (req) => {
       from: FROM_EMAIL,
       to: guest_email,
       reply_to: SUPPORT_EMAIL,
-      subject: `Booking request received — ${hotel_name}`,
+      subject: `Booking request received, ${hotel_name}`,
       html,
     }
 

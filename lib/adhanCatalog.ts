@@ -33,6 +33,30 @@ export const ADHAN_RECITERS = [
     fajrLabel: "Mishary Fajr",
     premium: false,
   },
+  {
+    id: "qassas",
+    legacyIds: [],
+    name: "Sheikh Muhammad Marwan Qassas",
+    style: "Madinah",
+    fajrLabel: "Qassas Fajr",
+    premium: true,
+  },
+  {
+    id: "mulla",
+    legacyIds: [],
+    name: "Sheikh Ali Ahmed Mulla",
+    style: "Makkah",
+    fajrLabel: "Ali Mulla Fajr",
+    premium: true,
+  },
+  {
+    id: "hadrawi",
+    legacyIds: [],
+    name: "Sheikh Farooq Al-Hadrawi",
+    style: "Makkah",
+    fajrLabel: "Hadrawi Fajr",
+    premium: true,
+  },
 ] as const
 
 export type AdhanReciterId = (typeof ADHAN_RECITERS)[number]["id"]
@@ -48,6 +72,12 @@ const FULL_TRACKS: Record<string, number> = {
   trablsy_fajr: require("../assets/adhan/adhan_trablsy_fajr.mp3"),
   alafasy: require("../assets/adhan/adhan_alafasy.mp3"),
   alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr.mp3"),
+  qassas: require("../assets/adhan/adhan_qassas.mp3"),
+  qassas_fajr: require("../assets/adhan/adhan_qassas_fajr.mp3"),
+  mulla: require("../assets/adhan/adhan_mulla.mp3"),
+  mulla_fajr: require("../assets/adhan/adhan_mulla_fajr.mp3"),
+  hadrawi: require("../assets/adhan/adhan_hadrawi.mp3"),
+  hadrawi_fajr: require("../assets/adhan/adhan_hadrawi_fajr.mp3"),
 }
 
 /** Short clip used only if the full mp3 fails. Same voice, Fajr-aware. */
@@ -58,6 +88,12 @@ const LOCK_TRACKS: Record<string, number> = {
   trablsy_fajr: require("../assets/adhan/adhan_trablsy_fajr_lock.wav"),
   alafasy: require("../assets/adhan/adhan_alafasy_lock.wav"),
   alafasy_fajr: require("../assets/adhan/adhan_alafasy_fajr_lock.wav"),
+  qassas: require("../assets/adhan/adhan_qassas_lock.wav"),
+  qassas_fajr: require("../assets/adhan/adhan_qassas_fajr_lock.wav"),
+  mulla: require("../assets/adhan/adhan_mulla_lock.wav"),
+  mulla_fajr: require("../assets/adhan/adhan_mulla_fajr_lock.wav"),
+  hadrawi: require("../assets/adhan/adhan_hadrawi_lock.wav"),
+  hadrawi_fajr: require("../assets/adhan/adhan_hadrawi_fajr_lock.wav"),
 }
 
 const LEGACY_IDS: Record<string, AdhanReciterId> = {}

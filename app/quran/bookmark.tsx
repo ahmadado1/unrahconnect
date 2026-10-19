@@ -108,7 +108,7 @@ export default function BookmarksScreen() {
   const renderBookmark = ({ item }: { item: Bookmark }) => (
     <View style={[styles.bookmarkCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
-      {/* Header — surah name and verse number */}
+      {/* Header, surah name and verse number */}
       <View style={styles.bookmarkHeader}>
         <View style={styles.bookmarkMeta}>
           {/* Surah number badge */}

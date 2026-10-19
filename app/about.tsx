@@ -29,7 +29,7 @@ export default function AboutScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View style={[styles.header, {  paddingTop: insets.top , backgroundColor: theme.header }]}>
+      <View style={[styles.header, {  paddingTop: insets.top, backgroundColor: theme.header }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
@@ -43,7 +43,7 @@ export default function AboutScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Logo section — always navy */}
+        {/* Logo section, always navy */}
         <View style={[styles.logoSection, { backgroundColor: theme.header }]}>
           <AnimatedHeroIcon name="moon" size={60} accent="gold" style={{ marginBottom: 12 }} />
           <Text style={styles.appName}>UmrahConnect</Text>

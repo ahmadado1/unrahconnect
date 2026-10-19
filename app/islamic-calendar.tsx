@@ -103,7 +103,7 @@ function gregorianRangeLabel(days: HijriCalendarDay[], locale: string) {
   const year = last.gregorianYear === first.gregorianYear
     ? String(last.gregorianYear)
     : `${first.gregorianYear}–${last.gregorianYear}`
-  return `${fmt(first)} – ${fmt(last)} ${year}`
+  return `${fmt(first)}–${fmt(last)} ${year}`
 }
 
 export default function IslamicCalendarScreen() {

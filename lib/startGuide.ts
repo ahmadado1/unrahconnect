@@ -17,34 +17,24 @@ export type GuideSection = { id: "start" | "plan" | "there"; steps: GuideStep[] 
 /** Order matters: this is the order a new user should try things. */
 export const GUIDE_SECTIONS: GuideSection[] = [
   {
+    // The everyday essentials: prayer, Quran, remembrance, AI.
     id: "start",
     steps: [
       { id: "prayer", icon: "time-outline", route: "/(tabs)/umrah" },
-      { id: "adhan", icon: "volume-high-outline", route: "/(tabs)/umrah" },
-      { id: "notifications", icon: "notifications-outline", route: "/notifications" },
       { id: "quran", icon: "book-outline", route: "/quran" },
       { id: "listen", icon: "headset-outline", route: "/quran-listen" },
+      { id: "dhikr", icon: "finger-print-outline", route: "/dhikr" },
       { id: "adhkar", icon: "sunny-outline", route: "/MorningAdhkarScreen" },
+      { id: "duas", icon: "hand-left-outline", route: "/duas" },
       { id: "ai", icon: "sparkles-outline", route: "/AIGuideScreen" },
     ],
   },
   {
-    id: "plan",
-    steps: [
-      { id: "umrah", icon: "walk-outline", route: "/umrah-guide" },
-      { id: "agent", icon: "briefcase-outline", route: "/agent" },
-      { id: "hotels", icon: "bed-outline", route: "/hotels" },
-      { id: "flights", icon: "airplane-outline", route: "/services/flights" },
-      { id: "esim", icon: "cellular-outline", route: "/services/esim" },
-    ],
-  },
-  {
+    // For the journey itself.
     id: "there",
     steps: [
+      { id: "umrah", icon: "walk-outline", route: "/umrah-guide" },
       { id: "qibla", icon: "compass-outline", route: "/qiblah" },
-      { id: "maps", icon: "map-outline", route: "/(tabs)/maps" },
-      { id: "duas", icon: "hand-left-outline", route: "/duas" },
-      { id: "calendar", icon: "calendar-outline", route: "/islamic-calendar" },
     ],
   },
 ]

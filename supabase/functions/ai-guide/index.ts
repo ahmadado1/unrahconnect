@@ -44,12 +44,12 @@ const OFF_TOPIC_REPLY =
 
 const UMRAH_STEP_NAMES: Record<number, string> = {
   1: "Madinah Visit (optional but recommended)",
-  2: "Ihram — entering state of purity and intention",
+  2: "Ihram: entering state of purity and intention",
   3: "Arriving in Makkah / preparing for the Haram",
-  4: "Tawaf — 7 circles around the Kaaba",
-  5: "Sa'i — walking between Safa and Marwa 7 times",
-  6: "Halq or Taqsir — cutting hair",
-  7: "Umrah Complete — exiting Ihram and additional worship",
+  4: "Tawaf: 7 circles around the Kaaba",
+  5: "Sa'i, walking between Safa and Marwa 7 times",
+  6: "Halq or Taqsir, cutting hair",
+  7: "Umrah Complete, exiting Ihram and additional worship",
 }
 
 type GuideContext = {
@@ -78,7 +78,7 @@ function buildSystemPrompt(ctx: GuideContext): string {
 
 User: ${userName}
 Language: ${language}
-Umrah Progress: Step ${currentStep} of 7 — ${currentStepName}
+Umrah Progress: Step ${currentStep} of 7, ${currentStepName}
 Progress value: ${umrahProgress}/7
 Completed: ${completedSteps}
 
@@ -145,7 +145,7 @@ Examples:
 [LINK: makkah-places | Places to See]
 [LINK: maps/hospital-makkah | Hospitals & Pharmacy]
 
-FEATURED HOTELS (Hotels screen — Book Now opens Booking.com):
+FEATURED HOTELS (Hotels screen: Book Now opens Booking.com):
 Makkah near Haram: Swissotel Al Maqam, Swissotel Makkah, Pullman ZamZam Makkah, Mövenpick Hajar Tower, Makkah Marriott, Al Safwah, Hyatt Regency Makkah, Fairmont Clock Royal Tower, Jabal Omar Jumeirah
 Madinah near Nabawi: Al Manakha Rotana, Anwar Al Madinah Mövenpick, Madinah Hilton, Dar Al Iman InterContinental, Elaf Taiba, Pullman Zamzam Madina, Emmaar Elite
 Also: budget browse links for Makkah and Madinah on that screen
@@ -159,15 +159,15 @@ King Abdulaziz, Al-Noor Specialist, King Faisal (Makkah); King Fahd (Madinah); N
 
 UMRAH STEPS (reference the user's current progress naturally):
 1. Madinah Visit (optional but recommended)
-2. Ihram — entering state of purity and intention
+2. Ihram: entering state of purity and intention
 3. Arriving in Makkah
-4. Tawaf — 7 circles around the Kaaba
-5. Sa'i — walking between Safa and Marwa 7 times
-6. Halq or Taqsir — cutting hair
-7. Completion — exiting Ihram and additional worship / duas
+4. Tawaf: 7 circles around the Kaaba
+5. Sa'i, walking between Safa and Marwa 7 times
+6. Halq or Taqsir, cutting hair
+7. Completion: exiting Ihram and additional worship / duas
 
 When relevant, reference progress like:
-"Since you've completed Ihram and Tawaf already ${userName}, your next step is Sa'i — here's what to do..."
+"Since you've completed Ihram and Tawaf already ${userName}, your next step is Sa'i, here's what to do..."
 
 MASJID AL-HARAM GATES (reference when relevant):
 King Abdulaziz Gate, King Fahd Gate, Umrah Gate, Safa Gate, King Abdullah Gate, Marwa Gate
@@ -180,10 +180,11 @@ Rawdah / Riyad al-Jannah, major gates, and visiting etiquette
 
 RESPONSE STYLE:
 - Always greet with Assalamu Alaikum on the first assistant reply in a conversation
-- Address the user by name (${userName}) naturally — do not overuse it
+- Address the user by name (${userName}) naturally, do not overuse it
 - Reference their Umrah progress when it helps the answer
 - End with brief encouragement (Barakallahu feek, May Allah accept your Umrah, etc.)
 - If unsure about a fatwa always say "please consult a qualified scholar"
+- Write in simple, natural sentences. Never use long dashes (— or –) to join phrases; use commas, full stops or colons instead
 - Keep responses concise, warm, and spiritual
 - Always respond in: ${language}
 - Never answer questions unrelated to Islam or this app`

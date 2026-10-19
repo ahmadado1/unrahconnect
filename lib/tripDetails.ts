@@ -111,5 +111,5 @@ export async function markTripDetailsPrompted(): Promise<void> {
 export function formatTripSummary(trip: TripDetails, locale: string): string {
   const fmt = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { month: "short", day: "numeric" })
-  return `${trip.originCode} · ${fmt(trip.checkIn)} – ${fmt(trip.checkOut)} · ${trip.guests}`
+  return `${trip.originCode} · ${fmt(trip.checkIn)}–${fmt(trip.checkOut)} · ${trip.guests}`
 }

@@ -10,6 +10,9 @@ type AdhanAlarmNative = {
   cancelAll: () => Promise<boolean>
   scheduleTest?: (json: string) => Promise<boolean>
   hasSound?: (name: string) => boolean
+  installSound?: (source: string, name: string) => boolean
+  hasNotificationSound?: (name: string) => boolean
+  removeSounds?: (prefix: string) => number
 }
 
 let cached: AdhanAlarmNative | null | undefined
@@ -82,5 +85,39 @@ export function iosHasSound(name: string): boolean {
     return native()?.hasSound?.(name) === true
   } catch {
     return false
+  }
+}
+
+// ─── Full Adhan in 30-second parts: sounds in Library/Sounds ───
+
+/** This build can install notification sounds (new native code). */
+export function canInstallIosSounds(): boolean {
+  return typeof native()?.installSound === "function"
+}
+
+/** Copy a downloaded file into Library/Sounds so notifications can play it. */
+export function installIosSound(source: string, name: string): boolean {
+  try {
+    return native()?.installSound?.(source, name) === true
+  } catch {
+    return false
+  }
+}
+
+/** Is this notification sound installed (Library/Sounds) or bundled? */
+export function iosHasNotificationSound(name: string): boolean {
+  try {
+    return native()?.hasNotificationSound?.(name) === true
+  } catch {
+    return false
+  }
+}
+
+/** Remove installed sounds starting with prefix. */
+export function removeIosSounds(prefix: string): number {
+  try {
+    return native()?.removeSounds?.(prefix) ?? 0
+  } catch {
+    return 0
   }
 }

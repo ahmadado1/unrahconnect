@@ -663,7 +663,7 @@ export default function AIGuideScreen() {
           personalizedWelcomeRef.current = true
           const progressHint =
             progress.completedSteps.length > 0
-              ? ` You're on step ${progress.currentStep} — ${progress.currentStepName}.`
+              ? ` You're on step ${progress.currentStep}: ${progress.currentStepName}.`
               : ` Ready to begin with ${progress.currentStepName}?`
           return [
             {
@@ -700,7 +700,7 @@ export default function AIGuideScreen() {
             const name = ctx.userName || userName || "Pilgrim"
             const progressHint =
               ctx.completedSteps?.length > 0
-                ? ` You're on step ${ctx.currentStep} — ${ctx.currentStepName}.`
+                ? ` You're on step ${ctx.currentStep}: ${ctx.currentStepName}.`
                 : ` Ready to begin with ${ctx.currentStepName}?`
 
             personalizedWelcomeRef.current = true

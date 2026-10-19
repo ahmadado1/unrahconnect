@@ -31,7 +31,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
 
   return (
     <>
-      {/* Dark overlay — only renders when drawer is open */}
+      {/* Dark overlay, only renders when drawer is open */}
       {isOpen && (
         <TouchableOpacity
           style={styles.overlay}
@@ -47,7 +47,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
           { backgroundColor: theme.card, transform: [{ translateX: slideAnim }] }
         ]}
       >
-        {/* Header — always navy */}
+        {/* Header, always navy */}
         <View style={styles.drawerHeader}>
           <View style={styles.drawerLogo}>
             <AppIcon name="moon" size={24} color={ICON_GOLD} />
@@ -107,7 +107,7 @@ export default function DrawerMenu({ isOpen, onClose }: props) {
           {/* Divider */}
           <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
 
-          {/* Logout — always red */}
+          {/* Logout, always red */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={async () => {

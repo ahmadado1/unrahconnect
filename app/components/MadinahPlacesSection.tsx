@@ -55,7 +55,7 @@ export default function MadinahPlacesSection({ badgeColor }: Props) {
                     source={image}
                     style={styles.photoFrame}
                     imageStyle={styles.photo}
-                    accessibilityLabel={`${t(place.titleKey)} — tap to zoom`}
+                    accessibilityLabel={`${t(place.titleKey)}, tap to zoom`}
                   />
                 ) : null}
                 {place.subItems?.map(sub => (

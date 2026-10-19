@@ -49,7 +49,7 @@ const phases = [
     useFocusEffect(useCallback(() => { loadProgress() }, []))
   return (
     <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
-      {/* Dynamic island — always navy */}
+      {/* Dynamic island, always navy */}
       <ScrollView
         style={{ backgroundColor: "#1E3A5F" }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
@@ -58,7 +58,7 @@ const phases = [
         automaticallyAdjustContentInsets={false}
       >
 
-        {/* Header — always navy */}
+        {/* Header, always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={styles.title}>{t("umrahGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeUmrah")}</Text>
@@ -94,7 +94,7 @@ const phases = [
               onPress={() => router.push(`/umrah/${phase.id}`)}
             >
               <View style={styles.phaseRow}>
-                {/* Phase number circle — gold with checkmark if done */}
+                {/* Phase number circle, gold with checkmark if done */}
                 <View style={[styles.phaseNum, { backgroundColor: isCompleted ? "#C9A84C" : phase.color }]}>
                   {isCompleted ? (
                     <Ionicons name="checkmark" size={18} color="#1E3A5F" />

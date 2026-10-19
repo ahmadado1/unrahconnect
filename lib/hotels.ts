@@ -310,7 +310,7 @@ export const HOTELS: Hotel[] = [
     ...hotelLogo(HOTEL_BRAND_LOGOS.radissonBlu),
     brandAccent: "#003B70",
     description:
-      "Large Radisson Blu property in Aziziyah — typically reached by a short taxi ride to the Haram.",
+      "Large Radisson Blu property in Aziziyah, typically reached by a short taxi ride to the Haram.",
     amenities: ["Restaurants", "Shopping gallery", "Meeting rooms", "Free WiFi"],
   },
 
@@ -368,7 +368,7 @@ export const HOTELS: Hotel[] = [
     ...hotelLogo(HOTEL_BRAND_LOGOS.elaf),
     brandAccent: "#1E3A5F",
     description:
-      "Elaf Bakkah in Aziziyah with city views — a short taxi or shuttle to Masjid al-Haram.",
+      "Elaf Bakkah in Aziziyah with city views, a short taxi or shuttle to Masjid al-Haram.",
     amenities: ["Restaurants", "City views", "Prayer facilities", "Free WiFi"],
   },
   {

@@ -15,24 +15,30 @@ import {
 
 // ─── Verse reciters (EveryAyah) ────────────────────────────────────────────
 // folder = the folder name on everyayah.com/data/<folder>/SSSAAA.mp3
-// free: true = everyone; the rest are Premium.
+// free: true = everyone; the rest are Premium (only used if QURAN_AUDIO_FREE is turned off).
+/**
+ * Quran audio is free for everyone: every reciter, verse by verse and whole surahs, the big player,
+ * continue listening and downloads. Set to false to bring back the Premium-only reciters.
+ */
+export const QURAN_AUDIO_FREE = true
+
 export type VerseReciter = { id: string; name: string; folder: string; free: boolean }
 
 export const VERSE_RECITERS: VerseReciter[] = [
   { id: "alafasy", name: "Mishary Rashid Alafasy", folder: "Alafasy_128kbps", free: true },
   { id: "husary", name: "Mahmoud Khalil Al-Husary", folder: "Husary_128kbps", free: true },
   { id: "abdulbasit", name: "Abdul Basit (Murattal)", folder: "Abdul_Basit_Murattal_192kbps", free: true },
-  { id: "sudais", name: "Abdur-Rahman As-Sudais", folder: "Abdurrahmaan_As-Sudais_192kbps", free: false },
-  { id: "shuraym", name: "Saud Ash-Shuraym", folder: "Saood_ash-Shuraym_128kbps", free: false },
-  { id: "maher", name: "Maher Al-Muaiqly", folder: "MaherAlMuaiqly128kbps", free: false },
-  { id: "minshawi", name: "Mohamed Siddiq Al-Minshawi", folder: "Minshawy_Murattal_128kbps", free: false },
-  { id: "ghamadi", name: "Saad Al-Ghamdi", folder: "Ghamadi_40kbps", free: false },
-  { id: "hudhaify", name: "Ali Al-Hudhaify", folder: "Hudhaify_128kbps", free: false },
-  { id: "ayyoub", name: "Muhammad Ayyoub", folder: "Muhammad_Ayyoub_128kbps", free: false },
-  { id: "dossary", name: "Yasser Ad-Dossary", folder: "Yasser_Ad-Dussary_128kbps", free: false },
-  { id: "shatri", name: "Abu Bakr Ash-Shatri", folder: "Abu_Bakr_Ash-Shaatree_128kbps", free: false },
-  { id: "rifai", name: "Hani Ar-Rifai", folder: "Hani_Rifai_192kbps", free: false },
-  { id: "qatami", name: "Nasser Al-Qatami", folder: "Nasser_Alqatami_128kbps", free: false },
+  { id: "sudais", name: "Abdur-Rahman As-Sudais", folder: "Abdurrahmaan_As-Sudais_192kbps", free: QURAN_AUDIO_FREE },
+  { id: "shuraym", name: "Saud Ash-Shuraym", folder: "Saood_ash-Shuraym_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "maher", name: "Maher Al-Muaiqly", folder: "MaherAlMuaiqly128kbps", free: QURAN_AUDIO_FREE },
+  { id: "minshawi", name: "Mohamed Siddiq Al-Minshawi", folder: "Minshawy_Murattal_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "ghamadi", name: "Saad Al-Ghamdi", folder: "Ghamadi_40kbps", free: QURAN_AUDIO_FREE },
+  { id: "hudhaify", name: "Ali Al-Hudhaify", folder: "Hudhaify_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "ayyoub", name: "Muhammad Ayyoub", folder: "Muhammad_Ayyoub_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "dossary", name: "Yasser Ad-Dossary", folder: "Yasser_Ad-Dussary_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "shatri", name: "Abu Bakr Ash-Shatri", folder: "Abu_Bakr_Ash-Shaatree_128kbps", free: QURAN_AUDIO_FREE },
+  { id: "rifai", name: "Hani Ar-Rifai", folder: "Hani_Rifai_192kbps", free: QURAN_AUDIO_FREE },
+  { id: "qatami", name: "Nasser Al-Qatami", folder: "Nasser_Alqatami_128kbps", free: QURAN_AUDIO_FREE },
 ]
 
 const VERSE_RECITER_KEY = "quran_verse_reciter"
@@ -77,6 +83,7 @@ const SURAH_CACHE_MS = 7 * 24 * 60 * 60 * 1000
 type CachedSurahReciters = { at: number; list: { id: number; name: string; server: string; surahs: number[]; moshafName: string }[] }
 
 function isFreeSurahReciter(name: string) {
+  if (QURAN_AUDIO_FREE) return true
   return FREE_SURAH_RECITER_NAMES.some(n => reciterMatches(name, n))
 }
 
@@ -236,6 +243,9 @@ async function audioOn() {
   }
 }
 
+/** Picture shown on the lock screen / Control Center while the Quran plays (the app logo, hosted on the website). */
+const LOCK_SCREEN_ARTWORK = "https://myumrahconnect.com/quran-artwork.jpg"
+
 function teardown() {
   try {
     statusSub?.remove()
@@ -321,6 +331,12 @@ function onStatus(status: AudioStatus) {
       return
     }
     teardown()
+    // A single verse finished: clear it, so tapping play (on this verse or another) starts fresh.
+    if (state.kind === "verse") {
+      verseRun = null
+      setState({ kind: null, surah: null, ayah: null, playing: false, loading: false, error: false })
+      return
+    }
     setState({ playing: false, loading: false })
     return
   }
@@ -338,7 +354,7 @@ async function startUrl(url: string, title: string, artist: string) {
     try {
       player.replace({ uri: url })
       try {
-        player.setActiveForLockScreen(true, { title, artist, albumTitle: "UmrahConnect" }, { showSeekForward: false, showSeekBackward: false })
+        player.setActiveForLockScreen(true, { title, artist, albumTitle: "UmrahConnect", artworkUrl: LOCK_SCREEN_ARTWORK }, { showSeekForward: false, showSeekBackward: false })
       } catch {}
       player.play()
       return
@@ -351,7 +367,7 @@ async function startUrl(url: string, title: string, artist: string) {
   statusSub = next.addListener("playbackStatusUpdate", onStatus)
   player = next
   try {
-    next.setActiveForLockScreen(true, { title, artist, albumTitle: "UmrahConnect" }, { showSeekForward: false, showSeekBackward: false })
+    next.setActiveForLockScreen(true, { title, artist, albumTitle: "UmrahConnect", artworkUrl: LOCK_SCREEN_ARTWORK }, { showSeekForward: false, showSeekBackward: false })
   } catch {}
   next.play()
 }
@@ -393,7 +409,10 @@ export async function playSurah(reciter: SurahReciter, surah: number, title: str
   lastSavedAt = Date.now()
   setState({ kind: "surah", surah, ayah: null, loading: true, playing: false, title, reciterName: reciter.name, error: false })
   try {
-    await startUrl(surahAudioUrl(reciter, surah), title, reciter.name)
+    // Downloaded on the phone? Play the saved file (works with no internet).
+    const { downloadedSurahUri } = await import("./quranAudioDownloads")
+    const local = await downloadedSurahUri(reciter.id, surah).catch(() => null)
+    await startUrl(local ?? surahAudioUrl(reciter, surah), title, reciter.name)
   } catch (e) {
     console.log("[Quran audio] surah failed:", e)
     setState({ loading: false, playing: false, error: true })

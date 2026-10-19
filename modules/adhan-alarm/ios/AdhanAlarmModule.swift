@@ -88,6 +88,46 @@ public class AdhanAlarmModule: Module {
       return Bundle.main.url(forResource: name, withExtension: nil) != nil
     }
 
+    // ─── Full Adhan in 30-second parts (notification sounds) ───
+    // iPhone plays a notification sound only if it is under 30 seconds, from the app bundle
+    // or from Library/Sounds. The app downloads the parts of the chosen Adhan voice and
+    // installs them in Library/Sounds with these functions.
+
+    /// Copy a downloaded file (file:// uri or path) into Library/Sounds as `name`. Returns true on success.
+    Function("installSound") { (source: String, name: String) -> Bool in
+      guard let dir = AdhanAlarmModule.soundsDir() else { return false }
+      let src = source.hasPrefix("file://") ? (URL(string: source)?.path ?? source) : source
+      let dest = dir.appendingPathComponent(name)
+      let fm = FileManager.default
+      do {
+        if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
+        try fm.copyItem(atPath: src, toPath: dest.path)
+        return true
+      } catch {
+        print("[AdhanAlarm] installSound failed for \(name): \(error)")
+        return false
+      }
+    }
+
+    /// Is this sound in Library/Sounds or in the app bundle?
+    Function("hasNotificationSound") { (name: String) -> Bool in
+      if Bundle.main.url(forResource: name, withExtension: nil) != nil { return true }
+      guard let dir = AdhanAlarmModule.soundsDir() else { return false }
+      return FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path)
+    }
+
+    /// Delete installed sounds whose name starts with `prefix` (e.g. "uc_qassas_" when switching voice).
+    Function("removeSounds") { (prefix: String) -> Int in
+      guard let dir = AdhanAlarmModule.soundsDir() else { return 0 }
+      let fm = FileManager.default
+      let names = (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
+      var removed = 0
+      for name in names where name.hasPrefix(prefix) {
+        if (try? fm.removeItem(at: dir.appendingPathComponent(name))) != nil { removed += 1 }
+      }
+      return removed
+    }
+
     /// Remove every Adhan alarm we set (and stop one that is ringing).
     AsyncFunction("cancelAll") { () async -> Bool in
       #if canImport(AlarmKit)
@@ -98,6 +138,17 @@ public class AdhanAlarmModule: Module {
       #endif
       return false
     }
+  }
+
+  /// <app data>/Library/Sounds (created if missing).
+  private static func soundsDir() -> URL? {
+    let fm = FileManager.default
+    guard let lib = fm.urls(for: .libraryDirectory, in: .userDomainMask).first else { return nil }
+    let dir = lib.appendingPathComponent("Sounds", isDirectory: true)
+    if !fm.fileExists(atPath: dir.path) {
+      try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    }
+    return dir
   }
 
   #if canImport(AlarmKit)

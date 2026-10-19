@@ -44,7 +44,7 @@ const CATEGORIES: Category[] = [
         arabic: "لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ",
         transliteration: "Labbayk Allahumma labbayk, labbayka la shareeka laka labbayk, innal hamda wan-ni'mata laka wal-mulk, la shareeka lak",
         translation: "Here I am O Allah, here I am. Here I am, You have no partner, here I am. Verily all praise, grace and sovereignty belong to You. You have no partner.",
-        source: "Talbiyah — Agreed Upon"
+        source: "Talbiyah: Agreed Upon"
       },
       {
         id: "u2",
@@ -248,7 +248,7 @@ const CATEGORIES: Category[] = [
         arabic: "سُبْحَانَ اللَّهِ",
         transliteration: "Subhanallah",
         translation: "Glory be to Allah.",
-        source: "Agreed Upon — 33x after each prayer"
+        source: "Agreed Upon: 33x after each prayer"
       },
       {
         id: "z2",
@@ -256,7 +256,7 @@ const CATEGORIES: Category[] = [
         arabic: "الْحَمْدُ لِلَّهِ",
         transliteration: "Alhamdulillah",
         translation: "All praise is for Allah.",
-        source: "Agreed Upon — 33x after each prayer"
+        source: "Agreed Upon: 33x after each prayer"
       },
       {
         id: "z3",
@@ -264,7 +264,7 @@ const CATEGORIES: Category[] = [
         arabic: "اللَّهُ أَكْبَرُ",
         transliteration: "Allahu Akbar",
         translation: "Allah is the Greatest.",
-        source: "Agreed Upon — 34x after each prayer"
+        source: "Agreed Upon: 34x after each prayer"
       },
       {
         id: "z4",
@@ -280,7 +280,7 @@ const CATEGORIES: Category[] = [
         arabic: "أَسْتَغْفِرُ اللَّهَ",
         transliteration: "Astaghfirullah",
         translation: "I seek forgiveness from Allah.",
-        source: "Agreed Upon — 100x daily"
+        source: "Agreed Upon: 100x daily"
       },
       {
         id: "z6",
@@ -386,7 +386,7 @@ function DuaCard({ dua, theme }: { dua: Dua; theme: any }) {
         />
       </View>
 
-      {/* Arabic — always visible */}
+      {/* Arabic, always visible */}
       <Text style={styles.duaArabic}>{dua.arabic}</Text>
 
       {/* Expanded content */}

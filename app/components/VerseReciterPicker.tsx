@@ -1,11 +1,13 @@
 // Bottom sheet to choose the verse-by-verse reciter. A few are free, the rest are Premium ⭐.
+import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import { usePremium } from "@/lib/premium"
 import { VERSE_RECITERS, type VerseReciter } from "@/lib/quranAudio"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -25,7 +27,9 @@ export default function VerseReciterPicker({
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { isPremium } = usePremium()
+  const { isPremium: hasPremium } = usePremium()
+  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
+  const isPremium = hasPremium || QURAN_AUDIO_FREE
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -43,7 +47,7 @@ export default function VerseReciterPicker({
                 style={[styles.row, { borderColor: selected ? GOLD : theme.border }, selected && styles.rowSelected]}
                 onPress={() => {
                   if (locked) {
-                    Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+                    showPremiumPrompt(onClose)
                     return
                   }
                   onSelect(reciter)

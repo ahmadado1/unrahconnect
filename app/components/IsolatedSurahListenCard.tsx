@@ -3,6 +3,8 @@
 //   • Premium: plays the whole surah (default reciter: Yasser Al-Dosari). Change reciter any time.
 //     When the recitation reaches the end, the surah is ticked as done (same tick as reading).
 //   • Free: a small locked row that explains it's a Premium feature.
+import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { clock } from "@/app/components/QuranBigPlayer"
 import { usePremium } from "@/lib/premium"
@@ -23,7 +25,7 @@ import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
+import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -44,7 +46,9 @@ export default function IsolatedSurahListenCard({
 }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { isPremium } = usePremium()
+  const { isPremium: hasPremium } = usePremium()
+  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
+  const isPremium = hasPremium || QURAN_AUDIO_FREE
   const playback = useQuranPlayback()
   const meta = getSurahMeta(surah)
   const storageKey = `isolated_reciter_${surah}`
@@ -108,7 +112,7 @@ export default function IsolatedSurahListenCard({
   // ─── Free users: small locked teaser ───
   if (!isPremium) {
     return (
-      <TouchableOpacity style={styles.lockedRow} onPress={() => Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))}>
+      <TouchableOpacity style={styles.lockedRow} onPress={() => showPremiumPrompt()}>
         <Ionicons name="headset" size={18} color={GOLD} />
         <Text style={styles.lockedText}>{t("isoListenInstead")}</Text>
         <View style={styles.pro}>
