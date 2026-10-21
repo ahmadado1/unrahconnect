@@ -21,6 +21,8 @@ const TEST_KEY = "test_qqElrsPUSNvHBkvoCxpaLFUvDnr"
 
 /** The entitlement name in RevenueCat that means "has Premium". */
 export const ENTITLEMENT = "premium"
+/** Entitlement names that all mean Premium (the RevenueCat project uses "umrahconnect_premium"). */
+export const PREMIUM_ENTITLEMENTS = ["premium", "umrahconnect_premium"]
 const STORE_CACHE_KEY = "store_premium_until_v1"
 
 let configured = false
@@ -90,7 +92,7 @@ export async function logoutPurchases() {
 
 /** "Premium until" (ISO date) from RevenueCat, saved on the phone. null = no store Premium. */
 async function saveFromInfo(info: CustomerInfo) {
-  const ent = info.entitlements.active[ENTITLEMENT]
+  const ent = PREMIUM_ENTITLEMENTS.map(id => info.entitlements.active[id]).find(Boolean)
   // Lifetime purchases have no expiration date: treat as far in the future.
   const until = ent ? (ent.expirationDate ?? "2099-12-31T00:00:00Z") : null
   if (until) await AsyncStorage.setItem(STORE_CACHE_KEY, until).catch(() => {})
@@ -149,7 +151,8 @@ export async function loadPlans(): Promise<PlanOption[]> {
   }
   try {
     const offerings = await Purchases.getOfferings()
-    const current = offerings.current
+    // Our App Store / Play offering is called "premium". If it is missing, use RevenueCat's current one.
+    const current = offerings.all?.["premium"] ?? offerings.current
     if (!current) {
       lastPlansProblem = "no current offering in RevenueCat"
       return []

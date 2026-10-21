@@ -853,7 +853,10 @@ export default function AIGuideScreen() {
           m.id === assistantId
             ? {
                 ...m,
-                content: key ? t(key) : t("somethingWentWrong"),
+                // The short reason in brackets helps us find the problem from a screenshot.
+                content: key
+                  ? t(key)
+                  : `${t("somethingWentWrong")}${err?.message ? `\n\n(${String(err.message).slice(0, 140)})` : ""}`,
                 links: [],
                 streaming: false,
               }

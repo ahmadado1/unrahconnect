@@ -11,7 +11,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 
-const ENTITLEMENT = "premium"
+// Entitlement names that mean Premium (the RevenueCat project uses "umrahconnect_premium").
+const ENTITLEMENTS = ["premium", "umrahconnect_premium"]
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function reply(body: unknown, status = 200) {
@@ -25,7 +26,10 @@ async function premiumFromRevenueCat(appUserId: string, secret: string) {
   })
   if (!res.ok) throw new Error(`revenuecat ${res.status}`)
   const json = await res.json()
-  const ent = json?.subscriber?.entitlements?.[ENTITLEMENT]
+  const now = Date.now()
+  // The active one (no end date, or an end date in the future).
+  const ent = ENTITLEMENTS.map(id => json?.subscriber?.entitlements?.[id])
+    .find(e => e && (!e.expires_date || Date.parse(e.expires_date) > now))
   if (!ent) return null
   const product = String(ent.product_identifier ?? "")
   const sub = json?.subscriber?.subscriptions?.[product] ?? {}
