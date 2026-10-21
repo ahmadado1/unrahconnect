@@ -1,3 +1,4 @@
+import PremiumUpsellCard from "@/app/components/PremiumUpsellCard"
 // Offline map for Makkah and Madinah (Premium).
 //   • Map: OpenStreetMap tiles are saved on the phone as you look at them. Open it once with
 //     internet (e.g. at the hotel) and those areas still show later with no internet.
@@ -153,7 +154,7 @@ export default function OfflineMapScreen() {
       </View>
 
       {!isPremium ? (
-        <Text style={[styles.locked, { color: theme.textSecondary }]}>{t("premiumFeatureBody")}</Text>
+        <PremiumUpsellCard variant="locked" />
       ) : (
         <>
           {/* ─── Map ─── */}

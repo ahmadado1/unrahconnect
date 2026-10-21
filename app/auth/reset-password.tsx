@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { AppIcon } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
@@ -98,7 +99,7 @@ export default function ResetPasswordScreen() {
           {done ? (
             <View style={styles.successBox}>
               <AppIcon name="checkmarkCircle" size={28} color="#2E7D32" />
-              <Text style={styles.successText}>All done!</Text>
+              <Text style={styles.successText}>{i18n.t("ui_allDone")}</Text>
             </View>
           ) : step === "code" ? (
             <View style={styles.form}>
@@ -129,7 +130,7 @@ export default function ResetPasswordScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => router.replace("/auth/login")}>
-                <Text style={[styles.toggle, { color: "#C9A84C" }]}>Back to Login</Text>
+                <Text style={[styles.toggle, { color: "#C9A84C" }]}>{i18n.t("ui_backToLogin")}</Text>
               </TouchableOpacity>
 
             </View>
@@ -137,7 +138,7 @@ export default function ResetPasswordScreen() {
             <View style={styles.form}>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>New Password</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{i18n.t("ui_newPassword")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
                   placeholder="Enter new password"
@@ -149,7 +150,7 @@ export default function ResetPasswordScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>Confirm Password</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{i18n.t("ui_confirmPassword")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
                   placeholder="Confirm new password"

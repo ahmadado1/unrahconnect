@@ -25,6 +25,7 @@
     "seed:travel-agents": "node scripts/seed-travel-agents.mjs"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@emailjs/browser": "^4.4.1",
     "@expo-google-fonts/lateef": "^0.4.2",
     "@expo-google-fonts/noto-naskh-arabic": "^0.4.5",

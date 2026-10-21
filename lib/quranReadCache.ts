@@ -8,6 +8,11 @@ export type ReadVerse = {
   text: string
   translation: string
   page: number
+  /**
+   * Same verse in the KFGQPC Hafs encoding (quran.com), the text the Mushaf mode uses.
+   * Read mode shows it with the KFGQPC font so letters and marks look exactly like the Mushaf.
+   */
+  qpc?: string
 }
 
 const TRANSLATION_EDITIONS: Record<string, string> = {
@@ -176,10 +181,56 @@ export async function fetchAndCacheSurah(
     if (!combined.length) return offlineFallback
 
     await writeCachedSurah(surah, language, combined)
+    // The Mushaf-quality text (ensureQpcText) is added by the reader in the background.
     return combined
   } catch {
     return offlineFallback
   }
+}
+
+/** KFGQPC Hafs text of every verse of a surah (verse number → text), from quran.com. */
+async function fetchQpcSurahText(surah: number): Promise<Record<number, string> | null> {
+  const out: Record<number, string> = {}
+  let page: number | null = 1
+  try {
+    while (page) {
+      const res = await fetchWithTimeout(
+        `https://api.quran.com/api/v4/verses/by_chapter/${surah}?words=true&word_fields=text_qpc_hafs&per_page=50&page=${page}`,
+        {},
+        12000
+      )
+      const json = (await res.json()) as {
+        verses?: { verse_number: number; words?: { char_type_name?: string; text_qpc_hafs?: string }[] }[]
+        pagination?: { next_page?: number | null }
+      }
+      for (const v of json.verses ?? []) {
+        const words = (v.words ?? [])
+          .filter(w => w.char_type_name !== "end")
+          .map(w => (w.text_qpc_hafs ?? "").trim())
+          .filter(Boolean)
+        if (words.length) out[v.verse_number] = words.join(" ")
+      }
+      page = json.pagination?.next_page ?? null
+    }
+  } catch {
+    return null
+  }
+  return Object.keys(out).length ? out : null
+}
+
+/**
+ * Adds the KFGQPC text to verses that don't have it yet (also old saved surahs) and saves it,
+ * so it works offline next time. Returns the verses unchanged if it can't download.
+ */
+export async function ensureQpcText(surah: number, language: string, verses: ReadVerse[]): Promise<ReadVerse[]> {
+  if (!verses.length || verses.every(v => v.qpc)) return verses
+  const qpc = await fetchQpcSurahText(surah)
+  if (!qpc) return verses
+  const merged = verses.map(v => (qpc[v.number] ? { ...v, qpc: qpc[v.number] } : v))
+  // Only trust it if (almost) every verse got its text.
+  if (merged.filter(v => v.qpc).length < verses.length) return verses
+  await writeCachedSurah(surah, language, merged).catch(() => {})
+  return merged
 }
 
 export async function downloadSurahList(): Promise<boolean> {

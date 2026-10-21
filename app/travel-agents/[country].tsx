@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
@@ -55,7 +56,7 @@ function AgentCard({
             </Text>
             {agent.featured ? (
               <View style={styles.featuredBadge}>
-                <Text style={styles.featuredText}>Featured</Text>
+                <Text style={styles.featuredText}>{i18n.t("featured")}</Text>
               </View>
             ) : null}
           </View>
@@ -88,7 +89,7 @@ function AgentCard({
           onPress={onGetFeatured}
           activeOpacity={0.75}
         >
-          <Text style={styles.getFeaturedText}>Get Featured</Text>
+          <Text style={styles.getFeaturedText}>{i18n.t("ui_getFeatured")}</Text>
         </TouchableOpacity>
       ) : null}
     </View>

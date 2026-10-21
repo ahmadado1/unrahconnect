@@ -20,7 +20,7 @@ import SelectDropdown from "./components/SelectDropdown"
 import { sendAccountEmail } from "@/lib/accountEmails"
 import { isNetworkError } from "@/lib/networkError"
 import { isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
-import { supabase } from "../lib/supabase"
+import { getUserFast, supabase } from "../lib/supabase"
 import { usePremium } from "@/lib/premium"
 import PremiumPlanCard from "./components/PremiumPlanCard"
 
@@ -59,7 +59,7 @@ export default function ProfileScreen() {
   const getUser = async () => {
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await getUserFast()
     if (user) {
       setUser(user)
       setFullName(user.user_metadata?.full_name || "")
@@ -104,10 +104,10 @@ export default function ProfileScreen() {
       }
     }
 
-    Alert.alert("Delete Account", "We're sorry to see you go. Why are you leaving?", [
-      { text: "Not using it anymore", onPress: confirmDelete },
-      { text: "Privacy concerns", onPress: confirmDelete },
-      { text: "Found a better app", onPress: confirmDelete },
+    Alert.alert(t("deleteAccount"), t("ui_deleteWhy"), [
+      { text: t("ui_deleteReason1"), onPress: confirmDelete },
+      { text: t("ui_deleteReason2"), onPress: confirmDelete },
+      { text: t("ui_deleteReason3"), onPress: confirmDelete },
       { text: t("cancel"), style: "cancel" },
     ])
   }
@@ -423,7 +423,7 @@ export default function ProfileScreen() {
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t("changePassword")}</Text>
 
             {passwordDone ? (
-              <Text style={styles.successText}>Password updated successfully</Text>
+              <Text style={styles.successText}>{t("ui_passwordUpdated")}</Text>
             ) : (
               <>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>

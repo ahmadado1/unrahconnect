@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useTheme } from "@/context/themeContext"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -60,7 +61,7 @@ function PointingHand({ active }: { active: boolean }) {
       </Animated.View>
       <View style={styles.kaabaHint}>
         <View style={styles.kaabaBlock} />
-        <Text style={styles.kaabaLabel}>Black Stone</Text>
+        <Text style={styles.kaabaLabel}>{i18n.t("ui_blackStone")}</Text>
       </View>
     </View>
   )

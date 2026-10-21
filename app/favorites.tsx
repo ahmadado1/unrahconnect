@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next"
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { supabase } from "../lib/supabase"
+import { getUserFast, supabase } from "../lib/supabase"
 
 export default function FavoritesScreen() {
   const router = useRouter()
@@ -26,7 +26,7 @@ export default function FavoritesScreen() {
     setLoading(true)
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await getUserFast()
     if (!user) {
       setHotels([])
       setRestaurants([])

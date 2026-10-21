@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { HOTEL_BRAND_LOGOS } from "./hotelImages"
+import { MORE_MADINAH_HOTELS, MORE_MAKKAH_HOTELS } from "./moreHotels"
 
 const FAVORITES_KEY = "featured_hotel_favorites_v1"
 
@@ -24,6 +25,11 @@ export type FeaturedHotel = {
   walkMinutes: number
   /** Booking partners. The first entry is the default. Affiliate URLs stay intact. */
   partners: HotelPartner[]
+  /** Price level (hotels in lib/moreHotels.ts). Featured hotels have none. */
+  tier?: "budget" | "mid" | "luxury"
+  stars?: number
+  /** Too far to walk: the hotel runs a shuttle bus to the mosque. */
+  shuttle?: boolean
 }
 
 function booking(url: string): HotelPartner {
@@ -235,8 +241,10 @@ export const FEATURED_BUDGET_URLS: Record<FeaturedHotelCity, string> = {
 export type FeaturedHotelSection = {
   city: FeaturedHotelCity
   titleKey: string
-  budgetLinkKey: string
-  budgetUrl: string
+  /** "featured" = our partner picks, "more" = the bigger list from lib/moreHotels.ts */
+  kind: "featured" | "more"
+  budgetLinkKey?: string
+  budgetUrl?: string
   hotels: FeaturedHotel[]
 }
 
@@ -261,42 +269,27 @@ export async function toggleFeaturedFavorite(id: string): Promise<Set<string>> {
 export function getFeaturedHotelsForCity(
   city: FeaturedHotelCity | "All",
 ): FeaturedHotelSection[] {
-  if (city === "Makkah") {
+  const sectionsFor = (c: FeaturedHotelCity): FeaturedHotelSection[] => {
+    const featured = c === "Makkah" ? FEATURED_MAKKAH_HOTELS : FEATURED_MADINAH_HOTELS
+    const more = c === "Makkah" ? MORE_MAKKAH_HOTELS : MORE_MADINAH_HOTELS
     return [
+      { city: c, kind: "featured", titleKey: c === "Makkah" ? "featuredHotelsMakkah" : "featuredHotelsMadinah", hotels: featured },
       {
-        city: "Makkah",
-        titleKey: "featuredHotelsMakkah",
-        budgetLinkKey: "browseMoreBudgetMakkah",
-        budgetUrl: FEATURED_BUDGET_URLS.Makkah,
-        hotels: FEATURED_MAKKAH_HOTELS,
+        city: c,
+        kind: "more",
+        titleKey: c === "Makkah" ? "hotelsMoreMakkah" : "hotelsMoreMadinah",
+        hotels: more.filter(h => h.tier !== "budget"),
+      },
+      {
+        city: c,
+        kind: "more",
+        titleKey: c === "Makkah" ? "hotelsBudgetMakkah" : "hotelsBudgetMadinah",
+        budgetLinkKey: c === "Makkah" ? "browseMoreBudgetMakkah" : "browseMoreBudgetMadinah",
+        budgetUrl: FEATURED_BUDGET_URLS[c],
+        hotels: more.filter(h => h.tier === "budget"),
       },
     ]
   }
-  if (city === "Madinah") {
-    return [
-      {
-        city: "Madinah",
-        titleKey: "featuredHotelsMadinah",
-        budgetLinkKey: "browseMoreBudgetMadinah",
-        budgetUrl: FEATURED_BUDGET_URLS.Madinah,
-        hotels: FEATURED_MADINAH_HOTELS,
-      },
-    ]
-  }
-  return [
-    {
-      city: "Makkah",
-      titleKey: "featuredHotelsMakkah",
-      budgetLinkKey: "browseMoreBudgetMakkah",
-      budgetUrl: FEATURED_BUDGET_URLS.Makkah,
-      hotels: FEATURED_MAKKAH_HOTELS,
-    },
-    {
-      city: "Madinah",
-      titleKey: "featuredHotelsMadinah",
-      budgetLinkKey: "browseMoreBudgetMadinah",
-      budgetUrl: FEATURED_BUDGET_URLS.Madinah,
-      hotels: FEATURED_MADINAH_HOTELS,
-    },
-  ]
+  if (city === "Makkah" || city === "Madinah") return sectionsFor(city)
+  return [...sectionsFor("Makkah"), ...sectionsFor("Madinah")]
 }

@@ -5,10 +5,12 @@
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import { usePremium } from "@/lib/premium"
-import { buyPlan, loadPlans, manageSubscription, readStorePremiumUntil, restorePlans, setupPurchases, type PlanOption } from "@/lib/purchases"
+import { startPremiumWelcome } from "@/lib/premiumNew"
+import { buyPlan, lastPlansProblem, loadPlans, websiteLinkAllowed, manageSubscription, readStorePremiumUntil, restorePlans, setupPurchases, type PlanOption } from "@/lib/purchases"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
+import * as WebBrowser from "expo-web-browser"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -24,6 +26,10 @@ const FEATURES: { icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { icon: "map", key: "pw_f4" },
   { icon: "notifications", key: "pw_f5" },
   { icon: "sparkles", key: "pw_f6" },
+  { icon: "flag", key: "pw_f7" },
+  { icon: "sync", key: "pw_f8" },
+  { icon: "airplane", key: "pw_f9" },
+  { icon: "phone-portrait", key: "pw_f10" },
 ]
 
 export default function PremiumScreen() {
@@ -36,18 +42,23 @@ export default function PremiumScreen() {
   const [chosen, setChosen] = useState<"monthly" | "yearly">("yearly")
   const [busy, setBusy] = useState<"buy" | "restore" | null>(null)
   const [fromStore, setFromStore] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(true)
+  const [webLink, setWebLink] = useState(false)
 
   // Connect RevenueCat to this account, then load the plans and prices.
   useEffect(() => {
     let active = true
     const load = async () => {
       const { data } = await supabase.auth.getSession()
+      setLoggedIn(Boolean(data.session))
       await setupPurchases(data.session?.user.id)
       const list = await loadPlans()
       if (!active) return
       setPlans(list)
       if (!list.some(p => p.id === "yearly") && list[0]) setChosen(list[0].id)
       setFromStore(Boolean(await readStorePremiumUntil()))
+      // US App Store only: Apple allows a link to our website (see websiteLinkAllowed).
+      if (!list.length) setWebLink(await websiteLinkAllowed())
     }
     void load()
     return () => {
@@ -70,7 +81,9 @@ export default function PremiumScreen() {
     if (result === "ok") {
       await premium.refresh()
       setFromStore(true)
-      Alert.alert(t("pw_thanks"), t("pw_thanksBody"), [{ text: "OK", onPress: () => router.back() }])
+      // Show what they got (the new features also glow until opened).
+      if (await startPremiumWelcome()) router.replace("/premium-welcome" as any)
+      else Alert.alert(t("pw_thanks"), t("pw_thanksBody"), [{ text: "OK", onPress: () => router.back() }])
     } else if (result === "error") {
       Alert.alert(t("pw_errorTitle"), t("pw_error"))
     }
@@ -134,7 +147,27 @@ export default function PremiumScreen() {
         ) : plans === null ? (
           <ActivityIndicator color={GOLD} style={{ marginTop: 24 }} />
         ) : plans.length === 0 ? (
-          <Text style={[styles.muted, styles.unavailable, { color: theme.textSecondary }]}>{t("pw_unavailable")}</Text>
+          <View style={styles.unavailable}>
+            <Text style={[styles.muted, { color: theme.textSecondary }]}>{t("pw_unavailable")}</Text>
+            {/* Small technical reason, to help fix store setup problems */}
+            {lastPlansProblem ? <Text style={[styles.problem, { color: theme.textSecondary }]}>{lastPlansProblem}</Text> : null}
+            {/* Store rules: we may NOT send people to the website to buy. We may say that
+                Premium they already have on their UmrahConnect account works here after logging in. */}
+            <Text style={[styles.muted, { color: theme.textSecondary }]}>{t("pw_haveAccountPremium")}</Text>
+            {!loggedIn ? (
+              <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push("/auth/login" as any)}>
+                <Text style={styles.secondaryText}>{t("login")}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {webLink ? (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => void WebBrowser.openBrowserAsync("https://myumrahconnect.com/account")}
+              >
+                <Text style={styles.secondaryText}>{t("pw_onWebsite")}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ) : (
           <>
             {/* Plans */}
@@ -204,7 +237,8 @@ const styles = StyleSheet.create({
   activeCard: { alignItems: "center", backgroundColor: "rgba(47,133,90,0.08)", borderColor: "rgba(47,133,90,0.3)" },
   activeTitle: { fontSize: 17, fontWeight: "800" },
   muted: { fontSize: 14, textAlign: "center", lineHeight: 20 },
-  unavailable: { marginHorizontal: 24, marginTop: 20 },
+  unavailable: { marginHorizontal: 24, marginTop: 20, gap: 10, alignItems: "center" },
+  problem: { fontSize: 11, textAlign: "center", opacity: 0.7 },
   plans: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginTop: 18 },
   plan: { flex: 1, borderRadius: 18, borderWidth: 1.5, padding: 14, paddingTop: 22 },
   planOn: { backgroundColor: "rgba(201,168,76,0.08)" },

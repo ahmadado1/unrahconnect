@@ -303,7 +303,7 @@ export default function QiblahScreen() {
           <Text style={styles.backText}>{t("home", { defaultValue: "Home" })}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{t("qiblaDirection")}</Text>
-        <Text style={styles.subtitle}>Find the direction to the Kaaba</Text>
+        <Text style={styles.subtitle}>{t("ui_qiblaSub")}</Text>
       </View>
 
       <View style={styles.content}>
@@ -318,7 +318,7 @@ export default function QiblahScreen() {
             <Ionicons name="alert-circle-outline" size={32} color="#C9A84C" />
             <Text style={[styles.errorText, { color: theme.text }]}>{errorMsg}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={setupQiblah}>
-              <Text style={styles.retryText}>Try Again</Text>
+              <Text style={styles.retryText}>{t("tryAgain")}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -334,7 +334,7 @@ export default function QiblahScreen() {
             {aligned ? (
               <View style={styles.alignedBadge}>
                 <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                <Text style={styles.alignedText}>Facing Qiblah</Text>
+                <Text style={styles.alignedText}>{t("ui_facingQibla")}</Text>
               </View>
             ) : (
               <View style={styles.offsetBadge}>
@@ -408,13 +408,13 @@ export default function QiblahScreen() {
                 </Text>
               </View>
               <View style={styles.infoCard}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Heading</Text>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t("ui_heading")}</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {Math.round(heading)}°
                 </Text>
               </View>
               <View style={styles.infoCard}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Distance</Text>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t("ui_distance")}</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {distance?.toLocaleString()} km
                 </Text>
@@ -435,7 +435,7 @@ export default function QiblahScreen() {
 
             <TouchableOpacity style={styles.recalibrateBtn} onPress={setupQiblah}>
               <Ionicons name="refresh" size={16} color="#C9A84C" />
-              <Text style={styles.recalibrateText}>Recalibrate</Text>
+              <Text style={styles.recalibrateText}>{t("ui_recalibrate")}</Text>
             </TouchableOpacity>
           </>
         )}

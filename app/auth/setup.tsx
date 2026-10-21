@@ -14,7 +14,7 @@ import PhoneInput from "../components/PhoneInput"
 import SelectDropdown from "../components/SelectDropdown"
 import { NATIONALITIES } from "@/lib/countries"
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
-import { supabase } from "../../lib/supabase"
+import { getUserFast, supabase } from "../../lib/supabase"
 
 const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
   id: n.id,
@@ -57,7 +57,7 @@ export default function SetupScreen() {
   const [langOpen, setLangOpen] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    getUserFast().then(({ data: { user } }) => {
       if (!user) return
 
       const saved = user.user_metadata?.language
@@ -125,7 +125,7 @@ export default function SetupScreen() {
     setLoading(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       if (!user) return
 
       const existingName = (user.user_metadata?.full_name || "").trim()

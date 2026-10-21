@@ -3,8 +3,8 @@
 // iPhone only plays a notification sound if it is shorter than 30 seconds. So each Adhan is cut
 // into parts of 29.8 s that start every 29 s (a little overlap, so there is no gap between parts).
 // At prayer time the FIRST part comes with the normal prayer notification. The next parts come
-// as notifications with no title and no text: iPhone plays their sound without showing anything
-// new, so the user sees ONE notification and hears the whole Adhan, back to back.
+// as notifications with the same title (iPhone plays no sound for a notification without text).
+// iPhone stacks them as one group under the app, and the user hears the whole Adhan, back to back.
 //
 // The parts are not inside the app (that would add ~34 MB). The app downloads only the parts of
 // the chosen voice (normal + Fajr, about 3 to 6 MB) from the website, and installs them in

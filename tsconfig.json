@@ -17,6 +17,7 @@
   "exclude": [
     "node_modules",
     "supabase/functions",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "_unused_assets"
   ]
 }

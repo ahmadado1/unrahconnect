@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { supabase } from "../../lib/supabase"
+import { getUserFast, supabase } from "../../lib/supabase"
 
 // ─── TYPE ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ export default function BookmarksScreen() {
 
   const fetchBookmarks = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await getUserFast()
     console.log("User:", user?.id)
     
     if (!user) { 

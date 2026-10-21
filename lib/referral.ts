@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { getAgentByCode, joinAgent, normalizeAgentCode } from "@/lib/agents"
-import { supabase } from "./supabase"
+import { getUserFast, supabase } from "./supabase"
 
 const REFERRAL_KEY = "pending_referral_code"
 
@@ -46,7 +46,7 @@ export async function linkPilgrimToAgent(referralCode: string): Promise<boolean>
     const normalized = normalizeReferralCode(referralCode)
     if (!normalized) return false
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await getUserFast()
     if (!user) return false
 
     if (await pilgrimHasAgent(user.id)) {
@@ -73,7 +73,7 @@ export async function applyAgentCode(code: string): Promise<boolean> {
   const valid = await isValidReferralCode(normalized)
   if (!valid) return false
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (user) {
     return linkPilgrimToAgent(normalized)
   }

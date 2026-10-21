@@ -570,6 +570,9 @@ export async function schedulePrayerNotifications(
         ? Math.max(1, Math.min(iosChain ? IOS_CHAIN_MIN_DAYS : IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
         : PRAYER_HORIZON_DAYS
 
+    // Home-screen widget: the same days of prayer times (Premium; no-op without the widget).
+    void import("@/lib/prayerWidget").then(m => m.updatePrayerWidget(horizon)).catch(() => {})
+
     // Prayers the user switched off (Notifications → per-prayer switches).
     const offPrayers = await loadOffPrayers()
     const desired: DesiredAlert[] = []
@@ -650,7 +653,7 @@ export async function schedulePrayerNotifications(
 
     // iPhone: the FULL Adhan in 30-second parts (see lib/adhanChain.ts).
     // The prayer notification plays part 1. Parts 2, 3, ... follow every 29 seconds as notifications
-    // with no title and no text, so iPhone only plays their sound: one notification, the whole Adhan.
+    // with the same title (iPhone stays silent for a notification with no text), stacked as one group.
     // Only the next prayers get all parts (iPhone keeps 64 alerts); the others get part 1 (30 seconds)
     // and become full when the app books again (app opened, background refresh).
     if (Platform.OS === "ios") {
@@ -696,13 +699,16 @@ export async function schedulePrayerNotifications(
             extra.push({
               identifier: `${d.identifier}-p${String(i + 2).padStart(2, "0")}`,
               at,
-              sig: `${at}|${sound}`,
+              sig: `${at}|${sound}|titled`,
               request: {
                 content: {
-                  // No title / text: iPhone plays the sound without showing a new notification.
-                  title: "",
-                  body: "",
+                  // iPhone does NOT play the sound of a notification that has no title and no text,
+                  // so each part repeats the prayer title. iPhone stacks them under the app as one group,
+                  // and opening the app / Stop / swiping clears the rest (stopAdhanChain).
+                  title: String(d.request.content.title ?? ""),
+                  body: String(d.request.content.body ?? ""),
                   sound,
+                  categoryIdentifier: ADHAN_CATEGORY,
                   interruptionLevel: "timeSensitive" as const,
                   data: { chain: d.identifier, adhanPart: i + 2, prayerName: data.prayerName, prayerAt: d.at },
                 },
@@ -758,9 +764,11 @@ export async function scheduleTestFullAdhan(seconds = 20): Promise<"ok" | "downl
               data: { chain: "prayer-adhan-test", adhanTest: true },
             }
           : {
-              title: "",
-              body: "",
+              // Parts need a title and text, otherwise iPhone stays silent.
+              title: copy.title,
+              body: i18n.t("adhanTestBody", { defaultValue: "Test: the full Adhan, lock your phone now." }),
               sound: parts[i],
+              categoryIdentifier: ADHAN_CATEGORY,
               interruptionLevel: "timeSensitive" as const,
               data: { chain: "prayer-adhan-test", adhanPart: i + 1 },
             },
@@ -1722,5 +1730,54 @@ export function handlePrayerNotificationOpen(
     }
   }
 
+  return true
+}
+
+// ─── Quran goal: guided daily reminder (Premium) ───────────────────────────
+// 20:30 each day for the next 3 days: how many pages are left today for the goal.
+// Booked again whenever the user reads (pages counted) and when the app opens.
+const QURAN_GOAL_NOTIF_IDS = ["quran-goal-0", "quran-goal-1", "quran-goal-2"]
+
+export async function scheduleQuranGoalReminders() {
+  for (const id of QURAN_GOAL_NOTIF_IDS) {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+  }
+  const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
+  if (notifEnabled === "false") return false
+  if (!(await isPremiumNow())) return false
+  const { loadGoal, goalStats, goalLabel } = await import("@/lib/quranGoals")
+  const goal = await loadGoal()
+  if (!goal || goal.completedAt) return false
+
+  await ensureQuranReminderChannel()
+  const t = (key: string, opts?: Record<string, unknown>) => String(i18n.t(key, opts as any))
+  const label = goalLabel(goal, t)
+  const now = new Date()
+  for (let i = 0; i < QURAN_GOAL_NOTIF_IDS.length; i++) {
+    const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 20, 30, 0, 0)
+    if (when.getTime() <= now.getTime() + 60 * 1000) continue
+    const stats = goalStats(goal, when)
+    // Today: skip if today's pages are already read. Later days: the daily target.
+    if (i === 0 && stats.todayLeft <= 0) continue
+    const body =
+      i === 0
+        ? t("qgNotifBodyLeft", { count: stats.todayLeft, goal: label })
+        : t("qgNotifBodyDay", { count: stats.todayTarget, goal: label })
+    await Notifications.scheduleNotificationAsync({
+      identifier: QURAN_GOAL_NOTIF_IDS[i],
+      content: {
+        title: t("qgNotifTitle"),
+        body,
+        sound: true,
+        data: { screen: "quran-goal" },
+        ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: when,
+        ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+      },
+    })
+  }
   return true
 }

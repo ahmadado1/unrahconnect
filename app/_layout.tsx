@@ -3,7 +3,7 @@ import { registerBackgroundRebook } from "@/lib/backgroundRebook"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon";
 import { AIGuideProvider } from "@/context/AIGuideContext";
 import { ThemeProvider, useTheme } from "@/context/themeContext";
-import "@/i18n";
+import i18n from "@/i18n";
 import {
   handleAdhanAction,
   handlePrayerNotificationForeground,
@@ -14,6 +14,7 @@ import {
   scheduleAlKahfReminder,
   scheduleAlMulkReminder,
   scheduleSalawatReminder,
+  scheduleQuranGoalReminders,
   scheduleDailyDhikrReminders,
   scheduleDailyVerseNotification,
   scheduleIslamicDateReminders,
@@ -29,7 +30,7 @@ import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
 import { auditAllMushafPages, purgeEmptyCachedPages } from "../lib/quranPageCache";
-import { clearLocalAuth, getValidSession, supabase } from "../lib/supabase";
+import { clearLocalAuth, getValidSession, supabase, syncUserLanguage } from "../lib/supabase";
 import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
@@ -109,6 +110,19 @@ export default function RootLayout() {
       router.push("/MorningAdhkarScreen" as any)
     } else if (identifier.startsWith("islamic-")) {
       router.push("/islamic-calendar")
+    } else if (identifier.startsWith("miqat-") || data?.screen === "miqat") {
+      router.push("/miqat-alert" as any)
+    } else if (identifier === "my-duas-arafah" || data?.screen === "makkah-companion") {
+      router.push({ pathname: "/makkah-companion", params: { tab: String(data?.tab ?? "duas") } } as any)
+    } else if (identifier.startsWith("quran-goal") || data?.screen === "quran-goal") {
+      // Quran goal reminder → the next unread page of the goal
+      void (async () => {
+        const { loadGoal } = await import("@/lib/quranGoals")
+        const { goalReaderHref } = await import("@/lib/quranGoalNav")
+        const goal = await loadGoal()
+        if (goal) router.push((await goalReaderHref(goal)) as any)
+        else router.push("/quran")
+      })()
     }
   }
 
@@ -159,6 +173,8 @@ export default function RootLayout() {
       booking = true
       lastBooking = Date.now()
       try {
+        // Home-screen widget gets today's prayers even if notifications are off.
+        void import("@/lib/prayerWidget").then(m => m.updatePrayerWidget()).catch(() => {})
         const granted = await requestNotificationPermission()
         if (!granted) return
         await setupPrayerNotificationChannel().catch(console.log)
@@ -170,6 +186,8 @@ export default function RootLayout() {
           await scheduleAlMulkReminder().catch(console.log)
           await scheduleAlKahfReminder().catch(console.log)
           await scheduleSalawatReminder().catch(console.log)
+          await scheduleQuranGoalReminders().catch(console.log)
+          await import("@/lib/makkahCompanion").then(m => m.scheduleArafahDuaReminder()).catch(console.log)
           await scheduleDailyVerseNotification().catch(console.log)
           await scheduleJourneyReminders().catch(console.log)
           await scheduleIslamicDateReminders().catch(console.log)
@@ -209,6 +227,8 @@ export default function RootLayout() {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       // Keep RevenueCat on the same account as the app (purchases belong to the account).
       if (event === "SIGNED_IN" && session?.user?.id) setTimeout(() => void loginPurchases(session.user.id), 0)
+      // Keep the account's language up to date (used for emails in the user's language).
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) setTimeout(() => void syncUserLanguage(i18n.language), 0)
       if (event === "SIGNED_OUT") setTimeout(() => void logoutPurchases(), 0)
       // A pilgrim who tapped "Join" or scanned an agent QR before signing in gets linked now.
       // Deferred with setTimeout: calling Supabase inside this callback can lock up other auth calls.
@@ -229,6 +249,9 @@ export default function RootLayout() {
         router.replace("/auth/login")
       }
     })
+
+    const onLanguageChanged = (lng: string) => void syncUserLanguage(lng)
+    i18n.on("languageChanged", onLanguageChanged)
 
     void registerAdhanCategory()
     void registerBackgroundRebook()
@@ -266,6 +289,7 @@ export default function RootLayout() {
 
     return () => {
       authListener.subscription.unsubscribe()
+      i18n.off("languageChanged", onLanguageChanged)
       responseListener.remove()
       linkingSub.remove()
       bookingSub.remove()
@@ -393,6 +417,9 @@ function AppStack() {
       <Stack.Screen name="islamic-calendar" />
       <Stack.Screen name="maps/[site]" />
       <Stack.Screen name="makkah-places" />
+      <Stack.Screen name="makkah-companion" />
+      <Stack.Screen name="miqat-alert" />
+      <Stack.Screen name="premium-welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="makkah-place/[id]" />
       <Stack.Screen name="haramain/[station]" />
       <Stack.Screen name="auth/setup" />

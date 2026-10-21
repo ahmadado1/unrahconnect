@@ -1,8 +1,9 @@
 import { getIonIconColor } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
-import { supabase } from "@/lib/supabase";
+import { getUserFast, supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Href, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,7 +31,7 @@ export default function MeScreen() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    getUserFast().then(({ data: { user } }) => setUser(user))
   }, [])
 
   const premium = usePremium()
@@ -53,7 +54,12 @@ export default function MeScreen() {
       icon: "log-out-outline",
       labelKey: "logout",
       danger: true,
-      action: async () => { await supabase.auth.signOut() },
+      action: async () => {
+        // Go to the login screen at once, then sign out (the server call can take a moment).
+        router.replace("/auth/login" as any)
+        await AsyncStorage.removeItem("cached_user").catch(() => {})
+        await supabase.auth.signOut().catch(() => supabase.auth.signOut({ scope: "local" }))
+      },
     },
   ]
 
@@ -108,8 +114,8 @@ export default function MeScreen() {
             onPress={() => router.push("/agent/dashboard" as any)}
           >
             <View style={styles.agentCardLeft}>
-              <Text style={styles.agentCardTitle}>Agency Dashboard</Text>
-              <Text style={styles.agentCardSub}>View clients, referral code & bookings</Text>
+              <Text style={styles.agentCardTitle}>{t("ui_agencyDashboard")}</Text>
+              <Text style={styles.agentCardSub}>{t("ui_agencyDashboardSub")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
           </TouchableOpacity>

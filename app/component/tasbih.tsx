@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { AppIcon, ICON_GOLD } from '@/components/AppIcon';
 import { useTheme } from '@/context/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -104,7 +105,7 @@ const DHIKR_OPTIONS = [
                 activeOpacity={0.7}
             >
                 <AppIcon name="beads" size={20} color={ICON_GOLD} style={{ marginRight: 10 }} />
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Tasbih Counter</Text>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>{i18n.t("ui_tasbihCounter")}</Text>
                 <Text style={[styles.chip, { backgroundColor: theme.inputBg, color: theme.text }]}>
                   {count}/{CYCLE_TARGET}
                 </Text>
@@ -151,7 +152,7 @@ const DHIKR_OPTIONS = [
               <Text style={[styles.actionButtonText, { color: theme.text }]}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButtonPrimary} onPress={handleChangeDhikr}>
-              <Text style={styles.actionButtonPrimaryText}>Change Dhikr</Text>
+              <Text style={styles.actionButtonPrimaryText}>{i18n.t("ui_changeDhikr")}</Text>
             </TouchableOpacity>
           </View>
 

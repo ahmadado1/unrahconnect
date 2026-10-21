@@ -3,10 +3,17 @@ import { usePremium } from "@/lib/premium"
 import GlowText from "@/app/components/GlowText"
 import PremiumEndingBanner from "@/app/components/PremiumEndingBanner"
 import PremiumJourneyCard from "@/app/components/PremiumJourneyCard"
+import PremiumUpsellCard from "@/app/components/PremiumUpsellCard"
 import QuranHomePlayer from "@/app/components/QuranHomePlayer"
 import { dhikrForToday } from "@/lib/dhikrList"
 import HeroBackground, { prefetchHeroSource } from "@/app/components/HeroBackground";
 import QuranHomeCard from "@/app/components/QuranHomeCard";
+import QuranGoalCard from "@/app/components/QuranGoalCard";
+import MakkahStayCard from "@/app/components/MakkahStayCard";
+import QuranGoalSheet from "@/app/components/QuranGoalSheet";
+import { loadGoal, onGoalChange, type QuranGoal } from "@/lib/quranGoals";
+import NewGlow from "@/app/components/NewGlow";
+import { markFeatureSeen, startPremiumWelcome } from "@/lib/premiumNew";
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
@@ -18,7 +25,7 @@ import { fetchAndCachePrayerTimes, getNextPrayerFromTimes, parsePrayerTimeHourMi
 import { loadLastReadState } from "@/lib/quranLastRead";
 import { loadSurahPreviewText } from "@/lib/quranPreviewText";
 import { getQuranReadMode } from "@/lib/quranReadMode";
-import { getUmrahProgress, supabase } from "@/lib/supabase";
+import { getUmrahProgress, getUserFast, supabase } from "@/lib/supabase";
 import { cardShadow, GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -323,6 +330,22 @@ export default function HomeScreen() {
   const [adhkarWindow, setAdhkarWindow] = useState<"morning" | "evening" | null>(() => getAdhkarWindow())
   const [homeQuranCard, setHomeQuranCard] = useState<HomeQuranCardState>(() => resolveHomeQuranCard({}))
   const [homeQuranPreview, setHomeQuranPreview] = useState("")
+  // Quran reading goal (Premium): replaces the Quran preview card while a goal runs.
+  const [quranGoal, setQuranGoal] = useState<QuranGoal | null>(null)
+  const [goalSheetOpen, setGoalSheetOpen] = useState(false)
+  useFocusEffect(
+    useCallback(() => {
+      void loadGoal().then(setQuranGoal)
+    }, [])
+  )
+  useEffect(() => onGoalChange(setQuranGoal), [])
+  // Premium just started (in the app or on the website): show once what the user got.
+  useEffect(() => {
+    if (!premium.isPremium) return
+    void startPremiumWelcome().then(first => {
+      if (first) router.push("/premium-welcome" as any)
+    })
+  }, [premium.isPremium, router])
   const [refreshing, setRefreshing] = useState(false)
   const hijriToday = gregorianToHijri()
   const hijriMonthGrid = useMemo(
@@ -478,7 +501,7 @@ export default function HomeScreen() {
   useEffect(() => {
     prefetchHeroSource(require("../../assets/images/hero-mosque.jpeg"))
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       if (user) {
         setUser(user)
         setUserName(user.user_metadata?.full_name?.split(" ")[0] || t("pilgrim"))
@@ -543,7 +566,7 @@ export default function HomeScreen() {
   // ── Fetch bookings ──
   useEffect(() => {
     const fetchBookings = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       if (!user) return
       const { data } = await supabase
         .from("bookings")
@@ -660,6 +683,9 @@ export default function HomeScreen() {
         {/* ── Premium ends in the next 3 days ── */}
         <PremiumEndingBanner />
 
+        {/* ── In Makkah: Tawaf / Sa'i counters and My duas, for the whole stay ── */}
+        <MakkahStayCard />
+
         {/* ── PREMIUM: UmrahConnect Guide → Trip Planner. FREE: Continue My Umrah Journey ── */}
         {premium.isPremium ? (
           <PremiumJourneyCard />
@@ -674,8 +700,8 @@ export default function HomeScreen() {
             style={styles.journeyKaaba}
           />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.journeyTitle, { color: theme.text }]}>Continue My Umrah Journey</Text>
-            <Text style={[styles.journeyStep, { color: theme.textSecondary }]}>Step {umrahProgress.step} of {umrahProgress.total}</Text>
+            <Text style={[styles.journeyTitle, { color: theme.text }]}>{t("ui_continueJourney")}</Text>
+            <Text style={[styles.journeyStep, { color: theme.textSecondary }]}>{t("ui_stepOf", { step: umrahProgress.step, total: umrahProgress.total })}</Text>
             <Text style={[styles.journeyPhase, { color: theme.textSecondary }]}>{umrahProgress.phase}</Text>
             <View style={styles.progressBarTrack}>
               <View style={[styles.progressBarFill, { width: `${umrahProgress.percent}%` }]} />
@@ -687,6 +713,9 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
         )}
+
+        {/* ── FREE: "Get Premium" card ── */}
+        {!premium.isPremium ? <PremiumUpsellCard /> : null}
 
         {/* Adhkar, under Umrah Journey; morning 8–11am, evening 5–6pm only */}
         {adhkarWindow === "morning" && (
@@ -751,12 +780,39 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* ── QURAN PREVIEW (Mulk at night, Kahf on Friday, else last read) ── */}
-        <QuranHomeCard
-          card={homeQuranCard}
-          previewText={homeQuranPreview}
-          startLabel={t("quranHomeStartReading")}
-          loading={!homeQuranPreview}
-          onPress={openHomeQuranCard}
+        {premium.isPremium && quranGoal ? (
+          <QuranGoalCard goal={quranGoal} onEdit={() => setGoalSheetOpen(true)} />
+        ) : (
+          <>
+            <QuranHomeCard
+              card={homeQuranCard}
+              previewText={homeQuranPreview}
+              startLabel={t("quranHomeStartReading")}
+              loading={!homeQuranPreview}
+              onPress={openHomeQuranCard}
+            />
+            {/* Set a reading goal: Premium only (free users read about it on the Premium screen) */}
+            {premium.isPremium ? (
+              <NewGlow id="goal" style={{ alignSelf: "center", marginTop: 10 }} radius={999}>
+                <TouchableOpacity
+                  style={[styles.goalPill, { borderColor: theme.border, backgroundColor: theme.card }]}
+                  onPress={() => {
+                    void markFeatureSeen("goal")
+                    setGoalSheetOpen(true)
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="flag" size={16} color={GOLD} />
+                  <Text style={[styles.goalPillText, { color: theme.text }]}>{t("qgSetGoal")}</Text>
+                </TouchableOpacity>
+              </NewGlow>
+            ) : null}
+          </>
+        )}
+        <QuranGoalSheet
+          visible={goalSheetOpen}
+          onClose={() => setGoalSheetOpen(false)}
+          onStarted={setQuranGoal}
         />
 
         {/* ── LISTEN TO THE QURAN (Premium: continue where you stopped) ── */}
@@ -893,6 +949,9 @@ export default function HomeScreen() {
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  goalPill: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center", borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  goalPillText: { fontSize: 14, fontWeight: "700" },
+  goalPillPremium: { backgroundColor: GOLD, color: NAVY, fontSize: 10, fontWeight: "800", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: "hidden" },
   premiumChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#C9A84C", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   premiumChipText: { color: "#1E3A5F", fontSize: 10, fontWeight: "bold" },
   screen: { flex: 1 },

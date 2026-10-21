@@ -130,7 +130,7 @@ export default function TravelAgentDetailScreen() {
             </View>
           </View>
 
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Contact</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("ui_contact")}</Text>
           <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             {agent.phone ? (
               <TouchableOpacity style={styles.infoRow} onPress={() => call(agent.phone)}>
@@ -138,7 +138,7 @@ export default function TravelAgentDetailScreen() {
                 <Text style={[styles.infoText, { color: theme.text }]}>{agent.phone}</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>No phone listed</Text>
+              <Text style={[styles.infoText, { color: theme.textSecondary }]}>{t("ui_noPhone")}</Text>
             )}
             {agent.phone2 ? (
               <TouchableOpacity
@@ -166,7 +166,7 @@ export default function TravelAgentDetailScreen() {
             ) : null}
           </View>
 
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Services</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("services")}</Text>
           <View style={styles.tags}>
             {agent.services.map(service => (
               <View key={service} style={styles.tag}>
@@ -181,14 +181,14 @@ export default function TravelAgentDetailScreen() {
               style={styles.getFeaturedBtn}
               onPress={() => openExternalUrl(router, GET_FEATURED_URL, "Get Featured")}
             >
-              <Text style={styles.getFeaturedText}>Get Featured</Text>
+              <Text style={styles.getFeaturedText}>{t("ui_getFeatured")}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.featureLink}
               onPress={() => Linking.openURL(`mailto:${TRAVEL_AGENT_CONTACT_EMAIL}`)}
             >
-              <Text style={styles.featureLinkText}>Want your agency listed? Contact us</Text>
+              <Text style={styles.featureLinkText}>{t("ui_wantListed")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -213,7 +213,7 @@ export default function TravelAgentDetailScreen() {
         {agent.phone || agent.whatsapp ? (
           <TouchableOpacity style={styles.barWa} onPress={whatsapp}>
             <AppIcon name="whatsapp" size={16} color="#fff" />
-            <Text style={styles.barCallText}>WhatsApp</Text>
+            <Text style={styles.barCallText}>{t("whatsapp")}</Text>
           </TouchableOpacity>
         ) : null}
         {agent.email ? (
@@ -228,7 +228,7 @@ export default function TravelAgentDetailScreen() {
             onPress={() => openExternalUrl(router, agent.website!, agent.agencyName)}
           >
             <Ionicons name="globe-outline" size={16} color={NAVY} />
-            <Text style={styles.barEmailText}>Website</Text>
+            <Text style={styles.barEmailText}>{t("agentWebsite")}</Text>
           </TouchableOpacity>
         ) : null}
       </View>

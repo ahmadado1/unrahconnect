@@ -197,14 +197,14 @@ export default function HotelDetailScreen() {
           onPress={() => openUrl(router, `tel:${hotel.phone}`)}
         >
           <Ionicons name="call" size={16} color={NAVY} />
-          <Text style={styles.actionOutlineText}>Call Hotel</Text>
+          <Text style={styles.actionOutlineText}>{t("ui_callHotel")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionOutline}
           onPress={() => openUrl(router, hotel.website, hotel.name)}
         >
           <Ionicons name="globe-outline" size={16} color={NAVY} />
-          <Text style={styles.actionOutlineText}>Visit Website</Text>
+          <Text style={styles.actionOutlineText}>{t("visitWebsite")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionPrimary}

@@ -7,7 +7,7 @@ import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
 import { considerStoreReview } from "@/lib/storeReviewPrompt"
-import { getUmrahProgress, markPhaseComplete, supabase } from "@/lib/supabase"
+import { getUmrahProgress, markPhaseComplete, getUserFast, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -64,7 +64,7 @@ export default function PhaseDetailScreen() {
     const checkProgress = async () => {
       const progress = await getUmrahProgress()
       setIsCompleted(progress.includes(phaseId ?? ""))
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       if (user) setGender(user.user_metadata?.gender || "male")
     }
     checkProgress()

@@ -8,6 +8,7 @@ type ExactAlarmNative = {
   cancelAdhanAlarms?: () => boolean
   stopAdhanPlayer?: () => boolean
   isAdhanPlaying?: () => boolean
+  setPrayerWidgetData?: (json: string) => boolean
 }
 
 function getNative(): ExactAlarmNative | null {
@@ -87,6 +88,15 @@ export function stopNativeAdhan() {
 export function isNativeAdhanPlaying(): boolean {
   try {
     return getNative()?.isAdhanPlaying?.() === true
+  } catch {
+    return false
+  }
+}
+
+/** Prayer widget data (Android home-screen widget). */
+export function setAndroidPrayerWidgetData(json: string): boolean {
+  try {
+    return getNative()?.setPrayerWidgetData?.(json) === true
   } catch {
     return false
   }

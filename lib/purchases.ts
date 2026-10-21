@@ -15,7 +15,7 @@ import Purchases, { LOG_LEVEL, type CustomerInfo, type PurchasesPackage } from "
 
 /** Public SDK keys (safe to be in the app). Fill in from RevenueCat → API keys. */
 const IOS_KEY = "appl_koGxcpgQAktbiRtqrSAptsmAZoP" // App Store (com.umrahconnect.app)
-const ANDROID_KEY = "" // starts with goog_
+const ANDROID_KEY = "goog_aKrQVKToZJwODmEDmxpcLyHLiMU" // starts with goog_
 /** RevenueCat Test Store key: fake purchases, ONLY used while developing (Expo / dev builds). */
 const TEST_KEY = "test_qqElrsPUSNvHBkvoCxpaLFUvDnr"
 
@@ -137,13 +137,23 @@ export type PlanOption = {
   perMonth?: string
 }
 
+/** Why the plans could not load (shown small on the Premium screen, to find the problem). */
+export let lastPlansProblem = ""
+
 /** Monthly + Yearly plans with the store's real local prices. [] if not available. */
 export async function loadPlans(): Promise<PlanOption[]> {
-  if (!(await setupPurchases())) return []
+  lastPlansProblem = ""
+  if (!(await setupPurchases())) {
+    lastPlansProblem = apiKey() ? "setup failed" : "no store key in this build"
+    return []
+  }
   try {
     const offerings = await Purchases.getOfferings()
     const current = offerings.current
-    if (!current) return []
+    if (!current) {
+      lastPlansProblem = "no current offering in RevenueCat"
+      return []
+    }
     const plans: PlanOption[] = []
     if (current.monthly) {
       plans.push({ id: "monthly", pkg: current.monthly, price: current.monthly.product.priceString })
@@ -152,9 +162,12 @@ export async function loadPlans(): Promise<PlanOption[]> {
       const p = current.annual.product
       plans.push({ id: "yearly", pkg: current.annual, price: p.priceString, perMonth: p.pricePerMonthString ?? undefined })
     }
+    if (!plans.length) lastPlansProblem = `offering "${current.identifier}" has no monthly / annual package`
     return plans
   } catch (e) {
     console.log("[Purchases] offerings failed:", e)
+    const err = e as { code?: string; message?: string; underlyingErrorMessage?: string }
+    lastPlansProblem = [err.code, err.message, err.underlyingErrorMessage].filter(Boolean).join(" · ").slice(0, 300)
     return []
   }
 }
@@ -181,6 +194,22 @@ export async function restorePlans(): Promise<boolean> {
     return Boolean(await saveFromInfo(await Purchases.restorePurchases()))
   } catch (e) {
     console.log("[Purchases] restore failed:", e)
+    return false
+  }
+}
+
+/**
+ * True only on iPhone in the United States App Store. There (and only there) Apple allows a link to
+ * buy on our website. Everywhere else, and on Google Play outside its paid programs, it is NOT allowed.
+ */
+export async function websiteLinkAllowed(): Promise<boolean> {
+  if (Platform.OS !== "ios") return false
+  if (!(await setupPurchases())) return false
+  try {
+    const store = await Purchases.getStorefront()
+    const code = String(store?.countryCode ?? "").toUpperCase()
+    return code === "USA" || code === "US"
+  } catch {
     return false
   }
 }

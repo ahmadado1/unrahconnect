@@ -342,7 +342,7 @@ export default function QuranScreen() {
       {loading ? (
   <View style={styles.loadingContainer}>
     <ActivityIndicator color="#C9A84C" size="large" />
-    <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading Quran...</Text>
+    <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t("ui_loadingQuran")}</Text>
   </View>
 ) : error ? (
   <View style={styles.loadingContainer}>
@@ -354,7 +354,7 @@ export default function QuranScreen() {
       style={{ backgroundColor: "#1E3A5F", padding: 14, borderRadius: 25, marginTop: 8 }}
       onPress={() => { setError(false); setLoading(true); fetchSurahs() }}
     >
-      <Text style={{ color: "#fff", fontWeight: "600" }}>Try again</Text>
+      <Text style={{ color: "#fff", fontWeight: "600" }}>{t("tryAgain")}</Text>
     </TouchableOpacity>
   </View>
 ) : (

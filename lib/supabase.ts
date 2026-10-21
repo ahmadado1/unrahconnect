@@ -32,10 +32,35 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
+/**
+ * The logged-in user from the session saved on the phone. Same result shape as
+ * supabase.auth.getUser(), but WITHOUT a network call (getUser asks the server every time,
+ * which made log in / log out / profile screens feel slow). The server still checks every
+ * request with RLS, so this is only for showing things and knowing the user id.
+ */
+export async function getUserFast() {
+  const { data } = await supabase.auth.getSession()
+  return { data: { user: data.session?.user ?? null }, error: null }
+}
+
 const isInvalidSessionError = (message: string) =>
   message.includes("Refresh Token") ||
   message.includes("Invalid Refresh Token") ||
   message.includes("JWT")
+
+/**
+ * Save the app language on the account (user_metadata.language), so emails from the server
+ * (welcome, Premium news) are written in the user's language. Only writes when it changed.
+ */
+export async function syncUserLanguage(language: string) {
+  try {
+    const lang = String(language || "en").slice(0, 2)
+    const { data } = await supabase.auth.getSession()
+    const user = data.session?.user
+    if (!user || user.user_metadata?.language === lang) return
+    await supabase.auth.updateUser({ data: { language: lang } })
+  } catch {}
+}
 
 export async function clearLocalAuth() {
   await safeStorage.removeItem("cached_user")
@@ -67,7 +92,7 @@ if (canUseNativeStorage) {
 // Checks if a specific item is already in the user's favorites
 export const isFavorite = async (itemId: string, itemType: string) => {
   // Get the currently logged in user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return false
 
   // Search favorites table for a row matching this user, item and type
@@ -91,7 +116,7 @@ export const isFavorite = async (itemId: string, itemType: string) => {
 // Adds or removes a favorite depending on current state
 export const toggleFavorite = async (itemId: string, itemType: string) => {
   // Get the currently logged in user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return false
 
   // Check if already favorited
@@ -129,7 +154,7 @@ export const toggleFavorite = async (itemId: string, itemType: string) => {
 // Gets all completed phase ids for the current user
 export const getUmrahProgress = async () => {
   // Get logged in user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return []
 
   // Get all completed phases for this user
@@ -145,7 +170,7 @@ export const getUmrahProgress = async () => {
 // Marks a phase as complete or incomplete (toggles)
 export const markPhaseComplete = async (phaseId: string) => {
   // Get logged in user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return
 
   // Check if already completed
@@ -177,7 +202,7 @@ export const markPhaseComplete = async (phaseId: string) => {
 
 // Gets all completed Hajj phase ids for the current user
 export const getHajjProgress = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return []
 
   const { data } = await supabase
@@ -189,7 +214,7 @@ export const getHajjProgress = async () => {
 }
 
 export const markHajjPhaseComplete = async (phaseId: string) => {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) return
 
   const { data } = await supabase

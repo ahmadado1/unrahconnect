@@ -1,3 +1,4 @@
+import VerseMenuHost, { type VerseTarget } from "@/app/components/VerseMenuHost"
 // Isolated Surah Al-Mulk reader (shown on Home 10pm–3am and from the nightly reminder).
 // Same as the Kahf reader, but the tick resets every night. Premium can listen instead of reading.
 import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
@@ -74,6 +75,7 @@ function MulkPage({
   pageHeight,
   fontSize,
   header,
+  onVersePress,
 }: {
   pageNumber: number
   fontsLoaded: boolean
@@ -85,6 +87,8 @@ function MulkPage({
   fontSize: number
   /** Shown at the top of the page and scrolls away with it (the "Listen" card) */
   header?: React.ReactNode
+  /** Tap on a verse number → verse menu */
+  onVersePress?: (verseKey: string) => void
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
@@ -225,6 +229,7 @@ function MulkPage({
                       block={block}
                       fontsLoaded={fontsLoaded}
                       fontSize={fontSize}
+                      onVersePress={onVersePress}
                     />
                   )
                 })}
@@ -264,6 +269,8 @@ function MulkPage({
 }
 
 export default function MulkReadingScreen() {
+  // Tap a verse number → play it, tafsir, choose reciter
+  const [verseMenu, setVerseMenu] = useState<VerseTarget | null>(null)
   useKeepAwake()
   const router = useRouter()
   const { theme } = useTheme()
@@ -444,6 +451,7 @@ export default function MulkReadingScreen() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <VerseMenuHost target={verseMenu} onClose={() => setVerseMenu(null)} />
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} hitSlop={12}>
@@ -516,6 +524,10 @@ export default function MulkReadingScreen() {
           <MulkPage
             key={item}
             pageNumber={item}
+            onVersePress={key => {
+              const [s2, a2] = key.split(":").map(Number)
+              if (s2 && a2) setVerseMenu({ surah: s2, ayah: a2, name: "Al-Mulk" })
+            }}
             fontsLoaded={fontsLoaded}
             isLast={item === range.end}
             completed={Boolean(progress?.completed)}

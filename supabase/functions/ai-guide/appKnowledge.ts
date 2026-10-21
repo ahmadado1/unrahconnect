@@ -1,88 +1,93 @@
-// Update this file whenever features change, then redeploy.
+// What the AI Guide knows about the app and the website.
+// Update this file whenever features change, then redeploy:
+//   npx supabase@latest functions deploy ai-guide --project-ref yqabuipymbaylholmmoi
+// The hotel list comes from hotelKnowledge.ts (made from the app's hotel list).
+import { hotelKnowledge } from "./hotelKnowledge.ts"
 
 export const appKnowledge = `
 WHAT UMRAHCONNECT IS
-UmrahConnect is a free Umrah and Hajj companion app for iPhone and Android. Tagline: "Your complete Umrah & Hajj companion." It was made by Ahmad Ado Muktar (founder and developer), based in Egypt. The in-app About Us screen says "Made in Egypt."
-Premium subscriptions are not available yet. Everything in the app is currently free.
-The app is a guide and a middleman. It does not sell Umrah or Hajj packages and it does not take payments. Hotels, flights, eSIMs, and licensed travel agents are booked on the partner’s own site, at that partner’s normal prices. Partners: Booking.com for hotels, Aviasales for flights, Saily and Airalo for eSIM, and licensed agents listed in the app.
-Languages you can choose in the app: English, العربية, বাংলা, Français, اردو, Türkçe. The website download section also shows a Hausa pill, but Hausa is not a language in the app.
-You can use much of the app without an account. An account saves your profile, favorites, Umrah and Hajj progress, and Quran bookmarks.
+UmrahConnect is an Umrah and Hajj companion app for iPhone and Android, with a website at myumrahconnect.com. Tagline: "Your complete Umrah & Hajj companion." It was made by Ahmad Ado Muktar (founder and developer), based in Egypt. The About Us screen says "Made in Egypt."
+Most of the app is free. UmrahConnect Premium is an optional subscription that adds extra features (see PREMIUM). All Quran audio is free for everyone.
+The app is a guide and a middleman for travel. It does not sell Umrah or Hajj packages. Hotels, flights, eSIMs, and licensed travel agents are booked on the partner's own site, at that partner's normal prices. Partners: Booking.com for hotels, Aviasales for flights, Saily and Airalo for eSIM, and licensed agents listed in the app. The only payments UmrahConnect takes are for Premium and for agency listings.
+Languages in the app: English, العربية, বাংলা, Français, اردو, Türkçe. Arabic and Urdu use right-to-left layout. Hausa is not an app language.
+You can use much of the app without an account. An account saves your profile, favorites, Umrah and Hajj progress, Quran bookmarks, and Premium.
 
 TABS AND WHERE THINGS ARE
 Bottom tabs: Home, Guide, Maps, Services, Me.
+Home: greeting, search, and the AI button. Next Prayer countdown. Umrah journey card (Premium users see the UmrahConnect Guide or Trip Planner card instead). A "Get Premium" card for free users. Morning and Evening Adhkar cards at their times. Quran card (start or continue reading) and the Quran player. Islamic calendar. Quick Access. A Maidabo Foundation card ("Learn more" opens maidabofoundation.com; it is not a donate button). My Bookings, if any.
+Guide: prayer times and the Adhan voice button (headset). Cards: Umrah Guide, Hajj Guide, Quran Reader, Listen to the Quran, Al-Kahf (Thursday Maghrib to Friday Isha), Al-Mulk, AI Guide ("Ask anything"), Islamic Dates, Qibla Direction.
+Maps: My Location, Sites (Masjid Al-Haram, Masjid Nabawi, Mina, Arafah, Zamzam Well, Safa and Marwah, Lost & Found), Makkah Places to See (including Abraj Al Bait Mall and the Clock Tower Museum). The Offline Map of Makkah and Madinah is Premium.
+Services: search button. Big cards: Hotels near the Haram, Aviasales flights, Saily eSIM, Airalo, Restaurants (food), Find an Agent. Then Hospitals, Transport, Shopping. "Book a Stay" is Coming soon.
+Me: name and email, then UmrahConnect Premium, Profile, Favorites, Agency Dashboard (agents only), App guide, Notifications, Settings, Rate the app, About Us, Contact Us, Logout.
+App guide (Me → App guide): a short checklist of the most useful features: prayer times, Quran, Quran audio, dhikr, adhkar, duas, AI Guide, then Umrah guide and Qibla.
 
-Home: greeting, search, and the AI button. Next Prayer countdown (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha). Umrah progress card. Morning Adhkar and Evening Adhkar. A Quran card ("Start Reading Qur'an", or continue from Last read). Islamic calendar. Quick Access: Umrah Guide, Hajj, Maps, Duas, Services. A Maidabo Foundation card with "Learn more" (opens maidabofoundation.com in the browser; it is not a donate button). My Bookings, if you have any.
-
-Guide: prayer times, a headset button for the Adhan, and a Quran download bar while pages are saving. Cards: Umrah Guide, Hajj Guide, Quran Reader, AI Guide ("Ask anything"), Islamic Dates, and Qibla Direction. During the Al-Kahf window (Thursday Maghrib through Friday Isha) an Al-Kahf card appears.
-
-Maps: My Location (opens Google Maps; asks for location). Sites: Masjid Al-Haram, Masjid Nabawi, Mina, Arafah, Zamzam Well, Safa and Marwah, Lost & Found. Under Makkah: Places to See (landmarks and ziyarah, including Abraj Al Bait Mall and the Clock Tower Museum).
-
-Services: search button. Cards: Hotels near the Haram, Aviasales, Saily eSIM, Airalo. Then Restaurants, Find an Agent, Hospitals, Transport, Shopping. "Book a Stay" is marked Coming soon.
-
-Me: your name and email. Profile, Favorites, Notifications, Settings, About Us, Contact Us, Logout. Travel agents also see Agency Dashboard.
+PREMIUM
+Where: Me → UmrahConnect Premium, the "Get Premium" card on Home, or "See Premium" on any locked feature.
+Premium adds: 3 more Adhan voices (Sheikh Muhammad Marwan Qassas, Sheikh Ali Ahmed Mulla, Sheikh Farooq Al-Hadrawi); all Mushaf fonts; Trip Planner (trip dates countdown and checklist, unlocks on Home after the UmrahConnect guide); Offline Map of Makkah and Madinah; guided Al-Kahf, Al-Mulk and Friday Salawat reminders; unlimited AI Guide (free users get 12 questions every 7 days).
+Free for everyone: prayer times and Adhan (3 voices, full Adhan), the Quran with all reciters, verse-by-verse audio, whole surahs, downloads, tafsir, the Umrah and Hajj guides, duas, adhkar, tasbih, Qibla, maps, hotels and all services.
+Plans: Monthly and Yearly. In the app you subscribe on the Premium screen and pay with Apple (App Store) or Google Play; the Premium screen shows the price in your own currency. Never quote other prices.
+STORE RULE (very important): inside the app, never tell people to buy or pay for Premium on the website, and never give website prices, payment links, or OPay, MyNita or PayPal steps for Premium. Only point them to the Premium screen in the app. If someone already has Premium on their UmrahConnect account, say: log in with the same account and it unlocks automatically.
+Premium on the account works everywhere: on any phone where you log in to the same account.
+Restore: on the Premium screen tap "Restore purchases" (for a new phone or after reinstalling).
+Cancel or manage: on the Premium screen tap "Manage subscription", or on iPhone Settings → your name → Subscriptions, on Android Google Play → Payments & subscriptions. Cancel at least 24 hours before renewal.
+Never promise refunds. Apple and Google handle refunds for in-app purchases; other payment questions go to support@myumrahconnect.com.
 
 FEATURES
-Umrah steps (Guide → Umrah Guide). Seven phases, with duas, tips, and progress: 1 Madinah Visit, 2 Entering Ihram, 3 Arriving in Makkah, 4 Tawaf (Circumambulation), 5 Sa'i, 6 Halq / Taqsir, 7 Umrah Complete.
-Hajj steps (Guide → Hajj Guide). Nine phases: 1 Preparation & Ihram, 2 Arriving in Makkah, 3 Day of Tarwiyah, Mina, 4 Day of Arafah, 5 Muzdalifah, 6 Day of Eid, Jamarat, 7 Days of Tashreeq, 8 Tawaf Al-Wadaa, 9 Hajj Complete.
-Duas and tasbih: Home → Quick Access → Duas. The Duas screen includes the Tasbih Counter.
-Adhkar: Home cards "أذكار الصباح: Morning Adhkar" and "أذكار المساء: Evening Adhkar".
-Prayer times and Adhan: Home and Guide. Location is used for prayer times. Adhan can play in the app and as a notification, including on the lock screen. Fajr uses a special Adhan.
-Quran: Guide → Quran Reader. Mushaf View (page by page) and Verse View (Arabic plus translation). Surah list, search, Go to, Bookmarks, and Last read. The mushaf font, text size, and reading view are in the Mushaf settings drawer (menu button in the reader). There is no Quran recitation audio in the app. Audio in the app is the Adhan only.
-Offline Quran: the app downloads the mushaf pages and the translation for your language in the background. A "Downloading Quran..." bar shows on Guide. After that, reading works without internet. Changing language downloads that language’s translation.
-Qibla: Guide → Qibla Direction. Uses location and the phone compass. Point the phone until it lines up with the Kaaba.
-Reminders: Me → Notifications.
-Hotels: Services → Hotels near the Haram. Search, budget and premium filters, featured hotels, Book now. Booking opens the partner (usually Booking.com). If several partners exist, a "Book with" sheet lists them. UmrahConnect does not charge you.
-Flights: Services → Aviasales. "Find flights": From, To (Jeddah, Madinah, or another city), Depart, Return (optional), passengers, then Search flights. Prices and booking are on Aviasales.
-eSIM: Services → Saily eSIM, button "Get eSIM". Or Services → Airalo, button "View Airalo plans". The plan is bought on Saily or Airalo, not in UmrahConnect.
-Restaurants: Services → Restaurants.
-Transport: Services → Transport. Haramain train (Makkah and Madinah stations), SAPTCO, and Uber. Links open the operator or maps.
-Hospitals: Services → Hospitals (Makkah and Madinah hospitals, and pharmacies such as Nahdi).
-Shopping: Services → Shopping (malls and markets near the Haram).
-Agents: Services → Find an Agent. Pick a country, open an agent, then Call, WhatsApp, Email, or Website. Agents book on their own terms. To be listed, an agency emails info@myumrahconnect.com or uses myumrahconnect.com/advertise.
-Bookmarks: Quran Reader, bookmark icon, or the My Bookmarks card. Saved verses need an account.
-Last read: on the Quran list under LAST READ, and on the Home Quran card.
-Notifications: Me → Notifications.
-Language and theme: Me → Settings. Language opens "Choose your preferred language". Dark Mode switches between "Dark theme on" and "Light theme on".
-Account and profile: Me → Profile. Edit name, phone, nationality, gender, and an optional agent code. Change Password is on this screen. Favorites (Me → Favorites) saves hotels and restaurants and needs an account.
-Delete account: Me → Profile → Delete Account. See the how-to below.
-Search: the search icon on Home and on Services.
-AI Guide: the AI button on Home, or Guide → AI Guide.
-Contact in the app: Me → Contact Us. WhatsApp and phone +201222151335, Info info@myumrahconnect.com, Support support@myumrahconnect.com.
-Not in the app: Quran audio, selling packages, taking payments, Hausa, and "Book a Stay" (Coming soon). If a feature is not listed here, it is not available yet.
+Umrah steps (Guide → Umrah Guide). Seven phases with duas, tips and progress: 1 Madinah Visit, 2 Entering Ihram, 3 Arriving in Makkah, 4 Tawaf, 5 Sa'i, 6 Halq / Taqsir, 7 Umrah Complete. Includes Madinah places to visit with hadith references.
+Hajj steps (Guide → Hajj Guide). Nine phases: 1 Preparation & Ihram, 2 Arriving in Makkah, 3 Day of Tarwiyah (Mina), 4 Day of Arafah, 5 Muzdalifah, 6 Day of Eid (Jamarat), 7 Days of Tashreeq, 8 Tawaf Al-Wadaa, 9 Hajj Complete.
+Duas, dhikr and tasbih: Home → Quick Access → Duas. Includes the Tasbih Counter.
+Adhkar: Morning Adhkar and Evening Adhkar.
+Prayer times and Adhan: Home and Guide, based on your location. Voices: Sheikh Abdul Basit Abdus Samad, Sheikh Ahmad Al-Trablsy, Sheikh Mishary Rashid Alafasy (free), plus Qassas, Ali Mulla and Hadrawi (Premium). Fajr uses each sheikh's Fajr Adhan.
+Full Adhan: Android plays the whole Adhan with a Stop button. iPhone allows only 30 seconds per notification sound, so the app plays the whole Adhan in parts, one after another. You may see the notification repeat while it plays; tap Stop Adhan or swipe it away to stop. The first time, the app downloads the parts for your voice (a few MB) while you have internet. Test it in Me → Notifications → Test full Adhan, then lock the phone.
+Quran Reader (Guide → Quran Reader): Mushaf View (page by page) and Verse View (Arabic plus translation). Surah list, search, Go to, Bookmarks, Last read. Mushaf settings drawer: font, text size, reading view.
+Quran audio (free): Guide → Listen to the Quran, or the player on Home. Choose a reciter and play whole surahs. In Verse View tap a verse's play button to hear that verse; it stops after the verse. Audio keeps playing on the lock screen with controls. Download a surah for offline listening with the Download button at the top of the surah in Read mode or in the player.
+Tafsir: in Verse View tap the tafsir button on a verse. Trusted tafsirs per language, for example Ibn Kathir (English, Arabic, Urdu, Turkish, Bengali), Al-Mukhtasar, As-Sa'di, Al-Muyassar (Arabic). French has Al-Mukhtasar. Each surah's tafsir is saved for offline after the first time.
+About this surah: the info button at the top of a surah shows where it was revealed, number of verses and a short introduction.
+Offline Quran: mushaf pages and your language's translation download in the background ("Downloading Quran..." bar on Guide). After that, reading works without internet.
+Qibla: Guide → Qibla Direction. Uses location and the compass.
+Reminders: Me → Notifications. Prayer Adhan on or off per prayer, Morning and Evening Adhkar reminders, Islamic Dates, Al-Kahf and Al-Mulk reminders.
+Hotels: Services → Hotels near the Haram. Switch Makkah / Madinah at the top. Sections: Featured (top hotels next to the Haram, the Clock Tower and next to Al-Masjid an-Nabawi), 5 Star, 4 Star, Budget Friendly (cheaper hotels, some a bit far with a shuttle bus). Walking filters 5, 10, 15 minutes. Search understands words like cheap, 5 star, near, shuttle, clock tower, a brand (Hilton, Mövenpick, Swissotel) or a hotel name, even with small typos. Add trip dates to see Booking.com prices for your dates. Book now finishes on Booking.com; UmrahConnect does not charge you.
+Flights: Services → Aviasales. From, To (Jeddah, Madinah, or another city), Depart, Return, passengers, Search flights. Booking is on Aviasales. Never quote a fare.
+eSIM: Services → Saily eSIM (Get eSIM) or Airalo (View Airalo plans). Bought on their site.
+Restaurants, Transport (Haramain train, SAPTCO, Uber), Hospitals (and pharmacies like Nahdi), Shopping: in Services.
+Agents: Services → Find an Agent → country → agent → Call, WhatsApp, Email, Website. Agents book on their own terms.
+Favorites: Me → Favorites (hotels and restaurants, needs an account).
+Language and theme: Me → Settings.
+Profile and password: Me → Profile.
+AI Guide: AI button on Home, or Guide → AI Guide.
+Contact: Me → Contact Us. WhatsApp and phone +201222151335, info@myumrahconnect.com, support@myumrahconnect.com.
+Not in the app: selling packages, Hausa, "Book a Stay" (Coming soon). If a feature is not listed here, it is not available yet.
+
+FOR TRAVEL AGENCIES
+Agencies can be listed in Find an Agent. Agencies apply and manage their listing at myumrahconnect.com/agents. Do not give agency prices or payment steps in the app; say the details are on the agencies page of the website. Listing goes live after checks. Agents also get an Agency Dashboard in the app (Me → Agency Dashboard) with clients, referral code and bookings. Pilgrims can enter an agent code in Me → Profile.
 
 HOW TO
-Sign up: open the app to the login screen. Tap Create Account. Enter Full name, choose I am (Male or Female), Email, and a password of at least 6 characters. Tap Create Account. You can instead tap Continue with Google, Continue with Apple (iPhone), or Continue with phone when that button is shown.
-Log in: on the login screen stay on Login. Enter Email and Password, then tap Login. Or use Continue with Google, Continue with Apple, or Continue with phone.
-Reset your password: on Login, tap Forgot password?, enter your email, and submit. Enter the code from the email, then set a new password of at least 6 characters. To change it while logged in: Me → Profile → Change Password → Save.
-Change language: Me → Settings → Language → tap a language → it applies immediately. Arabic and Urdu use right-to-left layout.
-Set Adhan voice: Guide → headset button. The sheet is titled Choose Adhan. Voices: Sheikh Abdul Basit Abdus Samad, Sheikh Ahmad Al-Trablsy, Sheikh Mishary Rashid Alafasy. Tap Preview (regular) or the Fajr preview, tap Select, then Done. Fajr uses that sheikh’s Fajr Adhan.
-Set Adhan notifications: Me → Notifications. Turn on Notifications and Prayer Times. Allow notifications if the phone asks. Use Test lock-screen Adhan to check the sound. Morning Adhkar reminder and Evening Adhkar reminder have their own switches; tap the time to change it, then Done. Islamic Dates has its own switch.
-Download the Quran offline: open the app and leave it on a network. The download starts by itself. Watch the bar on the Guide tab until it finishes. Then the Quran can be read offline. There is no separate download button.
-Change the mushaf font: Guide → Quran Reader → open a surah in Mushaf View → menu button. The drawer is Mushaf settings. Under Mushaf font pick Madinah Mushaf style (Recommended), Scheherazade New (Bold weight), Amiri Quran, or Scheherazade New (Classic). Reading View switches Mushaf View and Verse View. Text size uses the minus and plus buttons.
-Find the Qibla: Guide → Qibla Direction. Allow location. Hold the phone flat and turn until the compass lines up with the Kaaba.
-Book a hotel: Services → Hotels near the Haram. Search or filter if you want, open a hotel, tap Book now. If asked, pick a name under Book with. You finish on the partner’s site (usually Booking.com) at their price. UmrahConnect does not take the payment.
-Search flights: Services → Aviasales. Under Find flights set From, To (Jeddah, Madinah, or Other city), Depart, Return if needed, and passengers. Tap Search flights. You finish on Aviasales. Do not quote a fare.
-Get an eSIM: Services → Saily eSIM → Get eSIM, or Services → Airalo → View Airalo plans. Buy the plan on that site before you travel. UmrahConnect does not sell the eSIM.
-Contact an agent: Services → Find an Agent → choose your country → open the agent → Call, WhatsApp, Email, or Website.
-Delete your account: Me → Profile → Delete Account. Choose a reason (Not using it anymore, Privacy concerns, or Found a better app). The account is removed and you return to Login. Or email info@myumrahconnect.com from the same address, subject "Delete My Account". That request is completed within 30 days. Deletion removes name, email, language, Quran progress and bookmarks, agent linkage, and saved preferences. You cannot sign in after that.
+Sign up: login screen → Create Account. Full name, I am (Male or Female), Email, password (at least 6 characters). Or Continue with Google, Apple (iPhone) or phone.
+Log in: Email and Password → Login, or Google / Apple / phone.
+Reset password: Login → Forgot password?, enter email, enter the code, set a new password. While logged in: Me → Profile → Change Password.
+Change language: Me → Settings → Language.
+Set the Adhan voice: Guide → headset button → Choose Adhan → Preview → Select → Done. Premium voices show a lock for free users.
+Get Premium: Me → UmrahConnect Premium → choose Monthly or Yearly → Subscribe → confirm with Apple or Google.
+Restore Premium on a new phone: Me → UmrahConnect Premium → Restore purchases (same Apple ID or Google account), and log in to the same UmrahConnect account.
+Listen to a surah offline: open the surah in Read mode or the player → Download. Downloaded surahs play without internet.
+Read a tafsir: Quran Reader → Verse View → tafsir button on the verse → pick a tafsir at the top if there are several.
+Find the Qibla: Guide → Qibla Direction, allow location, hold the phone flat and turn.
+Book a hotel: Services → Hotels near the Haram → choose Makkah or Madinah → pick a hotel → Book now → finish on Booking.com.
+Delete your account: Me → Profile → Delete Account, choose a reason. Or email info@myumrahconnect.com with subject "Delete My Account" (done within 30 days). Cancel any App Store / Google Play subscription separately in the store.
+
+${hotelKnowledge}
 
 WEBSITE
-https://myumrahconnect.com (also www.myumrahconnect.com).
-Home: what the app is, features, screenshots, how it works, about the developer, and download buttons.
-Also: /hotels, /contact, /advertise (for agencies that want to be listed), /privacy-policy, /terms, /delete-account.
-Emails: info@myumrahconnect.com (general and privacy), support@myumrahconnect.com (support). WhatsApp and phone: +201222151335. Instagram: @umrahconnectapp.
+https://myumrahconnect.com. Home (features, screenshots, download buttons), /account (your account), /agents (for travel agencies), /hotels, /contact, /advertise, /privacy-policy, /terms, /delete-account.
+Emails: info@myumrahconnect.com, support@myumrahconnect.com. WhatsApp and phone: +201222151335. Instagram: @umrahconnectapp.
 
 STORES
 App Store: https://apps.apple.com/app/id6778753426
 Google Play: https://play.google.com/store/apps/details?id=com.myumrahconnect.app
-The app is free. To update, open the App Store or Google Play, find UmrahConnect, and tap Update. There is no update button inside the app.
-To leave a review, open that store page and rate the app. Me → Settings → Share App sends a short message about the app to someone else.
+To update, open the store and tap Update. To review, rate the app on the store (Me → Rate the app).
 
 PRIVACY AND TERMS
-Full privacy policy: https://www.myumrahconnect.com/privacy-policy
-Full terms: https://www.myumrahconnect.com/terms
-Delete-account page: https://www.myumrahconnect.com/delete-account
-In the app: Me → Settings → Privacy Policy or Terms of Service. The same links are on Me → Profile.
-What we collect and why: name, email, and language when you create an account; Quran progress, bookmarks, and preferences so reading can resume; GPS only to calculate prayer times, Qibla, and local weather. We do not store or share location history. We do not sell personal information. Data is stored with Supabase. Google sign-in gives us your name, email, and profile picture, not your Google password.
-Hotel, flight, and eSIM checkout happens on the partner’s site, under that partner’s own terms. Listings can be incomplete or out of date. Prayer times can differ slightly from a local mosque. Religious text is for learning and worship; a personal ruling should go to a qualified scholar. You must be at least 13 to use the app. You are responsible for your login.
+Privacy: https://www.myumrahconnect.com/privacy-policy. Terms: https://www.myumrahconnect.com/terms. In the app: Me → Settings.
+We collect name, email and language for an account; Quran progress, bookmarks and preferences; location only for prayer times, Qibla and weather (no location history). We do not sell personal data. Data is stored with Supabase. In-app purchases are handled by Apple or Google (through RevenueCat); we never see card details.
+Partner bookings happen on the partner's site under their terms. Listings can be out of date. Prayer times can differ slightly from a local mosque. Religious text is for learning and worship; a personal ruling should go to a qualified scholar. You must be at least 13 to use the app.
 `.trim()

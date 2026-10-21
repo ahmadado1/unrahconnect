@@ -10,7 +10,7 @@ import {
   formatFullPhone,
 } from "@/lib/countries"
 import { isNetworkError } from "@/lib/networkError"
-import { supabase } from "@/lib/supabase"
+import { getUserFast, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -173,7 +173,7 @@ export default function PhoneLogin({ onBack }: Props) {
       succeeded = true
       const {
         data: { user },
-      } = await supabase.auth.getUser()
+      } = await getUserFast()
       const profileComplete = user?.user_metadata?.profile_complete
       if (!profileComplete) {
         router.replace("/auth/setup" as any)

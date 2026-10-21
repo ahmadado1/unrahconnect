@@ -1,3 +1,4 @@
+import VerseMenuHost, { type VerseTarget } from "@/app/components/VerseMenuHost"
 import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import IsolatedSurahListenCard from "@/app/components/IsolatedSurahListenCard"
 import MushafFontSizer from "@/app/components/MushafFontSizer"
@@ -72,6 +73,7 @@ function KahfPage({
   pageHeight,
   fontSize,
   header,
+  onVersePress,
 }: {
   pageNumber: number
   fontsLoaded: boolean
@@ -83,6 +85,8 @@ function KahfPage({
   fontSize: number
   /** Shown at the top of the page and scrolls away with it (the "Listen" card) */
   header?: React.ReactNode
+  /** Tap on a verse number → verse menu */
+  onVersePress?: (verseKey: string) => void
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
@@ -223,6 +227,7 @@ function KahfPage({
                       block={block}
                       fontsLoaded={fontsLoaded}
                       fontSize={fontSize}
+                      onVersePress={onVersePress}
                     />
                   )
                 })}
@@ -262,6 +267,8 @@ function KahfPage({
 }
 
 export default function KahfReadingScreen() {
+  // Tap a verse number → play it, tafsir, choose reciter
+  const [verseMenu, setVerseMenu] = useState<VerseTarget | null>(null)
   useKeepAwake()
   const router = useRouter()
   const { theme } = useTheme()
@@ -442,6 +449,7 @@ export default function KahfReadingScreen() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <VerseMenuHost target={verseMenu} onClose={() => setVerseMenu(null)} />
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} hitSlop={12}>
@@ -514,6 +522,10 @@ export default function KahfReadingScreen() {
           <KahfPage
             key={item}
             pageNumber={item}
+            onVersePress={key => {
+              const [s2, a2] = key.split(":").map(Number)
+              if (s2 && a2) setVerseMenu({ surah: s2, ayah: a2, name: "Al-Kahf" })
+            }}
             fontsLoaded={fontsLoaded}
             isLast={item === range.end}
             completed={Boolean(progress?.completed)}

@@ -1,7 +1,7 @@
 import { useAIGuide } from "@/context/AIGuideContext"
 import { useTheme } from "@/context/themeContext"
 import { isNetworkError } from "@/lib/networkError"
-import { getUmrahProgress, supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase"
+import { getUmrahProgress, getUserFast, supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase"
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -641,7 +641,7 @@ export default function AIGuideScreen() {
     const loadContext = async () => {
       try {
         const [{ data: authData }, completedIds] = await Promise.all([
-          supabase.auth.getUser(),
+          getUserFast(),
           getUmrahProgress(),
         ])
 

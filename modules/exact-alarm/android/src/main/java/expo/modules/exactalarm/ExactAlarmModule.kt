@@ -46,6 +46,14 @@ class ExactAlarmModule : Module() {
       AdhanService.isPlaying
     }
 
+    // ─── Prayer widget (home screen) ─────────────────────────────────────
+    /** json = { premium, city, prayers: [{ n, at (ms) }], labels: { next, premium, open } } */
+    Function("setPrayerWidgetData") { json: String ->
+      val context = appContext.reactContext ?: return@Function false
+      PrayerWidget.save(context, json)
+      true
+    }
+
     Function("openExactAlarmSettings") {
       val activity = appContext.currentActivity
       val context = activity ?: appContext.reactContext ?: return@Function false

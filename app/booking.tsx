@@ -20,7 +20,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PhoneInput from "./components/PhoneInput";
 import { isNetworkError } from "@/lib/networkError";
-import { supabase } from "../lib/supabase";
+import { getUserFast, supabase } from "../lib/supabase";
 async function sendBookingEmail(params: Record<string, string | number>) {
   const response = await fetch(
     "https://yqabuipymbaylholmmoi.supabase.co/functions/v1/send-booking-email",
@@ -97,20 +97,20 @@ export default function BookingScreen() {
 
   const handleBooking = async () => {
     if (!checkIn || !checkOut || !phone) {
-      Alert.alert("Missing Info", "Please fill in check in, check out and phone number")
+      Alert.alert(t("ui_missingInfo"), t("ui_missingInfoBody"))
       return
     }
     const bookingNights = Math.ceil(
       (new Date(`${checkOut}T12:00:00`).getTime() - new Date(`${checkIn}T12:00:00`).getTime()) / (1000 * 60 * 60 * 24)
     )
-    if (bookingNights <= 0) { Alert.alert("Invalid Dates", "Check out must be after check in"); return }
+    if (bookingNights <= 0) { Alert.alert(t("ui_invalidDates"), t("ui_invalidDatesBody")); return }
 
     setShowPicker(null)
     setLoading(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { Alert.alert("Sign in required", "Please log in to complete your booking."); return }
+      const { data: { user } } = await getUserFast()
+      if (!user) { Alert.alert(t("ui_signInRequired"), t("ui_signInToBook")); return }
 
       const { error: dbError } = await supabase.from("bookings").insert({
         user_id: user?.id, hotel_name: hotelName, hotel_city: hotelCity,

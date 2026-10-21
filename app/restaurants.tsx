@@ -12,7 +12,7 @@ import {
   type Restaurant,
 } from "@/lib/restaurants"
 import { IMAGE_PLACEHOLDER } from "@/lib/restaurantImages"
-import { supabase, toggleFavorite } from "@/lib/supabase"
+import { getUserFast, supabase, toggleFavorite } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -44,7 +44,7 @@ export default function RestaurantsScreen() {
   const loadFavoriteRestaurants = async () => {
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await getUserFast()
     if (!user) {
       setFavoriteRestaurantIds(new Set())
       return

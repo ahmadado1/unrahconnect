@@ -31,8 +31,12 @@
       },
       "usesAppleSignIn": true,
       "entitlements": {
-        "com.apple.developer.usernotifications.time-sensitive": true
-      }
+        "com.apple.developer.usernotifications.time-sensitive": true,
+        "com.apple.security.application-groups": [
+          "group.com.umrahconnect.app"
+        ]
+      },
+      "appleTeamId": "ZLD82LL339"
     },
     "android": {
       "adaptiveIcon": {
@@ -178,7 +182,8 @@
           "cameraPermission": "UmrahConnect uses the camera to scan your travel agent's QR code.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,

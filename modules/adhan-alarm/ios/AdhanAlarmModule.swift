@@ -4,6 +4,9 @@
 // On older iOS every function says "not available" and the app keeps the 30-second notification sound.
 import ExpoModulesCore
 import Foundation
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 #if canImport(AlarmKit)
 import AlarmKit
 import ActivityKit
@@ -22,6 +25,19 @@ private let idsKey = "umrahconnect_adhan_alarm_ids"
 public class AdhanAlarmModule: Module {
   public func definition() -> ModuleDefinition {
     Name("AdhanAlarm")
+
+    /// Prayer widget (home screen / lock screen): save the next prayers in the shared App Group
+    /// and ask iOS to redraw the widget. json = { premium, city, prayers: [{ n, at }], labels }.
+    Function("setPrayerWidgetData") { (json: String) -> Bool in
+      guard let defaults = UserDefaults(suiteName: "group.com.umrahconnect.app") else { return false }
+      defaults.set(json, forKey: "uc_prayer_widget")
+      #if canImport(WidgetKit)
+      if #available(iOS 14.0, *) {
+        WidgetCenter.shared.reloadAllTimelines()
+      }
+      #endif
+      return true
+    }
 
     /// True on iOS 26+ (AlarmKit exists).
     Function("isAvailable") { () -> Bool in

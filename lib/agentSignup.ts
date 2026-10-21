@@ -1,6 +1,6 @@
 // Agent sign-up from the app. Writes the same agents row as the website's Agent signup,
 // then asks the website to send the "Application received" email (with the link to upload documents).
-import { supabase } from "./supabase"
+import { getUserFast, supabase } from "./supabase"
 
 const SITE_URL = "https://myumrahconnect.com"
 
@@ -26,7 +26,7 @@ function citiesToList(value: string) {
 
 /** Creates (or updates) the signed-in user's agency. Status stays "pending" until the admin verifies it. */
 export async function submitAgentApplication(values: AgentApplication) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   if (!user) throw new Error("Not signed in")
 
   const payload = {

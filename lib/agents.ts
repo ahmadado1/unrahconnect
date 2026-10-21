@@ -2,7 +2,7 @@
  * The country directory on Find an Agent stays in lib/travelAgents.ts.
  */
 
-import { supabase } from "@/lib/supabase"
+import { getUserFast, supabase } from "@/lib/supabase"
 
 export type AgentStatus = "pending" | "active" | "expired" | "suspended"
 export type AgentPlan = "listed" | "featured"
@@ -115,7 +115,7 @@ function mapProfile(row: Record<string, unknown>): AgentProfile {
 }
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getUserFast()
   return user?.id ?? null
 }
 

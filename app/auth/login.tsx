@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isExpoGo } from "../../lib/runtime";
-import { supabase, supabaseAnonKey, supabaseUrl } from "../../lib/supabase";
+import { getUserFast, supabase, supabaseAnonKey, supabaseUrl } from "../../lib/supabase";
 import AppButton from "../components/AppButton";
 import PhoneLogin from "../components/PhoneLogin";
 import SelectDropdown from "../components/SelectDropdown";
@@ -198,7 +198,7 @@ export default function LoginScreen() {
         return
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       const profileComplete = user?.user_metadata?.profile_complete
       if (!profileComplete) {
         sendWelcomeEmail(user?.user_metadata?.full_name || "Pilgrim", user?.email || "")
@@ -251,7 +251,7 @@ export default function LoginScreen() {
 
       const {
         data: { user: signedInUser },
-      } = await supabase.auth.getUser()
+      } = await getUserFast()
       const existingName = (signedInUser?.user_metadata?.full_name || "").trim()
       if (appleFullName && !existingName) {
         await supabase.auth.updateUser({ data: { full_name: appleFullName } }).catch(e =>
@@ -261,7 +261,7 @@ export default function LoginScreen() {
 
       const {
         data: { user },
-      } = await supabase.auth.getUser()
+      } = await getUserFast()
       const profileComplete = user?.user_metadata?.profile_complete
       const resolvedName = user?.user_metadata?.full_name || appleFullName || "Pilgrim"
 

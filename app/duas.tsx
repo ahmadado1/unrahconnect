@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { AppIcon, AppIconKey, getIconColor, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
@@ -425,8 +426,8 @@ export default function DuasScreen() {
           <Ionicons name="chevron-back" size={22} color="#fff" />
           <Text style={styles.backText}>Home</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Duas & Zikr</Text>
-        <Text style={styles.subtitle}>Supplications & remembrance</Text>
+        <Text style={styles.title}>{i18n.t("duasZikr")}</Text>
+        <Text style={styles.subtitle}>{i18n.t("duasSubtitle")}</Text>
 
         <TasbihCounter />
 

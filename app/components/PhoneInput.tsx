@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useTheme } from "@/context/themeContext"
 import {
   COUNTRY_DIALS,
@@ -151,7 +152,7 @@ export default function PhoneInput({
           ]}
         >
           <View style={styles.handle} />
-          <Text style={[styles.sheetTitle, { color: theme.text }]}>Country code</Text>
+          <Text style={[styles.sheetTitle, { color: theme.text }]}>{i18n.t("countryCode")}</Text>
 
           <View
             style={[

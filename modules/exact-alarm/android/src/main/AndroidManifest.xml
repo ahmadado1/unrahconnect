@@ -21,5 +21,19 @@
         <action android:name="android.intent.action.QUICKBOOT_POWERON" />
       </intent-filter>
     </receiver>
+
+    <!-- Home-screen prayer widget: next prayer with a countdown (Premium). -->
+    <receiver
+      android:name="expo.modules.exactalarm.PrayerWidget"
+      android:label="Prayer times"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="expo.modules.exactalarm.PRAYER_WIDGET_REFRESH" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/uc_prayer_widget_info" />
+    </receiver>
   </application>
 </manifest>

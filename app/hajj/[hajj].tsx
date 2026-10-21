@@ -6,7 +6,7 @@ import { useTheme } from "@/context/themeContext"
 import phaseStructure from "@/app/data/phaseStructure.json"
 import { resolvePhase } from "@/lib/resolvePhase"
 import { considerStoreReview } from "@/lib/storeReviewPrompt"
-import { getHajjProgress, markHajjPhaseComplete, supabase } from "@/lib/supabase"
+import { getHajjProgress, markHajjPhaseComplete, getUserFast, supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -63,7 +63,7 @@ export default function HajjPhaseDetailScreen() {
     const checkProgress = async () => {
       const progress = await getHajjProgress()
       setIsCompleted(progress.includes(phaseId ?? ""))
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await getUserFast()
       if (user) setGender(user.user_metadata?.gender || "male")
     }
     checkProgress()

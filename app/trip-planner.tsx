@@ -1,3 +1,5 @@
+import { markFeatureSeen } from "@/lib/premiumNew"
+import PremiumUpsellCard from "@/app/components/PremiumUpsellCard"
 // Trip Planner (Premium). Unlocks on Home after the UmrahConnect guide is finished.
 //   1. Trip dates  → countdown ("12 days to go" / "Day 3 of your trip")
 //   2. Your stay   → nights in Makkah and Madinah, and which city comes first
@@ -30,6 +32,10 @@ const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 
 export default function TripPlannerScreen() {
+  // Opened: stop the "New" glow of this Premium feature.
+  useEffect(() => {
+    void markFeatureSeen("trip")
+  }, [])
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
@@ -148,7 +154,7 @@ export default function TripPlannerScreen() {
       </View>
 
       {!isPremium ? (
-        <Text style={[styles.locked, { color: theme.textSecondary }]}>{t("premiumFeatureBody")}</Text>
+        <PremiumUpsellCard variant="locked" />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
           {/* 1. Dates */}

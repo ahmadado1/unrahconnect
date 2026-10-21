@@ -28,7 +28,9 @@ import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribe
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile, resolveAdhanId } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
+import NewGlow from "@/app/components/NewGlow"
 import { usePremium } from "@/lib/premium"
+import { markFeatureSeen } from "@/lib/premiumNew"
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
@@ -210,7 +212,10 @@ export default function GuideScreen() {
               {/* Adhan picker button */}
               <TouchableOpacity
                 style={styles.adhanBtn}
-                onPress={() => setAdhanPickerOpen(true)}
+                onPress={() => {
+                  void markFeatureSeen("voices")
+                  setAdhanPickerOpen(true)
+                }}
               >
                 <Ionicons name="headset-outline" size={20} color="#C9A84C" />
               </TouchableOpacity>
@@ -266,6 +271,48 @@ export default function GuideScreen() {
             </View>
             <Ionicons name="chevron-forward" size={22} color={theme.gold} />
           </TouchableOpacity>
+
+          {/* Premium only: Makkah companion and Miqat alert (free users see them described on the Premium screen) */}
+          {premium.isPremium ? (
+            <>
+              <NewGlow id="companion" style={{ marginBottom: 0 }}>
+                <TouchableOpacity
+                  style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                  onPress={() => {
+                    void markFeatureSeen("companion")
+                    router.push("/makkah-companion" as any)
+                  }}
+                >
+                  <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+                    <AppIcon name="kaaba" size={26} />
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>{t("mkTitle")}</Text>
+                    <Text style={styles.cardSub}>{t("mkGuideSub")}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+                </TouchableOpacity>
+              </NewGlow>
+              <NewGlow id="miqat">
+                <TouchableOpacity
+                  style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                  onPress={() => {
+                    void markFeatureSeen("miqat")
+                    router.push("/miqat-alert" as any)
+                  }}
+                >
+                  <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+                    <Ionicons name="airplane" size={26} color={GOLD} />
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>{t("mqTitle")}</Text>
+                    <Text style={styles.cardSub}>{t("mqGuideSub")}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+                </TouchableOpacity>
+              </NewGlow>
+            </>
+          ) : null}
 
           {/* Listen to the Quran: opens the reciter / surah screen */}
           <TouchableOpacity
@@ -336,8 +383,8 @@ export default function GuideScreen() {
               <AppIcon name="sparkles" size={28}  />
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>AI Guide</Text>
-              <Text style={styles.cardSub}>Ask anything</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("ui_aiGuide")}</Text>
+              <Text style={styles.cardSub}>{t("ui_askAnything")}</Text>
               <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
                 Umrah, Hajj, Haram navigation & app help
               </Text>

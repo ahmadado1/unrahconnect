@@ -13,6 +13,7 @@ type AdhanAlarmNative = {
   installSound?: (source: string, name: string) => boolean
   hasNotificationSound?: (name: string) => boolean
   removeSounds?: (prefix: string) => number
+  setPrayerWidgetData?: (json: string) => boolean
 }
 
 let cached: AdhanAlarmNative | null | undefined
@@ -119,5 +120,14 @@ export function removeIosSounds(prefix: string): number {
     return native()?.removeSounds?.(prefix) ?? 0
   } catch {
     return 0
+  }
+}
+
+/** Prayer widget data (iPhone): saved in the App Group the widget reads. */
+export function setIosPrayerWidgetData(json: string): boolean {
+  try {
+    return native()?.setPrayerWidgetData?.(json) === true
+  } catch {
+    return false
   }
 }

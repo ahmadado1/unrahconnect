@@ -1,3 +1,4 @@
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import i18n from "@/i18n"
 import {
   MUSHAF_FONT_PREVIEW,
@@ -11,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
-  Alert,
   BackHandler,
   I18nManager,
   Pressable,
@@ -366,7 +366,7 @@ export function MushafFontSection({
                 locked={font.premium && !isPremium}
                 onPress={() => {
                   if (font.premium && !isPremium) {
-                    Alert.alert(t("premiumFeature"), t("premiumFeatureBody"))
+                    showPremiumPrompt()
                     return
                   }
                   onSelect(font.id)

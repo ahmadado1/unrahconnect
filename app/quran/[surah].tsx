@@ -1,5 +1,9 @@
 import SurahAudioDownload from "@/app/components/SurahAudioDownload"
 import SurahInfoSheet from "@/app/components/SurahInfoSheet"
+import MushafVerseMenu from "@/app/components/MushafVerseMenu"
+import QuranGoalSheet from "@/app/components/QuranGoalSheet"
+import { markPagesRead } from "@/lib/quranGoals"
+import { surahPageRange } from "@/lib/quranPages"
 import TafsirSheet from "@/app/components/TafsirSheet"
 import MushafFittedLine, { MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
@@ -32,7 +36,7 @@ import {
 import { AL_KAHF_SURAH_NUMBER } from "@/lib/alKahfWindow"
 import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
 import { KAHF_AYAH_COUNT, saveKahfWeeklyProgress } from "@/lib/kahfWeekly"
-import { scheduleAlKahfReminder, scheduleAlMulkReminder } from "@/lib/notifications"
+import { scheduleAlKahfReminder, scheduleAlMulkReminder, scheduleQuranGoalReminders } from "@/lib/notifications"
 import { recordQuranLastRead } from "@/lib/quranLastRead"
 import { getSurahMeta } from "@/lib/quranSurahMeta"
 import { useFonts } from "@expo-google-fonts/scheherazade-new"
@@ -43,7 +47,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter, Stack } from "expo-rou
 import { StatusBar } from "expo-status-bar"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, AppState, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, Alert, AppState, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
@@ -73,6 +77,7 @@ import {
 } from "../../lib/quranPageCache"
 import {
   fetchAndCacheSurah,
+  ensureQpcText,
   normalizeReadLanguage,
   peekCachedSurah,
   readSurahOfflineFirst,
@@ -93,6 +98,8 @@ type Verse = {
   text: string
   translation: string
   page: number
+  /** KFGQPC Hafs text (same as the Mushaf mode); Read mode uses it with the KFGQPC font */
+  qpc?: string
 }
 
 // MushafVerse and MushafPageData imported from lib/quranPageCache
@@ -212,6 +219,7 @@ function MushafTextFlow({
   verseAnchorRef,
   onParagraphSettled,
   onAnchorLayout,
+  onVersePress,
 }: {
   blocks: MushafBlock[]
   fontsLoaded: boolean
@@ -226,6 +234,7 @@ function MushafTextFlow({
   verseAnchorRef?: { current: View | null }
   onParagraphSettled: (blockKey: string) => void
   onAnchorLayout?: () => void
+  onVersePress?: (verseKey: string) => void
 }) {
   return (
     <View style={mStyles.textFlow}>
@@ -269,6 +278,7 @@ function MushafTextFlow({
             highlighted={isVerseAnchor && verseHighlighted}
             onSettled={() => onParagraphSettled(block.key)}
             onAnchorLayout={isVerseAnchor ? onAnchorLayout : undefined}
+            onVersePress={onVersePress}
           />
         )
       })}
@@ -287,6 +297,7 @@ function MushafPageContent({
   mushafFont,
   surahEndKey,
   onSurahEndReady,
+  onVersePress,
 }: {
   pageNumber: number
   fontsLoaded: boolean
@@ -300,6 +311,7 @@ function MushafPageContent({
   /** `surah:ayah` of the last ayah. Set only on the page currently on screen. */
   surahEndKey?: string
   onSurahEndReady?: () => void
+  onVersePress?: (verseKey: string) => void
 }) {
   const { t } = useTranslation()
   const [pageData, setPageData] = useState<MushafPageData | null>(null)
@@ -527,6 +539,7 @@ function MushafPageContent({
                 verseAnchorRef={verseKey ? anchorRef : undefined}
                 onParagraphSettled={onParagraphSettled}
                 onAnchorLayout={() => alignRef.current()}
+                onVersePress={onVersePress}
               />
 
               <View style={mStyles.ornamentBottom}>
@@ -558,6 +571,8 @@ function MushafView({
   mushafFont,
   surahEndKey,
   onSurahEndReady,
+  onVersePress,
+  onOpenGoal,
 }: {
   currentPage: number
   setCurrentPage: (p: number) => void
@@ -573,6 +588,9 @@ function MushafView({
   mushafFont: MushafFontConfig
   surahEndKey?: string
   onSurahEndReady?: () => void
+  /** Tap on a verse number: surah, ayah and the surah's name. */
+  onVersePress?: (surah: number, ayah: number, surahName: string) => void
+  onOpenGoal?: () => void
 }) {
   const { t } = useTranslation()
   const flatListRef = useRef<GestureFlatList<number>>(null)
@@ -656,6 +674,11 @@ function MushafView({
         </TouchableOpacity>
 
         <View style={mStyles.mushafHeaderActions}>
+          {onOpenGoal ? (
+            <TouchableOpacity onPress={onOpenGoal} style={[mStyles.mushafToggleBtn, mStyles.mushafMenuBtn]} accessibilityLabel={t("qgTitle")}>
+              <Ionicons name="flag-outline" size={17} color="#C9A84C" />
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             onPress={() => setJumpOpen(true)}
             style={mStyles.mushafToggleBtn}
@@ -725,6 +748,14 @@ function MushafView({
             mushafFont={mushafFont}
             surahEndKey={item === currentPage ? surahEndKey : undefined}
             onSurahEndReady={item === currentPage ? onSurahEndReady : undefined}
+            onVersePress={
+              onVersePress
+                ? key => {
+                    const [s2, a2] = key.split(":").map(Number)
+                    if (s2 && a2) onVersePress(s2, a2, surahNames[s2] ?? "")
+                  }
+                : undefined
+            }
           />
         )}
         onScrollToIndexFailed={info => {
@@ -776,6 +807,8 @@ type VerseRowProps = {
   isPlaying: boolean
   isBookmarked: boolean
   arabicStyle: any
+  /** Text to show (KFGQPC text when the Mushaf font is on, else the normal text) */
+  arabicText: string
   cardColor: string
   borderColor: string
   gold: string
@@ -794,6 +827,7 @@ const VerseRow = memo(function VerseRow({
   isPlaying,
   isBookmarked,
   arabicStyle,
+  arabicText,
   cardColor,
   borderColor,
   gold,
@@ -828,7 +862,7 @@ const VerseRow = memo(function VerseRow({
           </TouchableOpacity>
         </View>
       </View>
-      <Text style={arabicStyle}>{verse.text}</Text>
+      <Text style={arabicStyle}>{arabicText}</Text>
       {verse.translation ? (
         <>
           <View style={styles.verseDivider} />
@@ -848,7 +882,7 @@ export default function SurahScreen() {
   const [scrollToVerseIndex, setScrollToVerseIndex] = useState<number | null>(null)
   const listRef = useRef<FlatList>(null)
   const didScrollForSurahRef = useRef<string | null>(null)
-  const { surah, name, arabicName, verses, type, resume, ayah, mode, expand, jump } = useLocalSearchParams<{
+  const { surah, name, arabicName, verses, type, resume, ayah, mode, expand, jump, page: pageParam } = useLocalSearchParams<{
     surah: string
     name: string
     arabicName: string
@@ -859,6 +893,8 @@ export default function SurahScreen() {
     mode?: string
     expand?: string
     jump?: string
+    /** Open at this Mushaf page (from the Quran goal: next unread page) */
+    page?: string
   }>()
   const shouldResume = resume === "1"
   const requestedAyah = ayah ? Number(ayah) : NaN
@@ -889,7 +925,29 @@ export default function SurahScreen() {
   }
   const [visibleVerseNumber, setVisibleVerseNumber] = useState(1)
   // Tafsir sheet (verse number) and "About this surah" sheet
-  const [tafsirAyah, setTafsirAyah] = useState<number | null>(null)
+  // Tafsir sheet: which verse (can be another surah when opened from a Mushaf page).
+  const [tafsirTarget, setTafsirTarget] = useState<{ surah: number; ayah: number; name: string } | null>(null)
+  // Menu after tapping a verse number in Mushaf mode.
+  const [verseMenu, setVerseMenu] = useState<{ surah: number; ayah: number; name: string } | null>(null)
+  const [goalOpen, setGoalOpen] = useState(false)
+
+  // ─── Quran goal: count the pages read (Mushaf pages; verses know their page) ───
+  const goalQueueRef = useRef<Set<number>>(new Set())
+  const goalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const queueGoalPages = useCallback((pages: number[]) => {
+    for (const p of pages) if (Number.isInteger(p) && p > 0) goalQueueRef.current.add(p)
+    if (goalTimerRef.current) clearTimeout(goalTimerRef.current)
+    goalTimerRef.current = setTimeout(() => {
+      const batch = [...goalQueueRef.current]
+      goalQueueRef.current.clear()
+      if (!batch.length) return
+      void markPagesRead(batch).then(({ goal, justFinished }) => {
+        if (!goal) return
+        void scheduleQuranGoalReminders()
+        if (justFinished) Alert.alert(t("qgDoneTitle"), t("qgDoneBody"))
+      })
+    }, 1500)
+  }, [t])
   const [surahInfoOpen, setSurahInfoOpen] = useState(false)
 
   const initialLang = normalizeReadLanguage(i18n.language)
@@ -1239,10 +1297,22 @@ export default function SurahScreen() {
 
   const applyLoadedVerses = async (loaded: Verse[], requestId: number) => {
     setVerseList(loaded)
+    // Add the Mushaf (KFGQPC) text in the background if this surah doesn't have it yet.
+    if (loaded.length && !loaded.every(v => v.qpc)) {
+      void ensureQpcText(Number(surah), normalizeReadLanguage(i18n.language), loaded).then(withQpc => {
+        if (loadRequestRef.current === requestId && withQpc !== loaded) setVerseList(withQpc)
+      })
+    }
     setLoading(false)
     void fetchBookmarks()
 
-    const target = await resolveScrollTarget(loaded)
+    let target = await resolveScrollTarget(loaded)
+    // Opened from a Quran goal: start at the first verse of that page.
+    const wantPage = Number(pageParam)
+    if (Number.isFinite(wantPage) && wantPage > 0) {
+      const idx = loaded.findIndex(v => v.page >= wantPage)
+      if (idx >= 0) target = idx
+    }
     if (loadRequestRef.current !== requestId) return
     const page = loaded[target]?.page || loaded[0]?.page || 1
     setCurrentPage(page)
@@ -1440,6 +1510,23 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
   const playLabel = t("qaPlayVerse")
   const tafsirLabel = t("tafsirTitle")
 
+  // Read mode with the Madinah (KFGQPC) Mushaf font: use the same text and font as the Mushaf
+  // page, so letters and marks look exactly the same. Other fonts keep the normal text.
+  const useQpcHere = mushafFont.textField === "text_qpc_hafs"
+  const qpcMetrics = mushafFontMetrics(mushafFont, fontSize - 2)
+  const qpcArabicStyle = useMemo(
+    () => [
+      styles.verseArabic,
+      { color: verseTextStyle.color },
+      fontsLoaded && {
+        fontFamily: mushafFont.family,
+        fontSize: qpcMetrics.fontSize,
+        lineHeight: Math.round(qpcMetrics.fontSize * Math.max(1.9, mushafFont.lineHeight)),
+      },
+    ],
+    [fontsLoaded, verseTextStyle.color, mushafFont.family, mushafFont.lineHeight, qpcMetrics.fontSize]
+  )
+
   // Which verses are on screen (stable function: FlatList must not get a new one each render).
   const viewableRef = useRef<(items: any[]) => void>(() => {})
   useEffect(() => {
@@ -1449,12 +1536,31 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       const last = viewableItems[viewableItems.length - 1]?.item
       if (first?.number) setVisibleVerseNumber(prev => (prev === first.number ? prev : first.number))
       if (last?.number) saveProgress(last.number)
+      // Quran goal: the pages of the verses on screen count as read.
+      queueGoalPages(viewableItems.map(v => Number(v.item?.page)))
       const ayahCount = Number(verses)
-      if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) armSurahReview()
-      else disarmSurahReview()
+      if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) {
+        armSurahReview()
+        // Reached the end of the surah: all its pages are read.
+        const range = surahPageRange(Number(surah))
+        queueGoalPages(Array.from({ length: range.end - range.start + 1 }, (_, i) => range.start + i))
+      } else disarmSurahReview()
     }
   })
   const handleViewableItems = useCallback(({ viewableItems }: { viewableItems: any[] }) => viewableRef.current(viewableItems), [])
+
+  // Stable (VerseRow is memoized): open the tafsir of a verse of this surah.
+  const openTafsirHere = useCallback(
+    (ayahNumber: number) => setTafsirTarget({ surah: Number(surah), ayah: ayahNumber, name: String(name || "") }),
+    [surah, name]
+  )
+
+  // Quran goal in Mushaf mode: a page counts as read after 6 seconds on screen.
+  useEffect(() => {
+    if (viewMode !== "mushaf" || !currentPage) return
+    const timer = setTimeout(() => queueGoalPages([currentPage]), 6000)
+    return () => clearTimeout(timer)
+  }, [viewMode, currentPage, queueGoalPages])
 
   const renderVerse = ({ item }: { item: Verse }) => {
     const isCurrent = playingHere && playback.ayah === item.number
@@ -1465,7 +1571,8 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         isLoading={isCurrent && playback.loading}
         isPlaying={isCurrent && playback.playing}
         isBookmarked={bookmarked.has(item.number)}
-        arabicStyle={verseArabicStyle}
+        arabicStyle={useQpcHere && item.qpc ? qpcArabicStyle : verseArabicStyle}
+        arabicText={useQpcHere && item.qpc ? item.qpc : item.text}
         cardColor={theme.card}
         borderColor={theme.border}
         gold={theme.gold}
@@ -1473,7 +1580,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         playLabel={playLabel}
         onPlay={handleVersePlay}
         onBookmark={handleBookmark}
-        onTafsir={setTafsirAyah}
+        onTafsir={openTafsirHere}
         tafsirLabel={tafsirLabel}
       />
     )
@@ -1519,6 +1626,8 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         mushafFont={mushafFont}
         surahEndKey={Number(verses) > 0 ? `${surah}:${verses}` : undefined}
         onSurahEndReady={armSurahReview}
+        onOpenGoal={() => setGoalOpen(true)}
+        onVersePress={(s2, a2, n2) => setVerseMenu({ surah: s2, ayah: a2, name: n2 || (s2 === surahNumber ? String(name || "") : "") })}
       />
     ) : (
       <>
@@ -1529,6 +1638,9 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               <Text style={styles.backText}>{t("quran")}</Text>
             </TouchableOpacity>
             <View style={styles.headerTopActions}>
+              <TouchableOpacity onPress={() => setGoalOpen(true)} style={styles.jumpBtn} accessibilityLabel={t("qgTitle")}>
+                <Ionicons name="flag-outline" size={18} color="#C9A84C" />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSurahInfoOpen(true)}
                 style={styles.jumpBtn}
@@ -1682,11 +1794,54 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     ) : null}
   </Reanimated.View>
   <TafsirSheet
-    visible={tafsirAyah !== null}
-    surah={surahNumber}
-    ayah={tafsirAyah ?? 1}
-    surahName={String(name || "")}
-    onClose={() => setTafsirAyah(null)}
+    visible={tafsirTarget !== null}
+    surah={tafsirTarget?.surah ?? surahNumber}
+    ayah={tafsirTarget?.ayah ?? 1}
+    surahName={tafsirTarget?.name ?? String(name || "")}
+    onClose={() => setTafsirTarget(null)}
+  />
+  <QuranGoalSheet visible={goalOpen} onClose={() => setGoalOpen(false)} surah={surahNumber} page={currentPage} />
+  <MushafVerseMenu
+    target={verseMenu}
+    onClose={() => setVerseMenu(null)}
+    isPlayingThis={Boolean(
+      verseMenu && playback.kind === "verse" && playback.surah === verseMenu.surah && playback.ayah === verseMenu.ayah && playback.playing
+    )}
+    isBookmarked={Boolean(verseMenu && verseMenu.surah === surahNumber && bookmarked.has(verseMenu.ayah))}
+    canBookmark={Boolean(verseMenu && verseMenu.surah === surahNumber)}
+    onPlay={() => {
+      const v = verseMenu
+      if (!v) return
+      setVerseMenu(null)
+      if (playback.kind === "verse" && playback.surah === v.surah && playback.ayah === v.ayah) {
+        if (playback.playing) pauseQuran()
+        else resumeQuran()
+        return
+      }
+      void playVerse({
+        surah: v.surah,
+        ayah: v.ayah,
+        lastAyah: v.surah === surahNumber ? Number(verses) || v.ayah : v.ayah,
+        reciter: getVerseReciter(reciterId),
+        continuous: false,
+        title: v.name || String(name || ""),
+      })
+    }}
+    onTafsir={() => {
+      const v = verseMenu
+      setVerseMenu(null)
+      if (v) setTimeout(() => setTafsirTarget(v), 250)
+    }}
+    onBookmark={() => {
+      const v = verseMenu
+      setVerseMenu(null)
+      const verse = v ? verseList.find(item => item.number === v.ayah) : undefined
+      if (verse) void toggleBookmark(verse)
+    }}
+    onReciter={() => {
+      setVerseMenu(null)
+      setTimeout(() => setReciterPickerOpen(true), 250)
+    }}
   />
   <SurahInfoSheet visible={surahInfoOpen} surah={surahNumber} onClose={() => setSurahInfoOpen(false)} />
   <VerseReciterPicker

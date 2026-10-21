@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
+// Gesture-handler Pressable: the Mushaf pages sit in a gesture-handler pager (swipe between
+// pages), where the normal React Native Pressable often loses the tap to the swipe.
+import { Pressable } from "react-native-gesture-handler"
 import { toArabicIndic } from "../../lib/mushafFontSize"
 import {
   mushafFontMetrics,
@@ -21,6 +24,12 @@ export const MUSHAF_INK = {
   color: "#0E1C33",
   fontWeight: "400" as const,
 }
+
+/**
+ * Tap a verse number → verse menu. Switched OFF for now: taps were unreliable inside the
+ * page-swipe view. The code stays; set to true to try it again.
+ */
+const VERSE_MENU_ENABLED = false
 
 function markerMetrics(verseNumber: number, fontSize: number) {
   const digitSize = Math.max(13, Math.round(fontSize * 0.5))
@@ -48,6 +57,7 @@ export default function MushafFittedLine({
   highlighted = false,
   onSettled,
   onAnchorLayout,
+  onVersePress,
 }: {
   block: ParagraphBlock
   fontsLoaded: boolean
@@ -62,6 +72,8 @@ export default function MushafFittedLine({
   onSettled?: () => void
   /** Fires when the first line of anchorVerseKey is laid out. */
   onAnchorLayout?: () => void
+  /** Tap on a verse-end number: "surah:ayah" (opens the verse menu: play, tafsir, bookmark). */
+  onVersePress?: (verseKey: string) => void
 }) {
   const { fontSize: wordSize, lineHeight } = mushafFontMetrics(mushafFont, fontSize)
   const gap = Math.max(4, Math.round(fontSize * 0.16))
@@ -138,18 +150,35 @@ export default function MushafFittedLine({
     }
 
     const marker = markerMetrics(piece.verseNumber, fontSize)
+    const badgeStyle = [
+      styles.verseEndBadge,
+      { width: marker.width, height: marker.height, borderRadius: marker.height / 2 },
+    ]
+    const label = (
+      <Text style={[styles.verseEndText, { fontSize: marker.digitSize, fontFamily: MUSHAF_FONT_BOLD }]}>
+        {marker.label}
+      </Text>
+    )
+    // Measuring pass (hidden) and pages without a menu: plain badge.
+    if (measure || !onVersePress || !VERSE_MENU_ENABLED) {
+      return (
+        <View key={piece.key} style={badgeStyle}>
+          {label}
+        </View>
+      )
+    }
+    const verseKey = piece.key.replace(/-end$/, "")
     return (
-      <View
+      <Pressable
         key={piece.key}
-        style={[
-          styles.verseEndBadge,
-          { width: marker.width, height: marker.height, borderRadius: marker.height / 2 },
-        ]}
+        onPress={() => onVersePress(verseKey)}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={verseKey}
+        style={({ pressed }) => [badgeStyle, pressed && styles.verseEndPressed]}
       >
-        <Text style={[styles.verseEndText, { fontSize: marker.digitSize, fontFamily: MUSHAF_FONT_BOLD }]}>
-          {marker.label}
-        </Text>
-      </View>
+        {label}
+      </Pressable>
     )
   }
 
@@ -242,6 +271,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F5EDD6",
     flexShrink: 0,
+  },
+  verseEndPressed: {
+    backgroundColor: "#E8D5A3",
+    transform: [{ scale: 0.92 }],
   },
   verseEndText: {
     color: "#1A1A1A",
