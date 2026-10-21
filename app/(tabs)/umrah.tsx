@@ -57,7 +57,7 @@ export default function GuideScreen() {
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
-    prefetchHeroSource(require("../../assets/images/image56.png"))
+    prefetchHeroSource(require("../../assets/images/image56.jpg"))
     AsyncStorage.getItem("selected_adhan").then(id => {
       if (!id) return
       const resolved = resolveAdhanId(id)
@@ -194,7 +194,7 @@ export default function GuideScreen() {
       >
 
         <HeroBackground
-          source={require("../../assets/images/image56.png")}
+          source={require("../../assets/images/image56.jpg")}
           style={styles.heroArea}
           imageStyle={styles.heroImage}
         >
