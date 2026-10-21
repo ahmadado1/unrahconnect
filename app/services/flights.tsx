@@ -1,8 +1,10 @@
 import FindFlightsCard from "@/app/components/FindFlightsCard"
+import KayakFlightsCard from "@/app/components/KayakFlightsCard"
 import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { FLIGHT_PLATFORMS } from "@/lib/flights"
+import { KAYAK_COMPARE_ENABLED } from "@/lib/kayak"
 import { GOLD, NAVY, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -42,6 +44,7 @@ export default function FlightsScreen() {
       >
         <FindFlightsCard />
         <TripDetailsChip trip={trip} onPress={() => setTripOpen(true)} light />
+        {KAYAK_COMPARE_ENABLED ? <KayakFlightsCard trip={trip} onNeedTrip={() => setTripOpen(true)} /> : null}
         {FLIGHT_PLATFORMS.map(platform => (
           <TouchableOpacity
             key={platform.id}

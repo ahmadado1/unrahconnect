@@ -7,6 +7,7 @@
 //   • "Book now" opens Booking.com through our affiliate link, with the trip dates if saved.
 import TouchableOpacity from "@/app/components/AppPressable"
 import HeroBackground from "@/app/components/HeroBackground"
+import KayakCompareSheet from "@/app/components/KayakCompareSheet"
 import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon, type AppIconKey, StarRating } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
@@ -24,6 +25,7 @@ import { HOTEL_IMAGE_PLACEHOLDER } from "@/lib/hotelImages"
 import type { HotelCity } from "@/lib/hotels"
 import { searchHotels } from "@/lib/hotelSearch"
 import { affiliateWebViewHref } from "@/lib/openAffiliateWebView"
+import { KAYAK_COMPARE_ENABLED } from "@/lib/kayak"
 import { applyStayToBookingUrl } from "@/lib/stayLinks"
 import { getUserFast, supabase, toggleFavorite } from "@/lib/supabase"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -220,6 +222,8 @@ export default function HotelsScreen() {
     })).filter(s => s.hotels.length > 0)
   }, [city, matchesDistance])
 
+  const [compareHotel, setCompareHotel] = useState<CatalogHotel | null>(null)
+
   const book = (hotel: CatalogHotel) => openBooking(router, applyStayToBookingUrl(hotel.bookingUrl, trip), hotel.name)
 
   // ─── Hotel card ───
@@ -323,6 +327,12 @@ export default function HotelsScreen() {
           <TouchableOpacity style={cardStyles.btn} onPress={() => book(hotel)}>
             <Text style={cardStyles.btnText}>{t("bookNow")}</Text>
           </TouchableOpacity>
+          {KAYAK_COMPARE_ENABLED ? (
+            <TouchableOpacity style={cardStyles.compareBtn} onPress={() => setCompareHotel(hotel)}>
+              <Ionicons name="pricetags-outline" size={13} color={GOLD} />
+              <Text style={cardStyles.compareText}>{t("kyCompare")}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </TouchableOpacity>
     )
@@ -463,6 +473,17 @@ export default function HotelsScreen() {
       </ScrollView>
 
       <TripDetailsSheet visible={tripOpen} initial={trip} onClose={closeTrip} onSaved={onTripSaved} />
+      {KAYAK_COMPARE_ENABLED ? (
+        <KayakCompareSheet
+          hotel={compareHotel}
+          trip={trip}
+          onClose={() => setCompareHotel(null)}
+          onNeedDates={() => {
+            setCompareHotel(null)
+            setTripOpen(true)
+          }}
+        />
+      ) : null}
     </View>
   )
 }
@@ -502,6 +523,8 @@ const cardStyles = StyleSheet.create({
   walkText: { color: "#2D6A4F", fontSize: 13, fontWeight: "600" },
   btn: { backgroundColor: GOLD, paddingVertical: 9, borderRadius: 20, marginTop: 10, alignItems: "center" },
   btnText: { color: NAVY, fontSize: 13, fontWeight: "bold" },
+  compareBtn: { flexDirection: "row", gap: 5, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: GOLD, paddingVertical: 7, borderRadius: 20, marginTop: 6 },
+  compareText: { color: GOLD, fontSize: 12, fontWeight: "bold" },
 })
 
 const styles = StyleSheet.create({
