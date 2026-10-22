@@ -26,6 +26,8 @@ export const PREMIUM_ENTITLEMENTS = ["premium", "umrahconnect_premium"]
 const STORE_CACHE_KEY = "store_premium_until_v1"
 
 let configured = false
+/** Why RevenueCat could not start (shown in small grey text on the Premium screen). */
+let setupProblem = ""
 let configuring: Promise<boolean> | null = null
 
 function apiKey() {
@@ -61,6 +63,8 @@ export async function setupPurchases(userId?: string | null): Promise<boolean> {
       return true
     } catch (e) {
       console.log("[Purchases] setup failed:", e)
+      const err = e as { code?: string; message?: string }
+      setupProblem = [err?.code, err?.message ?? String(e)].filter(Boolean).join(" · ").slice(0, 200)
       return false
     } finally {
       configuring = null
@@ -146,7 +150,7 @@ export let lastPlansProblem = ""
 export async function loadPlans(): Promise<PlanOption[]> {
   lastPlansProblem = ""
   if (!(await setupPurchases())) {
-    lastPlansProblem = apiKey() ? "setup failed" : "no store key in this build"
+    lastPlansProblem = apiKey() ? `setup failed${setupProblem ? `: ${setupProblem}` : ""}` : "no store key in this build"
     return []
   }
   try {

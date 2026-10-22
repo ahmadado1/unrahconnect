@@ -2479,5 +2479,6 @@
   "kfStops_two": "توقفان",
   "kfStops_few": "{{count}} توقفات",
   "kfStops_many": "{{count}} توقفًا",
-  "kfStops_zero": "مباشر"
+  "kfStops_zero": "مباشر",
+  "planPremiumRenews": "يتجدد تلقائيًا · التجديد القادم {{date}}"
 }

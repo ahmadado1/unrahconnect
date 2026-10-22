@@ -13,7 +13,7 @@ const GOLD = "#C9A84C"
 export default function PremiumPlanCard() {
   const { theme, isDark } = useTheme()
   const { t, i18n } = useTranslation()
-  const { isPremium, until } = usePremium()
+  const { isPremium, until, autoRenew } = usePremium()
 
   const date = until
     ? new Date(`${until}T00:00:00`).toLocaleDateString(i18n.language || "en", { day: "numeric", month: "long", year: "numeric" })
@@ -48,7 +48,7 @@ export default function PremiumPlanCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: isDark ? "#F3E3B5" : NAVY }]}>{t("planPremium")}</Text>
-          {date ? <Text style={[styles.body, { color: isDark ? "#D9C894" : "#7A6A3A" }]}>{t("planPremiumUntil", { date })}</Text> : null}
+          {date ? <Text style={[styles.body, { color: isDark ? "#D9C894" : "#7A6A3A" }]}>{t(autoRenew ? "planPremiumRenews" : "planPremiumUntil", { date })}</Text> : null}
         </View>
       </View>
       <View style={styles.divider} />

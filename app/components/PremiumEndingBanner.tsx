@@ -1,4 +1,5 @@
-// Home banner in the last 3 days of Premium: "Your Premium ends in 2 days".
+// Home banner in the last 3 days of WEBSITE Premium: "Your Premium ends in 2 days".
+// App Store / Google Play subscriptions renew by themselves, so they never show this banner.
 // Information only (no payment link inside the app, as the App Store / Play rules require).
 // People who are not on auto-renew also get a reminder email from the website.
 import { usePremium } from "@/lib/premium"
@@ -11,8 +12,8 @@ const GOLD = "#C9A84C"
 
 export default function PremiumEndingBanner() {
   const { t } = useTranslation()
-  const { isPremium, until } = usePremium()
-  if (!isPremium || !until) return null
+  const { isPremium, until, autoRenew } = usePremium()
+  if (!isPremium || !until || autoRenew) return null
 
   // Whole days left until the last Premium day (local calendar).
   const today = new Date()

@@ -2475,5 +2475,6 @@
   "kfTotalAll": "total, all travellers",
   "kfView": "View deal ›",
   "kfShowMore": "Show {{count}} more",
-  "kfPowered": "Prices by KAYAK. Final price is shown on the booking site."
+  "kfPowered": "Prices by KAYAK. Final price is shown on the booking site.",
+  "planPremiumRenews": "Renews automatically · next renewal {{date}}"
 }

@@ -10,6 +10,7 @@
 //   REVENUECAT_SECRET_KEY    RevenueCat > API keys > Secret key (starts with sk_). Never put it in the app.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
+import { sendPremiumWelcome } from "./welcomeEmail.ts"
 
 // Entitlement names that mean Premium (the RevenueCat project uses "umrahconnect_premium").
 const ENTITLEMENTS = ["premium", "umrahconnect_premium"]
@@ -66,7 +67,11 @@ serve(async req => {
       const store = info?.store === "app_store" ? "apple" : info?.store === "play_store" ? "google" : info?.store || null
       const plan = info ? (/year|annual/i.test(info.product) ? "yearly" : "monthly") : null
       // Keep the website columns as they are; only the store_* columns change here.
-      const { data: existing } = await supabase.from("user_premium").select("user_id").eq("user_id", userId).maybeSingle()
+      const { data: existing } = await supabase
+        .from("user_premium")
+        .select("user_id, store_until, store_welcome_sent")
+        .eq("user_id", userId)
+        .maybeSingle()
       const row = {
         store_until: info?.until ?? null,
         store_product: info?.product ?? null,
@@ -78,6 +83,20 @@ serve(async req => {
         await supabase.from("user_premium").update(row).eq("user_id", userId)
       } else if (info) {
         await supabase.from("user_premium").insert({ user_id: userId, plan, source: store ?? "store", ...row })
+      }
+
+      // First store subscription on this account: send the "Welcome to Premium" email once.
+      // (If the column store_welcome_sent does not exist yet, existing?.store_welcome_sent is undefined
+      // and we still send; run the SQL in premium-store.sql to remember it.)
+      const startedNow = info && new Date(info.until).getTime() > Date.now()
+      if (startedNow && !existing?.store_welcome_sent && event.type !== "EXPIRATION") {
+        const { data: u } = await supabase.auth.admin.getUserById(userId)
+        const user = u?.user
+        const meta = (user?.user_metadata ?? {}) as Record<string, unknown>
+        const name = String(meta.full_name ?? meta.name ?? "").split(" ")[0]
+        if (user?.email && (await sendPremiumWelcome(user.email, name, meta.language))) {
+          await supabase.from("user_premium").update({ store_welcome_sent: new Date().toISOString() }).eq("user_id", userId)
+        }
       }
     }
     return reply({ ok: true })

@@ -62,3 +62,6 @@ begin
 end;
 $$;
 grant execute on function public.ai_use_request() to authenticated;
+
+-- Remember that the "Welcome to Premium" email was sent for an in-app subscription (sent once).
+alter table public.user_premium add column if not exists store_welcome_sent timestamptz;

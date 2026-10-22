@@ -2475,5 +2475,6 @@
   "kfTotalAll": "toplam, tüm yolcular",
   "kfView": "Teklifi gör ›",
   "kfShowMore": "{{count}} tane daha göster",
-  "kfPowered": "Fiyatlar KAYAK'tan. Son fiyat rezervasyon sitesinde gösterilir."
+  "kfPowered": "Fiyatlar KAYAK'tan. Son fiyat rezervasyon sitesinde gösterilir.",
+  "planPremiumRenews": "Otomatik yenilenir · sonraki yenileme {{date}}"
 }

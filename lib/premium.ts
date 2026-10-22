@@ -11,11 +11,18 @@ import { onStorePremiumChange, readStorePremiumUntil, refreshStorePremium } from
 import { supabase } from "./supabase"
 
 const CACHE_KEY = "premium_until"
+/** Website-only Premium date (OPay, MyNita, PayPal). Store dates are kept apart because they renew by themselves. */
+const WEB_ONLY_KEY = "premium_web_until_v1"
 
 export type PremiumState = {
   isPremium: boolean
   /** "YYYY-MM-DD" or null */
   until: string | null
+  /**
+   * true when Premium comes from the App Store / Google Play. Those subscriptions renew by
+   * themselves, so the app must not say "your Premium ends" (Apple / Google remind people).
+   */
+  autoRenew: boolean
 }
 
 function todayKey() {
@@ -23,9 +30,15 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-function stateFrom(until: string | null): PremiumState {
+function stateFrom(until: string | null, webOnly: string | null = null): PremiumState {
   const day = until ? until.slice(0, 10) : null
-  return { isPremium: Boolean(day && day >= todayKey()), until: day }
+  const web = webOnly ? webOnly.slice(0, 10) : null
+  return {
+    isPremium: Boolean(day && day >= todayKey()),
+    until: day,
+    // The winning date is not the website date, so it is a store subscription.
+    autoRenew: Boolean(day && (!web || day > web)),
+  }
 }
 
 /** The later of two dates ("YYYY-MM-DD..." or null). */
@@ -40,8 +53,12 @@ function later(a: string | null, b: string | null) {
 /** Last known answer, saved on the phone (works offline and in notification code). */
 export async function readCachedPremium(): Promise<PremiumState> {
   try {
-    const [web, store] = await Promise.all([AsyncStorage.getItem(CACHE_KEY), readStorePremiumUntil()])
-    return stateFrom(later(web, store))
+    const [web, store, webOnly] = await Promise.all([
+      AsyncStorage.getItem(CACHE_KEY),
+      readStorePremiumUntil(),
+      AsyncStorage.getItem(WEB_ONLY_KEY),
+    ])
+    return stateFrom(later(web, store), webOnly)
   } catch {
     return stateFrom(null)
   }
@@ -52,7 +69,7 @@ export async function refreshPremium(): Promise<PremiumState> {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      await AsyncStorage.removeItem(CACHE_KEY)
+      await AsyncStorage.multiRemove([CACHE_KEY, WEB_ONLY_KEY]).catch(() => {})
       return stateFrom(null)
     }
     const before = (await readCachedPremium()).isPremium
@@ -65,6 +82,9 @@ export async function refreshPremium(): Promise<PremiumState> {
     const web = later((data?.premium_until as string | null) ?? null, (data?.store_until as string | null) ?? null)
     if (web) await AsyncStorage.setItem(CACHE_KEY, web)
     else await AsyncStorage.removeItem(CACHE_KEY)
+    const webOnly = (data?.premium_until as string | null) ?? null
+    if (webOnly) await AsyncStorage.setItem(WEB_ONLY_KEY, webOnly)
+    else await AsyncStorage.removeItem(WEB_ONLY_KEY)
     const until = later(web, storeLocal)
     // Premium just started or ended: switch Mulk / Kahf reminders between simple and guided.
     if (before !== stateFrom(until).isPremium) {
@@ -73,7 +93,7 @@ export async function refreshPremium(): Promise<PremiumState> {
       void scheduleSalawatReminder().catch(() => {})
       void scheduleAlKahfReminder().catch(() => {})
     }
-    return stateFrom(until)
+    return stateFrom(until, webOnly)
   } catch (e) {
     console.log("[Premium] refresh failed, using saved value:", e)
     return readCachedPremium()
@@ -87,7 +107,7 @@ export async function isPremiumNow() {
 
 /** React hook: { isPremium, until, refresh }. Re-checks when the app comes back to the front. */
 export function usePremium() {
-  const [state, setState] = useState<PremiumState>({ isPremium: false, until: null })
+  const [state, setState] = useState<PremiumState>({ isPremium: false, until: null, autoRenew: false })
 
   const refresh = useCallback(async () => {
     const next = await refreshPremium()
