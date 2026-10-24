@@ -75,7 +75,7 @@ export default function AgentAnnouncementsScreen() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={GOLD} size="large" /></View>
       ) : (
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           data={items}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 40 }]}

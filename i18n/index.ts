@@ -44,13 +44,16 @@ i18n.use(initReactI18next).init({
   },
 })
 
-// Restore saved language after storage is available.
+// Restore saved language after storage is available, then make sure the layout direction
+// (left-to-right / right-to-left) matches it.
 if (isDomAvailable()) {
   safeStorage.getItem("language")
-    .then(savedLang => {
+    .then(async savedLang => {
       if (savedLang && savedLang !== i18n.language) {
-        return i18n.changeLanguage(savedLang)
+        await i18n.changeLanguage(savedLang)
       }
+      const { syncRtlAtStartup } = await import("@/lib/rtl")
+      await syncRtlAtStartup(savedLang || i18n.language || "en")
     })
     .catch(() => {})
 }

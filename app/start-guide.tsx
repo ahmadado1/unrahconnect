@@ -67,7 +67,7 @@ export default function StartGuideScreen() {
         <Text style={styles.progressText}>{t("sgProgress", { done: doneCount, total: GUIDE_STEP_COUNT })}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
         {GUIDE_SECTIONS.map(section => (
           <View key={section.id} style={{ marginBottom: 20 }}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(`sgSection_${section.id}`)}</Text>

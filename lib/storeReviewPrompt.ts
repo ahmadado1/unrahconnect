@@ -171,13 +171,26 @@ export function dismissStoreReviewCard() {
   showCard(false)
 }
 
-/** Settings / Me. Always opens the store, and stops automatic prompts. */
+/**
+ * Settings / Me "Rate UmrahConnect": shows the rating pop-up inside the app (Apple / Google).
+ * Also stops the automatic prompts, since the user asked to rate.
+ * Apple and Google decide how often the pop-up may appear (and it never shows in TestFlight /
+ * internal testing), so if it can't be shown we open the store page instead.
+ */
 export async function openStoreListing() {
   await enqueue(async () => {
     const state = await readState()
     await writeState({ ...state, stopped: true })
   })
   showCard(false)
+  try {
+    if ((await StoreReview.isAvailableAsync()) && (await StoreReview.hasAction())) {
+      await StoreReview.requestReview()
+      return
+    }
+  } catch (e) {
+    console.log("[Review] In-app pop-up failed, opening the store:", e)
+  }
   const url = (await StoreReview.storeUrl()) || (Platform.OS === "ios" ? APP_STORE_URL : PLAY_STORE_URL)
   await Linking.openURL(url)
 }

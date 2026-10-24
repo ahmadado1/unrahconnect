@@ -189,7 +189,7 @@ export default function IslamicCalendarScreen() {
         <Text style={styles.subtitle}>{t("islamicCalendarSub")}</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
         <View style={[styles.calendarCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.calNavRow}>
             <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn} accessibilityRole="button">
@@ -281,7 +281,7 @@ export default function IslamicCalendarScreen() {
           </View>
         )}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsContent}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsContent}>
           {FILTERS.map(f => (
             <TouchableOpacity
               key={f.id}

@@ -27,6 +27,7 @@ const FEATURES: { icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { icon: "notifications", key: "pw_f5" },
   { icon: "sparkles", key: "pw_f6" },
   { icon: "flag", key: "pw_f7" },
+  { icon: "musical-notes", key: "pw_f11" },
   { icon: "sync", key: "pw_f8" },
   { icon: "airplane", key: "pw_f9" },
   { icon: "phone-portrait", key: "pw_f10" },
@@ -107,7 +108,7 @@ export default function PremiumScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.close} accessibilityLabel={t("close")}>
@@ -186,7 +187,10 @@ export default function PremiumScreen() {
                       <Text style={styles.best}>{t("pw_bestValue")}</Text>
                     ) : null}
                     <Text style={[styles.planName, { color: theme.text }]}>{p.id === "yearly" ? t("pw_yearly") : t("pw_monthly")}</Text>
-                    <Text style={styles.planPrice}>{p.price}</Text>
+                    {/* Long local prices (e.g. "EGP 1,349.99") shrink to fit on one line instead of being cut off. */}
+                    <Text style={styles.planPrice} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+                      {p.price}
+                    </Text>
                     <Text style={[styles.planPer, { color: theme.textSecondary }]}>
                       {p.id === "yearly" ? (p.perMonth ? t("pw_perMonth", { price: p.perMonth }) : t("pw_perYear")) : t("pw_perMonthOnly")}
                     </Text>

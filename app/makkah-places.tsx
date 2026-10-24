@@ -28,7 +28,7 @@ export default function MakkahPlacesScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {MAKKAH_PLACES.map(place => (
           <TouchableOpacity
             key={place.id}

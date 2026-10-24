@@ -299,7 +299,7 @@ export default function MakkahCompanionScreen() {
         <PremiumUpsellCard variant="locked" />
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
+          <ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
             {tab === "duas" ? <MyDuas duas={duas} setDuas={setDuas} /> : <Counter key={tab} kind={tab} duas={duas} />}
           </ScrollView>
         </KeyboardAvoidingView>

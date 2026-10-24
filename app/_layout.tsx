@@ -34,6 +34,10 @@ import { clearLocalAuth, getValidSession, supabase, syncUserLanguage } from "../
 import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
+import PremiumPromptHost from "./components/PremiumPromptHost";
+
+// If a screen crashes, show a friendly "Try again" screen instead of closing the app.
+export { default as ErrorBoundary } from "./components/AppErrorScreen"
 
 export default function RootLayout() {
   const [status, setStatus] = useState<"loading" | "onboarding" | "login" | "home">("loading")
@@ -117,9 +121,11 @@ export default function RootLayout() {
     } else if (identifier.startsWith("quran-goal") || data?.screen === "quran-goal") {
       // Quran goal reminder → the next unread page of the goal
       void (async () => {
-        const { loadGoal } = await import("@/lib/quranGoals")
+        const { loadGoals } = await import("@/lib/quranGoals")
         const { goalReaderHref } = await import("@/lib/quranGoalNav")
-        const goal = await loadGoal()
+        const goals = (await loadGoals()).filter(g => !g.completedAt)
+        // The goal the reminder was about, else the most urgent one.
+        const goal = goals.find(g => g.id === data?.goalId) ?? goals[0]
         if (goal) router.push((await goalReaderHref(goal)) as any)
         else router.push("/quran")
       })()
@@ -173,6 +179,10 @@ export default function RootLayout() {
       booking = true
       lastBooking = Date.now()
       try {
+        // Offline map of the Haram areas (Premium): saves itself once, a few MB.
+        void import("@/lib/premium").then(async m => {
+          if (await m.isPremiumNow()) await (await import("@/lib/offlineMapTiles")).ensureOfflineMapTiles()
+        }).catch(() => {})
         // Home-screen widget gets today's prayers even if notifications are off.
         void import("@/lib/prayerWidget").then(m => m.updatePrayerWidget()).catch(() => {})
         const granted = await requestNotificationPermission()
@@ -336,6 +346,8 @@ const checkAuth = async () => {
             {/* Always mount Stack so notification/auth navigation never races ahead of the root layout */}
             <AppStack />
             <StoreReviewPrompt />
+            {/* Premium card for free users who tap a Premium feature */}
+            <PremiumPromptHost />
 
             {status === "loading" && (
               <View

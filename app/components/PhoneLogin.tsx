@@ -5,6 +5,7 @@ import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { useTheme } from "@/context/themeContext"
 import {
   COUNTRY_DIALS,
+  countryName,
   detectDefaultCountryCode,
   digitsOnly,
   formatFullPhone,
@@ -80,7 +81,7 @@ export default function PhoneLogin({ onBack }: Props) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const codeRef = useRef<TextInput>(null)
   const verifyingRef = useRef(false)
   const sentAtRef = useRef(0)
@@ -101,10 +102,10 @@ export default function PhoneLogin({ onBack }: Props) {
     const rest = COUNTRY_DIALS.filter(country => !PRIORITY_COUNTRIES.includes(country.code))
     return [...priority, ...rest].map(country => ({
       id: country.code,
-      label: country.name,
+      label: countryName(country.code, i18n.language),
       prefix: country.dial,
     }))
-  }, [])
+  }, [i18n.language])
 
   useEffect(() => {
     if (step !== "code") return
@@ -235,7 +236,7 @@ export default function PhoneLogin({ onBack }: Props) {
         style={[styles.screen, { backgroundColor: theme.background }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           style={[styles.container, { paddingTop: insets.top + 12 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

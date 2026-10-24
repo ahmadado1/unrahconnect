@@ -45,7 +45,7 @@ export default function ShoppingScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
         contentInsetAdjustmentBehavior="never"

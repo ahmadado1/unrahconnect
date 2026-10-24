@@ -79,7 +79,7 @@ export const PRAYER_CHANNEL_ID = "prayer-adhan"
 const PRAYER_CHANNEL_PREFIX = "prayer-adhan-v15"
 const PRAYER_HORIZON_DAYS = 12
 const IOS_PENDING_LIMIT = 64
-const IOS_RESERVED_SLOTS = 4
+const IOS_RESERVED_SLOTS = 8
 /**
  * iPhone keeps at most 64 scheduled alerts in total and silently drops the rest.
  * Budget (worst case): prayers 7 days × 5 = 35, Islamic dates 6, Adhkar 2, Mulk 2,
@@ -1733,43 +1733,108 @@ export function handlePrayerNotificationOpen(
   return true
 }
 
-// ─── Quran goal: guided daily reminder (Premium) ───────────────────────────
-// 20:30 each day for the next 3 days: how many pages are left today for the goal.
-// Booked again whenever the user reads (pages counted) and when the app opens.
-const QURAN_GOAL_NOTIF_IDS = ["quran-goal-0", "quran-goal-1", "quran-goal-2"]
+// ─── Quran goal: one smart reminder a day (Premium) ────────────────────────
+// Booked for today and the next 2 days, at 9:00 (or 20:30 today if 9:00 has already passed).
+// The text depends on the goal that needs it most:
+//   running late  → all the days have passed, pages still left
+//   behind        → "Day 1 has passed…", want to catch up?
+//   last day      → pages left today
+//   on track      → "Day 2 of 3: about N pages today"
+// Skipped for today when today's pages are already read. Booked again whenever the user reads
+// and when the app opens, so the numbers stay up to date. Several goals = one reminder.
+const QURAN_GOAL_NOTIF_IDS = ["quran-goal-0", "quran-goal-1", "quran-goal-2", "quran-goal-3"]
+// Daily goals ("Yasin every morning"): one reminder per time of day, today + tomorrow.
+const QURAN_DAILY_NOTIF_IDS = ["quran-daily-m0", "quran-daily-m1", "quran-daily-e0", "quran-daily-e1"]
+const DAILY_TIMES = { morning: { hour: 7, minute: 0 }, evening: { hour: 20, minute: 0 } } as const
+const GOAL_REMIND_HOUR = 9
+const GOAL_REMIND_LATE = { hour: 20, minute: 30 }
 
 export async function scheduleQuranGoalReminders() {
-  for (const id of QURAN_GOAL_NOTIF_IDS) {
+  for (const id of [...QURAN_GOAL_NOTIF_IDS, ...QURAN_DAILY_NOTIF_IDS]) {
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
   }
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return false
   if (!(await isPremiumNow())) return false
-  const { loadGoal, goalStats, goalLabel } = await import("@/lib/quranGoals")
-  const goal = await loadGoal()
-  if (!goal || goal.completedAt) return false
+  const { loadGoals, goalStats, goalLabel, goalStreak, sortGoals } = await import("@/lib/quranGoals")
+  const all = (await loadGoals()).filter(g => !g.completedAt)
+  if (!all.length) return false
 
   await ensureQuranReminderChannel()
   const t = (key: string, opts?: Record<string, unknown>) => String(i18n.t(key, opts as any))
-  const label = goalLabel(goal, t)
   const now = new Date()
-  for (let i = 0; i < QURAN_GOAL_NOTIF_IDS.length; i++) {
-    const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 20, 30, 0, 0)
+
+  // ─ Daily goals: at their time (morning 7:00 / evening 20:00), skipped once today's reading is done.
+  for (const time of ["morning", "evening"] as const) {
+    const dailies = all.filter(g => g.daily?.time === time)
+    if (!dailies.length) continue
+    for (let day = 0; day < 2; day++) {
+      const at = DAILY_TIMES[time]
+      const when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, at.hour, at.minute, 0, 0)
+      if (when.getTime() <= now.getTime() + 60 * 1000) continue
+      // Tomorrow everything starts fresh; today only the ones not done yet.
+      const due = day === 0 ? dailies.filter(g => goalStats(g, when).todayLeft > 0) : dailies
+      if (!due.length) continue
+      const names = due.map(g => goalLabel(g, t)).join(" · ")
+      // Streak if today is done before the reminder for tomorrow; else the streak so far.
+      const streak = Math.max(...due.map(g => goalStreak(g, day === 0 ? now : when)))
+      await Notifications.scheduleNotificationAsync({
+        identifier: `quran-daily-${time[0]}${day}`,
+        content: {
+          title: t("qgD_title", { goal: names }),
+          body: streak > 0 ? t("qgD_body", { goal: names, streak }) : t("qgD_bodyStart", { goal: names }),
+          sound: true,
+          data: { screen: "quran-goal", goalId: due[0].id },
+          ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: when,
+          ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
+        },
+      }).catch(error => console.log("[Notifications] Daily Quran goal:", error))
+    }
+  }
+
+  // ─ Goals with an end (finish in N days): one smart reminder a day.
+  const running = all.filter(g => !g.daily)
+  if (!running.length) return true
+  for (let day = 0; day < 3; day++) {
+    let when = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, GOAL_REMIND_HOUR, 0, 0, 0)
+    // Today's 9:00 is gone: remind this evening instead.
+    if (day === 0 && when.getTime() <= now.getTime() + 60 * 1000) {
+      when = new Date(now.getFullYear(), now.getMonth(), now.getDate(), GOAL_REMIND_LATE.hour, GOAL_REMIND_LATE.minute, 0, 0)
+    }
     if (when.getTime() <= now.getTime() + 60 * 1000) continue
-    const stats = goalStats(goal, when)
-    // Today: skip if today's pages are already read. Later days: the daily target.
-    if (i === 0 && stats.todayLeft <= 0) continue
-    const body =
-      i === 0
-        ? t("qgNotifBodyLeft", { count: stats.todayLeft, goal: label })
-        : t("qgNotifBodyDay", { count: stats.todayTarget, goal: label })
+
+    // Goals that still need reading on that day, most urgent first.
+    const needing = sortGoals(running, when).filter(g => goalStats(g, when).todayLeft > 0)
+    if (!needing.length) continue
+    const goal = needing[0]
+    const s = goalStats(goal, when)
+    const label = goalLabel(goal, t)
+    let title = t("qgNotifTitle")
+    let body: string
+    if (s.overdue) {
+      title = t("qgN_lateTitle")
+      body = t("qgN_late", { goal: label, days: goal.days, count: s.remaining })
+    } else if (s.behind) {
+      title = t("qgN_passedTitle", { passed: s.day - 1 })
+      body = t("qgN_passed", { goal: label, passed: s.day - 1, count: s.todayLeft })
+    } else if (s.lastDay) {
+      body = t("qgN_last", { goal: label, count: s.todayLeft })
+    } else {
+      body = t("qgN_day", { goal: label, day: s.day, days: goal.days, count: s.todayLeft })
+    }
+    if (needing.length > 1) body += t("qgN_more", { count: needing.length - 1 })
+
     await Notifications.scheduleNotificationAsync({
-      identifier: QURAN_GOAL_NOTIF_IDS[i],
+      identifier: QURAN_GOAL_NOTIF_IDS[day],
       content: {
-        title: t("qgNotifTitle"),
+        title,
         body,
         sound: true,
-        data: { screen: "quran-goal" },
+        data: { screen: "quran-goal", goalId: goal.id },
         ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
       },
       trigger: {
@@ -1777,7 +1842,7 @@ export async function scheduleQuranGoalReminders() {
         date: when,
         ...(Platform.OS === "android" ? { channelId: "quran-reminders" } : {}),
       },
-    })
+    }).catch(error => console.log("[Notifications] Quran goal reminder:", error))
   }
   return true
 }

@@ -6,7 +6,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import { loadMiqatTrip, miqatPlan, saveMiqatTrip, type MiqatTrip } from "@/lib/miqatAlert"
 import { usePremium } from "@/lib/premium"
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker from "@/app/components/ThemedDateTimePicker"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -101,7 +101,7 @@ export default function MiqatAlertScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
         {!isPremium ? <PremiumUpsellCard variant="banner" /> : null}
 
         {/* How do you travel? */}

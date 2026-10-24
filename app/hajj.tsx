@@ -59,7 +59,7 @@ export default function HajjGuideScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: "#1E3A5F" }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}

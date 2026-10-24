@@ -11,7 +11,7 @@ import QuranHomeCard from "@/app/components/QuranHomeCard";
 import QuranGoalCard from "@/app/components/QuranGoalCard";
 import MakkahStayCard from "@/app/components/MakkahStayCard";
 import QuranGoalSheet from "@/app/components/QuranGoalSheet";
-import { loadGoal, onGoalChange, type QuranGoal } from "@/lib/quranGoals";
+import { loadGoals, onGoalsChange, type QuranGoal } from "@/lib/quranGoals";
 import NewGlow from "@/app/components/NewGlow";
 import { markFeatureSeen, startPremiumWelcome } from "@/lib/premiumNew";
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
@@ -128,9 +128,9 @@ function BookingCard({ booking, theme }: { booking: any; theme: any }) {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   const getStatus = () => {
-    if (booking.check_in > today) return { label: "Upcoming", color: "#2D6A4F" }
-    if (booking.check_out >= today) return { label: "Active", color: "#C9A84C" }
-    return { label: "Past", color: "#888" }
+    if (booking.check_in > today) return { label: i18n.t("upcoming"), color: "#2D6A4F" }
+    if (booking.check_out >= today) return { label: i18n.t("active"), color: "#C9A84C" }
+    return { label: i18n.t("past"), color: "#888" }
   }
   const status = getStatus()
 
@@ -331,14 +331,17 @@ export default function HomeScreen() {
   const [homeQuranCard, setHomeQuranCard] = useState<HomeQuranCardState>(() => resolveHomeQuranCard({}))
   const [homeQuranPreview, setHomeQuranPreview] = useState("")
   // Quran reading goal (Premium): replaces the Quran preview card while a goal runs.
-  const [quranGoal, setQuranGoal] = useState<QuranGoal | null>(null)
+  // Several goals can run at once: the card shows the most urgent one (list is sorted).
+  const [quranGoals, setQuranGoals] = useState<QuranGoal[]>([])
+  const quranGoal = quranGoals[0] ?? null
+  const runningGoals = quranGoals.filter(g => !g.completedAt).length
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
   useFocusEffect(
     useCallback(() => {
-      void loadGoal().then(setQuranGoal)
+      void loadGoals().then(setQuranGoals)
     }, [])
   )
-  useEffect(() => onGoalChange(setQuranGoal), [])
+  useEffect(() => onGoalsChange(setQuranGoals), [])
   // Premium just started (in the app or on the website): show once what the user got.
   useEffect(() => {
     if (!premium.isPremium) return
@@ -585,7 +588,7 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: NAVY }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -614,15 +617,13 @@ export default function HomeScreen() {
           <View style={[styles.heroInner, { paddingTop: insets.top }]}>
             {/* Header bar */}
             <View style={styles.headerBar}>
-              <View style={styles.logoRow}>
-                <View style={styles.logoCircle}>
-                  <AppIcon name="moon" size={22} color={ICON_GOLD} />
-                </View>
-                <View>
-                  <Text style={styles.logoName}>{t("appName")}</Text>
-                  <Text style={styles.logoTagline}>{t("tagline")}</Text>
-                </View>
-              </View>
+              {/* Full app logo: crescent + Kaaba + "Umrah Connect" (transparent background) */}
+              <Image
+                source={require("@/assets/images/logo-horizontal.png")}
+                style={styles.logoFull}
+                resizeMode="contain"
+                accessibilityLabel={t("appName")}
+              />
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/search" as any)}>
                   <Ionicons name="search-outline" size={20} color="#fff" />
@@ -781,7 +782,7 @@ export default function HomeScreen() {
 
         {/* ── QURAN PREVIEW (Mulk at night, Kahf on Friday, else last read) ── */}
         {premium.isPremium && quranGoal ? (
-          <QuranGoalCard goal={quranGoal} onEdit={() => setGoalSheetOpen(true)} />
+          <QuranGoalCard goal={quranGoal} count={runningGoals} onEdit={() => setGoalSheetOpen(true)} />
         ) : (
           <>
             <QuranHomeCard
@@ -812,7 +813,6 @@ export default function HomeScreen() {
         <QuranGoalSheet
           visible={goalSheetOpen}
           onClose={() => setGoalSheetOpen(false)}
-          onStarted={setQuranGoal}
         />
 
         {/* ── LISTEN TO THE QURAN (Premium: continue where you stopped) ── */}
@@ -886,7 +886,7 @@ export default function HomeScreen() {
           <Text style={[styles.qaTitle, { color: theme.text }]}>{t("quickAccess")}</Text>
           <TouchableOpacity><Text style={styles.qaViewAll}>{t("seeAll")}</Text></TouchableOpacity>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaRow}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaRow}>
           <QuickItem icon="cube-outline" label={t("umrahGuide")} onPress={() => router.push("/umrah-guide" as any)} theme={theme} color="#B45309" />
           <QuickItem icon="moon-outline" label={t("hajj")} onPress={() => router.push("/hajj" as any)} theme={theme} color="#C9A84C" />
           <QuickItem icon="map-outline" label={t("maps")} onPress={() => router.push("/(tabs)/maps" as any)} theme={theme} color="#E11D48" />
@@ -981,7 +981,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
   },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  logoCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(201,168,76,0.25)", borderWidth: 1.5, borderColor: "#C9A84C", alignItems: "center", justifyContent: "center" },
+  logoCircle: { width: 46, height: 46, alignItems: "center", justifyContent: "center" },
+  logoImage: { width: 46, height: 46 },
+  // logo-horizontal.png is 891 × 240
+  logoFull: { height: 46, width: Math.round((46 * 891) / 240), flexShrink: 1 },
   logoName: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   logoTagline: { color: "rgba(255,255,255,0.5)", fontSize: 10 },
   iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },

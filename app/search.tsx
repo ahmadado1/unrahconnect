@@ -107,7 +107,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {query.trim().length < 2 ? (
           <View style={styles.emptyState}>
             <AnimatedHeroIcon name="search" size={48} accent="navy" style={{ marginBottom: 16 }} />

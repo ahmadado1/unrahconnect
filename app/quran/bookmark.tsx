@@ -176,7 +176,7 @@ export default function BookmarksScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           data={bookmarks}
           keyExtractor={item => item.id}
           renderItem={renderBookmark}

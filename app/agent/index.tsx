@@ -1,3 +1,4 @@
+import { localizeCountryName } from "@/lib/countries"
 // Find an Agent: verified, paid agencies from the website's Agent Zone (active_agents view).
 // Featured agencies are shown first with a gold badge; verified ones get a blue ✓.
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
@@ -31,7 +32,7 @@ export default function FindAgentScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const params = useLocalSearchParams<{ country?: string }>()
 
   const [agents, setAgents] = useState<PublicAgent[]>([])
@@ -86,7 +87,7 @@ export default function FindAgentScreen() {
 
   const renderAgent = ({ item }: { item: PublicAgent }) => {
     const featured = item.plan === "featured"
-    const place = [item.country, item.cities.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+    const place = [item.country ? localizeCountryName(item.country, i18n.language) : "", item.cities.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
     return (
       <TouchableOpacity
         style={[
@@ -189,7 +190,8 @@ export default function FindAgentScreen() {
       </View>
 
       {countries.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={{ flexGrow: 0 }}>
+        // flexShrink: 0 stops Android from squeezing this row (and cutting the chip text) when the list below is long.
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsRow}>
           {["", ...countries].map((name) => {
             const active = country.toLowerCase() === name.toLowerCase()
             return (
@@ -198,7 +200,7 @@ export default function FindAgentScreen() {
                 onPress={() => setCountry(name)}
                 style={[styles.chip, { borderColor: active ? NAVY : theme.border, backgroundColor: active ? NAVY : theme.card }]}
               >
-                <Text style={[styles.chipText, { color: active ? "#fff" : theme.text }]}>{name || t("agentsAll")}</Text>
+                <Text style={[styles.chipText, { color: active ? "#fff" : theme.text }]}>{name ? localizeCountryName(name, i18n.language) : t("agentsAll")}</Text>
               </TouchableOpacity>
             )
           })}
@@ -210,7 +212,7 @@ export default function FindAgentScreen() {
           <ActivityIndicator color={GOLD} size="large" />
         </View>
       ) : (
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           data={shown}
           keyExtractor={(item) => item.id}
           renderItem={renderAgent}
@@ -250,9 +252,10 @@ const styles = StyleSheet.create({
   headerSub: { color: GOLD, fontSize: 12, marginTop: 1 },
   searchBar: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 16, marginBottom: 10, borderRadius: 12, padding: 12, borderWidth: 0.5 },
   searchInput: { flex: 1, fontSize: 14 },
-  chips: { paddingHorizontal: 16, gap: 8, paddingBottom: 6 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
-  chipText: { fontSize: 13, fontWeight: "600" },
+  chipsRow: { flexGrow: 0, flexShrink: 0, minHeight: 46 },
+  chips: { paddingHorizontal: 16, gap: 8, paddingVertical: 4, alignItems: "center" },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, minHeight: 34, justifyContent: "center", alignItems: "center" },
+  chipText: { fontSize: 13, lineHeight: 18, fontWeight: "600", includeFontPadding: false },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   list: { padding: 16, gap: 12, paddingBottom: 100 },
   count: { fontSize: 12, marginBottom: 2 },

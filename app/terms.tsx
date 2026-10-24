@@ -25,7 +25,7 @@ export default function TermsScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.content}>
         <Text style={[styles.lastUpdated, { color: theme.textSecondary }]}>{t("lastUpdated")}</Text>
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("termsAcceptTitle")}</Text>

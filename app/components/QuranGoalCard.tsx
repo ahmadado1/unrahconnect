@@ -1,8 +1,9 @@
 // Home card for a running Quran goal (Premium). Takes the place of the Quran preview card.
-// Shows the goal, progress, today's pages, and Continue (opens the next unread page).
+// Shows the most urgent goal, progress, today's pages, and Continue (opens the next unread page).
+// With more than one goal, Continue opens the list of all goals instead.
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
-import { goalLabel, goalStats, type QuranGoal } from "@/lib/quranGoals"
+import { goalLabel, goalPlanLine, goalStats, goalStatusLine, type QuranGoal } from "@/lib/quranGoals"
 import { goalReaderHref } from "@/lib/quranGoalNav"
 import { cardShadow } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
@@ -14,14 +15,15 @@ import { StyleSheet, Text, View } from "react-native"
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 
-export default function QuranGoalCard({ goal, onEdit }: { goal: QuranGoal; onEdit: () => void }) {
+export default function QuranGoalCard({ goal, count = 1, onEdit }: { goal: QuranGoal; count?: number; onEdit: () => void }) {
   const router = useRouter()
   const { theme } = useTheme()
   const { t } = useTranslation()
   const s = goalStats(goal)
 
   const open = async () => {
-    if (s.finished) return onEdit()
+    // Finished, or several goals: show all goals so the user picks one.
+    if (s.finished || count > 1) return onEdit()
     router.push((await goalReaderHref(goal)) as any)
   }
 
@@ -30,10 +32,10 @@ export default function QuranGoalCard({ goal, onEdit }: { goal: QuranGoal; onEdi
       <LinearGradient colors={[NAVY, "#2C5282"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
         <View style={styles.top}>
           <View style={styles.flag}>
-            <Ionicons name={s.finished ? "trophy" : goal.ramadan ? "moon" : "flag"} size={18} color={NAVY} />
+            <Ionicons name={s.finished ? "trophy" : goal.daily ? "repeat" : goal.ramadan ? "moon" : "flag"} size={18} color={NAVY} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.kicker}>{t("qgTitle")}</Text>
+            <Text style={styles.kicker}>{count > 1 ? t("qgGoalsCount", { count }) : t("qgTitle")}</Text>
             <Text style={styles.name} numberOfLines={1}>{goalLabel(goal, t)}</Text>
           </View>
           <TouchableOpacity onPress={onEdit} hitSlop={10} accessibilityLabel={t("qgTitle")}>
@@ -47,21 +49,23 @@ export default function QuranGoalCard({ goal, onEdit }: { goal: QuranGoal; onEdi
         <View style={styles.numbers}>
           <Text style={styles.percent}>{s.percent}%</Text>
           <Text style={styles.small}>
-            {s.finished ? t("qgFinished") : t("qgProgress", { read: s.readCount, total: s.total, day: s.day, days: goal.days })}
+            {goalPlanLine(goal, t)}
           </Text>
         </View>
 
         {!s.finished ? (
           <View style={styles.today}>
-            <Ionicons name={s.todayLeft > 0 ? "time-outline" : "checkmark-circle"} size={16} color={s.todayLeft > 0 ? "#E8D5A3" : "#7BD389"} />
-            <Text style={styles.todayText}>
-              {s.todayLeft > 0 ? t("qgTodayLeft", { count: s.todayLeft }) : t("qgTodayDone")}
-            </Text>
+            <Ionicons
+              name={s.overdue || s.behind ? "alert-circle" : s.todayLeft > 0 ? "time-outline" : "checkmark-circle"}
+              size={16}
+              color={s.overdue || s.behind ? "#F6AD55" : s.todayLeft > 0 ? "#E8D5A3" : "#7BD389"}
+            />
+            <Text style={styles.todayText}>{goalStatusLine(goal, t)}</Text>
           </View>
         ) : null}
 
         <TouchableOpacity style={styles.btn} onPress={() => void open()}>
-          <Text style={styles.btnText}>{s.finished ? t("qgNew") : t("qgContinue")}</Text>
+          <Text style={styles.btnText}>{s.finished ? t("qgNew") : count > 1 ? t("qgSeeGoals") : t("qgContinue")}</Text>
           <Ionicons name="arrow-forward" size={15} color={NAVY} />
         </TouchableOpacity>
       </LinearGradient>

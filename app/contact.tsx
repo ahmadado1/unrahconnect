@@ -15,11 +15,12 @@ export default function ContactScreen() {
   const { theme, isDark } = useTheme()
   const { t } = useTranslation()
 
-  const phone = "+201222151335"
-  const whatsapp = "+201222151335"
+  // Same number for WhatsApp and phone calls.
+  const whatsapp = "+201041436778"
+  const phone = whatsapp
   const emails = [
-    { label: "Info", address: INFO_EMAIL },
-    { label: "Support", address: SUPPORT_EMAIL },
+    { label: "contactInfoLabel", address: INFO_EMAIL },
+    { label: "contactSupportLabel", address: SUPPORT_EMAIL },
   ]
 
   return (
@@ -35,7 +36,7 @@ export default function ContactScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* Top section, always navy */}
         <View style={[styles.topSection, { backgroundColor: theme.header }]}>
@@ -63,7 +64,7 @@ export default function ContactScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.gold} />
           </TouchableOpacity>
 
-          {/* Phone */}
+          {/* Phone call */}
           <TouchableOpacity
             style={[styles.contactBtn, { borderBottomColor: theme.border }]}
             onPress={() => Linking.openURL(`tel:${phone}`)}
@@ -95,7 +96,7 @@ export default function ContactScreen() {
               </View>
               <View style={styles.contactInfo}>
                 <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>
-                  {item.label}
+                  {t(item.label)}
                 </Text>
                 <Text style={[styles.contactValue, { color: theme.text }]}>{item.address}</Text>
               </View>

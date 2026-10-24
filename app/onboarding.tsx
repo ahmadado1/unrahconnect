@@ -41,7 +41,7 @@ const slides: { id: string; icon: AppIconKey; titleKey: string; subKey: string }
 
       return (
         <View style={styles.screen}>
-          <FlatList
+          <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
             ref={flatListRef}
             data={slides}
             horizontal

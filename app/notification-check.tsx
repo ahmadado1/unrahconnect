@@ -129,7 +129,7 @@ export default function NotificationCheckScreen() {
       {!report ? (
         <ActivityIndicator color={GOLD} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
           {/* Summary */}
           <View style={[styles.card, { backgroundColor: problems.length ? "#FDECEC" : "#E6F4EA" }]}>
             <Text style={[styles.cardTitle, { color: problems.length ? "#9B1C1C" : "#2F855A" }]}>
@@ -153,6 +153,11 @@ export default function NotificationCheckScreen() {
           </View>
           {Platform.OS === "ios" ? (
             <Text style={[styles.tip, { color: theme.textSecondary }]}>{t("nc_iosTip")}</Text>
+          ) : null}
+          {Platform.OS === "ios" ? (
+            /* Full Adhan while using the phone: iPhone stops a notification's sound when a
+               temporary banner slides away, so each 30-second part only plays a few seconds. */
+            <Text style={[styles.tip, { color: theme.textSecondary }]}>{t("nc_iosBannerTip")}</Text>
           ) : null}
           <TouchableOpacity style={styles.settingsBtn} onPress={() => void Linking.openSettings()}>
             <Ionicons name="settings-outline" size={16} color={NAVY} />

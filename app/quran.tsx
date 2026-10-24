@@ -287,7 +287,7 @@ export default function QuranScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
-          <Text style={styles.backText}>Guide</Text>
+          <Text style={styles.backText}>{t("guide")}</Text>
         </TouchableOpacity>
 
         <View style={styles.titleRow}>
@@ -325,7 +325,7 @@ export default function QuranScreen() {
           <Ionicons name="search" size={16} color="rgba(255,255,255,0.4)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search surah..."
+            placeholder={t("quranSearchPlaceholder")}
             placeholderTextColor="rgba(255,255,255,0.4)"
             value={search}
             onChangeText={setSearch}
@@ -359,7 +359,7 @@ export default function QuranScreen() {
   </View>
 ) : (
   // ... your FlatList
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={item => item.number.toString()}
           renderItem={renderSurah}
@@ -371,7 +371,7 @@ export default function QuranScreen() {
               {lastReadEntries.length > 0 && (
                 <View style={styles.chipSection}>
                   <Text style={styles.continueLabel}>LAST READ</Text>
-                  <ScrollView
+                  <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.chipRow}
@@ -393,7 +393,7 @@ export default function QuranScreen() {
 
               <View style={styles.chipSection}>
                 <Text style={styles.continueLabel}>QUICK LINKS</Text>
-                <ScrollView
+                <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.chipRow}

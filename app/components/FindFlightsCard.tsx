@@ -11,7 +11,7 @@ import { GOLD, NAVY, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker from "@/app/components/ThemedDateTimePicker"
 import * as WebBrowser from "expo-web-browser"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -207,7 +207,7 @@ function PlaceField({
           {!loading && term.length >= 2 && shown.length === 0 ? (
             <Text style={[styles.empty, { color: theme.textSecondary }]}>{t("flightNoCities")}</Text>
           ) : (
-            <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled style={styles.resultsScroll}>
+            <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" nestedScrollEnabled style={styles.resultsScroll}>
               {shown.map(place => (
                 <TouchableOpacity
                   key={`${place.code}-${place.city}`}

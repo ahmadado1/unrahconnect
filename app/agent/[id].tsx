@@ -132,7 +132,7 @@ export default function AgentProfileScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: NAVY }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}

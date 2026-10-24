@@ -1,3 +1,4 @@
+import { prefetchTafsirSurah } from "@/lib/tafsir"
 import VerseMenuHost, { type VerseTarget } from "@/app/components/VerseMenuHost"
 // Isolated Surah Al-Mulk reader (shown on Home 10pm–3am and from the nightly reminder).
 // Same as the Kahf reader, but the tick resets every night. Premium can listen instead of reading.
@@ -167,7 +168,7 @@ function MulkPage({
         </Text>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={styles.pageScroll}
         contentContainerStyle={styles.pageScrollContent}
         showsVerticalScrollIndicator={false}
@@ -275,6 +276,11 @@ export default function MulkReadingScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
+  // Save this surah's tafsir in the background, so it also opens with no internet later.
+  useEffect(() => {
+    const timer = setTimeout(() => void prefetchTafsirSurah(i18n.language, 67), 4000)
+    return () => clearTimeout(timer)
+  }, [i18n.language])
   const insets = useSafeAreaInsets()
   const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
   const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
@@ -409,6 +415,14 @@ export default function MulkReadingScreen() {
     const next = await markMulkNightComplete()
     setProgress(next)
     await scheduleAlMulkReminder().catch(() => {})
+    // Tapped "done": also counts for Quran goals with this surah (e.g. a daily goal).
+    void import("@/lib/quranGoals").then(async m => {
+      const { surahPageRange } = await import("@/lib/quranPages")
+      const r = surahPageRange(67)
+      await m.markPagesRead(Array.from({ length: r.end - r.start + 1 }, (_, i) => r.start + i))
+      const { scheduleQuranGoalReminders } = await import("@/lib/notifications")
+      await scheduleQuranGoalReminders()
+    }).catch(() => {})
     if (next) void considerStoreReview()
   }, [])
 
@@ -490,7 +504,7 @@ export default function MulkReadingScreen() {
       </Text>
 
 
-      <FlatList
+      <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         ref={flatListRef}
         data={pages}
         horizontal

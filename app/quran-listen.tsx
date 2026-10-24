@@ -196,10 +196,10 @@ export default function QuranListenScreen() {
         <Text style={[styles.empty, { color: theme.textSecondary }]}>{t("networkError")}</Text>
       ) : !reciter ? (
         /* ─── Step 1: reciters ─── */
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag"
           data={otherReciters}
           keyExtractor={r => String(r.id)}
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + (isPremium ? 240 : 110) }}
+          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + (hasPremium ? 240 : 110) }}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             <>
@@ -221,10 +221,10 @@ export default function QuranListenScreen() {
         />
       ) : (
         /* ─── Step 2: surahs ─── */
-        <FlatList
+        <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           data={filteredSurahs}
           keyExtractor={s => String(s.number)}
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + (isPremium ? 240 : 110) }}
+          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + (hasPremium ? 240 : 110) }}
           renderItem={({ item }) => {
             const isThis = playingSurah === item.number
             return (
@@ -260,8 +260,8 @@ export default function QuranListenScreen() {
         />
       )}
 
-      {/* ─── Player bar ───────────────────────────────────────────────────────── */}
-      {isPremium ? (
+      {/* ─── Player bar: big player for Premium, small bar for free users ─── */}
+      {hasPremium ? (
         <View style={[styles.bigPlayerWrap, { bottom: insets.bottom + 12 }]}>
           <QuranBigPlayer variant="card" />
         </View>

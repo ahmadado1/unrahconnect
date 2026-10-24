@@ -38,7 +38,7 @@ export default function PremiumWelcomeScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
         <LinearGradient colors={[NAVY, "#2C5282"]} style={[styles.hero, { paddingTop: insets.top + 24 }]}>
           <View style={styles.star}>
             <Ionicons name="star" size={30} color={NAVY} />

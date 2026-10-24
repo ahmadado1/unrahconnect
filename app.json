@@ -40,8 +40,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.jpg",
-        "backgroundColor": "#1E3A5F"
+        "foregroundImage": "./assets/images/android-adaptive-foreground.png",
+        "backgroundColor": "#041E35"
       },
       "package": "com.myumrahconnect.app",
       "versionCode": 1,
@@ -109,8 +109,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.jpg",
-          "imageWidth": 250,
+          "image": "./assets/images/logo-transparent.png",
+          "imageWidth": 220,
           "resizeMode": "contain",
           "backgroundColor": "#1E3A5F"
         }

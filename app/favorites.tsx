@@ -70,7 +70,7 @@ export default function FavoritesScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {loading && (
           <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t("loadingFavorites")}</Text>
         )}

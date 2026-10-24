@@ -66,7 +66,7 @@ export default function RestaurantDetailScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: isLogo ? theme.background : "#1E3A5F" }]}>
       <StatusBar style="light" />
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: isLogo ? theme.background : "#1E3A5F" }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -138,7 +138,7 @@ export default function RestaurantDetailScreen() {
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("about")}</Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>
             {restaurant.description}
           </Text>

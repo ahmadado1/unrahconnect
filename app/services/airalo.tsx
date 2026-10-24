@@ -12,7 +12,8 @@ import { ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const STEPS = ["esimStep1", "esimStep2", "esimStep3"] as const
-const PHONES = ["esimIphone", "esimSamsung", "esimPixel"] as const
+// iPhone: model. Android: just the Android version eSIM started with (9) and newer.
+const PHONES = ["esimIphone", "esimAndroid"] as const
 
 export default function AiraloScreen() {
   const router = useRouter()
@@ -35,7 +36,7 @@ export default function AiraloScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
         contentInsetAdjustmentBehavior="never"

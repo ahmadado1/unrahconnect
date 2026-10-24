@@ -424,7 +424,7 @@ export default function DuasScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
-          <Text style={styles.backText}>Home</Text>
+          <Text style={styles.backText}>{i18n.t("home")}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{i18n.t("duasZikr")}</Text>
         <Text style={styles.subtitle}>{i18n.t("duasSubtitle")}</Text>
@@ -432,7 +432,7 @@ export default function DuasScreen() {
         <TasbihCounter />
 
         {/* Category pills */}
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.pillsScroll}
@@ -450,7 +450,7 @@ export default function DuasScreen() {
                 color={activeCategory === cat.id ? getIconColor(cat.icon) : "#fff"}
               />
               <Text style={[styles.pillText, activeCategory === cat.id && styles.pillTextActive]}>
-                {cat.label}
+                {i18n.t(`duaCat_${cat.id}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -458,7 +458,7 @@ export default function DuasScreen() {
       </View>
 
       {/* Duas list */}
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
       >
@@ -466,7 +466,7 @@ export default function DuasScreen() {
         <View style={styles.catHeader}>
           <AppIcon name={currentCategory.icon} size={28} color={ICON_GOLD} />
           <View>
-            <Text style={[styles.catTitle, { color: theme.text }]}>{currentCategory.label}</Text>
+            <Text style={[styles.catTitle, { color: theme.text }]}>{i18n.t(`duaCat_${currentCategory.id}`)}</Text>
             <Text style={[styles.catCount, { color: theme.textSecondary }]}>
               {currentCategory.duas.length} duas
             </Text>

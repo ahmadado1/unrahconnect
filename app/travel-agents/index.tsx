@@ -1,3 +1,4 @@
+import { localizeCountryName } from "@/lib/countries"
 import { useTheme } from "@/context/themeContext"
 import {
   getAgentCountForCountry,
@@ -27,7 +28,7 @@ export default function FindAgentCountriesScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [query, setQuery] = useState("")
   const [counts, setCounts] = useState<Record<string, number>>({})
 
@@ -66,7 +67,7 @@ export default function FindAgentCountriesScreen() {
     const q = query.trim().toLowerCase()
     if (!q) return TRAVEL_AGENT_COUNTRIES
     return TRAVEL_AGENT_COUNTRIES.filter(country =>
-      country.name.toLowerCase().includes(q)
+      (country.name.toLowerCase().includes(q) || localizeCountryName(country.name, i18n.language).toLowerCase().includes(q))
     )
   }, [query])
 
@@ -91,7 +92,7 @@ export default function FindAgentCountriesScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search countries"
+            placeholder={t("searchCountries")}
             placeholderTextColor="rgba(255,255,255,0.45)"
             style={styles.searchInput}
             autoCorrect={false}
@@ -100,7 +101,7 @@ export default function FindAgentCountriesScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -136,7 +137,7 @@ export default function FindAgentCountriesScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.countryName, { color: theme.text }]}>
-                    {country.name}
+                    {localizeCountryName(country.name, i18n.language)}
                   </Text>
                   <Text style={styles.countryCount}>
                     {country.comingSoon
@@ -150,7 +151,7 @@ export default function FindAgentCountriesScreen() {
                 </View>
                 {country.comingSoon ? (
                   <View style={styles.soonTag}>
-                    <Text style={styles.soonTagText}>Soon</Text>
+                    <Text style={styles.soonTagText}>{t("soon")}</Text>
                   </View>
                 ) : (
                   <Ionicons name="chevron-forward" size={20} color={GOLD} />

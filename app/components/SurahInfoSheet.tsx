@@ -74,7 +74,7 @@ export default function SurahInfoSheet({ visible, surah, onClose }: Props) {
           </View>
         </View>
 
-        <ScrollView style={{ marginTop: 6 }} contentContainerStyle={{ paddingBottom: 12 }}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" style={{ marginTop: 6 }} contentContainerStyle={{ paddingBottom: 12 }}>
           {state === "loading" ? (
             <View style={styles.center}>
               <ActivityIndicator color={GOLD} />

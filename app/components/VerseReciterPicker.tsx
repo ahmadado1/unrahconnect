@@ -1,6 +1,7 @@
 // Bottom sheet to choose the verse-by-verse reciter. A few are free, the rest are Premium ⭐.
 import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import { showPremiumPrompt } from "@/lib/premiumPrompt"
+import PremiumPromptHost from "@/app/components/PremiumPromptHost"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import { usePremium } from "@/lib/premium"
@@ -37,7 +38,7 @@ export default function VerseReciterPicker({
       <View style={[styles.sheet, { backgroundColor: theme.card, paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.handle} />
         <Text style={[styles.title, { color: theme.text }]}>{t("qaChooseReciter")}</Text>
-        <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
           {VERSE_RECITERS.map(reciter => {
             const locked = !reciter.free && !isPremium
             const selected = reciter.id === selectedId
@@ -73,6 +74,8 @@ export default function VerseReciterPicker({
           })}
         </ScrollView>
       </View>
+      {/* Premium card shows on top of this pop-up */}
+      <PremiumPromptHost overlay />
     </Modal>
   )
 }

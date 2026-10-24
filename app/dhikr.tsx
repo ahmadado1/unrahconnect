@@ -95,7 +95,7 @@ export default function DhikrScreen() {
         <Text style={styles.meaning}>{dhikr.meaning}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ alignItems: "center", paddingBottom: insets.bottom + 30 }}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: "center", paddingBottom: insets.bottom + 30 }}>
         {/* Goal */}
         <View style={styles.goals}>
           {GOALS.map(g => {

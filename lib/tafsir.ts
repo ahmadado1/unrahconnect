@@ -134,18 +134,121 @@ export type TafsirResult = {
 export async function getTafsir(edition: TafsirEdition, surah: number, ayah: number): Promise<TafsirResult | null> {
   let map = await readSaved(edition.slug, surah)
   if (!map) {
+    const online = await isOnline()
+    if (!online) {
+      // No internet and this tafsir isn't saved: use another saved tafsir of the same language.
+      const other = await savedOtherEdition(edition, surah)
+      if (other) return pickFromMap(other.map, ayah, other.edition)
+      return null
+    }
     // Quick answer for this verse while the whole surah downloads for offline use.
     const single = (await fetchJson(`${edition.slug}/${surah}/${ayah}.json`)) as { text?: string } | null
     const savePromise = saveSurah(edition.slug, surah)
     if (single?.text && single.text.trim()) return { text: clean(single.text), fromAyah: ayah, edition }
     map = await savePromise
   }
-  if (!map) return null
+  if (!map) {
+    // Download failed (weak internet): fall back to another saved tafsir.
+    const other = await savedOtherEdition(edition, surah)
+    return other ? pickFromMap(other.map, ayah, other.edition) : null
+  }
+  return pickFromMap(map, ayah, edition)
+}
+
+function pickFromMap(map: Map<number, string>, ayah: number, edition: TafsirEdition): TafsirResult | null {
   for (let n = ayah; n >= 1; n--) {
     const text = map.get(n)
     if (text && text.trim()) return { text: clean(text), fromAyah: n, edition }
   }
   return null
+}
+
+/** Quick internet check (3 seconds), so offline users don't wait for long timeouts. */
+async function isOnline(): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 3000)
+  try {
+    await fetch(`${CDN}/editions.json`, { method: "HEAD", signal: controller.signal })
+    return true
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Another tafsir of the same language that is saved for this surah. */
+async function savedOtherEdition(edition: TafsirEdition, surah: number) {
+  const lang = Object.keys(TAFSIRS).find(l => TAFSIRS[l].some(e => e.slug === edition.slug)) ?? "en"
+  for (const other of TAFSIRS[lang]) {
+    if (other.slug === edition.slug) continue
+    const map = await readSaved(other.slug, surah)
+    if (map) return { edition: other, map }
+  }
+  return null
+}
+
+// ─── Offline ───────────────────────────────────────────────────────────────
+
+export const TOTAL_SURAHS = 114
+
+/** How many surahs of this tafsir are saved on the phone (0..114). */
+export async function savedTafsirCount(slug: string): Promise<number> {
+  try {
+    const files = await FileSystem.readDirectoryAsync(`${DIR}${slug}/`)
+    return files.filter(name => /^\d+\.json$/.test(name)).length
+  } catch {
+    return 0
+  }
+}
+
+/** Save the surah being read, in the background, so its tafsir also works with no internet. */
+export async function prefetchTafsirSurah(appLanguage: string, surah: number) {
+  try {
+    const edition = await chosenTafsir(appLanguage)
+    if (await readSaved(edition.slug, surah)) return
+    await saveSurah(edition.slug, surah)
+  } catch {}
+}
+
+const wholeRuns = new Map<string, { cancelled: boolean }>()
+
+/**
+ * Download all 114 surahs of one tafsir (3 at a time). Already saved surahs are skipped, so it
+ * continues where it stopped. onProgress gets (saved, 114). Returns true when complete.
+ */
+export async function downloadWholeTafsir(
+  edition: TafsirEdition,
+  onProgress?: (saved: number, total: number) => void
+): Promise<boolean> {
+  if (wholeRuns.has(edition.slug)) return false
+  const run = { cancelled: false }
+  wholeRuns.set(edition.slug, run)
+  try {
+    const missing: number[] = []
+    for (let s = 1; s <= TOTAL_SURAHS; s++) {
+      if (!(await FileSystem.getInfoAsync(`${DIR}${edition.slug}/${s}.json`).catch(() => ({ exists: false }))).exists) missing.push(s)
+    }
+    let saved = TOTAL_SURAHS - missing.length
+    onProgress?.(saved, TOTAL_SURAHS)
+    let failed = 0
+    for (let i = 0; i < missing.length; i += 3) {
+      if (run.cancelled) return false
+      const results = await Promise.all(missing.slice(i, i + 3).map(s => saveSurah(edition.slug, s)))
+      saved += results.filter(Boolean).length
+      failed += results.filter(r => !r).length
+      onProgress?.(saved, TOTAL_SURAHS)
+      if (failed >= 6) return false // internet gone: stop, try again later
+    }
+    return failed === 0
+  } finally {
+    wholeRuns.delete(edition.slug)
+  }
+}
+
+export function cancelWholeTafsir(slug: string) {
+  const run = wholeRuns.get(slug)
+  if (run) run.cancelled = true
 }
 
 /** Remove HTML tags some tafsirs contain, keep paragraphs. */

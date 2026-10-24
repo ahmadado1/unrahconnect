@@ -233,7 +233,7 @@ export default function RestaurantsScreen() {
     <View style={[styles.screen, { backgroundColor: "#1E3A5F" }]}>
       <StatusBar style="light" />
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
         style={[styles.body, { backgroundColor: "#1E3A5F" }]}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -262,7 +262,7 @@ export default function RestaurantsScreen() {
             />
           </View>
 
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.pillsRow}
@@ -292,7 +292,7 @@ export default function RestaurantsScreen() {
                 </View>
                 <Text style={styles.seeAll}>{section.restaurants.length}</Text>
               </View>
-              <ScrollView
+              <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}

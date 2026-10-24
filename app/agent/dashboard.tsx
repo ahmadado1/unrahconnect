@@ -180,7 +180,7 @@ export default function AgentDashboard() {
       <StatusBar style="light" />
       {header}
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
         {/* ─── Status card ─────────────────────────────────────────────── */}
         <View
           style={[

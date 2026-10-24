@@ -1,13 +1,13 @@
-// Full-page Quran player (Premium). Opened from the big player card on the Listen screen
+// Full-page Quran player (Premium). Free users are sent to the Listen screen (small player). Opened from the big player card on the Listen screen
 // or from the "Continue listening" card on Home.
-import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import TouchableOpacity from "@/app/components/AppPressable"
 import QuranBigPlayer from "@/app/components/QuranBigPlayer"
-import { usePremium } from "@/lib/premium"
+import { isPremiumNow, usePremium } from "@/lib/premium"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -16,9 +16,19 @@ export default function QuranPlayerScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const { isPremium: hasPremium } = usePremium()
-  // Quran audio is free for everyone (QURAN_AUDIO_FREE), otherwise Premium only.
-  const isPremium = hasPremium || QURAN_AUDIO_FREE
+  const { isPremium } = usePremium()
+
+  // Free users (e.g. from a notification or the lock screen): open the Listen screen instead.
+  // Uses the saved Premium state, so Premium users are never sent away while it loads.
+  useEffect(() => {
+    let active = true
+    void isPremiumNow().then(premium => {
+      if (active && !premium) router.replace("/quran-listen" as any)
+    })
+    return () => {
+      active = false
+    }
+  }, [router])
 
   return (
     <LinearGradient colors={["#0F2140", "#1E3A5F", "#0F2140"]} style={styles.screen}>
@@ -35,11 +45,7 @@ export default function QuranPlayerScreen() {
       </View>
 
       <View style={{ flex: 1, paddingBottom: insets.bottom + 30 }}>
-        {isPremium ? (
-          <QuranBigPlayer variant="full" />
-        ) : (
-          <Text style={styles.locked}>{t("premiumFeatureBody")}</Text>
-        )}
+        {isPremium ? <QuranBigPlayer variant="full" /> : null}
       </View>
     </LinearGradient>
   )

@@ -180,11 +180,11 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
           <>
             {/* Full-page player is Premium; free users go to the reciter / surah list instead */}
             <TouchableOpacity
-              onPress={() => router.push((isPremium ? "/quran-player" : "/quran-listen") as any)}
+              onPress={() => router.push((hasPremium ? "/quran-player" : "/quran-listen") as any)}
               hitSlop={10}
               accessibilityLabel={t("qaOpenPlayer")}
             >
-              <Ionicons name={isPremium ? "expand" : "list"} size={20} color="#fff" />
+              <Ionicons name={hasPremium ? "expand" : "list"} size={20} color="#fff" />
             </TouchableOpacity>
             {live ? (
               <TouchableOpacity onPress={() => void stopQuranAudio()} hitSlop={10}>

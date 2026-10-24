@@ -1,3 +1,4 @@
+import { localizeCountryName } from "@/lib/countries"
 import i18n from "@/i18n"
 import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import { AppIcon } from "@/components/AppIcon"
@@ -175,7 +176,7 @@ export default function CountryAgentsScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{country.name}</Text>
+          <Text style={styles.headerTitle}>{localizeCountryName(country.name, i18n.language)}</Text>
         </View>
         <View style={styles.emptyWrap}>
           <AnimatedHeroIcon name="handshake" size={48} accent="gold" style={{ marginBottom: 12 }} />
@@ -210,7 +211,7 @@ export default function CountryAgentsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{country.name}</Text>
+        <Text style={styles.headerTitle}>{localizeCountryName(country.name, i18n.language)}</Text>
         <Text style={styles.headerSub}>
           {count > 0 ? `${count} agents listed` : loading ? "Loading agents…" : "No agents listed"}
         </Text>
@@ -220,7 +221,7 @@ export default function CountryAgentsScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by name or city"
+            placeholder={t("searchNameOrCity")}
             placeholderTextColor="rgba(255,255,255,0.45)"
             style={styles.searchInput}
             autoCorrect={false}
@@ -229,7 +230,7 @@ export default function CountryAgentsScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

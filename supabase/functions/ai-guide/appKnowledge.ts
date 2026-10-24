@@ -55,7 +55,7 @@ Favorites: Me → Favorites (hotels and restaurants, needs an account).
 Language and theme: Me → Settings.
 Profile and password: Me → Profile.
 AI Guide: AI button on Home, or Guide → AI Guide.
-Contact: Me → Contact Us. WhatsApp and phone +201222151335, info@myumrahconnect.com, support@myumrahconnect.com.
+Contact: Me → Contact Us. WhatsApp and phone +201041436778, info@myumrahconnect.com, support@myumrahconnect.com.
 Not in the app: selling packages, Hausa, "Book a Stay" (Coming soon). If a feature is not listed here, it is not available yet.
 
 FOR TRAVEL AGENCIES
@@ -79,7 +79,7 @@ ${hotelKnowledge}
 
 WEBSITE
 https://myumrahconnect.com. Home (features, screenshots, download buttons), /account (your account), /agents (for travel agencies), /hotels, /contact, /advertise, /privacy-policy, /terms, /delete-account.
-Emails: info@myumrahconnect.com, support@myumrahconnect.com. WhatsApp and phone: +201222151335. Instagram: @umrahconnectapp.
+Emails: info@myumrahconnect.com, support@myumrahconnect.com. WhatsApp and phone: +201041436778. Instagram: @umrahconnectapp.
 
 STORES
 App Store: https://apps.apple.com/app/id6778753426

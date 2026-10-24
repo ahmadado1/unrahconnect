@@ -188,7 +188,7 @@ export default function BookingScreen() {
         <Text style={styles.hotelSummaryCity}>{hotelCity} · ${hotelPrice} {t("perNight")}</Text>
       </View>
 
-      <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={styles.form} showsVerticalScrollIndicator={false}>
 
         {/* Dates */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>

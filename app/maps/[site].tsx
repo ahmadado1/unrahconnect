@@ -183,6 +183,29 @@ const WRISTBAND_TIPS = [
   "wristbandTip6",
 ] as const
 
+/**
+ * Photos for some holy sites, loaded from Wikimedia Commons (free-licence photos, so we show
+ * "Photo: Wikimedia Commons" under them). Special:FilePath always points to the current file;
+ * width=1000 asks for a phone-sized copy. If a photo can't load, the banner just hides.
+ */
+const COMMONS = "https://commons.wikimedia.org/wiki/Special:FilePath/"
+const SITE_PHOTOS: Record<string, string> = {
+  arafah: `${COMMONS}Jabal-e-Rehmat_(Mount_of_Mercy)_Mount_Arafat.jpg?width=1000`,
+  zamzam: `${COMMONS}Zamzamwill.JPG?width=1000`,
+  safa: `${COMMONS}Sa%27y_between_Safa_and_Marwa_01.jpg?width=1000`,
+}
+
+function SitePhoto({ uri }: { uri: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return (
+    <View style={styles.photoWrap}>
+      <Image source={{ uri }} style={styles.photo} resizeMode="cover" onError={() => setFailed(true)} />
+      <Text style={styles.photoCredit}>Photo: Wikimedia Commons</Text>
+    </View>
+  )
+}
+
 const SITE_INFO: Record<string, {
   nameKey: string
   arabic: string
@@ -310,11 +333,13 @@ export default function SiteDetailScreen() {
         <AnimatedHeroIcon name={info.icon} size={40} accent="gold" />
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
+
+        {SITE_PHOTOS[site] ? <SitePhoto uri={SITE_PHOTOS[site]} /> : null}
 
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.description, { color: theme.text }]}>{t(info.descriptionKey)}</Text>
@@ -671,6 +696,9 @@ export default function SiteDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  photoWrap: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#E2E8F0" },
+  photo: { width: "100%", height: 210 },
+  photoCredit: { position: "absolute", right: 8, bottom: 6, color: "#fff", fontSize: 10, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 3 },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 16, flexDirection: "row", alignItems: "center", gap: 12 },
   backBtn: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20, padding: 6 },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },

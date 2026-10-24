@@ -1,4 +1,5 @@
 import { showPremiumPrompt } from "@/lib/premiumPrompt"
+import PremiumPromptHost from "@/app/components/PremiumPromptHost"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { isAlKahfReminderWindow } from "@/lib/alKahfWindow"
@@ -184,7 +185,7 @@ export default function GuideScreen() {
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: NAVY }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -444,7 +445,7 @@ export default function GuideScreen() {
               {t("adhanFajrNote")}
             </Text>
 
-            <ScrollView
+            <ScrollView keyboardDismissMode="on-drag"
               style={{ maxHeight: 420 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -531,6 +532,8 @@ export default function GuideScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        {/* Premium card shows on top of this pop-up */}
+        <PremiumPromptHost overlay />
       </Modal>
     </View>
   )

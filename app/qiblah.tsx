@@ -402,7 +402,7 @@ export default function QiblahScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoCard}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Qiblah</Text>
+                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t("qibla")}</Text>
                 <Text style={[styles.infoValue, { color: theme.text }]}>
                   {Math.round(qiblahBearing)}°
                 </Text>

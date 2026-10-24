@@ -56,7 +56,7 @@ export default function MapsScreen() {
         <Text style={styles.subtitle}>{t("mapsSub")}</Text>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
         contentInsetAdjustmentBehavior="never"

@@ -1,8 +1,8 @@
 import { useTheme } from "@/context/themeContext"
-import { NATIONALITIES } from "@/lib/countries"
+import { NATIONALITIES, nationalityLabel } from "@/lib/countries"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
@@ -24,10 +24,7 @@ import { getUserFast, supabase } from "../lib/supabase"
 import { usePremium } from "@/lib/premium"
 import PremiumPlanCard from "./components/PremiumPlanCard"
 
-const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
-  id: n.id,
-  label: n.label,
-}))
+
 
 export default function ProfileScreen() {
   const router = useRouter()
@@ -42,7 +39,12 @@ export default function ProfileScreen() {
   const [gender, setGender] = useState<"male" | "female" | "">("")
   const [agentCode, setAgentCode] = useState("")
   const [agentCodeError, setAgentCodeError] = useState("")
-  const { t } = useTranslation()
+  const { t, i18n: i18nNow } = useTranslation()
+  // Nationalities in the app language (the saved value stays the English word).
+  const nationalityOptions = useMemo(
+    () => NATIONALITIES.map(n => ({ id: n.id, label: nationalityLabel(n.id, i18nNow.language) })),
+    [i18nNow.language]
+  )
   const premium = usePremium()
 
   const [passwordModal, setPasswordModal] = useState(false)
@@ -202,7 +204,7 @@ export default function ProfileScreen() {
     gender === "male" ? t("male") : gender === "female" ? t("female") : t("notSet")
 
   return (
-    <ScrollView
+    <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
       style={[styles.screen, { backgroundColor: theme.header }]}
       contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
       showsVerticalScrollIndicator={false}
@@ -296,13 +298,13 @@ export default function ProfileScreen() {
             <SelectDropdown
               placeholder={t("enterNationality")}
               value={nationality}
-              options={NATIONALITY_OPTIONS}
+              options={nationalityOptions}
               onChange={setNationality}
-              searchPlaceholder="Search nationality"
+              searchPlaceholder={t("searchNationality")}
             />
           ) : (
             <Text style={[styles.fieldValue, { color: theme.text }]}>
-              {nationality || t("notSet")}
+              {nationality ? nationalityLabel(nationality, i18nNow.language) : t("notSet")}
             </Text>
           )}
         </View>

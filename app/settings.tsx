@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 // Icons
 import { ensureQuranForLanguage } from "@/lib/quranDownload"
 import { openStoreListing } from "@/lib/storeReviewPrompt"
-import { applyRtlForLanguage } from "@/lib/rtl"
+import { applyRtlForLanguage, restartIfDirectionWrong } from "@/lib/rtl"
 import { scheduleDailyDhikrReminders } from "@/lib/notifications"
 import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown"
 import { Ionicons } from "@expo/vector-icons"
@@ -44,6 +44,8 @@ export default function SettingsScreen() {
     ensureQuranForLanguage(code).catch(console.log)
     await scheduleDailyDhikrReminders().catch(console.log)
     setLanguageModalOpen(false)
+    // English ↔ Arabic/Urdu: restart so the whole layout switches sides right away.
+    await restartIfDirectionWrong(code)
   }
 
   return (
@@ -59,7 +61,7 @@ export default function SettingsScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Preferences section */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
@@ -235,7 +237,7 @@ export default function SettingsScreen() {
               {t("choosePreferredLanguage")}
             </Text>
             {/* ScrollView so all 6 languages stay reachable on Android (Alert only shows 3 buttons). */}
-            <ScrollView
+            <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
               style={styles.langList}
               bounces={false}
               nestedScrollEnabled

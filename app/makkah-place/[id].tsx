@@ -65,7 +65,7 @@ export default function MakkahPlaceDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {videoSource ? (
           <View style={styles.videoWrap}>
             <VideoView

@@ -376,8 +376,12 @@ async function startVerse(ayah: number) {
   if (!verseRun) return
   setState({ kind: "verse", surah: verseRun.surah, ayah, loading: true, playing: false, error: false })
   try {
+    // Downloaded on the phone? Play the saved verse (works with no internet).
+    const { downloadedVerseUri } = await import("./quranAudioDownloads")
+    const local = await downloadedVerseUri(verseRun.reciter.folder, verseRun.surah, ayah).catch(() => null)
+    if (!verseRun) return
     await startUrl(
-      verseAudioUrl(verseRun.reciter.folder, verseRun.surah, ayah),
+      local ?? verseAudioUrl(verseRun.reciter.folder, verseRun.surah, ayah),
       `${verseRun.title} · ${ayah}`,
       verseRun.reciter.name
     )

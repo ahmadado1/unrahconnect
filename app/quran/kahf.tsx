@@ -1,3 +1,4 @@
+import { prefetchTafsirSurah } from "@/lib/tafsir"
 import VerseMenuHost, { type VerseTarget } from "@/app/components/VerseMenuHost"
 import MushafFittedLine, { MUSHAF_FONT, MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import IsolatedSurahListenCard from "@/app/components/IsolatedSurahListenCard"
@@ -165,7 +166,7 @@ function KahfPage({
         </Text>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={styles.pageScroll}
         contentContainerStyle={styles.pageScrollContent}
         showsVerticalScrollIndicator={false}
@@ -273,6 +274,11 @@ export default function KahfReadingScreen() {
   const router = useRouter()
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
+  // Save this surah's tafsir in the background, so it also opens with no internet later.
+  useEffect(() => {
+    const timer = setTimeout(() => void prefetchTafsirSurah(i18n.language, 18), 4000)
+    return () => clearTimeout(timer)
+  }, [i18n.language])
   const insets = useSafeAreaInsets()
   const [fontsLoaded] = useFonts(UC_QURAN_FONTS)
   const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
@@ -407,6 +413,14 @@ export default function KahfReadingScreen() {
     const next = await markKahfWeekComplete()
     setProgress(next)
     await scheduleAlKahfReminder().catch(() => {})
+    // Tapped "done": also counts for Quran goals with this surah (e.g. a daily goal).
+    void import("@/lib/quranGoals").then(async m => {
+      const { surahPageRange } = await import("@/lib/quranPages")
+      const r = surahPageRange(18)
+      await m.markPagesRead(Array.from({ length: r.end - r.start + 1 }, (_, i) => r.start + i))
+      const { scheduleQuranGoalReminders } = await import("@/lib/notifications")
+      await scheduleQuranGoalReminders()
+    }).catch(() => {})
     if (next) void considerStoreReview()
   }, [])
 
@@ -488,7 +502,7 @@ export default function KahfReadingScreen() {
       </Text>
 
 
-      <FlatList
+      <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         ref={flatListRef}
         data={pages}
         horizontal

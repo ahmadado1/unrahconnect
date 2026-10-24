@@ -93,7 +93,7 @@ export default function TravelAgentDetailScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: NAVY }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -207,7 +207,7 @@ export default function TravelAgentDetailScreen() {
         {agent.phone ? (
           <TouchableOpacity style={styles.barCall} onPress={() => call(agent.phone)}>
             <Ionicons name="call" size={16} color="#fff" />
-            <Text style={styles.barCallText}>Call</Text>
+            <Text style={styles.barCallText}>{t("agentCall")}</Text>
           </TouchableOpacity>
         ) : null}
         {agent.phone || agent.whatsapp ? (
@@ -219,7 +219,7 @@ export default function TravelAgentDetailScreen() {
         {agent.email ? (
           <TouchableOpacity style={styles.barEmail} onPress={email}>
             <Ionicons name="mail-outline" size={16} color={NAVY} />
-            <Text style={styles.barEmailText}>Email</Text>
+            <Text style={styles.barEmailText}>{t("email")}</Text>
           </TouchableOpacity>
         ) : null}
         {agent.website ? (

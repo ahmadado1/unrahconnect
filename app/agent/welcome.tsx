@@ -48,7 +48,7 @@ export default function AgentWelcomeScreen() {
         <Text style={styles.sameEmail}>{t("agentSameEmail")}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[styles.section, { color: theme.textSecondary }]}>{t("agentStepsTitle")}</Text>
         {STEP_ICONS.map((icon, index) => {
           const n = index + 1

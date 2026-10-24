@@ -25,6 +25,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import Markdown from "react-native-markdown-display"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { usePremium } from "@/lib/premium"
+import { showPremiumPrompt } from "@/lib/premiumPrompt"
 
 // Must match free_limit in the SQL function ai_use_request.
 const AI_FREE_WEEKLY = 12
@@ -845,6 +846,8 @@ export default function AIGuideScreen() {
     } catch (err) {
       if (err?.name === "AbortError") return
       const limitHit = err?.message === "ai_limit" || err?.message === "ai_login"
+      // Free weekly questions used up: show the Premium card (unlimited AI).
+      if (err?.message === "ai_limit") showPremiumPrompt()
       const key = limitHit
         ? err.message === "ai_login" ? "aiLoginNeeded" : "aiLimitReached"
         : await getInvokeErrorKey(err)
@@ -982,7 +985,7 @@ export default function AIGuideScreen() {
         keyboardVerticalOffset={0}
       >
         <View style={[styles.chipsSection, { backgroundColor: headerBg }]}>
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag"
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsRow}

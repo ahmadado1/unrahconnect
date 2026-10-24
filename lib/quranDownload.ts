@@ -7,7 +7,9 @@ import {
   markQuranFullyCached,
   // FIX: these three were used below but never imported
   pageApiUrl,
+  pageHasQpcHafsText,
   QURAN_DOWNLOAD_FLAG_KEY,
+  readCachedPage,
   slimPageDataFromJson,
   TOTAL_MUSHAF_PAGES,
   writeCachedPage
@@ -86,6 +88,36 @@ async function downloadPageFromNetwork(page: number): Promise<boolean> {
   }
 }
 
+const QPC_UPGRADE_KEY = "quran_pages_qpc_upgrade_v1"
+
+/**
+ * Pages saved by old app versions don't have the Madinah (KFGQPC) text, so offline they
+ * fall back to the older-looking font. Re-download just those pages once (when online).
+ * A page is only replaced after the new copy downloads, so nothing is lost offline.
+ */
+async function upgradeOldMushafPages(): Promise<void> {
+  try {
+    if ((await AsyncStorage.getItem(QPC_UPGRADE_KEY)) === "done") return
+    const old: number[] = []
+    for (let page = 1; page <= TOTAL_MUSHAF_PAGES; page++) {
+      const data = await readCachedPage(page).catch(() => null)
+      if (data?.verses?.length && !pageHasQpcHafsText(data)) old.push(page)
+    }
+    let failed = 0
+    for (let i = 0; i < old.length; i += BATCH_SIZE) {
+      const batch = old.slice(i, i + BATCH_SIZE)
+      const results = await Promise.all(batch.map(page => downloadPageFromNetwork(page)))
+      failed += results.filter(ok => !ok).length
+      // Offline: stop early and try again next time.
+      if (failed >= BATCH_SIZE * 2) return
+      await sleep(BATCH_DELAY_MS)
+    }
+    if (failed === 0) await AsyncStorage.setItem(QPC_UPGRADE_KEY, "done")
+  } catch {
+    // try again next launch
+  }
+}
+
 async function getDownloadLanguage() {
   const fromI18n = normalizeReadLanguage(i18n.language || "en")
   const stored = normalizeReadLanguage((await AsyncStorage.getItem("language")) ?? fromI18n)
@@ -115,6 +147,7 @@ export { getCachedPageCount }
 
 async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
   const language = await getDownloadLanguage()
+  await upgradeOldMushafPages()
 
   const initialMissingPages = await getMissingPageNumbers()
   const initialMissingSurahs = await getMissingSurahNumbers(language)
@@ -131,7 +164,7 @@ async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
       status: "complete",
       done: TOTAL_ITEMS,
       total: TOTAL_ITEMS,
-      label: "Quran ready offline",
+      label: i18n.t("quranReadyOffline"),
     })
     onProgress?.(TOTAL_ITEMS, TOTAL_ITEMS)
     setTimeout(() => emit({ status: "idle", done: TOTAL_ITEMS, total: TOTAL_ITEMS, label: "" }), 4000)
@@ -219,7 +252,7 @@ async function runDownload(onProgress?: ProgressCallback): Promise<boolean> {
     status: "complete",
     done: TOTAL_ITEMS,
     total: TOTAL_ITEMS,
-    label: "Quran ready offline",
+    label: i18n.t("quranReadyOffline"),
   })
   onProgress?.(TOTAL_ITEMS, TOTAL_ITEMS)
 

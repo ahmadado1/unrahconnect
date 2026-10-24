@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { AppIcon, AppIconKey, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
@@ -38,13 +39,13 @@ type SelectDropdownProps = {
 
 export default function SelectDropdown({
   label,
-  placeholder = "Select",
+  placeholder = i18n.t("select"),
   value,
   options,
   onChange,
   variant = "sheet",
   searchable = true,
-  searchPlaceholder = "Search…",
+  searchPlaceholder = i18n.t("search"),
   disabled = false,
 }: SelectDropdownProps) {
   const { theme } = useTheme()
@@ -217,7 +218,7 @@ export default function SelectDropdown({
             </View>
           )}
 
-          <FlatList
+          <FlatList keyboardDismissMode="on-drag"
             data={filtered}
             keyExtractor={item => item.id}
             keyboardShouldPersistTaps="handled"

@@ -173,7 +173,7 @@ export default function ServicesScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
         contentInsetAdjustmentBehavior="never"

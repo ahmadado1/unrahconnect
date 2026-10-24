@@ -150,7 +150,7 @@ export default function MushafSettingsDrawer({
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.panelBody} showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={styles.panelBody} showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
         </Animated.View>

@@ -38,7 +38,19 @@ export default function PremiumPlanCard() {
   }
 
   // ─── Premium ──────────────────────────────────────────────────────────────
-  const unlocked = [t("planFeatAdhan"), t("planFeatFonts"), t("planFeatGuided"), t("planFeatAi")]
+  // Everything Premium unlocks (keep in step with the list on the Premium screen).
+  const unlocked = [
+    t("planFeatGoals"),
+    t("planFeatPlayer"),
+    t("planFeatAdhan"),
+    t("planFeatFonts"),
+    t("planFeatTrip"),
+    t("planFeatCompanion"),
+    t("planFeatMiqat"),
+    t("planFeatWidget"),
+    t("planFeatGuided"),
+    t("planFeatAi"),
+  ]
   return (
     <View style={[styles.card, styles.premiumCard, { backgroundColor: isDark ? "#2A2414" : "#FBF6E8" }]}>
       <Text style={[styles.label, { color: "#A07F2A" }]}>{t("planTitle")}</Text>

@@ -211,7 +211,7 @@ export default function TripDetailsSheet({
           <Text style={styles.title}>{t("tripDetailsTitle")}</Text>
           <Text style={styles.sub}>{t("tripDetailsSub")}</Text>
 
-          <ScrollView keyboardShouldPersistTaps="handled" style={styles.form} showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.form} showsVerticalScrollIndicator={false}>
             <Text style={styles.label}>{t("tripOriginLabel")}</Text>
             <TextInput
               value={query}

@@ -4,7 +4,7 @@ import i18n from "@/i18n"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
@@ -12,14 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import LanguageDropdown from "../components/LanguageDropdown"
 import PhoneInput from "../components/PhoneInput"
 import SelectDropdown from "../components/SelectDropdown"
-import { NATIONALITIES } from "@/lib/countries"
+import { NATIONALITIES, nationalityLabel } from "@/lib/countries"
 import { getPendingReferral, isValidReferralCode, linkPilgrimToAgent, normalizeReferralCode } from "@/lib/referral"
 import { getUserFast, supabase } from "../../lib/supabase"
 
-const NATIONALITY_OPTIONS = NATIONALITIES.map(n => ({
-  id: n.id,
-  label: n.label,
-}))
+
 
 
 /** Rejects if the request takes too long, so the button never stays on "Saving..." forever. */
@@ -37,7 +34,12 @@ export default function SetupScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
-  const { t } = useTranslation()
+  const { t, i18n: i18nNow } = useTranslation()
+  // Nationalities in the app language (the saved value stays the English word).
+  const nationalityOptions = useMemo(
+    () => NATIONALITIES.map(n => ({ id: n.id, label: nationalityLabel(n.id, i18nNow.language) })),
+    [i18nNow.language]
+  )
 
   const [step, setStep] = useState<1 | 2>(1)
   const [userType, setUserType] = useState<"pilgrim" | "agent" | null>(null)
@@ -151,6 +153,8 @@ export default function SetupScreen() {
           await linkPilgrimToAgent(code)
         }
         router.replace("/(tabs)")
+        // Picked Arabic/Urdu (or back to English) here: restart once so the layout switches sides.
+        void import("@/lib/rtl").then(m => m.restartIfDirectionWrong(selectedLang))
       }
     } catch (e) {
       console.log("Setup error:", e)
@@ -173,7 +177,7 @@ export default function SetupScreen() {
         </Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
         {step === 1 && (
           <>
@@ -270,7 +274,7 @@ export default function SetupScreen() {
               label={t("nationality")}
               placeholder={t("nationalityPlaceholder")}
               value={nationality}
-              options={NATIONALITY_OPTIONS}
+              options={nationalityOptions}
               onChange={setNationality}
               searchPlaceholder={t("search") || "Search"}
             />

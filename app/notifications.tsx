@@ -20,7 +20,7 @@ import {
 } from "@/lib/notifications"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker from "@/app/components/ThemedDateTimePicker"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useState } from "react"
@@ -268,7 +268,7 @@ export default function NotificationsScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.intro}>
           <Ionicons name="notifications" size={22} color={ICON_GOLD} />
           <Text style={[styles.introText, { color: theme.textSecondary }]}>

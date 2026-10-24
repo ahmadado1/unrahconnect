@@ -2,6 +2,7 @@ import i18n from "@/i18n"
 import { useTheme } from "@/context/themeContext"
 import {
   COUNTRY_DIALS,
+  countryName,
   detectDefaultCountryCode,
   digitsOnly,
   formatFullPhone,
@@ -35,7 +36,7 @@ export default function PhoneInput({
   label,
   value,
   onChange,
-  placeholder = "Phone number",
+  placeholder = i18n.t("phoneNumber"),
   compact = false,
 }: PhoneInputProps) {
   const { theme } = useTheme()
@@ -61,16 +62,23 @@ export default function PhoneInput({
 
   const country = getCountryByCode(countryCode)
 
+  // Country names in the app language (search works in English and in the app language).
+  const lang = i18n.language || "en"
+  const countries = useMemo(
+    () => COUNTRY_DIALS.map(c => ({ ...c, local: countryName(c.code, lang) })),
+    [lang]
+  )
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return COUNTRY_DIALS
-    return COUNTRY_DIALS.filter(
+    if (!q) return countries
+    return countries.filter(
       c =>
+        c.local.toLowerCase().includes(q) ||
         c.name.toLowerCase().includes(q) ||
         c.dial.includes(q) ||
         c.code.toLowerCase().includes(q)
     )
-  }, [query])
+  }, [query, countries])
 
   const emit = (nextCode: string, nextLocal: string) => {
     onChange(formatFullPhone(nextCode, nextLocal))
@@ -163,7 +171,7 @@ export default function PhoneInput({
             <Ionicons name="search" size={18} color={theme.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search country or code"
+              placeholder={i18n.t("searchCountryOrCode")}
               placeholderTextColor={theme.textSecondary}
               value={query}
               onChangeText={setQuery}
@@ -171,7 +179,7 @@ export default function PhoneInput({
             />
           </View>
 
-          <FlatList
+          <FlatList keyboardDismissMode="on-drag"
             data={filtered}
             keyExtractor={item => `${item.code}-${item.dial}`}
             keyboardShouldPersistTaps="handled"
@@ -192,7 +200,7 @@ export default function PhoneInput({
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.countryName, { color: theme.text }]}>
-                      {item.name}
+                      {item.local}
                     </Text>
                     <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
                       {item.dial}

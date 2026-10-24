@@ -343,7 +343,7 @@ export default function HotelsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
         style={styles.body}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -384,7 +384,7 @@ export default function HotelsScreen() {
             ) : null}
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsRow} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={styles.pillsRow} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
             {([5, 10, 15] as const).map(minutes => (
               <TouchableOpacity
                 key={minutes}
@@ -437,7 +437,7 @@ export default function HotelsScreen() {
                   </View>
                   <Text style={styles.count}>{section.hotels.length}</Text>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+                <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
                   {section.hotels.map(h => (
                     <HotelCard key={h.id} hotel={h} />
                   ))}

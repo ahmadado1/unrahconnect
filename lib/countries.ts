@@ -1,4 +1,5 @@
 /** Dial codes + nationality list for profile / booking forms. */
+import { COUNTRY_NAMES, EN_NAME_TO_CODE, NATIONALITY_TO_CODE } from "./countryNames"
 
 export type CountryDial = {
   code: string
@@ -305,4 +306,40 @@ export function formatFullPhone(countryCode: string, localNumber: string) {
   const local = digitsOnly(localNumber).replace(/^0+/, "")
   if (!local) return ""
   return `${country.dial}${local}`
+}
+
+// ─── Names in the app language ───
+
+function langOf(language: string | undefined) {
+  return String(language || "en").split("-")[0].toLowerCase()
+}
+
+/** Country name for a code (e.g. "NG") in the app language; English if not translated. */
+export function countryName(code: string, language?: string) {
+  const lang = langOf(language)
+  const en = COUNTRY_DIALS.find(c => c.code === code)?.name ?? code
+  if (lang === "en") return en
+  return COUNTRY_NAMES[lang]?.[code] ?? en
+}
+
+/** Country code for an English name ("Nigeria", "UAE"), or null. */
+export function countryCodeFromName(name: string | null | undefined) {
+  return EN_NAME_TO_CODE[String(name || "").trim().toLowerCase()] ?? null
+}
+
+/** Translate a free-text English country name if we know it; otherwise return it unchanged. */
+export function localizeCountryName(name: string, language?: string) {
+  const code = countryCodeFromName(name)
+  return code ? countryName(code, language) : name
+}
+
+/**
+ * Label for a saved nationality ("Egyptian").
+ * English keeps the nationality word; other languages show the country name (e.g. "مصر").
+ */
+export function nationalityLabel(id: string, language?: string) {
+  const lang = langOf(language)
+  if (lang === "en") return id
+  const code = NATIONALITY_TO_CODE[id]
+  return code ? countryName(code, lang) : id
 }

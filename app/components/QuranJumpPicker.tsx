@@ -145,7 +145,7 @@ export default function QuranJumpPicker({
           <View style={styles.columns}>
             <View style={styles.column}>
               <Text style={styles.columnLabel}>{t("quranSurah")}</Text>
-              <FlatList
+              <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
                 ref={surahListRef}
                 data={SURAH_META}
                 keyExtractor={item => String(item.number)}
@@ -177,7 +177,7 @@ export default function QuranJumpPicker({
 
             <View style={[styles.column, styles.ayahColumn]}>
               <Text style={styles.columnLabel}>{t("quranAyah")}</Text>
-              <FlatList
+              <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
                 ref={ayahListRef}
                 data={ayahs}
                 keyExtractor={item => String(item)}

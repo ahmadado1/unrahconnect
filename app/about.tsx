@@ -5,9 +5,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, View } from "react-native"
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const INSTAGRAM_HANDLE = "@umrahconnectapp"
+const INSTAGRAM_URL = "https://www.instagram.com/umrahconnectapp/"
 
 const FEATURES = [
   { icon: "bed" as const, titleKey: "hotelsTitle", descKey: "aboutHotelsDesc" },
@@ -37,7 +40,7 @@ export default function AboutScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: theme.header }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -81,7 +84,22 @@ export default function AboutScreen() {
         {/* Social media */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("followUs")}</Text>
-        <Text style={[styles.comingSoon, { color: theme.textSecondary }]}>{t("socialComingSoon")}</Text>
+        {/* Instagram: opens the Instagram app if installed, else the website */}
+        <TouchableOpacity
+          style={styles.socialRow}
+          onPress={() => Linking.openURL(INSTAGRAM_URL)}
+          accessibilityRole="link"
+          accessibilityLabel={`Instagram ${INSTAGRAM_HANDLE}`}
+        >
+          <View style={styles.igIcon}>
+            <Ionicons name="logo-instagram" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.socialName, { color: theme.text }]}>Instagram</Text>
+            <Text style={[styles.socialHandle, { color: theme.textSecondary }]}>{INSTAGRAM_HANDLE}</Text>
+          </View>
+          <Ionicons name="open-outline" size={18} color="#C9A84C" />
+        </TouchableOpacity>
         </View>
 
         {/* Version */}
@@ -114,6 +132,10 @@ const styles = StyleSheet.create({
   featureName: { fontSize: 14, fontWeight: "bold", marginBottom: 2 },
   featureDesc: { fontSize: 13, lineHeight: 20 },
   comingSoon: { fontSize: 14, textAlign: "center", padding: 10 },
+  socialRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
+  igIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#D6249F", alignItems: "center", justifyContent: "center" },
+  socialName: { fontSize: 15, fontWeight: "700" },
+  socialHandle: { fontSize: 13, marginTop: 1 },
   versionBox: { alignItems: "center", marginTop: 24 },
   versionText: { fontSize: 13 },
   versionSub: { fontSize: 12, color: "#C9A84C", marginTop: 4 },

@@ -16,8 +16,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || ""
 const AGENT_EMAILS_KEY = (Deno.env.get("AGENT_EMAILS_KEY") || "").trim()
 // Platform key used for database calls. May be the new sb_secret_ key, so it is not the incoming auth check.
 const SERVICE_ROLE_KEY = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim()
-const WHATSAPP_NUMBER = "+201222151335"
-const WHATSAPP_URL = "https://wa.me/201222151335"
+const WHATSAPP_NUMBER = "+201041436778"
+const WHATSAPP_URL = "https://wa.me/201041436778"
 
 type EmailType =
   | "application_received"

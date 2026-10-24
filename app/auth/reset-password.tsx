@@ -108,7 +108,7 @@ export default function ResetPasswordScreen() {
                 <Text style={[styles.label, { color: theme.text }]}>8-digit code</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Enter the code from your email"
+                  placeholder={i18n.t("resetEnterCode")}
                   placeholderTextColor={theme.textSecondary}
                   value={code}
                   onChangeText={setCode}
@@ -141,7 +141,7 @@ export default function ResetPasswordScreen() {
                 <Text style={[styles.label, { color: theme.text }]}>{i18n.t("ui_newPassword")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Enter new password"
+                  placeholder={i18n.t("ui_newPassword")}
                   placeholderTextColor={theme.textSecondary}
                   value={password}
                   onChangeText={setPassword}
@@ -153,7 +153,7 @@ export default function ResetPasswordScreen() {
                 <Text style={[styles.label, { color: theme.text }]}>{i18n.t("ui_confirmPassword")}</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.text }]}
-                  placeholder="Confirm new password"
+                  placeholder={i18n.t("ui_confirmPassword")}
                   placeholderTextColor={theme.textSecondary}
                   value={confirm}
                   onChangeText={setConfirm}

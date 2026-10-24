@@ -2,7 +2,18 @@
 // Shows the user's chosen tafsir for their language, with chips to switch to another trusted one.
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
-import { chosenTafsir, getTafsir, saveTafsirChoice, tafsirsFor, type TafsirEdition, type TafsirResult } from "@/lib/tafsir"
+import {
+  cancelWholeTafsir,
+  chosenTafsir,
+  downloadWholeTafsir,
+  getTafsir,
+  savedTafsirCount,
+  saveTafsirChoice,
+  tafsirsFor,
+  TOTAL_SURAHS,
+  type TafsirEdition,
+  type TafsirResult,
+} from "@/lib/tafsir"
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -56,6 +67,31 @@ export default function TafsirSheet({ visible, surah, ayah, surahName, onClose }
     }
   }, [visible, edition, surah, ayah])
 
+  // Offline: how many surahs of this tafsir are on the phone, and the "download all" progress.
+  const [savedCount, setSavedCount] = useState(0)
+  const [downloading, setDownloading] = useState(false)
+  useEffect(() => {
+    if (!visible || !edition) return
+    let active = true
+    void savedTafsirCount(edition.slug).then(n => active && setSavedCount(n))
+    return () => {
+      active = false
+    }
+  }, [visible, edition, result])
+
+  const downloadAll = async () => {
+    if (!edition) return
+    setDownloading(true)
+    await downloadWholeTafsir(edition, saved => setSavedCount(saved))
+    setDownloading(false)
+    setSavedCount(await savedTafsirCount(edition.slug))
+  }
+  const stopDownload = () => {
+    if (edition) cancelWholeTafsir(edition.slug)
+    setDownloading(false)
+  }
+  const allSaved = savedCount >= TOTAL_SURAHS
+
   const pick = (e: TafsirEdition) => {
     setEdition(e)
     void saveTafsirChoice(i18n.language, e.slug)
@@ -81,7 +117,7 @@ export default function TafsirSheet({ visible, surah, ayah, surahName, onClose }
         </View>
 
         {editions.length > 1 ? (
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.chipsRow}
@@ -100,7 +136,7 @@ export default function TafsirSheet({ visible, surah, ayah, surahName, onClose }
           </ScrollView>
         ) : null}
 
-        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 12 }}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" style={styles.body} contentContainerStyle={{ paddingBottom: 12 }}>
           {state === "loading" ? (
             <View style={styles.center}>
               <ActivityIndicator color={GOLD} />
@@ -125,6 +161,36 @@ export default function TafsirSheet({ visible, surah, ayah, surahName, onClose }
             </>
           )}
         </ScrollView>
+
+        {/* Offline: download the whole tafsir so it works with no internet */}
+        {edition ? (
+          <View style={[styles.offline, { borderColor: theme.border }]}>
+            <Ionicons
+              name={allSaved ? "checkmark-circle" : "cloud-download-outline"}
+              size={20}
+              color={allSaved ? "#4ADE80" : GOLD}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.offlineTitle, { color: theme.text }]}>
+                {allSaved ? t("tafsirSavedAll") : t("tafsirOffline")}
+              </Text>
+              <Text style={[styles.offlineSub, { color: theme.textSecondary }]}>
+                {downloading
+                  ? t("tafsirDownloading", { pct: Math.round((savedCount / TOTAL_SURAHS) * 100) })
+                  : `${edition.name} · ${savedCount}/${TOTAL_SURAHS}`}
+              </Text>
+            </View>
+            {allSaved ? null : downloading ? (
+              <TouchableOpacity onPress={stopDownload} hitSlop={8} accessibilityLabel={t("qdCancel")}>
+                <Ionicons name="close-circle" size={26} color={theme.textSecondary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => void downloadAll()} style={styles.offlineBtn}>
+                <Text style={styles.offlineBtnText}>{t("qdDownload")}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
       </View>
     </Modal>
   )
@@ -150,4 +216,9 @@ const styles = StyleSheet.create({
   group: { color: GOLD, fontSize: 13, fontWeight: "700", marginBottom: 8 },
   text: { fontSize: 17, lineHeight: 28 },
   source: { fontSize: 12, marginTop: 16, lineHeight: 18 },
+  offline: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: 0.5, paddingTop: 12, marginTop: 4 },
+  offlineTitle: { fontSize: 14, fontWeight: "800" },
+  offlineSub: { fontSize: 12, marginTop: 2 },
+  offlineBtn: { backgroundColor: GOLD, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  offlineBtnText: { color: NAVY, fontSize: 13, fontWeight: "800" },
 })

@@ -50,7 +50,7 @@ export default function FlightDetailScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: platform.brandColor }]}>
       <StatusBar style="light" />
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: platform.brandColor }}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}

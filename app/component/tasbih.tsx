@@ -149,7 +149,7 @@ const DHIKR_OPTIONS = [
               style={[styles.actionButton, { backgroundColor: theme.inputBg }]}
               onPress={handleReset}
             >
-              <Text style={[styles.actionButtonText, { color: theme.text }]}>Reset</Text>
+              <Text style={[styles.actionButtonText, { color: theme.text }]}>{i18n.t("reset")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButtonPrimary} onPress={handleChangeDhikr}>
               <Text style={styles.actionButtonPrimaryText}>{i18n.t("ui_changeDhikr")}</Text>

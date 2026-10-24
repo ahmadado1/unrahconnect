@@ -20,7 +20,7 @@ import {
   type TripPlan,
 } from "@/lib/tripPlan"
 import { Ionicons } from "@expo/vector-icons"
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker from "@/app/components/ThemedDateTimePicker"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
@@ -156,7 +156,7 @@ export default function TripPlannerScreen() {
       {!isPremium ? (
         <PremiumUpsellCard variant="locked" />
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}>
           {/* 1. Dates */}
           <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("tp_dates")}</Text>

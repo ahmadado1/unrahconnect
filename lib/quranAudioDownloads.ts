@@ -3,7 +3,7 @@
 // One file per reciter + surah, saved in the app's own storage. playSurah() uses the saved file
 // automatically when it exists.
 import * as FileSystem from "expo-file-system/legacy"
-import { surahAudioUrl, type SurahReciter } from "./quranAudio"
+import { surahAudioUrl, verseAudioUrl, type SurahReciter } from "./quranAudio"
 
 const ROOT = `${FileSystem.documentDirectory}quran-audio/`
 
@@ -80,4 +80,105 @@ export async function cancelSurahDownload(reciterId: number, surah: number) {
 
 export async function deleteSurahAudio(reciterId: number, surah: number) {
   await FileSystem.deleteAsync(localSurahUri(reciterId, surah), { idempotent: true }).catch(() => {})
+}
+
+// ─── Verse-by-verse audio (EveryAyah) ──────────────────────────────────────
+// The play button next to each verse uses one small file per verse. Downloading a surah saves
+// all of its verse files for the chosen verse reciter; startVerse() then plays them offline.
+const VERSE_ROOT = `${FileSystem.documentDirectory}quran-verse-audio/`
+
+export function localVerseUri(folder: string, surah: number, ayah: number) {
+  return `${VERSE_ROOT}${folder}/${pad3(surah)}${pad3(ayah)}.mp3`
+}
+
+/** Marker file written when every verse of the surah is saved. */
+function verseDoneMarker(folder: string, surah: number) {
+  return `${VERSE_ROOT}${folder}/${pad3(surah)}.done`
+}
+
+/** The saved verse file, or null (then the verse streams from the internet). */
+export async function downloadedVerseUri(folder: string, surah: number, ayah: number): Promise<string | null> {
+  try {
+    const uri = localVerseUri(folder, surah, ayah)
+    const info = await FileSystem.getInfoAsync(uri)
+    return info.exists && (info.size ?? 0) > 1_000 ? uri : null
+  } catch {
+    return null
+  }
+}
+
+export async function isSurahVersesDownloaded(folder: string, surah: number): Promise<boolean> {
+  try {
+    return (await FileSystem.getInfoAsync(verseDoneMarker(folder, surah))).exists
+  } catch {
+    return false
+  }
+}
+
+const verseRuns = new Map<string, { cancelled: boolean }>()
+
+/**
+ * Download every verse of a surah (4 at a time). Files already saved are skipped, so a
+ * cut download continues where it stopped. onProgress gets 0..1. Returns true when complete.
+ */
+export async function downloadSurahVerses(
+  folder: string,
+  surah: number,
+  ayahCount: number,
+  onProgress?: (fraction: number) => void
+): Promise<boolean> {
+  const key = `${folder}:${surah}`
+  if (verseRuns.has(key) || ayahCount < 1) return false
+  const run = { cancelled: false }
+  verseRuns.set(key, run)
+  try {
+    await FileSystem.makeDirectoryAsync(`${VERSE_ROOT}${folder}/`, { intermediates: true }).catch(() => {})
+    let done = 0
+    let failed = 0
+    const ayahs = Array.from({ length: ayahCount }, (_, i) => i + 1)
+    for (let i = 0; i < ayahs.length; i += 4) {
+      if (run.cancelled) return false
+      await Promise.all(
+        ayahs.slice(i, i + 4).map(async ayah => {
+          const final = localVerseUri(folder, surah, ayah)
+          if (!(await downloadedVerseUri(folder, surah, ayah))) {
+            const temp = `${final}.part`
+            try {
+              const res = await FileSystem.downloadAsync(verseAudioUrl(folder, surah, ayah), temp)
+              if (res.status !== 200) throw new Error(`status ${res.status}`)
+              await FileSystem.deleteAsync(final, { idempotent: true }).catch(() => {})
+              await FileSystem.moveAsync({ from: temp, to: final })
+            } catch {
+              failed++
+              await FileSystem.deleteAsync(temp, { idempotent: true }).catch(() => {})
+            }
+          }
+          done++
+          onProgress?.(done / ayahCount)
+        })
+      )
+      if (failed > 0) return false
+    }
+    await FileSystem.writeAsStringAsync(verseDoneMarker(folder, surah), String(Date.now())).catch(() => {})
+    onProgress?.(1)
+    return true
+  } catch (e) {
+    console.log("[Verse download] failed:", e)
+    return false
+  } finally {
+    verseRuns.delete(key)
+  }
+}
+
+export function cancelSurahVersesDownload(folder: string, surah: number) {
+  const run = verseRuns.get(`${folder}:${surah}`)
+  if (run) run.cancelled = true
+}
+
+/** Delete the saved verse files of one surah (one reciter). */
+export async function deleteSurahVerses(folder: string, surah: number, ayahCount: number) {
+  await FileSystem.deleteAsync(verseDoneMarker(folder, surah), { idempotent: true }).catch(() => {})
+  for (let ayah = 1; ayah <= ayahCount; ayah++) {
+    await FileSystem.deleteAsync(localVerseUri(folder, surah, ayah), { idempotent: true }).catch(() => {})
+  }
 }

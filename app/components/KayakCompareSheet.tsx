@@ -141,7 +141,7 @@ export default function KayakCompareSheet({
               <Ionicons name="close" size={24} color={theme.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ paddingBottom: 8 }}>{content}</ScrollView>
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>{content}</ScrollView>
           <Text style={[styles.powered, { color: theme.textSecondary }]}>{t("kyPowered")}</Text>
         </View>
       </View>

@@ -1,9 +1,10 @@
+import { prefetchTafsirSurah } from "@/lib/tafsir"
+import VerseAudioDownload from "@/app/components/VerseAudioDownload"
 import SurahAudioDownload from "@/app/components/SurahAudioDownload"
 import SurahInfoSheet from "@/app/components/SurahInfoSheet"
 import MushafVerseMenu from "@/app/components/MushafVerseMenu"
 import QuranGoalSheet from "@/app/components/QuranGoalSheet"
-import { markPagesRead } from "@/lib/quranGoals"
-import { surahPageRange } from "@/lib/quranPages"
+import { goalLabel, markPagesRead } from "@/lib/quranGoals"
 import TafsirSheet from "@/app/components/TafsirSheet"
 import MushafFittedLine, { MUSHAF_FONT_BOLD, MUSHAF_INK } from "@/app/components/MushafFittedLine"
 import QuranJumpPicker, { type QuranJumpTarget } from "@/app/components/QuranJumpPicker"
@@ -105,6 +106,8 @@ type Verse = {
 // MushafVerse and MushafPageData imported from lib/quranPageCache
 
 const VERSE_VIEWABILITY = { itemVisiblePercentThreshold: 50 }
+/** Quran goal: seconds a page must be on screen (added up) before it counts as read. */
+const GOAL_PAGE_SECONDS = 20
 const BISMILLAH = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
 const MUSHAF_PAGE_COUNT = 604
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
@@ -506,7 +509,7 @@ function MushafPageContent({
       </View>
 
       <View ref={portRef} style={mStyles.pageScroll} collapsable={false}>
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
         ref={scrollRef}
         style={mStyles.pageScroll}
         contentContainerStyle={mStyles.pageScrollContent}
@@ -941,16 +944,45 @@ export default function SurahScreen() {
       const batch = [...goalQueueRef.current]
       goalQueueRef.current.clear()
       if (!batch.length) return
-      void markPagesRead(batch).then(({ goal, justFinished }) => {
-        if (!goal) return
+      void markPagesRead(batch).then(({ goals, finished, doneToday }) => {
+        if (!goals.length) return
         void scheduleQuranGoalReminders()
-        if (justFinished) Alert.alert(t("qgDoneTitle"), t("qgDoneBody"))
+        if (finished.length) Alert.alert(t("qgDoneTitle"), t("qgDoneBody"))
+        else if (doneToday.length) Alert.alert(t("qgDoneTitle"), t("qgD_doneBody", { goal: goalLabel(doneToday[0], t) }))
       })
     }, 1500)
   }, [t])
+
+  // A page only counts once it was on screen for GOAL_PAGE_SECONDS (added up), so scrolling
+  // past pages or jumping to the end of a surah never marks them as read.
+  const goalVisibleRef = useRef<Set<number>>(new Set())
+  const goalDwellRef = useRef<Map<number, number>>(new Map())
+  const setGoalVisiblePages = useCallback((pages: number[]) => {
+    goalVisibleRef.current = new Set(pages.filter(p => Number.isInteger(p) && p > 0))
+  }, [])
+  useEffect(() => {
+    const TICK = 2000
+    const timer = setInterval(() => {
+      if (AppState.currentState !== "active") return
+      for (const page of goalVisibleRef.current) {
+        const before = goalDwellRef.current.get(page) ?? 0
+        if (before >= GOAL_PAGE_SECONDS * 1000) continue
+        const after = before + TICK
+        goalDwellRef.current.set(page, after)
+        if (after >= GOAL_PAGE_SECONDS * 1000) queueGoalPages([page])
+      }
+    }, TICK)
+    return () => clearInterval(timer)
+  }, [queueGoalPages])
   const [surahInfoOpen, setSurahInfoOpen] = useState(false)
 
   const initialLang = normalizeReadLanguage(i18n.language)
+
+  // Save this surah's tafsir in the background, so it also opens with no internet later.
+  useEffect(() => {
+    const timer = setTimeout(() => void prefetchTafsirSurah(i18n.language, Number(surah)), 4000)
+    return () => clearTimeout(timer)
+  }, [surah])
   const initialSurahNum = surah ? Number(surah) : 0
   const initialCached = initialSurahNum > 0 ? peekCachedSurah(initialSurahNum, initialLang) : null
   const initialAyahVerse =
@@ -1536,15 +1568,11 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       const last = viewableItems[viewableItems.length - 1]?.item
       if (first?.number) setVisibleVerseNumber(prev => (prev === first.number ? prev : first.number))
       if (last?.number) saveProgress(last.number)
-      // Quran goal: the pages of the verses on screen count as read.
-      queueGoalPages(viewableItems.map(v => Number(v.item?.page)))
+      // Quran goal: the pages of the verses on screen start counting (see GOAL_PAGE_SECONDS).
+      setGoalVisiblePages(viewableItems.map(v => Number(v.item?.page)))
       const ayahCount = Number(verses)
-      if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) {
-        armSurahReview()
-        // Reached the end of the surah: all its pages are read.
-        const range = surahPageRange(Number(surah))
-        queueGoalPages(Array.from({ length: range.end - range.start + 1 }, (_, i) => range.start + i))
-      } else disarmSurahReview()
+      if (Number.isFinite(ayahCount) && ayahCount > 0 && (last?.number ?? 0) >= ayahCount) armSurahReview()
+      else disarmSurahReview()
     }
   })
   const handleViewableItems = useCallback(({ viewableItems }: { viewableItems: any[] }) => viewableRef.current(viewableItems), [])
@@ -1555,12 +1583,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     [surah, name]
   )
 
-  // Quran goal in Mushaf mode: a page counts as read after 6 seconds on screen.
+  // Quran goal in Mushaf mode: the page on screen counts after GOAL_PAGE_SECONDS.
   useEffect(() => {
     if (viewMode !== "mushaf" || !currentPage) return
-    const timer = setTimeout(() => queueGoalPages([currentPage]), 6000)
-    return () => clearTimeout(timer)
-  }, [viewMode, currentPage, queueGoalPages])
+    setGoalVisiblePages([currentPage])
+    return () => setGoalVisiblePages([])
+  }, [viewMode, currentPage, setGoalVisiblePages])
 
   const renderVerse = ({ item }: { item: Verse }) => {
     const isCurrent = playingHere && playback.ayah === item.number
@@ -1713,7 +1741,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
             </Text>
           </View>
         ) : (
-          <FlatList
+          <FlatList keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
             ref={listRef}
             key={`surah-verses-${surah}`}
             data={verseList}
@@ -1745,6 +1773,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               <>
               {/* Download this surah's audio to listen with no internet */}
               <SurahAudioDownload surah={surahNumber} variant="card" />
+              {/* Download the verse-by-verse audio (play button next to each verse) */}
+              <VerseAudioDownload
+                surah={surahNumber}
+                ayahCount={Number(verses) || getSurahMeta(surahNumber)?.ayahCount || 0}
+                reciter={getVerseReciter(reciterId)}
+              />
               {Number(surah) === 9 ? null : (
                 <View style={[styles.bismillahCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <Text style={[styles.bismillahText, fontsLoaded && { fontFamily: verseFont.family }, { color: isDark ? theme.text : MUSHAF_INK.color }]}>

@@ -211,7 +211,7 @@ export default function IsolatedSurahListenCard({
                 style={styles.searchInput}
               />
             </View>
-            <FlatList
+            <FlatList keyboardDismissMode="on-drag"
               data={pickerList}
               keyExtractor={r => String(r.id)}
               keyboardShouldPersistTaps="handled"

@@ -1,7 +1,8 @@
 import PremiumUpsellCard from "@/app/components/PremiumUpsellCard"
 // Offline map for Makkah and Madinah (Premium).
-//   • Map: OpenStreetMap tiles are saved on the phone as you look at them. Open it once with
-//     internet (e.g. at the hotel) and those areas still show later with no internet.
+//   • Map: OpenStreetMap tiles are saved on the phone as you look at them. "Save map for offline"
+//     moves the map around the Haram area once (with internet) so it all gets saved; later it
+//     shows with no internet. Without saving, only the areas you already looked at show offline.
 //   • Places list: gates, Zamzam, hospitals, Quba, Baqi... stored in the app, with live distance,
 //     walking time and an arrow that points the way. GPS and the compass work with no internet.
 import TouchableOpacity from "@/app/components/AppPressable"
@@ -19,7 +20,7 @@ import {
 } from "@/lib/offlinePlaces"
 import { usePremium } from "@/lib/premium"
 import { Ionicons } from "@expo/vector-icons"
-import * as FileSystem from "expo-file-system/legacy"
+import { ensureOfflineMapTiles, MAX_NATIVE_ZOOM, subscribeOfflineMap, TILE_CACHE, TILE_URL, type OfflineMapState } from "@/lib/offlineMapTiles"
 import * as Location from "expo-location"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
@@ -30,9 +31,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
-const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-const TILE_CACHE = `${FileSystem.documentDirectory ?? ""}map-tiles`
-const THIRTY_DAYS = 30 * 24 * 60 * 60
+const NINETY_DAYS = 90 * 24 * 60 * 60
+/** Further than this from the place: just "X km away" (no walking time). */
+const FAR_METERS = 30_000
 
 // Load react-native-maps only when the native part exists (not in Expo Go / web).
 function loadMaps() {
@@ -82,6 +83,15 @@ export default function OfflineMapScreen() {
   useEffect(() => {
     void isOnline().then(setOnline)
   }, [])
+
+  // The Haram areas of both cities are saved on the phone by themselves (lib/offlineMapTiles).
+  const [mapState, setMapState] = useState<OfflineMapState>({ status: "idle", done: 0, total: 0 })
+  useEffect(() => subscribeOfflineMap(setMapState), [])
+  useEffect(() => {
+    if (isPremium && online) void ensureOfflineMapTiles()
+  }, [isPremium, online])
+  const mapSaved = mapState.status === "saved"
+  const savePct = mapState.total ? Math.round((mapState.done / mapState.total) * 100) : 0
 
   // Where am I, and which way is the phone pointing? Both work without internet.
   useEffect(() => {
@@ -171,15 +181,29 @@ export default function OfflineMapScreen() {
                 <UrlTile
                   urlTemplate={TILE_URL}
                   maximumZ={19}
+                  maximumNativeZ={MAX_NATIVE_ZOOM}
                   shouldReplaceMapContent
                   tileCachePath={TILE_CACHE}
-                  tileCacheMaxAge={THIRTY_DAYS}
+                  tileCacheMaxAge={NINETY_DAYS}
                   offlineMode={!online}
                 />
                 {OFFLINE_PLACES.filter(p => p.city === city).map(p => (
                   <Marker key={p.id} coordinate={{ latitude: p.lat, longitude: p.lng }} title={t(p.nameKey)} pinColor={p.kind === "hospital" ? "#DC2626" : GOLD} />
                 ))}
               </MapView>
+              {/* Saving / saved status, and a note when offline before the map was saved */}
+              {mapState.status === "saving" ? (
+                <View style={styles.saveBtn}>
+                  <Ionicons name="cloud-download" size={16} color={NAVY} />
+                  <Text style={styles.saveText}>{t("om_saving", { pct: savePct })}</Text>
+                </View>
+              ) : null}
+              {!online && !mapSaved ? (
+                <View style={styles.notSaved}>
+                  <Ionicons name="cloud-offline-outline" size={22} color={GOLD} />
+                  <Text style={styles.notSavedText}>{t("om_notSaved")}</Text>
+                </View>
+              ) : null}
               {me ? (
                 <TouchableOpacity style={styles.meBtn} onPress={() => focus(me, 0.003)}>
                   <Ionicons name="locate" size={20} color={NAVY} />
@@ -195,7 +219,7 @@ export default function OfflineMapScreen() {
           )}
 
           {/* ─── Places (works with no internet) ─── */}
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 30 }}>
+          <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 30 }}>
             <Text style={[styles.listTitle, { color: theme.text }]}>{t("om_placesTitle")}</Text>
             <Text style={[styles.listSub, { color: theme.textSecondary }]}>{me ? t("om_placesSub") : t("om_needLocation")}</Text>
             {places.map(({ place, distance, bearing }) => (
@@ -228,7 +252,9 @@ function PlaceRow({ place, distance, arrow, onPress }: { place: OfflinePlace; di
         <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>{t(place.nameKey)}</Text>
         {distance !== null ? (
           <Text style={[styles.rowSub, { color: theme.textSecondary }]}>
-            {formatDistance(distance)} · {t("om_walk", { min: walkMinutes(distance) })}
+            {distance > FAR_METERS
+              ? t("om_far", { distance: formatDistance(distance) })
+              : `${formatDistance(distance)} · ${t("om_walk", { min: walkMinutes(distance) })}`}
           </Text>
         ) : null}
       </View>
@@ -258,6 +284,10 @@ const styles = StyleSheet.create({
   noMap: { alignItems: "center", justifyContent: "center", gap: 8, padding: 20, backgroundColor: NAVY },
   noMapText: { color: "rgba(255,255,255,0.7)", textAlign: "center", fontSize: 12 },
   meBtn: { position: "absolute", right: 12, bottom: 24, backgroundColor: "#fff", borderRadius: 22, padding: 10, elevation: 4, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 4 },
+  saveBtn: { position: "absolute", top: 10, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: GOLD, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, elevation: 4, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 4 },
+  saveText: { color: NAVY, fontSize: 13, fontWeight: "800" },
+  notSaved: { position: "absolute", left: 16, right: 16, top: 70, backgroundColor: "rgba(30,58,95,0.95)", borderRadius: 14, padding: 14, alignItems: "center", gap: 6 },
+  notSavedText: { color: "#fff", fontSize: 13, lineHeight: 18, textAlign: "center" },
   attribution: { position: "absolute", left: 6, bottom: 4, fontSize: 9, color: "#333", backgroundColor: "rgba(255,255,255,0.7)", paddingHorizontal: 4 },
   listTitle: { fontSize: 16, fontWeight: "800" },
   listSub: { fontSize: 12, marginTop: 2, marginBottom: 10 },

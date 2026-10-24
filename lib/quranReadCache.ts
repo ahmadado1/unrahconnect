@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { fetchWithTimeout } from "./fetchWithTimeout"
 import { showKasraWithShadda } from "./quranArabicMarks"
+import { readCachedPage, TOTAL_MUSHAF_PAGES } from "./quranPageCache"
+import { surahPageRange } from "./quranPages"
 
 export type ReadVerse = {
   number: number
@@ -188,17 +190,53 @@ export async function fetchAndCacheSurah(
   }
 }
 
+/**
+ * KFGQPC text of a surah built from the saved Mushaf pages (no internet needed).
+ * The full-Quran download saves all 604 pages with this text, so Read mode can show
+ * the same Madinah font offline. Returns null if a page is missing or has old text.
+ */
+async function qpcFromCachedPages(surah: number): Promise<Record<number, string> | null> {
+  const { start, end } = surahPageRange(surah)
+  // A surah can end on the page where the next one starts, so read one page more.
+  const last = Math.min(end + 1, TOTAL_MUSHAF_PAGES)
+  const out: Record<number, string> = {}
+  for (let page = start; page <= last; page++) {
+    const data = await readCachedPage(page).catch(() => null)
+    if (!data?.verses?.length) {
+      if (page > end) break // the extra page is optional
+      return null
+    }
+    for (const verse of data.verses) {
+      const [s, a] = String(verse.verse_key ?? "").split(":").map(Number)
+      if (s !== surah || !a) continue
+      const words = [...(verse.words ?? [])]
+        .filter(w => w.char_type_name !== "end")
+        .sort((x, y) => x.position - y.position)
+      if (words.some(w => w.text_uthmani?.trim() && !w.text_qpc_hafs?.trim())) return null
+      const text = words.map(w => (w.text_qpc_hafs ?? "").trim()).filter(Boolean).join(" ")
+      if (text) out[a] = out[a] ? `${out[a]} ${text}` : text
+    }
+  }
+  return Object.keys(out).length ? out : null
+}
+
+/** One page of the quran.com chapter API, tried twice (long surahs need several pages). */
+async function fetchQpcChapterPage(surah: number, page: number): Promise<Response> {
+  const url = `https://api.quran.com/api/v4/verses/by_chapter/${surah}?words=true&word_fields=text_qpc_hafs&per_page=50&page=${page}`
+  try {
+    return await fetchWithTimeout(url, {}, 15000)
+  } catch {
+    return await fetchWithTimeout(url, {}, 20000)
+  }
+}
+
 /** KFGQPC Hafs text of every verse of a surah (verse number → text), from quran.com. */
 async function fetchQpcSurahText(surah: number): Promise<Record<number, string> | null> {
   const out: Record<number, string> = {}
   let page: number | null = 1
   try {
     while (page) {
-      const res = await fetchWithTimeout(
-        `https://api.quran.com/api/v4/verses/by_chapter/${surah}?words=true&word_fields=text_qpc_hafs&per_page=50&page=${page}`,
-        {},
-        12000
-      )
+      const res = await fetchQpcChapterPage(surah, page)
       const json = (await res.json()) as {
         verses?: { verse_number: number; words?: { char_type_name?: string; text_qpc_hafs?: string }[] }[]
         pagination?: { next_page?: number | null }
@@ -224,7 +262,10 @@ async function fetchQpcSurahText(surah: number): Promise<Record<number, string> 
  */
 export async function ensureQpcText(surah: number, language: string, verses: ReadVerse[]): Promise<ReadVerse[]> {
   if (!verses.length || verses.every(v => v.qpc)) return verses
-  const qpc = await fetchQpcSurahText(surah)
+  // Saved Mushaf pages first (works offline), then the internet.
+  const fromPages = await qpcFromCachedPages(surah)
+  const fromPagesComplete = fromPages && verses.every(v => fromPages[v.number])
+  const qpc = fromPagesComplete ? fromPages : await fetchQpcSurahText(surah)
   if (!qpc) return verses
   const merged = verses.map(v => (qpc[v.number] ? { ...v, qpc: qpc[v.number] } : v))
   // Only trust it if (almost) every verse got its text.
