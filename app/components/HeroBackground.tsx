@@ -95,7 +95,7 @@ export default function HeroBackground({
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, { opacity }]}
       >
-        <Image
+        <Image resizeMethod="resize"
           source={source}
           resizeMode={resizeMode}
           onLoadEnd={() => {

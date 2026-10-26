@@ -28,7 +28,8 @@ import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Dimensions, StyleSheet, Text, View } from "react-native";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { auditAllMushafPages, purgeEmptyCachedPages } from "../lib/quranPageCache";
 import { clearLocalAuth, getValidSession, supabase, syncUserLanguage } from "../lib/supabase";
 import StoreReviewPrompt from "@/components/StoreReviewPrompt";
@@ -38,6 +39,16 @@ import PremiumPromptHost from "./components/PremiumPromptHost";
 
 // If a screen crashes, show a friendly "Try again" screen instead of closing the app.
 export { default as ErrorBoundary } from "./components/AppErrorScreen"
+
+// Orientation: phones stay upright (portrait). Tablets and big foldables can rotate, as Google
+// asks for large screens (Android 16 ignores a portrait-only setting there anyway).
+// app.json has "orientation": "default", so the lock lives here instead of in the manifest.
+{
+  const { width, height } = Dimensions.get("screen")
+  if (Math.min(width, height) < 600) {
+    void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {})
+  }
+}
 
 export default function RootLayout() {
   const [status, setStatus] = useState<"loading" | "onboarding" | "login" | "home">("loading")

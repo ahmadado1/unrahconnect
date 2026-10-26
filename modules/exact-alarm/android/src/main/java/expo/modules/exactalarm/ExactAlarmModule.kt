@@ -54,6 +54,26 @@ class ExactAlarmModule : Module() {
       true
     }
 
+    /** True when Android does not limit this app in the background (battery "Unrestricted"). */
+    Function("isIgnoringBatteryOptimizations") {
+      val context = appContext.reactContext ?: return@Function true
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return@Function true
+      val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+      pm.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    /** Opens this app's settings page (Battery → Unrestricted lives there). */
+    Function("openAppSettings") {
+      val activity = appContext.currentActivity
+      val context = activity ?: appContext.reactContext ?: return@Function false
+      val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.parse("package:${context.packageName}")
+        if (activity == null) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      context.startActivity(intent)
+      true
+    }
+
     Function("openExactAlarmSettings") {
       val activity = appContext.currentActivity
       val context = activity ?: appContext.reactContext ?: return@Function false

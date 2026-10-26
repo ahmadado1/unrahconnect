@@ -164,7 +164,7 @@ function PharmacyLogo({ uri }: { uri: string }) {
 
   return (
     <View style={[styles.pharmacyLogoWrap, { backgroundColor: "#fff" }]}>
-      <Image
+      <Image resizeMethod="resize"
         source={{ uri }}
         style={styles.pharmacyLogo}
         resizeMode="contain"
@@ -200,7 +200,7 @@ function SitePhoto({ uri }: { uri: string }) {
   if (failed) return null
   return (
     <View style={styles.photoWrap}>
-      <Image source={{ uri }} style={styles.photo} resizeMode="cover" onError={() => setFailed(true)} />
+      <Image resizeMethod="resize" source={{ uri }} style={styles.photo} resizeMode="cover" onError={() => setFailed(true)} />
       <Text style={styles.photoCredit}>Photo: Wikimedia Commons</Text>
     </View>
   )

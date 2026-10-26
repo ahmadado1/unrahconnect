@@ -70,7 +70,7 @@ export default function RawdahVisitCard({ compact }: Props) {
       </View>
 
       <TouchableOpacity style={styles.nusukBtn} onPress={openNusukApp} activeOpacity={0.85}>
-        <Image
+        <Image resizeMethod="resize"
           source={require("../../assets/images/nusuk-app-icon.jpg")}
           style={styles.nusukLogo}
         />

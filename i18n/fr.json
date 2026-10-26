@@ -2542,5 +2542,18 @@
   "om_saving": "Enregistrement de la carte hors ligne… {{pct}} %",
   "om_notSaved": "La carte n'est pas encore enregistrée. Ouvrez l'app une fois avec internet, elle s'enregistre toute seule.",
   "om_far": "à {{distance}}",
-  "nc_iosBannerTip": "Adhan complet pendant que vous utilisez le téléphone : Réglages → Notifications → UmrahConnect, Style des bannières sur « Persistant ». Sinon l'iPhone coupe le son quand la bannière disparaît et vous n'entendez que quelques secondes."
+  "nc_iosBannerTip": "Adhan complet pendant que vous utilisez le téléphone : Réglages → Notifications → UmrahConnect, Style des bannières sur « Persistant ». Sinon l'iPhone coupe le son quand la bannière disparaît et vous n'entendez que quelques secondes.",
+  "exactAlarmWhy": "Sans cela, Android peut envoyer l'Adhan en retard (parfois une heure) ou sans son.",
+  "batteryTitle": "Pour un Adhan à l'heure",
+  "batteryBody": "Mettez la batterie d'UmrahConnect sur « Non restreinte » pour que le téléphone ne la mette jamais en pause à l'heure de la prière : Infos sur l'appli → Batterie → Non restreinte.",
+  "batteryOpen": "Ouvrir les réglages",
+  "nc_exact": "Alarmes et rappels",
+  "nc_battery": "Batterie",
+  "nc_unrestricted": "Non restreinte",
+  "nc_limited": "Limitée",
+  "nc_pExact": "« Alarmes et rappels » est désactivé : l'Adhan peut arriver en retard ou sans son.",
+  "nc_pBattery": "Batterie limitée : le téléphone peut mettre l'app en pause à l'heure de la prière.",
+  "nc_fixExact": "Autoriser Alarmes et rappels",
+  "nc_fixBattery": "Mettre la batterie sur Non restreinte",
+  "nc_androidTip": "Sur Tecno, Infinix, itel, Xiaomi, Oppo, Vivo ou Samsung : activez aussi le démarrage automatique d'UmrahConnect et ne la mettez pas dans les « applis en veille », sinon le téléphone peut couper l'Adhan."
 }

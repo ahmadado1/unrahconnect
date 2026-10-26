@@ -9,6 +9,8 @@ type ExactAlarmNative = {
   stopAdhanPlayer?: () => boolean
   isAdhanPlaying?: () => boolean
   setPrayerWidgetData?: (json: string) => boolean
+  isIgnoringBatteryOptimizations?: () => boolean
+  openAppSettings?: () => boolean
 }
 
 function getNative(): ExactAlarmNative | null {
@@ -97,6 +99,26 @@ export function isNativeAdhanPlaying(): boolean {
 export function setAndroidPrayerWidgetData(json: string): boolean {
   try {
     return getNative()?.setPrayerWidgetData?.(json) === true
+  } catch {
+    return false
+  }
+}
+
+/** Android: true when the app's battery setting is "Unrestricted" (Android never pauses it). */
+export function isBatteryUnrestricted(): boolean {
+  if (Platform.OS !== "android") return true
+  try {
+    const fn = getNative()?.isIgnoringBatteryOptimizations
+    return typeof fn === "function" ? fn() === true : true
+  } catch {
+    return true
+  }
+}
+
+/** Android: opens this app's settings page (Battery → Unrestricted is there). */
+export function openAndroidAppSettings(): boolean {
+  try {
+    return getNative()?.openAppSettings?.() === true
   } catch {
     return false
   }

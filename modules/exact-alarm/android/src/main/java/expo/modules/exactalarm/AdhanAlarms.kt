@@ -55,15 +55,28 @@ object AdhanAlarms {
       if (at <= now + 1000) continue
       val pi = pendingIntent(context, item)
       val exactAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || manager.canScheduleExactAlarms()
-      if (exactAllowed) {
-        manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
-      } else {
-        // Without "Alarms & reminders" access Android may deliver a few minutes late.
-        manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+      try {
+        if (exactAllowed) {
+          // An "alarm clock" alarm: Android never delays it (not in Doze, not for battery saving,
+          // not for apps that were not opened for a while). It is the most reliable kind.
+          manager.setAlarmClock(AlarmManager.AlarmClockInfo(at, showIntent(context)), pi)
+        } else {
+          // Without "Alarms & reminders" access Android may deliver it late (sometimes a lot).
+          // The app asks the user to allow it; see promptAndroidExactAlarmIfNeeded in JS.
+          manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+        }
+        count++
+      } catch (e: Exception) {
+        android.util.Log.w("AdhanAlarms", "Could not set alarm", e)
       }
-      count++
     }
     return count
+  }
+
+  /** Tapping the alarm icon / "next alarm" on the lock screen opens the app. */
+  private fun showIntent(context: Context): PendingIntent {
+    val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
+    return PendingIntent.getActivity(context, 7860, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
   /** Same request code for the same prayer, so re-scheduling replaces instead of duplicating. */

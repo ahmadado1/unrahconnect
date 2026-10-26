@@ -100,7 +100,7 @@ export default function KayakCompareSheet({
               router.push(affiliateWebViewHref(r.url, r.provider))
             }}
           >
-            {r.logo ? <Image source={{ uri: r.logo }} style={styles.logo} resizeMode="contain" /> : null}
+            {r.logo ? <Image resizeMethod="resize" source={{ uri: r.logo }} style={styles.logo} resizeMode="contain" /> : null}
             <View style={{ flex: 1 }}>
               <Text style={[styles.provider, { color: theme.text }]} numberOfLines={1}>
                 {r.provider}

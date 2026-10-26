@@ -4,6 +4,7 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import { reschedulePrayerNotificationsFromCache, scheduleAlMulkReminder } from "@/lib/notifications"
 import { SYSTEM_ADHAN_KEY } from "@/lib/prayerToggles"
+import { canScheduleExactAlarms, isBatteryUnrestricted, openAndroidAppSettings, openExactAlarmSettings } from "@/modules/exact-alarm"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Notifications from "expo-notifications"
@@ -106,6 +107,9 @@ export default function NotificationCheckScreen() {
     if (report.master === "false" || report.prayerSwitch === "false") problems.push(t("nc_pSwitchOff"))
     if (!report.prayers.length && !report.systemAdhan) problems.push(t("nc_pNoPrayers"))
     if (report.total >= 60) problems.push(t("nc_pLimit", { count: report.total }))
+    // Android: these two decide whether the Adhan comes on time.
+    if (Platform.OS === "android" && !canScheduleExactAlarms()) problems.push(t("nc_pExact"))
+    if (Platform.OS === "android" && !isBatteryUnrestricted()) problems.push(t("nc_pBattery"))
   }
 
   const row = (label: string, value: string, ok: boolean | null) => (
@@ -150,7 +154,27 @@ export default function NotificationCheckScreen() {
               : null}
             {row(t("nc_scheduled"), `${report.total}${Platform.OS === "ios" ? " / 64" : ""}`, report.total < 60)}
             {row(t("nc_fullAdhan"), report.systemAdhan ? t("nc_on") : t("nc_off"), null)}
+            {Platform.OS === "android" ? row(t("nc_exact"), canScheduleExactAlarms() ? t("nc_on") : t("nc_off"), canScheduleExactAlarms()) : null}
+            {Platform.OS === "android"
+              ? row(t("nc_battery"), isBatteryUnrestricted() ? t("nc_unrestricted") : t("nc_limited"), isBatteryUnrestricted())
+              : null}
           </View>
+          {/* Android: quick fixes for a late or missing Adhan */}
+          {Platform.OS === "android" && !canScheduleExactAlarms() ? (
+            <TouchableOpacity style={styles.settingsBtn} onPress={() => openExactAlarmSettings()}>
+              <Ionicons name="alarm-outline" size={16} color={NAVY} />
+              <Text style={styles.settingsBtnText}>{t("nc_fixExact")}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {Platform.OS === "android" && !isBatteryUnrestricted() ? (
+            <TouchableOpacity style={styles.settingsBtn} onPress={() => openAndroidAppSettings()}>
+              <Ionicons name="battery-charging-outline" size={16} color={NAVY} />
+              <Text style={styles.settingsBtnText}>{t("nc_fixBattery")}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {Platform.OS === "android" ? (
+            <Text style={[styles.tip, { color: theme.textSecondary }]}>{t("nc_androidTip")}</Text>
+          ) : null}
           {Platform.OS === "ios" ? (
             <Text style={[styles.tip, { color: theme.textSecondary }]}>{t("nc_iosTip")}</Text>
           ) : null}

@@ -618,7 +618,7 @@ export default function HomeScreen() {
             {/* Header bar */}
             <View style={styles.headerBar}>
               {/* Full app logo: crescent + Kaaba + "Umrah Connect" (transparent background) */}
-              <Image
+              <Image resizeMethod="resize"
                 source={require("@/assets/images/logo-horizontal.png")}
                 style={styles.logoFull}
                 resizeMode="contain"
@@ -696,7 +696,7 @@ export default function HomeScreen() {
           onPress={() => router.push("/umrah-guide" as any)}
           activeOpacity={0.85}
         >
-          <Image
+          <Image resizeMethod="resize"
             source={require("../../assets/images/kaaba.png")}
             style={styles.journeyKaaba}
           />
@@ -758,7 +758,7 @@ export default function HomeScreen() {
           onPress={() => router.push({ pathname: "/dhikr", params: { id: dhikr.id } } as any)}
           activeOpacity={0.9}
         >
-          <ImageBackground
+          <ImageBackground resizeMethod="resize"
             source={require("../../assets/images/prayer-mosque.jpg")}
             style={StyleSheet.absoluteFill}
             imageStyle={{ opacity: 0.08, borderRadius: ui.radius }}
@@ -897,7 +897,7 @@ export default function HomeScreen() {
         {/* ── MAIDABO FOUNDATION ── */}
         <View style={styles.donateCard}>
           <View style={styles.donateTopRow}>
-            <Image
+            <Image resizeMethod="resize"
               source={require("../../assets/images/project.png")}
               style={styles.donateLogo}
               resizeMode="contain"

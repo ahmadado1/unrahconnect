@@ -136,7 +136,7 @@ export default function RestaurantsScreen() {
         {isLogo ? (
           <View style={cardStyles.logoWrap}>
             <View style={cardStyles.logoBox}>
-              <Image
+              <Image resizeMethod="resize"
                 source={{ uri: imageUri }}
                 style={cardStyles.logo}
                 resizeMode="contain"

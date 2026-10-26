@@ -2542,5 +2542,18 @@
   "om_saving": "Harita çevrimdışı için kaydediliyor… %{{pct}}",
   "om_notSaved": "Harita henüz kaydedilmedi. Uygulamayı bir kez internetle açın, kendiliğinden kaydedilir.",
   "om_far": "{{distance}} uzakta",
-  "nc_iosBannerTip": "Telefonu kullanırken tam ezan: Ayarlar → Bildirimler → UmrahConnect'te Afiş Stili'ni «Kalıcı» yapın. Yoksa iPhone afiş kaybolunca sesi keser ve yalnızca birkaç saniye duyarsınız."
+  "nc_iosBannerTip": "Telefonu kullanırken tam ezan: Ayarlar → Bildirimler → UmrahConnect'te Afiş Stili'ni «Kalıcı» yapın. Yoksa iPhone afiş kaybolunca sesi keser ve yalnızca birkaç saniye duyarsınız.",
+  "exactAlarmWhy": "Bu olmadan Android ezanı geç (bazen bir saat) veya sessiz verebilir.",
+  "batteryTitle": "Ezan zamanında gelsin",
+  "batteryBody": "Telefon namaz vaktinde uygulamayı durdurmasın diye UmrahConnect pilini «Kısıtlamasız» yapın: Uygulama bilgileri → Pil → Kısıtlamasız.",
+  "batteryOpen": "Ayarları aç",
+  "nc_exact": "Alarmlar ve hatırlatıcılar",
+  "nc_battery": "Pil",
+  "nc_unrestricted": "Kısıtlamasız",
+  "nc_limited": "Kısıtlı",
+  "nc_pExact": "«Alarmlar ve hatırlatıcılar» kapalı: ezan geç veya sessiz gelebilir.",
+  "nc_pBattery": "Pil kısıtlı: telefon namaz vaktinde uygulamayı durdurabilir.",
+  "nc_fixExact": "Alarmlar ve hatırlatıcılara izin ver",
+  "nc_fixBattery": "Pili Kısıtlamasız yap",
+  "nc_androidTip": "Tecno, Infinix, itel, Xiaomi, Oppo, Vivo veya Samsung'da: UmrahConnect için Otomatik başlatmayı da açın ve «Uyuyan uygulamalar»a koymayın, yoksa telefon ezanı durdurabilir."
 }

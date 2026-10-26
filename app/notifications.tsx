@@ -437,9 +437,10 @@ export default function NotificationsScreen() {
               await AsyncStorage.setItem("prayer_alerts_enabled", "true")
               setMaster(true)
               setPrayerAlerts(true)
-              await reschedulePrayerNotificationsFromCache().catch(console.log)
-
+              // Book the test first, so the button answers at once. Re-booking the prayers can be slow
+              // (location, Adhan files, permission prompts), so it runs in the background afterwards.
               const ok = await scheduleTestAdhanNotification(15)
+              void reschedulePrayerNotificationsFromCache().catch(console.log)
               if (ok) {
                 Alert.alert(
                   t("testAdhanScheduledTitle"),

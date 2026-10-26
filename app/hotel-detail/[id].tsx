@@ -130,7 +130,7 @@ export default function HotelDetailScreen() {
             {isLogo ? (
               <View style={styles.logoHeroBody}>
                 <View style={styles.logoBox}>
-                  <Image
+                  <Image resizeMethod="resize"
                     source={{ uri: imageUri }}
                     style={styles.logoImage}
                     resizeMode="contain"

@@ -53,6 +53,8 @@ import {
   cancelAdhanAlarms,
   hasNativeAdhanPlayer,
   openExactAlarmSettings,
+  isBatteryUnrestricted,
+  openAndroidAppSettings,
   scheduleAdhanAlarms,
 } from "@/modules/exact-alarm"
 import {
@@ -325,47 +327,62 @@ export async function scheduleDailyVerseNotification() {
 /** Prevent overlapping cancel/schedule races that leave zero prayer alerts. */
 let schedulePrayerChain: Promise<void> = Promise.resolve()
 
-const EXACT_ALARM_DECLINED_KEY = "exact_alarm_prompt_declined"
+const EXACT_ALARM_ASKED_KEY = "exact_alarm_prompt_asked_at"
+const BATTERY_ASKED_KEY = "battery_prompt_asked_at"
+/** Ask again after this long if the user said "Not now" (the Adhan depends on it). */
+const ASK_AGAIN_MS = 3 * 24 * 60 * 60 * 1000
 let exactAlarmPromptedThisProcess = false
 
+async function askedRecently(key: string) {
+  const at = Number((await AsyncStorage.getItem(key).catch(() => null)) || 0)
+  return Date.now() - at < ASK_AGAIN_MS
+}
+
 /**
- * Android 12+ can refuse exact alarms. Ask once, then still schedule.
- * Without permission the system delivers the Adhan a little late instead of dropping it.
+ * Android 12+: without "Alarms & reminders" Android may deliver the Adhan very late (even an hour),
+ * and then it can't play the sound. With it, the Adhan is an "alarm clock" alarm that is never delayed.
+ * So we ask, and ask again every few days while it is off. After that, the battery setting:
+ * "Unrestricted" stops Android (and Tecno, Infinix, Xiaomi, Samsung...) from pausing the app.
  */
 async function promptAndroidExactAlarmIfNeeded() {
   if (Platform.OS !== "android") return
-  if (typeof Platform.Version === "number" && Platform.Version < 31) return
   if (AppState.currentState !== "active") return
-  if (canScheduleExactAlarms()) return
   if (exactAlarmPromptedThisProcess) return
-  const declined = await AsyncStorage.getItem(EXACT_ALARM_DECLINED_KEY)
-  if (declined === "true") return
+  const needsExact = !(typeof Platform.Version === "number" && Platform.Version < 31) && !canScheduleExactAlarms()
 
+  if (needsExact) {
+    if (await askedRecently(EXACT_ALARM_ASKED_KEY)) return
+    exactAlarmPromptedThisProcess = true
+    await AsyncStorage.setItem(EXACT_ALARM_ASKED_KEY, String(Date.now())).catch(() => {})
+    await new Promise<void>(resolve => {
+      Alert.alert(i18n.t("exactAlarmBody"), i18n.t("exactAlarmWhy"), [
+        { text: i18n.t("exactAlarmNotNow"), style: "cancel", onPress: () => resolve() },
+        {
+          text: i18n.t("exactAlarmAllow"),
+          onPress: () => {
+            openExactAlarmSettings()
+            const sub = AppState.addEventListener("change", state => {
+              if (state !== "active") return
+              sub.remove()
+              if (canScheduleExactAlarms()) void reschedulePrayerNotificationsFromCache()
+            })
+            resolve()
+          },
+        },
+      ], { cancelable: true, onDismiss: () => resolve() })
+    })
+    return
+  }
+
+  // Exact alarms OK: now the battery setting.
+  if (isBatteryUnrestricted()) return
+  if (await askedRecently(BATTERY_ASKED_KEY)) return
   exactAlarmPromptedThisProcess = true
+  await AsyncStorage.setItem(BATTERY_ASKED_KEY, String(Date.now())).catch(() => {})
   await new Promise<void>(resolve => {
-    Alert.alert(i18n.t("exactAlarmBody"), undefined, [
-      {
-        text: i18n.t("exactAlarmNotNow"),
-        style: "cancel",
-        onPress: () => {
-          void AsyncStorage.setItem(EXACT_ALARM_DECLINED_KEY, "true")
-          resolve()
-        },
-      },
-      {
-        text: i18n.t("exactAlarmAllow"),
-        onPress: () => {
-          openExactAlarmSettings()
-          const sub = AppState.addEventListener("change", state => {
-            if (state !== "active") return
-            sub.remove()
-            if (canScheduleExactAlarms()) {
-              void reschedulePrayerNotificationsFromCache()
-            }
-          })
-          resolve()
-        },
-      },
+    Alert.alert(i18n.t("batteryTitle"), i18n.t("batteryBody"), [
+      { text: i18n.t("exactAlarmNotNow"), style: "cancel", onPress: () => resolve() },
+      { text: i18n.t("batteryOpen"), onPress: () => { openAndroidAppSettings(); resolve() } },
     ], { cancelable: true, onDismiss: () => resolve() })
   })
 }

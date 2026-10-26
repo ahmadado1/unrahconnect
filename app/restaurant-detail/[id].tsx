@@ -76,7 +76,7 @@ export default function RestaurantDetailScreen() {
         {isLogo ? (
           <View style={[styles.hero, styles.logoHero]}>
             <View style={styles.logoBox}>
-              <Image
+              <Image resizeMethod="resize"
                 source={{ uri: imageUri }}
                 style={styles.logoImage}
                 resizeMode="contain"

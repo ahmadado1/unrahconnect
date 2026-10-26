@@ -278,7 +278,7 @@ export default function HotelsScreen() {
     const media = showLogo ? (
       <View style={cardStyles.logoWrap}>
         <View style={cardStyles.logoBox}>
-          <Image source={{ uri: imageUri }} style={cardStyles.logo} resizeMode="contain" onError={onImageError} />
+          <Image resizeMethod="resize" source={{ uri: imageUri }} style={cardStyles.logo} resizeMode="contain" onError={onImageError} />
         </View>
         {badge}
         {heart}

@@ -98,7 +98,7 @@ export default function FavoritesScreen() {
                     hotel.imageType === "logo" && styles.logoThumb,
                   ]}
                 >
-                  <Image
+                  <Image resizeMethod="resize"
                     source={{ uri: hotel.image }}
                     style={
                       hotel.imageType === "logo" ? styles.logoThumbImage : styles.cardImageFill
@@ -134,7 +134,7 @@ export default function FavoritesScreen() {
                     restaurant.imageType === "logo" && styles.logoThumb,
                   ]}
                 >
-                  <Image
+                  <Image resizeMethod="resize"
                     source={{ uri: restaurant.image }}
                     style={
                       restaurant.imageType === "logo"

@@ -2542,5 +2542,18 @@
   "om_saving": "Saving the map for offline… {{pct}}%",
   "om_notSaved": "The map isn't saved yet. Open the app once with internet and it saves by itself.",
   "om_far": "{{distance}} away",
-  "nc_iosBannerTip": "Full Adhan while you use your phone: in Settings → Notifications → UmrahConnect, set Banner Style to “Persistent”. Otherwise iPhone stops the sound when the banner slides away, so you only hear a few seconds."
+  "nc_iosBannerTip": "Full Adhan while you use your phone: in Settings → Notifications → UmrahConnect, set Banner Style to “Persistent”. Otherwise iPhone stops the sound when the banner slides away, so you only hear a few seconds.",
+  "exactAlarmWhy": "Without it, Android can deliver the Adhan late (sometimes an hour) or without sound.",
+  "batteryTitle": "Keep the Adhan on time",
+  "batteryBody": "Set UmrahConnect's battery to “Unrestricted” so your phone never pauses it at prayer time: open App info → Battery → Unrestricted.",
+  "batteryOpen": "Open settings",
+  "nc_exact": "Alarms & reminders",
+  "nc_battery": "Battery",
+  "nc_unrestricted": "Unrestricted",
+  "nc_limited": "Limited",
+  "nc_pExact": "“Alarms & reminders” is off: the Adhan can come late or silent.",
+  "nc_pBattery": "Battery is limited: your phone may pause the app at prayer time.",
+  "nc_fixExact": "Allow Alarms & reminders",
+  "nc_fixBattery": "Set battery to Unrestricted",
+  "nc_androidTip": "On Tecno, Infinix, itel, Xiaomi, Oppo, Vivo or Samsung: also turn on Auto-start for UmrahConnect and keep it out of “Sleeping apps”, or the phone may stop the Adhan."
 }
