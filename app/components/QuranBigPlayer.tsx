@@ -5,6 +5,7 @@
 //   variant="full" → the full-page player (app/quran-player.tsx, Premium).
 // Premium continues at the exact second you stopped. Free users start that surah again from the beginning.
 import SurahAudioDownload from "@/app/components/SurahAudioDownload"
+import QuranSeekBar from "@/app/components/QuranSeekBar"
 import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { usePremium } from "@/lib/premium"
@@ -27,7 +28,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
@@ -51,7 +52,6 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
   const playback = useQuranPlayback()
   const [progress, setProgress] = useState({ position: 0, duration: 0 })
   const [spot, setSpot] = useState<ListenSpot | null>(null)
-  const [trackWidth, setTrackWidth] = useState(1)
 
   const live = playback.kind === "surah"
 
@@ -115,7 +115,6 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
   const canResume = isPremium
   const position = live ? progress.position : canResume ? spot!.position : 0
   const duration = live ? progress.duration : spot!.duration
-  const percent = duration > 0 ? Math.min(100, (position / duration) * 100) : 0
 
   const togglePlay = () => {
     if (!live && spot) return void continueListenSpot(canResume ? spot : { ...spot, position: 0 })
@@ -134,9 +133,6 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
     while (next >= 1 && next <= 114 && !surahs.has(next)) next += delta
     if (next < 1 || next > 114) return
     void playSurah({ ...spot.reciter, surahs }, next, surahTitle(next))
-  }
-  const seekTo = (x: number) => {
-    if (live && duration > 0) seekQuran((x / trackWidth) * duration)
   }
 
   const full = variant === "full"
@@ -195,21 +191,16 @@ export default function QuranBigPlayer({ variant }: { variant: "card" | "full" |
         ) : null}
       </View>
 
-      {/* ─── Progress (tap anywhere on the bar to jump) ─── */}
-      <Pressable
-        onLayout={e => setTrackWidth(Math.max(1, e.nativeEvent.layout.width))}
-        onPress={e => seekTo(e.nativeEvent.locationX)}
-        style={styles.trackHit}
-      >
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${percent}%` }]} />
-        </View>
-        <View style={[styles.knob, { left: `${percent}%` }]} />
-      </Pressable>
-      <View style={styles.times}>
-        <Text style={styles.time}>{clock(position)}</Text>
-        <Text style={styles.time}>{duration ? clock(duration) : "--:--"}</Text>
-      </View>
+      {/* ─── Progress: drag or tap to jump ─── */}
+      <QuranSeekBar
+        position={position}
+        duration={duration}
+        disabled={!live}
+        big={full}
+        onSeek={seconds => {
+          if (live) seekQuran(seconds)
+        }}
+      />
 
       {/* ─── Controls ─── */}
       <View style={[styles.controls, full && { marginTop: 18 }]}>

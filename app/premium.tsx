@@ -10,6 +10,7 @@ import { buyPlan, lastPlansProblem, loadPlans, websiteLinkAllowed, manageSubscri
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
+import { LinearGradient } from "expo-linear-gradient"
 import * as WebBrowser from "expo-web-browser"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
@@ -110,7 +111,12 @@ export default function PremiumScreen() {
       <StatusBar style="light" />
       <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <LinearGradient
+          colors={["#2F6AA8", "#24507F", NAVY]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.4, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 8 }]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.close} accessibilityLabel={t("close")}>
             <Ionicons name="close" size={22} color="#fff" />
           </TouchableOpacity>
@@ -119,7 +125,7 @@ export default function PremiumScreen() {
           </View>
           <Text style={styles.title}>{t("pw_title")}</Text>
           <Text style={styles.subtitle}>{t("pw_sub")}</Text>
-        </View>
+        </LinearGradient>
 
         {/* What you get */}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -229,30 +235,30 @@ export default function PremiumScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { backgroundColor: NAVY, alignItems: "center", paddingHorizontal: 20, paddingBottom: 26, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
+  header: { alignItems: "center", paddingHorizontal: 20, paddingBottom: 30, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   close: { alignSelf: "flex-end", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 20, padding: 6 },
-  star: { width: 64, height: 64, borderRadius: 32, backgroundColor: GOLD, alignItems: "center", justifyContent: "center", marginTop: 4 },
-  title: { color: "#fff", fontSize: 24, fontWeight: "800", marginTop: 14, textAlign: "center" },
+  star: { width: 72, height: 72, borderRadius: 36, backgroundColor: GOLD, alignItems: "center", justifyContent: "center", marginTop: 4, borderWidth: 4, borderColor: "rgba(255,255,255,0.22)", shadowColor: GOLD, shadowOpacity: 0.6, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  title: { color: "#fff", fontSize: 26, fontWeight: "900", marginTop: 16, textAlign: "center" },
   subtitle: { color: "#E8D5A3", fontSize: 14, marginTop: 6, textAlign: "center", lineHeight: 20 },
   card: { marginHorizontal: 16, marginTop: 16, borderRadius: 18, borderWidth: 0.5, padding: 16, gap: 12 },
   feature: { flexDirection: "row", alignItems: "center", gap: 12 },
-  featureIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(201,168,76,0.15)", alignItems: "center", justifyContent: "center" },
-  featureText: { flex: 1, fontSize: 15, lineHeight: 21 },
+  featureIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(201,168,76,0.2)", alignItems: "center", justifyContent: "center" },
+  featureText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
   activeCard: { alignItems: "center", backgroundColor: "rgba(47,133,90,0.08)", borderColor: "rgba(47,133,90,0.3)" },
   activeTitle: { fontSize: 17, fontWeight: "800" },
   muted: { fontSize: 14, textAlign: "center", lineHeight: 20 },
   unavailable: { marginHorizontal: 24, marginTop: 20, gap: 10, alignItems: "center" },
   problem: { fontSize: 11, textAlign: "center", opacity: 0.7 },
   plans: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginTop: 18 },
-  plan: { flex: 1, borderRadius: 18, borderWidth: 1.5, padding: 14, paddingTop: 22 },
-  planOn: { backgroundColor: "rgba(201,168,76,0.08)" },
+  plan: { flex: 1, borderRadius: 20, borderWidth: 2, padding: 16, paddingTop: 24 },
+  planOn: { backgroundColor: "rgba(201,168,76,0.12)", shadowColor: GOLD, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   best: { position: "absolute", top: -11, left: 12, backgroundColor: GOLD, color: NAVY, fontSize: 11, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, overflow: "hidden" },
   planName: { fontSize: 15, fontWeight: "800" },
-  planPrice: { color: GOLD, fontSize: 22, fontWeight: "800", marginTop: 6 },
+  planPrice: { color: GOLD, fontSize: 24, fontWeight: "900", marginTop: 6 },
   planPer: { fontSize: 12, marginTop: 2 },
   radio: { position: "absolute", top: 12, right: 12 },
-  buyBtn: { marginHorizontal: 16, marginTop: 18, backgroundColor: GOLD, borderRadius: 16, paddingVertical: 16, alignItems: "center" },
-  buyText: { color: NAVY, fontSize: 17, fontWeight: "800" },
+  buyBtn: { marginHorizontal: 16, marginTop: 20, backgroundColor: GOLD, borderRadius: 18, paddingVertical: 18, alignItems: "center", shadowColor: GOLD, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  buyText: { color: NAVY, fontSize: 18, fontWeight: "900", letterSpacing: 0.3 },
   secondaryBtn: { borderWidth: 1.2, borderColor: GOLD, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 8, marginTop: 4 },
   secondaryText: { color: GOLD, fontWeight: "800" },
   linkBtn: { alignItems: "center", marginTop: 16, minHeight: 24 },

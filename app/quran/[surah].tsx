@@ -12,11 +12,13 @@ import MushafSettingsDrawer, {
   MushafFontSection,
   MushafReadModeSection,
   MushafTextSizeSection,
+  TranslationSizeSection,
+  MushafQuickActions,
 } from "@/components/MushafSettingsDrawer"
 import { useTheme } from "@/context/themeContext"
 import i18n from "@/i18n"
 import { considerStoreReview } from "@/lib/storeReviewPrompt"
-import { useMushafFontSize } from "@/lib/mushafFontSize"
+import { useMushafFontSize, useTranslationFontSize } from "@/lib/mushafFontSize"
 import {
   MUSHAF_FONT_ASSETS,
   mushafFontMetrics,
@@ -49,6 +51,8 @@ import { StatusBar } from "expo-status-bar"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Alert, AppState, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import * as Clipboard from "expo-clipboard"
+import * as Haptics from "expo-haptics"
 import TouchableOpacity from "@/app/components/AppPressable"
 import Reanimated, { FadeIn, ZoomIn } from "react-native-reanimated"
 import { FlatList as GestureFlatList, GestureHandlerRootView } from "react-native-gesture-handler"
@@ -816,11 +820,19 @@ type VerseRowProps = {
   borderColor: string
   gold: string
   translationColor: string
+  /** Translation text size (user setting) */
+  translationSize: number
   playLabel: string
   onPlay: (ayah: number) => void
   onBookmark: (verse: Verse) => void
   onTafsir: (ayah: number) => void
   tafsirLabel: string
+  /** Copy the ayah (Arabic + translation + reference) */
+  onCopy: (verse: Verse) => void
+  copyLabel: string
+  /** First ayah of a new Mushaf page: show "Page N" above it. */
+  newPage: number | null
+  pageLabel: string
 }
 
 const VerseRow = memo(function VerseRow({
@@ -835,13 +847,26 @@ const VerseRow = memo(function VerseRow({
   borderColor,
   gold,
   translationColor,
+  translationSize,
   playLabel,
   onPlay,
   onBookmark,
   onTafsir,
   tafsirLabel,
+  onCopy,
+  copyLabel,
+  newPage,
+  pageLabel,
 }: VerseRowProps) {
   return (
+    <>
+    {newPage ? (
+      <View style={styles.pageDivider}>
+        <View style={[styles.pageDividerLine, { backgroundColor: borderColor }]} />
+        <Text style={[styles.pageDividerText, { color: gold }]}>{pageLabel}</Text>
+        <View style={[styles.pageDividerLine, { backgroundColor: borderColor }]} />
+      </View>
+    ) : null}
     <View style={[styles.verseCard, { backgroundColor: cardColor, borderColor }, isCurrent && styles.verseCardPlaying]}>
       <View style={styles.verseTop}>
         <View style={styles.verseBadge}>
@@ -860,6 +885,10 @@ const VerseRow = memo(function VerseRow({
           <TouchableOpacity onPress={() => onTafsir(verse.number)} hitSlop={8} accessibilityLabel={tafsirLabel}>
             <Ionicons name="book-outline" size={19} color={gold} />
           </TouchableOpacity>
+          {/* Copy this ayah */}
+          <TouchableOpacity onPress={() => onCopy(verse)} hitSlop={8} accessibilityLabel={copyLabel}>
+            <Ionicons name="copy-outline" size={18} color={gold} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => onBookmark(verse)}>
             <Ionicons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={18} color={gold} />
           </TouchableOpacity>
@@ -869,10 +898,11 @@ const VerseRow = memo(function VerseRow({
       {verse.translation ? (
         <>
           <View style={styles.verseDivider} />
-          <Text style={[styles.verseTranslation, { color: translationColor }]}>{verse.translation}</Text>
+          <Text style={[styles.verseTranslation, { color: translationColor, fontSize: translationSize, lineHeight: Math.round(translationSize * 1.65) }]}>{verse.translation}</Text>
         </>
       ) : null}
     </View>
+    </>
   )
 })
 
@@ -914,6 +944,7 @@ export default function SurahScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
   const { fontSize, decrease, increase, canDecrease, canIncrease } = useMushafFontSize()
+  const { translationSize, smallerTranslation, largerTranslation, canShrinkTranslation, canGrowTranslation } = useTranslationFontSize()
   const { font: mushafFont, setFontId } = useMushafFont()
   // Read (verse) mode uses the same font as the Mushaf (Madinah font → Amiri Quran, see verseModeFont)
   // and the same text size setting.
@@ -1590,8 +1621,11 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     return () => setGoalVisiblePages([])
   }, [viewMode, currentPage, setGoalVisiblePages])
 
-  const renderVerse = ({ item }: { item: Verse }) => {
+  const renderVerse = ({ item, index }: { item: Verse; index: number }) => {
     const isCurrent = playingHere && playback.ayah === item.number
+    // "Page N" divider when this ayah starts a new Mushaf page (not above the very first ayah).
+    const prev = index > 0 ? verseList[index - 1] : null
+    const newPage = prev && item.page && prev.page && item.page !== prev.page ? item.page : null
     return (
       <VerseRow
         verse={item}
@@ -1605,14 +1639,31 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
         borderColor={theme.border}
         gold={theme.gold}
         translationColor={theme.textSecondary}
+        translationSize={translationSize}
         playLabel={playLabel}
         onPlay={handleVersePlay}
         onBookmark={handleBookmark}
         onTafsir={openTafsirHere}
         tafsirLabel={tafsirLabel}
+        onCopy={handleCopyVerse}
+        copyLabel={t("copyAyah", { defaultValue: "Copy ayah" })}
+        newPage={newPage}
+        pageLabel={t("quranPage", { number: newPage ?? 0 })}
       />
     )
   }
+
+  // Copy: Arabic text, translation, and "Al-Baqara 2:5" (with UmrahConnect at the end).
+  const handleCopyVerse = useCallback(
+    async (verse: Verse) => {
+      const ref = `${getSurahMeta(Number(surah))?.englishName ?? name ?? ""} ${surah}:${verse.number}`
+      const text = [verse.text, verse.translation, `(${ref}) · UmrahConnect`].filter(Boolean).join("\n\n")
+      await Clipboard.setStringAsync(text)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {})
+      Alert.alert(t("copyAyahDone", { defaultValue: "Ayah copied" }))
+    },
+    [surah, name, t]
+  )
 
   // ─── RENDER ────────────────────────────────────────────────────────────────
 
@@ -1666,9 +1717,6 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               <Text style={styles.backText}>{t("quran")}</Text>
             </TouchableOpacity>
             <View style={styles.headerTopActions}>
-              <TouchableOpacity onPress={() => setGoalOpen(true)} style={styles.jumpBtn} accessibilityLabel={t("qgTitle")}>
-                <Ionicons name="flag-outline" size={18} color="#C9A84C" />
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSurahInfoOpen(true)}
                 style={styles.jumpBtn}
@@ -1677,19 +1725,12 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                 <Ionicons name="information-circle-outline" size={19} color="#C9A84C" />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setReciterPickerOpen(true)}
-                style={styles.jumpBtn}
-                accessibilityLabel={t("qaChooseReciter")}
-              >
-                <Ionicons name="headset-outline" size={18} color="#C9A84C" />
-              </TouchableOpacity>
-              <TouchableOpacity
                 onPress={() => setJumpOpen(true)}
-                style={styles.jumpBtn}
+                style={[styles.jumpBtn, styles.goToBtn]}
                 accessibilityLabel={t("quranGoToA11y")}
               >
-                <Ionicons name="search-outline" size={18} color="#C9A84C" />
-                <Text style={styles.jumpBtnLabel}>{t("quranGoTo")}</Text>
+                <Ionicons name="search" size={20} color="#1E3A5F" />
+                <Text style={styles.goToLabel}>{t("quranGoTo")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSettingsOpen(true)}
@@ -1710,6 +1751,17 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
               type: revelationLabel(String(type ?? ""), t),
             })}
           </Text>
+          {/* Goal and reciter: kept visible under the title (also in the ≡ menu) */}
+          <View style={styles.headerChips}>
+            <TouchableOpacity onPress={() => setGoalOpen(true)} style={styles.headerChip} accessibilityLabel={t("qgTitle")}>
+              <Ionicons name="flag-outline" size={15} color="#C9A84C" />
+              <Text style={styles.headerChipText}>{t("qgTitle")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setReciterPickerOpen(true)} style={styles.headerChip} accessibilityLabel={t("qaChooseReciter")}>
+              <Ionicons name="headset-outline" size={15} color="#C9A84C" />
+              <Text style={styles.headerChipText}>{t("qaChooseReciter")}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <QuranJumpPicker
@@ -1900,6 +1952,13 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
     }}
   />
   <MushafSettingsDrawer visible={settingsOpen} onClose={closeSettings}>
+    <MushafQuickActions
+      items={[
+        { icon: "flag-outline", label: t("qgTitle"), onPress: () => { closeSettings(); setTimeout(() => setGoalOpen(true), 250) } },
+        { icon: "headset-outline", label: t("qaChooseReciter"), onPress: () => { closeSettings(); setTimeout(() => setReciterPickerOpen(true), 250) } },
+        { icon: "information-circle-outline", label: t("surahInfoTitle"), onPress: () => { closeSettings(); setTimeout(() => setSurahInfoOpen(true), 250) } },
+      ]}
+    />
     <MushafReadModeSection mode={viewMode} onSelect={selectReadMode} />
     <MushafTextSizeSection
       fontSize={fontSize}
@@ -1908,6 +1967,15 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
       canDecrease={canDecrease}
       canIncrease={canIncrease}
     />
+    {viewMode === "verses" ? (
+      <TranslationSizeSection
+        fontSize={translationSize}
+        onDecrease={smallerTranslation}
+        onIncrease={largerTranslation}
+        canDecrease={canShrinkTranslation}
+        canIncrease={canGrowTranslation}
+      />
+    ) : null}
     <MushafFontSection selectedId={mushafFont.id} onSelect={setFontId} fontsLoaded={fontsLoaded} />
   </MushafSettingsDrawer>
   </GestureHandlerRootView>
@@ -1941,6 +2009,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
+  goToBtn: { backgroundColor: "#C9A84C", minHeight: 40, paddingHorizontal: 14, borderRadius: 14 },
+  goToLabel: { color: "#1E3A5F", fontSize: 14, fontWeight: "800" },
+  headerChips: { flexDirection: "row", justifyContent: "center", gap: 10, marginTop: 14 },
+  headerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(201,168,76,0.45)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  headerChipText: { color: "#E8D5A3", fontSize: 12.5, fontWeight: "700" },
   jumpBtnLabel: {
     color: "#C9A84C",
     fontSize: 12,
@@ -1968,7 +2051,10 @@ const styles = StyleSheet.create({
   verseBadgeText: { color: "#1A1A1A", fontSize: 12, fontWeight: "700" },
   verseArabic: { fontSize: 26, textAlign: "justify", writingDirection: "rtl", lineHeight: 50, marginBottom: 14, fontWeight: "400" } as any,
   verseDivider: { height: 0.5, backgroundColor: "rgba(201,168,76,0.3)", marginBottom: 12 },
-  verseTranslation: { fontSize: 16, lineHeight: 27 },
+  verseTranslation: { fontSize: 18, lineHeight: 30 },
+  pageDivider: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, marginBottom: 14, paddingHorizontal: 4 },
+  pageDividerLine: { flex: 1, height: 1 },
+  pageDividerText: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
   footer: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, paddingBottom: 40 },
   footerLine: { flex: 1, height: 0.5, backgroundColor: "#C9A84C" },
   footerText: { fontSize: 12, fontWeight: "600" },

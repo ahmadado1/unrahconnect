@@ -981,7 +981,7 @@ export default function AIGuideScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
         keyboardVerticalOffset={0}
       >
         <View style={[styles.chipsSection, { backgroundColor: headerBg }]}>
@@ -1013,7 +1013,7 @@ export default function AIGuideScreen() {
           contentContainerStyle={styles.messageList}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         />
 
 

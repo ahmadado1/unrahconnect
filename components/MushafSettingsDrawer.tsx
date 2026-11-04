@@ -61,6 +61,7 @@ export default function MushafSettingsDrawer({
   onClose: () => void
   children: ReactNode
 }) {
+  const premiumLook = usePremiumLook()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { width: screenWidth } = useWindowDimensions()
@@ -130,6 +131,7 @@ export default function MushafSettingsDrawer({
         <Animated.View
           style={[
             styles.panel,
+            premiumLook && P.panel,
             edgeStyle,
             { width: panelWidth, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 },
             physicalLeft ? styles.panelLeftEdge : styles.panelRightEdge,
@@ -138,7 +140,7 @@ export default function MushafSettingsDrawer({
           accessibilityViewIsModal
         >
           <View style={[styles.panelHeader, { flexDirection: row }]}>
-            <Text style={[styles.panelTitle, { textAlign }]}>{t("mushafSettingsTitle")}</Text>
+            <Text style={[styles.panelTitle, premiumLook && P.panelTitle, { textAlign }]}>{t("mushafSettingsTitle")}</Text>
             <Pressable
               onPress={onClose}
               hitSlop={10}
@@ -160,11 +162,17 @@ export default function MushafSettingsDrawer({
 }
 
 /** One titled group of settings inside the drawer. */
+/** Premium members get a brighter, bolder version of this drawer. */
+function usePremiumLook() {
+  return usePremium().isPremium
+}
+
 export function MushafSettingsSection({ title, children }: { title: string; children: ReactNode }) {
   const { textAlign } = useDrawerLayout()
+  const premium = usePremiumLook()
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { textAlign }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, premium && P.sectionTitle, { textAlign }]}>{title}</Text>
       <View style={styles.sectionBody}>{children}</View>
     </View>
   )
@@ -183,6 +191,7 @@ function FontOption({
   locked?: boolean
   onPress: () => void
 }) {
+  const premiumLook = usePremiumLook()
   const { t } = useTranslation()
   const { row, textAlign } = useDrawerLayout()
   const label = font.labelKey ? t(font.labelKey) : font.name
@@ -198,7 +207,7 @@ function FontOption({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.option, font.premium && styles.optionPremium, selected && styles.optionSelected]}
+      style={[styles.option, premiumLook && P.option, font.premium && styles.optionPremium, selected && styles.optionSelected, selected && premiumLook && P.optionSelected]}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={note ? `${label}, ${note}` : label}
@@ -206,7 +215,7 @@ function FontOption({
       <View style={[styles.optionTop, { flexDirection: row }]}>
         <View style={styles.optionLabels}>
           <View style={{ flexDirection: row, alignItems: "center", gap: 6 }}>
-            <Text style={[styles.optionLabel, { textAlign }]}>{label}</Text>
+            <Text style={[styles.optionLabel, premiumLook && P.optionLabel, { textAlign }]}>{label}</Text>
             {font.premium ? (
               <View style={styles.proPill}>
                 <Ionicons name="star" size={9} color={NAVY} />
@@ -252,6 +261,7 @@ export function MushafReadModeSection({
   mode: QuranReadMode
   onSelect: (mode: QuranReadMode) => void
 }) {
+  const premiumLook = usePremiumLook()
   const { t } = useTranslation()
   const { row, textAlign } = useDrawerLayout()
   return (
@@ -262,7 +272,7 @@ export function MushafReadModeSection({
           <Pressable
             key={option.mode}
             onPress={() => onSelect(option.mode)}
-            style={[styles.option, styles.modeOption, selected && styles.optionSelected]}
+            style={[styles.option, premiumLook && P.option, styles.modeOption, selected && styles.optionSelected, selected && premiumLook && P.optionSelected]}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
             accessibilityLabel={`${t(option.labelKey)}, ${t(option.noteKey)}`}
@@ -270,7 +280,7 @@ export function MushafReadModeSection({
             <View style={[styles.optionTop, { flexDirection: row }]}>
               <Ionicons name={option.icon} size={20} color={GOLD} />
               <View style={styles.optionLabels}>
-                <Text style={[styles.optionLabel, { textAlign }]}>{t(option.labelKey)}</Text>
+                <Text style={[styles.optionLabel, premiumLook && P.optionLabel, { textAlign }]}>{t(option.labelKey)}</Text>
                 <Text style={[styles.optionNote, { textAlign }]}>{t(option.noteKey)}</Text>
               </View>
               <Ionicons
@@ -299,19 +309,20 @@ export function MushafTextSizeSection({
   canDecrease: boolean
   canIncrease: boolean
 }) {
+  const premiumLook = usePremiumLook()
   const { t } = useTranslation()
   return (
     <MushafSettingsSection title={t("mushafTextSizeSection")}>
-      <View style={styles.sizeRow}>
+      <View style={[styles.sizeRow, premiumLook && P.option]}>
         <Pressable
           onPress={onDecrease}
           disabled={!canDecrease}
           hitSlop={6}
-          style={[styles.sizeBtn, !canDecrease && styles.sizeBtnDisabled]}
+          style={[styles.sizeBtn, premiumLook && P.sizeBtn, !canDecrease && styles.sizeBtnDisabled]}
           accessibilityRole="button"
           accessibilityLabel={t("quranSmallerText")}
         >
-          <Ionicons name="remove" size={22} color={GOLD} />
+          <Ionicons name="remove" size={premiumLook ? 24 : 22} color={premiumLook ? NAVY : GOLD} />
         </Pressable>
         <View style={styles.sizeValue}>
           <Text style={[styles.sizeMark, { fontSize: Math.min(fontSize, 34) }]}>أ</Text>
@@ -321,11 +332,86 @@ export function MushafTextSizeSection({
           onPress={onIncrease}
           disabled={!canIncrease}
           hitSlop={6}
-          style={[styles.sizeBtn, !canIncrease && styles.sizeBtnDisabled]}
+          style={[styles.sizeBtn, premiumLook && P.sizeBtn, !canIncrease && styles.sizeBtnDisabled]}
           accessibilityRole="button"
           accessibilityLabel={t("quranLargerText")}
         >
-          <Ionicons name="add" size={22} color={GOLD} />
+          <Ionicons name="add" size={premiumLook ? 24 : 22} color={premiumLook ? NAVY : GOLD} />
+        </Pressable>
+      </View>
+    </MushafSettingsSection>
+  )
+}
+
+/** Shortcuts at the top of the menu: Quran goal, reciter, about this surah. */
+export function MushafQuickActions({
+  items,
+}: {
+  items: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }[]
+}) {
+  const { t } = useTranslation()
+  const premiumLook = usePremiumLook()
+  return (
+    <MushafSettingsSection title={t("quranQuickActions", { defaultValue: "Quick actions" })}>
+      {items.map(item => (
+        <Pressable
+          key={item.label}
+          onPress={item.onPress}
+          style={[styles.option, premiumLook && P.option, styles.quickAction]}
+          accessibilityRole="button"
+          accessibilityLabel={item.label}
+        >
+          <Ionicons name={item.icon} size={20} color={GOLD} />
+          <Text style={[styles.optionLabel, premiumLook && P.optionLabel, { flex: 1 }]}>{item.label}</Text>
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
+        </Pressable>
+      ))}
+    </MushafSettingsSection>
+  )
+}
+
+/** Translation size (verse view): "Aa" preview between − and +. */
+export function TranslationSizeSection({
+  fontSize,
+  onDecrease,
+  onIncrease,
+  canDecrease,
+  canIncrease,
+}: {
+  fontSize: number
+  onDecrease: () => void
+  onIncrease: () => void
+  canDecrease: boolean
+  canIncrease: boolean
+}) {
+  const premiumLook = usePremiumLook()
+  const { t } = useTranslation()
+  return (
+    <MushafSettingsSection title={t("translationSizeSection", { defaultValue: "Translation size" })}>
+      <View style={[styles.sizeRow, premiumLook && P.option]}>
+        <Pressable
+          onPress={onDecrease}
+          disabled={!canDecrease}
+          hitSlop={6}
+          style={[styles.sizeBtn, premiumLook && P.sizeBtn, !canDecrease && styles.sizeBtnDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel={t("quranSmallerText")}
+        >
+          <Ionicons name="remove" size={premiumLook ? 24 : 22} color={premiumLook ? NAVY : GOLD} />
+        </Pressable>
+        <View style={styles.sizeValue}>
+          <Text style={[styles.sizeMarkLatin, { fontSize: Math.min(fontSize + 4, 30) }]}>Aa</Text>
+          <Text style={styles.optionNote}>{fontSize}</Text>
+        </View>
+        <Pressable
+          onPress={onIncrease}
+          disabled={!canIncrease}
+          hitSlop={6}
+          style={[styles.sizeBtn, premiumLook && P.sizeBtn, !canIncrease && styles.sizeBtnDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel={t("quranLargerText")}
+        >
+          <Ionicons name="add" size={premiumLook ? 24 : 22} color={premiumLook ? NAVY : GOLD} />
         </Pressable>
       </View>
     </MushafSettingsSection>
@@ -544,8 +630,21 @@ const styles = StyleSheet.create({
   sizeValue: {
     alignItems: "center",
   },
+  quickAction: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingTop: 12, paddingBottom: 12 },
+  sizeMarkLatin: { color: "#fff", fontWeight: "700" },
   sizeMark: {
     color: "#FAF6EE",
     fontWeight: "700",
   },
+})
+
+// Premium look: a touch brighter blue, bolder text and solid gold buttons.
+const P = StyleSheet.create({
+  panel: { backgroundColor: "#24507F" },
+  panelTitle: { fontSize: 18, fontWeight: "800" },
+  sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
+  option: { borderRadius: 14, borderColor: "rgba(255,255,255,0.16)", backgroundColor: "rgba(255,255,255,0.08)" },
+  optionSelected: { borderWidth: 1.5, backgroundColor: "rgba(201,168,76,0.16)" },
+  optionLabel: { fontSize: 15, fontWeight: "700" },
+  sizeBtn: { width: 46, height: 46, borderRadius: 12, borderWidth: 0, backgroundColor: GOLD },
 })

@@ -17,6 +17,7 @@ import { markFeatureSeen, startPremiumWelcome } from "@/lib/premiumNew";
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon";
 import { useTheme } from "@/context/themeContext";
 import i18n from "@/i18n";
+import { ScheherazadeNew_400Regular, useFonts } from "@expo-google-fonts/scheherazade-new";
 import { getHijriMonthGrid, gregorianToHijri, HIJRI_WEEKDAY_LABELS, hijriMonthKey } from "@/lib/hijriDate";
 import { resolveHomeQuranCard, type HomeQuranCardState } from "@/lib/homeQuranCard";
 import { loadKahfWeeklyProgress } from "@/lib/kahfWeekly";
@@ -224,7 +225,7 @@ function getVerseEdition() {
     case "fr": return "fr.hamidullah"
     case "ur": return "ur.jalandhry"
     case "tr": return "tr.diyanet"
-    case "ar": return "ar.muyassar"
+    case "ar": return "quran-uthmani"
     case "bn": return "bn.bengali"
     default: return "en.sahih"
   }
@@ -308,6 +309,8 @@ const aiBtnStyles = StyleSheet.create({
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  // Quran script for the Arabic verse of the day (already loaded if the Quran was opened).
+  useFonts({ ScheherazadeNew_400Regular })
   const router = useRouter()
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
@@ -378,7 +381,8 @@ export default function HomeScreen() {
       const res = await fetch(`https://api.alquran.cloud/v1/ayah/${randomVerse}/${edition}`)
       const data = await res.json()
       if (data.code === 200) {
-        const text = `"${data.data.text}"`
+        // Arabic is the Quran text itself: no quotation marks around it.
+        const text = edition === "quran-uthmani" ? String(data.data.text) : `"${data.data.text}"`
         const ref = `Quran: ${data.data.surah.englishName} ${data.data.numberInSurah}`
         setAyah(text)
         setAyahRef(ref)
@@ -644,7 +648,7 @@ export default function HomeScreen() {
                 ) : null}
               </View>
               <Text style={styles.heroGreeting}>{t("whereGlobalizationMatters")}</Text>
-              <Text style={styles.heroVerse}>{ayah}</Text>
+              <Text style={i18n.language === "ar" ? [styles.heroVerse, styles.heroVerseArabic] : styles.heroVerse}>{ayah}</Text>
               <Text style={styles.heroVerseRef}>{ayahRef}</Text>
             </View>
           </View>
@@ -911,10 +915,12 @@ export default function HomeScreen() {
           <View style={styles.donateBtnRow}>
             <TouchableOpacity
               style={styles.donateBtn}
+              // Opens the foundation's website in Safari / the browser: donations happen there, never inside the app (App Store 3.2.2).
               onPress={() => void Linking.openURL("https://maidabofoundation.com/").catch(() => {})}
             >
               <Ionicons name="heart" size={16} color="#fff" />
-              <Text style={styles.donateBtnText}>{t("learnMore")}</Text>
+              <Text style={styles.donateBtnText}>{t("donateNow")}</Text>
+              <Ionicons name="open-outline" size={14} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -1000,6 +1006,16 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   heroVerseRef: { color: "#C9A84C", fontSize: 12, fontWeight: "600" },
+  // Arabic: Quran script (falls back to the system Arabic font if the Mushaf fonts aren't loaded yet).
+  heroVerseArabic: {
+    fontFamily: "ScheherazadeNew_400Regular",
+    fontStyle: "normal",
+    fontSize: 20,
+    lineHeight: 36,
+    textAlign: "right",
+    writingDirection: "rtl",
+    color: "#fff",
+  },
 
   // Prayer card
   prayerCard: {
