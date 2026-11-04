@@ -42,8 +42,18 @@ async function readLog(): Promise<PrayerLog> {
   }
 }
 
+// Screens that show the tracker listen here, so a tick from the prayer popup shows at once.
+const listeners = new Set<() => void>()
+export function onPrayerLogChange(fn: () => void) {
+  listeners.add(fn)
+  return () => {
+    listeners.delete(fn)
+  }
+}
+
 async function writeLog(log: PrayerLog) {
   await AsyncStorage.setItem(PRAYER_LOG_KEY, JSON.stringify(log))
+  for (const fn of listeners) fn()
 }
 
 export async function isPrayerMarked(prayerName: PrayerName, date = new Date()) {
@@ -79,4 +89,48 @@ export async function getWeekStatusesForPrayer(
     }
     return { date, status: marked ? ("completed" as const) : ("missed" as const) }
   })
+}
+
+// ─── Guide tab tracker (same saved log as the prayer popup) ────────────────
+/** Marked prayers per day: { "2026-11-4": ["Fajr", "Dhuhr"] }. */
+export type TrackerData = Record<string, string[]>
+
+/** Keep about two months of history. */
+const KEEP_DAYS = 62
+
+/** Day key used in the saved log (Y-M-D, no padding). */
+export function trackerDayKey(d = new Date()) {
+  return dateKey(d)
+}
+
+function toTrackerData(log: PrayerLog): TrackerData {
+  const out: TrackerData = {}
+  for (const [key, day] of Object.entries(log)) {
+    const done = Object.entries(day ?? {}).filter(([, v]) => v).map(([p]) => p)
+    if (done.length) out[key] = done
+  }
+  return out
+}
+
+export async function loadTracker(): Promise<TrackerData> {
+  return toTrackerData(await readLog())
+}
+
+/** Mark / unmark one prayer for one day. Returns the updated data. */
+export async function togglePrayed(dayKey: string, prayer: PrayerName): Promise<TrackerData> {
+  const log = await readLog()
+  const day = { ...(log[dayKey] ?? {}) }
+  if (day[prayer]) delete day[prayer]
+  else day[prayer] = true
+  if (Object.keys(day).length) log[dayKey] = day
+  else delete log[dayKey]
+  // Drop old days.
+  const cutoff = startOfDay(new Date())
+  cutoff.setDate(cutoff.getDate() - KEEP_DAYS)
+  for (const key of Object.keys(log)) {
+    const [y, m, d] = key.split("-").map(Number)
+    if (new Date(y, m - 1, d).getTime() < cutoff.getTime()) delete log[key]
+  }
+  await writeLog(log).catch(() => {})
+  return toTrackerData(log)
 }

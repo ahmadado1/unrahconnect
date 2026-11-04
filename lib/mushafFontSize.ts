@@ -71,3 +71,38 @@ export function useMushafFontSize() {
     canIncrease: fontSize < MUSHAF_FONT_MAX,
   }
 }
+
+// ─── Translation text size (verse view) ────────────────────────────────────
+const TRANSLATION_KEY = "quran_translation_size_v1"
+export const TRANSLATION_MIN = 14
+export const TRANSLATION_MAX = 26
+const TRANSLATION_DEFAULT = 18
+
+/** Size of the translation under each ayah. Saved on the phone. */
+export function useTranslationFontSize() {
+  const [size, setSize] = useState(TRANSLATION_DEFAULT)
+  useEffect(() => {
+    let cancelled = false
+    AsyncStorage.getItem(TRANSLATION_KEY)
+      .then(raw => {
+        const saved = Number(raw)
+        if (!cancelled && Number.isFinite(saved) && saved >= TRANSLATION_MIN && saved <= TRANSLATION_MAX) setSize(saved)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  const update = useCallback((next: number) => {
+    const value = Math.min(TRANSLATION_MAX, Math.max(TRANSLATION_MIN, Math.round(next)))
+    setSize(value)
+    AsyncStorage.setItem(TRANSLATION_KEY, String(value)).catch(() => {})
+  }, [])
+  return {
+    translationSize: size,
+    smallerTranslation: () => update(size - 1),
+    largerTranslation: () => update(size + 1),
+    canShrinkTranslation: size > TRANSLATION_MIN,
+    canGrowTranslation: size < TRANSLATION_MAX,
+  }
+}

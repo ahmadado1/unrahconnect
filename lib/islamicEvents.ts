@@ -235,73 +235,99 @@ export async function readCachedIslamicEvents(): Promise<IslamicEvent[]> {
   }
 }
 
+// ─── Dates ─────────────────────────────────────────────────────────────────
+// 1) Offline, instantly: the official Saudi Umm al-Qura calendar (hijri-converter, the same
+//    calendar the month grid uses).
+// 2) Online, about once a week: AlAdhan with the Saudi High Judicial Council method (HJCoSA),
+//    which follows the official moon-sighting announcements (e.g. the start of Ramadan / Eid).
+//    Saved on the phone, so the screen never waits for the internet.
+const REFRESH_MS = 7 * 24 * 60 * 60 * 1000
+const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+function makeEvent(def: IslamicEventDefinition, hijriYear: number, year: number, month: number, day: number): IslamicEvent {
+  return {
+    id: `${def.id}-${hijriYear}`,
+    baseId: def.id,
+    name: def.name,
+    icon: def.icon,
+    hijriDate: `${def.hijriDay} ${HIJRI_MONTHS[def.hijriMonth - 1]} ${hijriYear} AH`,
+    gregorianDate: `${MONTHS_EN[month - 1]} ${day}, ${year}`,
+    gregorianYear: year,
+    gregorianMonth: month,
+    gregorianDay: day,
+    description: def.description,
+    category: def.category,
+  }
+}
+
+const byDate = (a: IslamicEvent, b: IslamicEvent) =>
+  new Date(a.gregorianYear, a.gregorianMonth - 1, a.gregorianDay).getTime() -
+  new Date(b.gregorianYear, b.gregorianMonth - 1, b.gregorianDay).getTime()
+
+/** This Hijri year and next, worked out on the phone (no internet). */
+export function offlineIslamicEvents(now = new Date()): IslamicEvent[] {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { toGregorian, toHijri } = require("hijri-converter") as typeof import("hijri-converter")
+  const currentHijriYear = toHijri(now.getFullYear(), now.getMonth() + 1, now.getDate()).hy
+  const out: IslamicEvent[] = []
+  for (const hijriYear of [currentHijriYear, currentHijriYear + 1]) {
+    for (const def of ISLAMIC_EVENTS_HIJRI) {
+      try {
+        const g = toGregorian(hijriYear, def.hijriMonth, def.hijriDay)
+        out.push(makeEvent(def, hijriYear, g.gy, g.gm, g.gd))
+      } catch {}
+    }
+  }
+  return out.sort(byDate)
+}
+
+/** Has the saved list still got dates ahead of us? */
+function stillUseful(events: IslamicEvent[], now: Date) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  return events.some(e => new Date(e.gregorianYear, e.gregorianMonth - 1, e.gregorianDay).getTime() >= today)
+}
+
+/** Saved dates right away (or the offline calendar the first time). Never waits for the internet. */
+export async function getIslamicEventsFast(): Promise<IslamicEvent[]> {
+  const cached = await readCachedIslamicEvents()
+  if (cached.length && stillUseful(cached, new Date())) return cached
+  return offlineIslamicEvents()
+}
+
+/** Refresh from the internet when the saved dates are older than a week (or force). */
 export async function fetchAndCacheIslamicEvents(force = false): Promise<IslamicEvent[]> {
   const now = new Date()
-
-  if (!force) {
-    const cached = await readCachedIslamicEvents()
-    const cachedDate = await AsyncStorage.getItem(EVENTS_CACHE_DATE_KEY)
-    if (cached.length && cachedDate) {
-      const lastFetch = new Date(cachedDate)
-      if (
-        lastFetch.getMonth() === now.getMonth() &&
-        lastFetch.getFullYear() === now.getFullYear()
-      ) {
-        return cached
-      }
-    }
+  const cached = await readCachedIslamicEvents()
+  if (!force && cached.length && stillUseful(cached, now)) {
+    const at = Date.parse((await AsyncStorage.getItem(EVENTS_CACHE_DATE_KEY)) ?? "")
+    if (Number.isFinite(at) && now.getTime() - at < REFRESH_MS) return cached
   }
 
   try {
+    const method = "HJCoSA"
     const todayRes = await fetch(
-      `https://api.aladhan.com/v1/gToH?date=${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`
+      `https://api.aladhan.com/v1/gToH/${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}?calendarMethod=${method}`
     )
     const todayData = await todayRes.json()
-    const currentHijriYear = parseInt(todayData.data.hijri.year, 10)
-    if (!Number.isFinite(currentHijriYear)) {
-      return readCachedIslamicEvents()
-    }
+    const currentHijriYear = parseInt(todayData?.data?.hijri?.year, 10)
+    if (!Number.isFinite(currentHijriYear)) throw new Error("no hijri year")
 
-    const allEvents: IslamicEvent[] = []
-
-    for (const hijriYear of [currentHijriYear, currentHijriYear + 1]) {
-      for (const event of ISLAMIC_EVENTS_HIJRI) {
-        try {
-          const res = await fetch(
-            `https://api.aladhan.com/v1/hToG?date=${event.hijriDay}-${event.hijriMonth}-${hijriYear}`
-          )
-          const data = await res.json()
-          if (data.code !== 200) continue
-
-          const g = data.data.gregorian
-          const day = parseInt(g.day, 10)
-          const month = parseInt(g.month.number, 10)
-          const year = parseInt(g.year, 10)
-          const gregorianDateStr = `${g.month.en} ${day}, ${year}`
-
-          allEvents.push({
-            id: `${event.id}-${hijriYear}`,
-            baseId: event.id,
-            name: event.name,
-            icon: event.icon,
-            hijriDate: `${event.hijriDay} ${HIJRI_MONTHS[event.hijriMonth - 1]} ${hijriYear} AH`,
-            gregorianDate: gregorianDateStr,
-            gregorianYear: year,
-            gregorianMonth: month,
-            gregorianDay: day,
-            description: event.description,
-            category: event.category,
-          })
-        } catch (e) {
-          console.log(`Failed to fetch ${event.name}:`, e)
-        }
-      }
-    }
-
-    if (allEvents.length) {
-      const sorted = allEvents.sort(
-        (a, b) => new Date(a.gregorianDate).getTime() - new Date(b.gregorianDate).getTime()
-      )
+    // All dates at once (was one after another: slow).
+    const jobs = [currentHijriYear, currentHijriYear + 1].flatMap(hijriYear =>
+      ISLAMIC_EVENTS_HIJRI.map(async def => {
+        const res = await fetch(
+          `https://api.aladhan.com/v1/hToG/${def.hijriDay}-${def.hijriMonth}-${hijriYear}?calendarMethod=${method}`
+        )
+        const data = await res.json()
+        if (data?.code !== 200) return null
+        const g = data.data.gregorian
+        return makeEvent(def, hijriYear, parseInt(g.year, 10), parseInt(g.month.number, 10), parseInt(g.day, 10))
+      })
+    )
+    const results = await Promise.allSettled(jobs)
+    const online = results.flatMap(r => (r.status === "fulfilled" && r.value ? [r.value] : []))
+    if (online.length >= ISLAMIC_EVENTS_HIJRI.length) {
+      const sorted = online.sort(byDate)
       await AsyncStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(sorted))
       await AsyncStorage.setItem(EVENTS_CACHE_DATE_KEY, now.toISOString())
       return sorted
@@ -310,5 +336,9 @@ export async function fetchAndCacheIslamicEvents(force = false): Promise<Islamic
     console.log("Islamic events fetch error:", e)
   }
 
-  return readCachedIslamicEvents()
+  // Offline or the server failed: keep the saved dates, else the offline Umm al-Qura calendar.
+  if (cached.length && stillUseful(cached, now)) return cached
+  const offline = offlineIslamicEvents(now)
+  await AsyncStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(offline)).catch(() => {})
+  return offline
 }

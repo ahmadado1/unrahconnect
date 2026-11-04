@@ -5,6 +5,7 @@
 // Keeps playing when the screen locks, with lock-screen controls.
 // Only one thing plays at a time: starting the Quran stops the Adhan, and the other way round.
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { getSurahMeta } from "./quranSurahMeta"
 import {
   createAudioPlayer,
   setAudioModeAsync,
@@ -162,7 +163,15 @@ export function reciterMatches(name: string, query: string) {
   if (!words.length) return true
   const nameWords = reciterSearchKey(name)
   const joined = nameWords.join("")
-  return words.every(w => joined.includes(w) || nameWords.some(n => n.startsWith(w)))
+  // Same consonants, any vowels: "Badr" finds "Bader", "Shuraim" finds "Shureim".
+  const skeleton = (w: string) => w.replace(/[aeiou]/g, "")
+  const nameSkeletons = nameWords.map(skeleton)
+  return words.every(
+    w =>
+      joined.includes(w) ||
+      nameWords.some(n => n.startsWith(w)) ||
+      (w.length >= 3 && nameSkeletons.some(n => skeleton(w).length >= 2 && n.startsWith(skeleton(w))))
+  )
 }
 
 // ─── Favourite reciters (saved on the phone) ───────────────────────────────
@@ -276,13 +285,15 @@ const handledPrayers = new Set<string>()
 async function checkPrayerTime() {
   try {
     const { readCachedPrayerTimes, timeToMinutes } = await import("./prayerTimes")
-    const { loadOffPrayers, prayerAlertsOn, SYSTEM_ADHAN_KEY, ALERT_PRAYERS } = await import("./prayerToggles")
+    const { loadOffPrayers, loadQuietPrayers, prayerAlertsOn, SYSTEM_ADHAN_KEY, ALERT_PRAYERS } = await import("./prayerToggles")
     if (!(await prayerAlertsOn())) return
     const times = await readCachedPrayerTimes()
     if (!times) return
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
     const off = await loadOffPrayers()
+    // "Notification only" prayers don't interrupt the Quran either.
+    for (const p of await loadQuietPrayers()) off.add(p)
     for (const name of ALERT_PRAYERS) {
       const at = timeToMinutes((times as unknown as Record<string, string>)[name] ?? "")
       // Within the first 2 minutes of the prayer time, once per prayer per day.
@@ -324,7 +335,19 @@ function onStatus(status: AudioStatus) {
     void saveListenSpot(status.currentTime || 0, status.duration || 0)
   }
   if (status.didJustFinish) {
-    if (state.kind === "surah") void clearListenSpot()
+    if (state.kind === "surah") {
+      void clearListenSpot()
+      // Whole surah finished: go straight on to the next surah with the same reciter (same player,
+      // so it keeps going with the screen locked). Stops after the last surah this reciter has.
+      if (surahRun && state.surah) {
+        let next = state.surah + 1
+        while (next <= 114 && !surahRun.surahs.has(next)) next += 1
+        if (next <= 114) {
+          void playSurah(surahRun, next, `${next}. ${getSurahMeta(next)?.englishName ?? ""}`)
+          return
+        }
+      }
+    }
     // Verse mode: carry on with the next ayah.
     if (state.kind === "verse" && verseRun?.continuous && state.ayah && state.ayah < verseRun.lastAyah) {
       void startVerse(state.ayah + 1)

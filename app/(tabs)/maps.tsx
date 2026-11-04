@@ -22,7 +22,7 @@ const LOCATIONS = [
 ] as const
 
 export default function MapsScreen() {
-  const { theme } = useTheme()
+  const { theme, isDark } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -62,69 +62,85 @@ export default function MapsScreen() {
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
-        <TouchableOpacity
-          style={[styles.myLocationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={openMyLocation}
-        >
-          <View style={styles.myLocationIcon}>
-            <Ionicons name="navigate-outline" size={22} color={NAVY} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.locationName, { color: theme.text }]}>{t("myLocation")}</Text>
-            <Text style={[styles.locationSub, { color: theme.textSecondary }]}>
+        {/* Quick actions: my location and the offline map, side by side */}
+        <View style={styles.row}>
+          <TouchableOpacity
+            style={[styles.quickTile, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={openMyLocation}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: GOLD }]}>
+              <Ionicons name="navigate" size={20} color={NAVY} />
+            </View>
+            <Text style={[styles.quickTitle, { color: theme.text }]} numberOfLines={1}>{t("myLocation")}</Text>
+            <Text style={[styles.quickSub, { color: theme.textSecondary }]} numberOfLines={2}>
               {locationLabel ? t("openInMaps") : t("enableLocation")}
             </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={GOLD} />
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        {/* Offline map (Premium): works with no internet in Makkah and Madinah */}
-        <TouchableOpacity
-          style={[styles.offlineCard, { backgroundColor: NAVY }]}
-          onPress={() => router.push("/offline-map" as any)}
-        >
-          <View style={styles.offlineIcon}>
-            <Ionicons name="cloud-offline" size={22} color={NAVY} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={styles.offlineTitle}>{t("om_cardTitle")}</Text>
+          {/* Offline map (Premium): works with no internet in Makkah and Madinah */}
+          <TouchableOpacity
+            style={[styles.quickTile, styles.quickTileNavy]}
+            onPress={() => router.push("/offline-map" as any)}
+          >
+            <View style={styles.quickTop}>
+              <View style={[styles.quickIcon, { backgroundColor: GOLD }]}>
+                <Ionicons name="cloud-offline" size={20} color={NAVY} />
+              </View>
               <View style={styles.proPill}>
                 <Ionicons name="star" size={8} color={NAVY} />
                 <Text style={styles.proText}>{t("premiumBadge").toUpperCase()}</Text>
               </View>
             </View>
-            <Text style={styles.offlineSub}>{t("om_cardSub")}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={GOLD} />
-        </TouchableOpacity>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("holySites")}</Text>
-
-        {LOCATIONS.map(loc => (
-          <TouchableOpacity
-            key={loc.id}
-            style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push(`/maps/${loc.id}` as any)}
-          >
-            <AppIcon name={loc.icon} size={28} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.locationName, { color: theme.text }]}>{t(loc.nameKey)}</Text>
-              <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t(loc.subKey)}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={GOLD} />
+            <Text style={styles.quickTitleLight} numberOfLines={1}>{t("om_cardTitle")}</Text>
+            <Text style={styles.quickSubLight} numberOfLines={2}>{t("om_cardSub")}</Text>
           </TouchableOpacity>
-        ))}
+        </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("makkah")}</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("holySites")}</Text>
+
+        {/* Holy sites: even 2-column grid */}
+        <View style={styles.grid}>
+          {LOCATIONS.filter(loc => loc.id !== "lost-found").map(loc => (
+            <TouchableOpacity
+              key={loc.id}
+              style={[styles.siteCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => router.push(`/maps/${loc.id}` as any)}
+            >
+              <View style={[styles.siteIcon, { backgroundColor: isDark ? "rgba(201,168,76,0.14)" : "#FAF3E3" }]}>
+                <AppIcon name={loc.icon} size={26} />
+              </View>
+              <Text style={[styles.siteName, { color: theme.text }]} numberOfLines={2}>{t(loc.nameKey)}</Text>
+              <Text style={[styles.locationSub, { color: theme.textSecondary }]} numberOfLines={1}>{t(loc.subKey)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("makkah")}</Text>
         <TouchableOpacity
           style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={() => router.push("/makkah-places" as any)}
         >
-          <AppIcon name="mountain" size={28} />
+          <View style={[styles.rowIcon, { backgroundColor: isDark ? "rgba(201,168,76,0.14)" : "#FAF3E3" }]}>
+            <AppIcon name="mountain" size={24} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.locationName, { color: theme.text }]}>{t("makkahPlacesTitle")}</Text>
             <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t("makkahPlacesSub")}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={GOLD} />
+        </TouchableOpacity>
+
+        {/* Lost & found / help: kept apart so it's easy to find in a hurry */}
+        <TouchableOpacity
+          style={[styles.locationCard, styles.helpCard, { backgroundColor: theme.card }]}
+          onPress={() => router.push("/maps/lost-found" as any)}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: isDark ? "rgba(220,80,80,0.18)" : "#FDECEC" }]}>
+            <AppIcon name="search" size={24} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.locationName, { color: theme.text }]}>{t("lostAndFound")}</Text>
+            <Text style={[styles.locationSub, { color: theme.textSecondary }]}>{t("lostAndFoundSub")}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={GOLD} />
         </TouchableOpacity>
@@ -139,39 +155,33 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 16 },
   subtitle: { color: GOLD, fontSize: 13, marginTop: 4 },
   content: { padding: ui.space, gap: 0 },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", marginTop: 24, marginBottom: 12 },
-  myLocationCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: ui.cardPad,
-    borderRadius: ui.radius,
-    borderWidth: ui.hairline,
-    ...cardShadow,
-  },
-  myLocationIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: ui.radiusSm,
-    backgroundColor: GOLD,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", marginTop: 22, marginBottom: 10, marginLeft: 2 },
+  row: { flexDirection: "row", gap: 12 },
+  quickTile: { flex: 1, borderRadius: 18, padding: 14, borderWidth: ui.hairline, minHeight: 132, ...cardShadow },
+  quickTileNavy: { backgroundColor: NAVY, borderWidth: 1, borderColor: "rgba(201,168,76,0.5)" },
+  quickTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  quickIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  quickTitle: { fontSize: 15, fontWeight: "700" },
+  quickSub: { fontSize: 12, marginTop: 2, lineHeight: 16 },
+  quickTitleLight: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  quickSubLight: { fontSize: 12, marginTop: 2, lineHeight: 16, color: "rgba(255,255,255,0.75)" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12 },
+  siteCard: { width: "48.3%", borderRadius: 18, padding: 14, borderWidth: ui.hairline, ...cardShadow },
+  siteIcon: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  siteName: { fontSize: 15, fontWeight: "700", lineHeight: 19 },
   locationCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     padding: ui.cardPad,
-    borderRadius: ui.radius,
+    borderRadius: 18,
     borderWidth: ui.hairline,
     marginBottom: ui.gap,
     ...cardShadow,
   },
-  offlineCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: ui.cardPad, borderRadius: ui.radius, marginTop: ui.gap, borderWidth: 1, borderColor: "rgba(201,168,76,0.5)", ...cardShadow },
-  offlineIcon: { width: 44, height: 44, borderRadius: ui.radiusSm, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
-  offlineTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  offlineSub: { color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 2 },
-  proPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: GOLD, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
+  helpCard: { borderColor: "rgba(220,80,80,0.45)", borderWidth: 1, marginTop: 2 },
+  rowIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  proPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: GOLD, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   proText: { color: NAVY, fontSize: 8, fontWeight: "800" },
   locationName: { fontSize: 15, fontWeight: "600" },
   locationSub: { fontSize: 12, marginTop: 2 },

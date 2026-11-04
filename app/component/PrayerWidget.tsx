@@ -1,27 +1,32 @@
+// Prayer times on the Guide tab: week strip with a progress ring per day, next-prayer card,
+// and one row per prayer with a tracker circle (tap when prayed) and an alert button
+// (tap to switch Adhan → notification only → off for that prayer).
 import { PRAYER_ICONS, PRAYER_NAMES } from "@/lib/prayerConstants"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, timeToMinutes, type CachedPrayerTimes } from "@/lib/prayerTimes"
+import { ALERT_PRAYERS, loadPrayerModes, setPrayerMode, type AlertPrayer, type PrayerAlertMode } from "@/lib/prayerToggles"
+import { getWeekStartingSaturday, loadTracker, onPrayerLogChange, togglePrayed, trackerDayKey, type TrackerData } from "@/lib/prayerTracker"
+import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
+import TouchableOpacity from "@/app/components/AppPressable"
 import { Ionicons } from "@expo/vector-icons"
+import * as Haptics from "expo-haptics"
 import { useFocusEffect } from "expo-router"
 import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 import { AppState, StyleSheet, Text, View, type AppStateStatus } from "react-native"
-import Svg, { Circle, Ellipse, G } from "react-native-svg"
+import Svg, { Circle } from "react-native-svg"
 
 type PrayerTimes = CachedPrayerTimes
+type PrayerName = (typeof PRAYER_NAMES)[number]
 
-/** Display order includes Sunrise (Shuruq) as a non-prayer marker after Fajr. */
-const PRAYER_DISPLAY_ROWS = [
-  "Fajr",
-  "Sunrise",
-  "Dhuhr",
-  "Asr",
-  "Maghrib",
-  "Isha",
-] as const
+const GOLD = "#C9A84C"
+const GOLD_SOFT = "#E6C873"
+const NAVY_DEEP = "#14294A"
 
-type DisplayRow = (typeof PRAYER_DISPLAY_ROWS)[number]
+/** Sunrise (Shuruq) is shown after Fajr for reference; it is not a prayer. */
+const ROWS = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"] as const
+type Row = (typeof ROWS)[number]
 
-const PRAYER_NAME_KEYS: Record<Exclude<DisplayRow, "Sunrise">, string> = {
+const NAME_KEYS: Record<PrayerName, string> = {
   Fajr: "prayerNameFajr",
   Dhuhr: "prayerNameDhuhr",
   Asr: "prayerNameAsr",
@@ -29,319 +34,409 @@ const PRAYER_NAME_KEYS: Record<Exclude<DisplayRow, "Sunrise">, string> = {
   Isha: "prayerNameIsha",
 }
 
+const MODE_ORDER: PrayerAlertMode[] = ["adhan", "notify", "off"]
+const MODE_ICON: Record<PrayerAlertMode, keyof typeof Ionicons.glyphMap> = {
+  adhan: "volume-high-outline",
+  notify: "notifications-outline",
+  off: "notifications-off-outline",
+}
+
 const formatCountdown = (minutes: number) => {
   const h = Math.floor(minutes / 60)
   const m = Math.floor(minutes % 60)
-  return `${h}:${m.toString().padStart(2, "0")}`
+  return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`
 }
 
-const GeometricFlower = () => (
-  <Svg width="60" height="60" viewBox="0 0 60 60">
-    <G transform="translate(30,30)">
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-        <G key={i} transform={`rotate(${angle})`}>
-          <Ellipse cx="0" cy="-12" rx="4" ry="8" fill="none" stroke="#C9A84C" strokeWidth="0.8" opacity="0.8" />
-        </G>
-      ))}
-      <Circle cx="0" cy="0" r="4" fill="none" stroke="#C9A84C" strokeWidth="0.8" opacity="0.8" />
-      <Circle cx="0" cy="0" r="1.5" fill="#C9A84C" opacity="0.8" />
-    </G>
-  </Svg>
-)
+/** Small ring that fills as prayers are marked (0–5). */
+function DayRing({ done, selected }: { done: number; selected: boolean }) {
+  const size = 34
+  const stroke = 3
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const pct = Math.min(1, done / 5)
+  return (
+    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={selected ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.12)"} strokeWidth={stroke} fill="none" />
+      {pct > 0 ? (
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={GOLD}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${c * pct} ${c}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      ) : null}
+    </Svg>
+  )
+}
 
 export default function PrayerWidget() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const load = useCallback(async (preferCacheFirst = true) => {
-    if (preferCacheFirst) {
-      const cached = await readCachedPrayerTimes()
-      if (cached) {
-        setPrayerTimes(cached)
-      }
-    }
+  const [now, setNow] = useState(new Date())
+  const [tracker, setTracker] = useState<TrackerData>({})
+  const [modes, setModes] = useState<Record<AlertPrayer, PrayerAlertMode> | null>(null)
+  /** Day picked in the week strip; null = today. */
+  const [pickedKey, setPickedKey] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
+  const load = useCallback(async () => {
+    const cached = await readCachedPrayerTimes()
+    if (cached) setPrayerTimes(cached)
+    void loadTracker().then(setTracker)
+    void loadPrayerModes().then(setModes)
     const fresh = await fetchAndCachePrayerTimes()
     if (fresh) setPrayerTimes(fresh)
   }, [])
 
-  useEffect(() => {
-    void load(true)
-  }, [load])
-
+  // Runs on first show and every time the tab comes back into view.
   useFocusEffect(
     useCallback(() => {
-      void load(true)
+      void load()
     }, [load])
   )
 
   useEffect(() => {
-    const onAppState = (state: AppStateStatus) => {
-      if (state === "active") void load(true)
-    }
-    const sub = AppState.addEventListener("change", onAppState)
+    const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state === "active") void load()
+    })
     return () => sub.remove()
   }, [load])
 
+  // Ticked from the prayer popup ("Pray now" / "I prayed"): refresh the circles.
+  useEffect(() => onPrayerLogChange(() => void loadTracker().then(setTracker)), [])
+
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    const timer = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes()
+  // Hide the small message after a moment.
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 2200)
+    return () => clearTimeout(timer)
+  }, [toast])
 
-  const getNextPrayer = (): {
-    name: (typeof PRAYER_NAMES)[number]
-    time: string
-    minutesLeft: number
-  } | null => {
-    if (!prayerTimes) return null
+  const todayKey = trackerDayKey(now)
+  const selectedKey = pickedKey ?? todayKey
+
+  const isToday = selectedKey === todayKey
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  // Saturday-to-Friday week (same as the prayer popup). Future days can't be marked.
+  const days = getWeekStartingSaturday(now)
+  const todayStart = new Date(now)
+  todayStart.setHours(0, 0, 0, 0)
+
+  let nextPrayer: { name: PrayerName; time: string; minutesLeft: number } | null = null
+  /** The prayer whose time is running now (from its time until the next prayer; Fajr ends at sunrise). */
+  let currentPrayer: PrayerName | null = null
+  if (prayerTimes) {
     for (const name of PRAYER_NAMES) {
-      const prayerMin = timeToMinutes(prayerTimes[name])
-      if (prayerMin > nowMinutes) {
-        return { name, time: prayerTimes[name], minutesLeft: prayerMin - nowMinutes }
-      }
+      const at = timeToMinutes(prayerTimes[name])
+      if (at <= nowMinutes) currentPrayer = name
+      else if (!nextPrayer) nextPrayer = { name, time: prayerTimes[name], minutesLeft: at - nowMinutes }
     }
-    return {
+    nextPrayer ??= {
       name: "Fajr",
       time: prayerTimes.Fajr,
       minutesLeft: 24 * 60 - nowMinutes + timeToMinutes(prayerTimes.Fajr),
     }
-  }
-
-  const nextPrayer = getNextPrayer() ?? {
-    name: "Fajr" as const,
-    time: "--:--",
-    minutesLeft: 0,
-  }
-
-  const getPrayerStatus = (name: DisplayRow) => {
-    if (!prayerTimes) return "upcoming"
-    const timeValue =
-      name === "Sunrise" ? prayerTimes.Sunrise : prayerTimes[name as (typeof PRAYER_NAMES)[number]]
-    if (!timeValue) return "upcoming"
-    const prayerMin = timeToMinutes(timeValue)
-    if (name === "Sunrise") {
-      return prayerMin < nowMinutes ? "past" : "upcoming"
+    if (currentPrayer === "Fajr" && prayerTimes.Sunrise && timeToMinutes(prayerTimes.Sunrise) <= nowMinutes) {
+      currentPrayer = null
     }
-    if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) return "next"
-    if (nextPrayer.name === name) return "next"
-    if (prayerMin < nowMinutes) return "past"
-    return "upcoming"
   }
 
-  const getCurrentPrayer = () => {
-    if (!prayerTimes) return null
-    for (const name of PRAYER_NAMES) {
-      const prayerMin = timeToMinutes(prayerTimes[name])
-      if (prayerMin <= nowMinutes && nowMinutes <= prayerMin + 5) {
-        return { name, time: prayerTimes[name] }
-      }
+  const label = (row: Row) =>
+    row === "Sunrise" ? t("sunrise", { defaultValue: "Sunrise" }) : t(NAME_KEYS[row], { defaultValue: row })
+
+  const done = new Set(tracker[selectedKey] ?? [])
+  const doneCount = ALERT_PRAYERS.filter(p => done.has(p)).length
+
+  const showToast = (text: string) => setToast(text)
+
+  const onTrack = async (prayer: PrayerName, canMark: boolean) => {
+    if (!canMark) {
+      showToast(t("prayerNotYet", { defaultValue: "You can mark it once its time has come" }))
+      return
     }
-    return null
+    void Haptics.selectionAsync().catch(() => {})
+    setTracker(await togglePrayed(selectedKey, prayer))
   }
 
-  const currentPrayer = getCurrentPrayer()
+  const onMode = async (prayer: AlertPrayer) => {
+    if (!modes) return
+    const next = MODE_ORDER[(MODE_ORDER.indexOf(modes[prayer]) + 1) % MODE_ORDER.length]
+    void Haptics.selectionAsync().catch(() => {})
+    setModes({ ...modes, [prayer]: next })
+    await setPrayerMode(prayer, next)
+    const modeLabel =
+      next === "adhan"
+        ? t("prayerModeAdhan", { defaultValue: "Adhan" })
+        : next === "notify"
+          ? t("prayerModeNotify", { defaultValue: "Notification only" })
+          : t("prayerModeOff", { defaultValue: "No alert" })
+    showToast(`${label(prayer)}: ${modeLabel}`)
+    void reschedulePrayerNotificationsFromCache().catch(() => {})
+  }
 
-  const prayerLabel = (name: DisplayRow) => {
-    if (name === "Sunrise") return t("sunrise", { defaultValue: "Sunrise" })
-    return t(PRAYER_NAME_KEYS[name], { defaultValue: name })
+  const weekday = (d: Date) => {
+    try {
+      return d.toLocaleDateString(i18n.language, { weekday: "narrow" })
+    } catch {
+      return ["S", "M", "T", "W", "T", "F", "S"][d.getDay()]
+    }
   }
 
   return (
     <View style={styles.widget}>
+      {/* Location and Hijri date */}
       <View style={styles.topRow}>
-        <Text style={styles.prayerLabel}>{t("prayerTimes")}</Text>
-        <View style={styles.separatorV} />
-        <View style={styles.locationRow}>
-          <Ionicons name="location" size={11} color="#C9A84C" />
-          <Text style={styles.locationText}>{prayerTimes?.city || "—"}</Text>
+        <View style={styles.pill}>
+          <Ionicons name="location" size={12} color={GOLD} />
+          <Text style={styles.pillText} numberOfLines={1}>{prayerTimes?.city || "—"}</Text>
+        </View>
+        <View style={styles.pill}>
+          <Ionicons name="calendar-outline" size={12} color={GOLD} />
+          <Text style={styles.pillText} numberOfLines={1}>{prayerTimes?.date || "—"}</Text>
         </View>
       </View>
 
-      <View style={styles.hijriBadge}>
-        <Ionicons name="calendar-outline" size={11} color="#C9A84C" />
-        <Text style={styles.hijriText}>{prayerTimes?.date || "—"}</Text>
-      </View>
-
-      <View style={styles.nextPrayerBox}>
-        <View>
-          <Text style={styles.nextLabel}>
-            {currentPrayer
-              ? `${t("currentPrayer")}: ${prayerLabel(currentPrayer.name)}`
-              : `${t("nextPrayer")}: ${prayerLabel(nextPrayer.name)}`}
-          </Text>
-          <Text style={styles.nextTime}>
-            {currentPrayer ? currentPrayer.time : nextPrayer.time}
-          </Text>
-        </View>
-        <GeometricFlower />
-        <View style={{ alignItems: "flex-end" }}>
-          <Text style={styles.countdownLabel}>{t("timeRemaining")}</Text>
-          <Text style={styles.countdown}>
-            {prayerTimes ? formatCountdown(nextPrayer.minutesLeft) : "--:--"}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.prayersList}>
-        {PRAYER_DISPLAY_ROWS.map(name => {
-          const isSunrise = name === "Sunrise"
-          const timeValue = isSunrise
-            ? prayerTimes?.Sunrise
-            : prayerTimes?.[name as (typeof PRAYER_NAMES)[number]]
-          const status = getPrayerStatus(name)
+      {/* Week strip: tap a day to see or fix what you marked */}
+      <View style={styles.week}>
+        {days.map(d => {
+          const key = trackerDayKey(d)
+          const selected = key === selectedKey
+          const future = d.getTime() > todayStart.getTime()
+          const count = ALERT_PRAYERS.filter(p => (tracker[key] ?? []).includes(p)).length
           return (
-            <View
-              key={name}
-              style={[
-                styles.prayerRow,
-                status === "next" && styles.prayerRowNext,
-                status === "past" && styles.prayerRowPast,
-                isSunrise && styles.prayerRowSunrise,
-              ]}
+            <TouchableOpacity
+              key={key}
+              style={[styles.day, selected && styles.daySelected, future && styles.dayFuture]}
+              onPress={() => setPickedKey(key === todayKey ? null : key)}
+              disabled={future}
+              accessibilityRole="button"
+              accessibilityLabel={`${d.toDateString()}, ${count}/5`}
             >
-              <View style={styles.prayerLeft}>
-                <Ionicons
-                  name={
-                    isSunrise
-                      ? "sunny-outline"
-                      : (PRAYER_ICONS[name as (typeof PRAYER_NAMES)[number]] as any)
-                  }
-                  size={16}
-                  color={
-                    isSunrise
-                      ? "rgba(201,168,76,0.55)"
-                      : status === "next"
-                        ? "#C9A84C"
-                        : status === "past"
-                          ? "rgba(255,255,255,0.25)"
-                          : "rgba(255,255,255,0.5)"
-                  }
-                />
-                <Text
-                  style={[
-                    styles.prayerName,
-                    status === "past" && styles.prayerNamePast,
-                    status === "next" && styles.prayerNameNext,
-                    isSunrise && styles.prayerNameSunrise,
-                  ]}
-                >
-                  {prayerLabel(name)}
-                </Text>
+              <View style={styles.dayRing}>
+                <DayRing done={count} selected={selected} />
+                <Text style={[styles.dayNum, selected && styles.dayNumSelected]}>{d.getDate()}</Text>
               </View>
-              <View style={styles.prayerRight}>
-                <Text
-                  style={[
-                    styles.prayerTime,
-                    status === "past" && styles.prayerTimePast,
-                    status === "next" && styles.prayerTimeNext,
-                    isSunrise && styles.prayerTimeSunrise,
-                  ]}
-                >
-                  {timeValue || "--:--"}
-                </Text>
-                {isSunrise ? (
-                  <View style={styles.sunriseMark}>
-                    <Ionicons name="ellipse-outline" size={10} color="rgba(201,168,76,0.45)" />
-                  </View>
-                ) : status === "past" ? (
-                  <View style={styles.checkCircle}>
-                    <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.4)" />
-                  </View>
-                ) : (
-                  <View style={[styles.dot, status === "next" && styles.dotNext]} />
-                )}
+              <Text style={[styles.dayName, key === todayKey && styles.dayNameToday]}>{weekday(d)}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
+      {/* Next prayer (today only) */}
+      {isToday ? (
+        <View style={styles.nextCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.nextLabel}>{t("nextPrayer")}</Text>
+            <Text style={styles.nextName}>{nextPrayer ? label(nextPrayer.name) : "—"}</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.nextTime}>{nextPrayer?.time || "--:--"}</Text>
+            <Text style={styles.nextIn}>
+              {nextPrayer ? `${t("timeRemaining")} · ${formatCountdown(nextPrayer.minutesLeft)}` : ""}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.pastBanner}>
+          <Ionicons name="checkmark-done-outline" size={16} color={GOLD} />
+          <Text style={styles.pastBannerText}>
+            {t("prayerPastDayHint", { defaultValue: "Mark the prayers you prayed that day" })}
+          </Text>
+        </View>
+      )}
+
+      {/* Prayer rows */}
+      <View style={styles.list}>
+        {ROWS.map(row => {
+          const isSunrise = row === "Sunrise"
+          const time = isSunrise ? prayerTimes?.Sunrise : prayerTimes?.[row]
+          const startedToday = !!time && timeToMinutes(time) <= nowMinutes
+          const isNow = isToday && !isSunrise && currentPrayer === row
+          const prayed = !isSunrise && done.has(row)
+          const canMark = !isToday || startedToday
+
+          if (isSunrise) {
+            return (
+              <View key={row} style={styles.sunriseRow}>
+                <View style={styles.trackSpacer} />
+                <Ionicons name="sunny-outline" size={15} color="rgba(255,255,255,0.45)" />
+                <Text style={styles.sunriseName}>{label(row)}</Text>
+                <View style={{ flex: 1 }} />
+                {isToday ? <Text style={styles.sunriseTime}>{time || "--:--"}</Text> : null}
+                <View style={styles.modeSpacer} />
               </View>
+            )
+          }
+
+          const mode = modes?.[row as AlertPrayer] ?? "adhan"
+          return (
+            <View key={row} style={[styles.row, isNow && styles.rowNow]}>
+              <TouchableOpacity
+                style={[styles.track, prayed && styles.trackDone, !canMark && styles.trackLocked]}
+                onPress={() => void onTrack(row, canMark)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: prayed }}
+                accessibilityLabel={label(row)}
+                hitSlop={8}
+              >
+                {prayed ? <Ionicons name="checkmark" size={16} color={NAVY_DEEP} /> : null}
+              </TouchableOpacity>
+              <Ionicons
+                name={PRAYER_ICONS[row] as keyof typeof Ionicons.glyphMap}
+                size={17}
+                color={isNow ? GOLD : "rgba(255,255,255,0.7)"}
+              />
+              <Text style={[styles.name, isNow && styles.nameNow]}>{label(row)}</Text>
+              {isNow ? (
+                <View style={styles.nowBadge}>
+                  <Text style={styles.nowText}>{t("prayerNow", { defaultValue: "Now" })}</Text>
+                </View>
+              ) : null}
+              <View style={{ flex: 1 }} />
+              {isToday ? <Text style={[styles.time, isNow && styles.timeNow]}>{time || "--:--"}</Text> : null}
+              {isToday ? (
+                <TouchableOpacity
+                  style={[styles.modeBtn, mode === "off" && styles.modeBtnOff]}
+                  onPress={() => void onMode(row as AlertPrayer)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${label(row)} alert: ${mode}`}
+                  hitSlop={6}
+                >
+                  <Ionicons
+                    name={MODE_ICON[mode]}
+                    size={18}
+                    color={mode === "off" ? "rgba(255,255,255,0.4)" : mode === "adhan" ? GOLD : "rgba(255,255,255,0.85)"}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.modeSpacer} />
+              )}
             </View>
           )
         })}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          {toast ??
+            t("prayedCount", {
+              defaultValue: "{{done}} of 5 prayers marked",
+              done: doneCount,
+            })}
+        </Text>
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  widget: { padding: 16, paddingBottom: 24, overflow: "hidden", position: "relative", minHeight: 420 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  prayerLabel: { color: "#C9A84C", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
-  separatorV: { width: 1, height: 12, backgroundColor: "rgba(201,168,76,0.4)" },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  locationText: { color: "rgba(255,255,255,0.7)", fontSize: 11 },
-  hijriBadge: {
+  widget: { paddingHorizontal: 16, paddingBottom: 22 },
+  topRow: { flexDirection: "row", gap: 8, marginBottom: 14, flexWrap: "wrap" },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(201,168,76,0.1)",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    alignSelf: "flex-start",
-    marginBottom: 14,
-    borderWidth: 0.5,
-    borderColor: "rgba(201,168,76,0.3)",
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    maxWidth: "62%",
   },
-  hijriText: { color: "#C9A84C", fontSize: 11, fontWeight: "500" },
-  loadingText: { color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", paddingVertical: 20 },
-  nextPrayerBox: {
-    backgroundColor: "rgba(0,0,0,0.7)",
+  pillText: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600" },
+
+  week: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+  day: { alignItems: "center", paddingVertical: 6, paddingHorizontal: 4, borderRadius: 14, minWidth: 42 },
+  daySelected: { backgroundColor: "rgba(255,255,255,0.09)" },
+  dayFuture: { opacity: 0.45 },
+  dayRing: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+  dayNum: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "700" },
+  dayNumSelected: { color: "#fff" },
+  dayName: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "600", marginTop: 4 },
+  dayNameToday: { color: GOLD },
+
+  nextCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(201,168,76,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(201,168,76,0.5)",
+    borderColor: "rgba(201,168,76,0.45)",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  nextLabel: { color: GOLD_SOFT, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  nextName: { color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 2 },
+  nextTime: { color: "#fff", fontSize: 26, fontWeight: "300", letterSpacing: 1 },
+  nextIn: { color: GOLD_SOFT, fontSize: 12, fontWeight: "600", marginTop: 2 },
+
+  pastBanner: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
   },
-  nextLabel: { color: "#C9A84C", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginBottom: 4 },
-  nextTime: { color: "#fff", fontSize: 32, fontWeight: "300", letterSpacing: 2 },
-  countdownLabel: { color: "rgba(255,255,255,0.4)", fontSize: 10, marginBottom: 4, textAlign: "right" },
-  countdown: { color: "#C9A84C", fontSize: 18, fontWeight: "600" },
-  prayersList: { gap: 2 },
-  prayerRow: {
+  pastBannerText: { color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "500" },
+
+  list: { gap: 8 },
+  row: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    marginBottom: 2,
+    gap: 10,
+    minHeight: 56,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  prayerRowNext: { backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.4)" },
-  prayerRowPast: { opacity: 0.45 },
-  prayerRowSunrise: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 0.5,
-    borderColor: "rgba(201,168,76,0.18)",
-    borderStyle: "dashed",
-  },
-  prayerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  prayerName: { fontSize: 14, fontWeight: "500", color: "#fff" },
-  prayerNamePast: { color: "rgba(255,255,255,0.3)" },
-  prayerNameNext: { color: "#C9A84C", fontWeight: "600" },
-  prayerNameSunrise: { color: "rgba(255,255,255,0.55)", fontWeight: "400", fontStyle: "italic" },
-  prayerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  prayerTime: { fontSize: 14, color: "rgba(255,255,255,0.9)" },
-  prayerTimePast: { color: "rgba(255,255,255,0.25)" },
-  prayerTimeNext: { color: "#C9A84C", fontWeight: "600" },
-  prayerTimeSunrise: { color: "rgba(255,255,255,0.45)" },
-  checkCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.2)",
+  rowNow: { backgroundColor: "rgba(201,168,76,0.14)", borderColor: GOLD },
+  track: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
-  sunriseMark: {
-    width: 18,
-    height: 18,
+  trackDone: { backgroundColor: GOLD, borderColor: GOLD },
+  trackLocked: { borderColor: "rgba(255,255,255,0.18)" },
+  trackSpacer: { width: 26 },
+  name: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  nameNow: { color: GOLD_SOFT },
+  nowBadge: { backgroundColor: GOLD, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  nowText: { color: NAVY_DEEP, fontSize: 11, fontWeight: "800" },
+  time: { color: "#fff", fontSize: 16, fontWeight: "500", fontVariant: ["tabular-nums"] },
+  timeNow: { color: GOLD_SOFT, fontWeight: "700" },
+  modeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.2)" },
-  dotNext: { backgroundColor: "#C9A84C" },
+  modeBtnOff: { backgroundColor: "rgba(255,255,255,0.04)" },
+  modeSpacer: { width: 38 },
+
+  sunriseRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 40, paddingHorizontal: 12 },
+  sunriseName: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: "500" },
+  sunriseTime: { color: "rgba(255,255,255,0.6)", fontSize: 14, fontVariant: ["tabular-nums"] },
+
+  footer: { marginTop: 12, alignItems: "center", minHeight: 18 },
+  footerText: { color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: "500" },
 })

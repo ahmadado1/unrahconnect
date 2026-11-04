@@ -77,7 +77,7 @@ export default function ResetPasswordScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={[styles.screen, { backgroundColor: theme.background }]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
       >
         <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
 

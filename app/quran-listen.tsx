@@ -5,6 +5,7 @@
 // Premium: a big player card (previous/next surah, ±15s, tap the bar to jump, open full page)
 // and it continues exactly where you stopped last time. Free: the small player bar.
 // Audio keeps playing when the screen locks.
+import QuranSeekBar from "@/app/components/QuranSeekBar"
 import { QURAN_AUDIO_FREE } from "@/lib/quranAudio"
 import { showPremiumPrompt } from "@/lib/premiumPrompt"
 import TouchableOpacity from "@/app/components/AppPressable"
@@ -39,10 +40,6 @@ const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 const LAST_RECITER_KEY = "quran_listen_reciter"
 
-function clock(seconds: number) {
-  const s = Math.max(0, Math.floor(seconds))
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
-}
 
 export default function QuranListenScreen() {
   const router = useRouter()
@@ -161,7 +158,6 @@ export default function QuranListenScreen() {
   }
 
   const playingSurah = playback.kind === "surah" ? playback.surah : null
-  const percent = progress.duration > 0 ? Math.min(100, (progress.position / progress.duration) * 100) : 0
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -215,7 +211,7 @@ export default function QuranListenScreen() {
             </>
           }
           ListEmptyComponent={
-            favReciters.length ? null : <Text style={[styles.empty, { color: theme.textSecondary }]}>{t("qaNoReciter")}</Text>
+            favReciters.length ? undefined : <Text style={[styles.empty, { color: theme.textSecondary }]}>{t("qaNoReciter")}</Text>
           }
           renderItem={({ item }) => renderReciter(item)}
         />
@@ -285,13 +281,7 @@ export default function QuranListenScreen() {
               <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${percent}%` }]} />
-          </View>
-          <View style={styles.times}>
-            <Text style={styles.time}>{clock(progress.position)}</Text>
-            <Text style={styles.time}>{progress.duration ? clock(progress.duration) : "--:--"}</Text>
-          </View>
+          <QuranSeekBar position={progress.position} duration={progress.duration} onSeek={seconds => seekQuran(seconds)} />
         </View>
       ) : null}
     </View>

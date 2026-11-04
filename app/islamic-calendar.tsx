@@ -2,6 +2,7 @@ import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import {
   fetchAndCacheIslamicEvents,
+  getIslamicEventsFast,
   type IslamicEvent,
 } from "@/lib/islamicEvents"
 import {
@@ -123,24 +124,26 @@ export default function IslamicCalendarScreen() {
 
   const monthGrid = useMemo(() => getHijriMonthGrid(viewYear, viewMonth), [viewYear, viewMonth])
 
+  // Show the saved dates at once, then refresh from the internet in the background (about weekly).
   useEffect(() => {
-    fetchIslamicEvents()
-  }, [])
-
-  const fetchIslamicEvents = async () => {
-    setEventsLoading(true)
-    try {
-      const sorted = await fetchAndCacheIslamicEvents()
-      if (sorted.length) {
-        setEvents(sorted)
-        scheduleIslamicDateReminders().catch(console.log)
-      }
-    } catch (e) {
-      console.log("Events fetch error:", e)
-    } finally {
+    let alive = true
+    void getIslamicEventsFast().then(list => {
+      if (!alive) return
+      setEvents(list)
       setEventsLoading(false)
+    })
+    void fetchAndCacheIslamicEvents()
+      .then(list => {
+        if (!alive || !list.length) return
+        setEvents(list)
+        scheduleIslamicDateReminders().catch(console.log)
+      })
+      .catch(e => console.log("Events fetch error:", e))
+      .finally(() => alive && setEventsLoading(false))
+    return () => {
+      alive = false
     }
-  }
+  }, [])
 
   const isToday = (day: HijriCalendarDay) =>
     day.hijriDay === todayHijri.day &&

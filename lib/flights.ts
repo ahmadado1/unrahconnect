@@ -1,7 +1,13 @@
+import { Platform } from "react-native"
 import type { TripDetails } from "@/lib/tripDetails"
 
 export const TP_MARKER = "787351"
-export const TP_PROJECT = "583145"
+// Travelpayouts project IDs ("trs"). Each store app has its own project so clicks are
+// counted under the right channel: App Store project on iPhone, Google Play project on Android.
+export const TP_PROJECT_WEBSITE = "583145"
+export const TP_PROJECT_IOS = "594751"
+export const TP_PROJECT_ANDROID = "594750"
+export const TP_PROJECT = Platform.OS === "ios" ? TP_PROJECT_IOS : TP_PROJECT_ANDROID
 export const TP_PROGRAM = "4114"
 export const TP_CAMPAIGN = "100"
 

@@ -294,8 +294,8 @@ export default function LoginScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={[styles.screen, { backgroundColor: theme.background }]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         <ScrollView keyboardDismissMode="on-drag"
           style={[styles.container, { paddingTop: insets.top + 20 }]}

@@ -39,7 +39,7 @@ import { ayahCountForSurah } from "@/lib/quranSurahMeta"
 import { AL_MULK_SURAH_NUMBER } from "@/lib/homeQuranCard"
 import { getHajjProgress, getUmrahProgress } from "@/lib/supabase"
 import { isPremiumNow } from "@/lib/premium"
-import { loadOffPrayers, SYSTEM_ADHAN_KEY } from "@/lib/prayerToggles"
+import { loadOffPrayers, loadQuietPrayers, SYSTEM_ADHAN_KEY } from "@/lib/prayerToggles"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Device from "expo-device"
 import * as Location from "expo-location"
@@ -211,6 +211,20 @@ async function ensureAndroidChannel(adhanId: string, isFajr: boolean) {
 
   console.log("[Notifications] Android channel ready:", channelId, "sound:", adhanSound)
   return channelId
+}
+
+/** Android channel for prayers set to "notification only": the phone's normal notification sound. */
+export const PRAYER_QUIET_CHANNEL_ID = "prayer-quiet-v1"
+async function ensureQuietPrayerChannel() {
+  await Notifications.setNotificationChannelAsync(PRAYER_QUIET_CHANNEL_ID, {
+    name: "Prayer reminder (no Adhan)",
+    description: "A normal notification at prayer time, for prayers you set to notification only.",
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: "default",
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  })
+  return PRAYER_QUIET_CHANNEL_ID
 }
 
 export async function setupPrayerNotificationChannel(selectedAdhan?: string) {
@@ -590,8 +604,11 @@ export async function schedulePrayerNotifications(
     // Home-screen widget: the same days of prayer times (Premium; no-op without the widget).
     void import("@/lib/prayerWidget").then(m => m.updatePrayerWidget(horizon)).catch(() => {})
 
-    // Prayers the user switched off (Notifications → per-prayer switches).
+    // Prayers the user switched off, and prayers set to "notification only" (no Adhan).
     const offPrayers = await loadOffPrayers()
+    const quietPrayers = await loadQuietPrayers()
+    const quietChannelId =
+      Platform.OS === "android" && quietPrayers.size > 0 ? await ensureQuietPrayerChannel() : null
     const desired: DesiredAlert[] = []
     for (const day of horizon.slice(0, dayLimit)) {
       const rows = prayerRows({
@@ -610,8 +627,9 @@ export async function schedulePrayerNotifications(
         if (when.getTime() <= Date.now() + 1000) continue
 
         const isFajr = prayer.name === "Fajr"
-        const sound = getNotificationAdhanSound(adhanId, isFajr)
-        const channelId = isFajr ? fajrChannelId : regularChannelId
+        const quiet = quietPrayers.has(prayer.name)
+        const sound = quiet ? "default" : getNotificationAdhanSound(adhanId, isFajr)
+        const channelId = quiet ? quietChannelId : isFajr ? fajrChannelId : regularChannelId
         const copy = prayerNotificationCopy(prayer.name, prayer.time)
         const dateKey = localDateKey(when)
 
@@ -630,6 +648,7 @@ export async function schedulePrayerNotifications(
                 screen: "prayer",
                 prayerName: prayer.name,
                 prayerAt: when.getTime(),
+                alertMode: quiet ? "notify" : "adhan",
               },
               ...(Platform.OS === "android" && channelId ? { channelId } : {}),
             },
@@ -648,7 +667,10 @@ export async function schedulePrayerNotifications(
     // So the normal prayer notifications are not scheduled, otherwise the Adhan would play twice.
     // Older builds (no native player) keep the notification-sound way below.
     if (Platform.OS === "android" && hasNativeAdhanPlayer()) {
-      const alarms = desired.map(d => {
+      const isQuiet = (d: DesiredAlert) =>
+        ((d.request.content.data ?? {}) as { alertMode?: string }).alertMode === "notify"
+      const quietAlerts = desired.filter(isQuiet)
+      const alarms = desired.filter(d => !isQuiet(d)).map(d => {
         const content = d.request.content as { title?: string; body?: string; sound?: unknown }
         return {
           id: d.identifier,
@@ -661,8 +683,9 @@ export async function schedulePrayerNotifications(
       const set = scheduleAdhanAlarms(alarms)
       if (set > 0 || alarms.length === 0) {
         await AsyncStorage.setItem(SYSTEM_ADHAN_KEY, "true").catch(() => {})
-        await syncAlertGroup(isPrayerAlertId, [])
-        console.log(`[Notifications] Android full-Adhan player: ${set} prayer alarms set (adhan ${adhanId})`)
+        // "Notification only" prayers stay normal notifications (no Adhan player).
+        await syncAlertGroup(isPrayerAlertId, quietAlerts)
+        console.log(`[Notifications] Android full-Adhan player: ${set} prayer alarms set, ${quietAlerts.length} quiet (adhan ${adhanId})`)
         return
       }
       console.warn("[Notifications] Native Adhan player failed, using notification sounds instead")
@@ -702,7 +725,8 @@ export async function schedulePrayerNotifications(
         let budget = Math.max(0, room - desired.length)
         const extra: DesiredAlert[] = []
         for (const d of [...desired].sort((a, b) => a.at - b.at)) {
-          const data = (d.request.content.data ?? {}) as { prayerName?: string; prayerAt?: number }
+          const data = (d.request.content.data ?? {}) as { prayerName?: string; prayerAt?: number; alertMode?: string }
+          if (data.alertMode === "notify") continue
           const parts = data.prayerName === "Fajr" ? fajrParts : regularParts
           if (parts.length < 2) continue
           if (budget < parts.length - 1) break
@@ -1700,6 +1724,8 @@ export function handlePrayerNotificationForeground(
   if (data?.adhanPart) return true
   const prayerName = prayerNameFromNotification(identifier, data)
   if (!prayerName) return false
+  // "Notification only" prayer: just the banner, no Adhan.
+  if (data?.alertMode === "notify") return true
   // The app plays the full Adhan itself, so the iPhone parts are not needed.
   void stopAdhanChain(typeof data?.chain === "string" ? data.chain : null)
   foregroundPrayer = prayerName
@@ -1732,7 +1758,7 @@ export function handlePrayerNotificationOpen(
     setTimeout(() => triggerPrayerAlert(prayerName, { playSound: false, forceShow: true }), 400)
     const justStartedHere =
       foregroundPrayer === prayerName && Date.now() - foregroundPrayerAt < 8000
-    if (!justStartedHere) {
+    if (!justStartedHere && data?.alertMode !== "notify") {
       const prayerAt = Number(data?.prayerAt)
       setTimeout(() => {
         // Skip when the iPhone alarm / Android player plays the Adhan (no double Adhan).

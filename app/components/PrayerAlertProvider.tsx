@@ -164,6 +164,8 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
         onDismiss={() => setPopup(null)}
         onPrayNow={() => {
           void stopAdhan()
+          // "Pray now" at prayer time counts as prayed: tick it in the tracker.
+          if (popup) void import("@/lib/prayerTracker").then(m => m.markPrayerCompleted(popup)).catch(() => {})
           setPopup(null)
         }}
         onSnooze={() => {

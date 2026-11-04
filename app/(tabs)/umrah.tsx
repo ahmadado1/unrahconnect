@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
   AppState,
@@ -23,15 +23,13 @@ import TouchableOpacity from "@/app/components/AppPressable"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import PrayerWidget from "../component/PrayerWidget"
-import HeroBackground, { prefetchHeroSource } from "../components/HeroBackground"
 import QuranDownloadProgress from "../components/QuranDownloadProgress"
 import { configureAdhanAudioMode, startAdhanPreview, stopAdhanPreview, subscribeAdhanPlaying } from "@/lib/adhanAudio"
 import { ADHAN_OPTIONS, DEFAULT_ADHAN_ID, getAdhanFile, resolveAdhanId } from "@/lib/prayerConstants"
 import { reschedulePrayerNotificationsFromCache } from "@/lib/notifications"
 import { fetchAndCachePrayerTimes, readCachedPrayerTimes, type CachedPrayerTimes } from "@/lib/prayerTimes"
-import NewGlow from "@/app/components/NewGlow"
 import { usePremium } from "@/lib/premium"
-import { markFeatureSeen } from "@/lib/premiumNew"
+import { markFeatureSeen, useFeatureIsNew, type PremiumFeatureId } from "@/lib/premiumNew"
 
 const ADHANS = ADHAN_OPTIONS.map(opt => ({
   id: opt.id,
@@ -58,7 +56,6 @@ export default function GuideScreen() {
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
-    prefetchHeroSource(require("../../assets/images/image56.jpg"))
     AsyncStorage.getItem("selected_adhan").then(id => {
       if (!id) return
       const resolved = resolveAdhanId(id)
@@ -194,13 +191,8 @@ export default function GuideScreen() {
         contentInset={{ top: 0, left: 0, right: 0, bottom: 0 }}
       >
 
-        <HeroBackground
-          source={require("../../assets/images/image56.jpg")}
-          style={styles.heroArea}
-          imageStyle={styles.heroImage}
-        >
-          <View style={styles.overlayTop} />
-          <View style={styles.overlayBottom} />
+        {/* Plain navy header + prayer times (no photo behind them). */}
+        <View style={styles.heroArea}>
 
           {/* Header */}
           <View style={[styles.header, { paddingTop: insets.top }]}>
@@ -224,200 +216,169 @@ export default function GuideScreen() {
           </View>
 
           <PrayerWidget />
-        </HeroBackground>
+        </View>
 
-        {/* Guide Cards */}
+        {/* Guide sections: journey (2 big tiles), this week's surah (when due), Quran (2 tiles), tools (grid) */}
         <View style={styles.content}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            {t("guideSecJourney", { defaultValue: "Your pilgrimage" })}
+          </Text>
+          <View style={styles.tileRow}>
+            <TouchableOpacity style={[styles.bigTile, styles.bigTileNavy]} onPress={() => router.push("/umrah-guide")}>
+              <View style={styles.bigTileIconNavy}>
+                <AppIcon name="kaaba" size={30} />
+              </View>
+              <Text style={styles.bigTileTitleLight}>{t("umrahGuideTitle")}</Text>
+              <Text style={styles.bigTileSubLight}>{t("guideUmrahShort", { defaultValue: "7 steps · duas & tips" })}</Text>
+              <Ionicons name="arrow-forward" size={18} color={GOLD} style={styles.bigTileArrow} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.bigTile, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => router.push("/hajj")}
+            >
+              <View style={[styles.bigTileIcon, { backgroundColor: isDark ? "#3a2f14" : "#FAEEDA" }]}>
+                <AppIcon name="crescent" size={30} />
+              </View>
+              <Text style={[styles.bigTileTitle, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
+              <Text style={[styles.bigTileSub, { color: theme.textSecondary }]}>
+                {t("guideHajjShort", { defaultValue: "9 steps · 8th–13th Dhul Hijjah" })}
+              </Text>
+              <Ionicons name="arrow-forward" size={18} color={theme.gold} style={styles.bigTileArrow} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            {t("guideSecQuran", { defaultValue: "Quran" })}
+          </Text>
+          <View style={styles.tileRow}>
+            <TouchableOpacity
+              style={[styles.midTile, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => router.push("/quran")}
+            >
+              <View style={[styles.midIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
+                <AppIcon name="book" size={24} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.midTitle, { color: theme.text }]} numberOfLines={1}>
+                  {t("guideReadQuran", { defaultValue: "Read" })}
+                </Text>
+                <Text style={[styles.midSub, { color: theme.textSecondary }]} numberOfLines={1}>{t("guideReadSub", { defaultValue: "114 surahs" })}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.midTile, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => router.push("/quran-listen" as any)}
+            >
+              <View style={[styles.midIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+                <Ionicons name="headset" size={22} color={GOLD} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.midTitle, { color: theme.text }]} numberOfLines={1}>
+                  {t("guideListenQuran", { defaultValue: "Listen" })}
+                </Text>
+                <Text style={[styles.midSub, { color: theme.textSecondary }]} numberOfLines={1}>{t("guideListenSub", { defaultValue: "Famous reciters" })}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Friday Al-Kahf / nightly Al-Mulk: only when it's time, under the Quran buttons */}
+          {showAlKahfCard ? (
+            <TouchableOpacity
+              style={[styles.dueCard, { backgroundColor: theme.card, borderColor: theme.gold }]}
+              onPress={() => router.push("/quran/kahf" as any)}
+            >
+              <View style={[styles.dueIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
+                <AppIcon name="book" size={24} />
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={[styles.dueTitle, { color: theme.text }]}>{t("alKahfCardTitle")}</Text>
+                <Text style={styles.cardSub}>{t("alKahfCardSub")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.gold} />
+            </TouchableOpacity>
+          ) : null}
+          {showAlMulkCard ? (
+            <TouchableOpacity
+              style={[styles.dueCard, { backgroundColor: theme.card, borderColor: theme.gold }]}
+              onPress={() => router.push("/quran/mulk" as any)}
+            >
+              <View style={[styles.dueIcon, { backgroundColor: isDark ? "#1a2240" : "#E8ECF8" }]}>
+                <Ionicons name="moon" size={22} color={GOLD} />
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={[styles.dueTitle, { color: theme.text }]}>{t("alMulkCardTitle")}</Text>
+                <Text style={styles.cardSub}>{mulkDone ? `✓ ${t("alMulkCompletedBadge")}` : t("alMulkCardSub")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.gold} />
+            </TouchableOpacity>
+          ) : null}
+
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            {t("guideSecTools", { defaultValue: "Tools" })}
+          </Text>
+          {/* AI Guide: the one tool people use most, full width */}
           <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/umrah-guide")}
+            style={[styles.aiCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push("/AIGuideScreen")}
+            accessibilityRole="button"
           >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a3a2a" : "#E1F5EE" }]}>
-              <AppIcon name="kaaba" size={28}  />
+            <View style={[styles.aiIcon, { backgroundColor: isDark ? "#1a2a3a" : "#E6F1FB" }]}>
+              <AppIcon name="sparkles" size={26} />
             </View>
             <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("umrahGuideTitle")}</Text>
-              <Text style={styles.cardSub}>{t("umrahGuidePhaseSub")}</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("umrahGuideDesc")}</Text>
+              <Text style={[styles.aiTitle, { color: theme.text }]}>{t("ui_aiGuide")}</Text>
+              <Text style={[styles.toolSub, { color: theme.textSecondary }]} numberOfLines={1}>
+                {t("guideAiSub", { defaultValue: "Ask anything about Umrah, Hajj and the app" })}
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
+            <View style={styles.aiGo}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={NAVY} />
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/hajj")}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2a1a" : "#FAEEDA" }]}>
-              <AppIcon name="crescent" size={28}  />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("hajjGuideTitle")}</Text>
-              <Text style={styles.cardSub}>{t("hajjGuideSub")}</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("hajjGuideDesc")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/quran")}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
-              <AppIcon name="book" size={28}  />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("quranReader")}</Text>
-              <Text style={styles.cardSub}>{t("quranReaderSub")}</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("quranReaderDesc")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-          </TouchableOpacity>
-
-          {/* Premium only: Makkah companion and Miqat alert (free users see them described on the Premium screen) */}
-          {premium.isPremium ? (
-            <>
-              <NewGlow id="companion" style={{ marginBottom: 0 }}>
-                <TouchableOpacity
-                  style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          {/* Other tools: even 2-column grid */}
+          <View style={styles.toolGrid}>
+            <ToolCard
+              label={t("guideQibla", { defaultValue: "Qibla" })}
+              sub={t("guideQiblaSub", { defaultValue: "Find the direction" })}
+              icon={<Ionicons name="compass-outline" size={22} color={GOLD} />}
+              iconBg={isDark ? "#1a3a2a" : "#E1F5EE"}
+              onPress={() => router.push("/qiblah")}
+            />
+            <ToolCard
+              label={t("guideDates", { defaultValue: "Islamic dates" })}
+              sub={t("guideDatesSub", { defaultValue: "Hijri calendar" })}
+              icon={<AppIcon name="calendar" size={22} />}
+              iconBg={isDark ? "#2a1a3a" : "#EEEDFE"}
+              onPress={() => router.push("/islamic-calendar")}
+            />
+            {premium.isPremium ? (
+              <>
+                <ToolCard
+                  label={t("guideCompanion", { defaultValue: "Makkah companion" })}
+                  sub={t("guideCompanionSub", { defaultValue: "Tawaf & Sa'i counter" })}
+                  icon={<AppIcon name="kaaba" size={22} />}
+                  iconBg={isDark ? "#3a2f14" : "#FFF6DF"}
+                  newId="companion"
                   onPress={() => {
                     void markFeatureSeen("companion")
                     router.push("/makkah-companion" as any)
                   }}
-                >
-                  <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
-                    <AppIcon name="kaaba" size={26} />
-                  </View>
-                  <View style={styles.cardInfo}>
-                    <Text style={[styles.cardTitle, { color: theme.text }]}>{t("mkTitle")}</Text>
-                    <Text style={styles.cardSub}>{t("mkGuideSub")}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-                </TouchableOpacity>
-              </NewGlow>
-              <NewGlow id="miqat">
-                <TouchableOpacity
-                  style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                />
+                <ToolCard
+                  label={t("guideMiqat", { defaultValue: "Miqat alert" })}
+                  sub={t("guideMiqatSub", { defaultValue: "Before you reach it" })}
+                  icon={<Ionicons name="airplane" size={20} color={GOLD} />}
+                  iconBg={isDark ? "#3a2f14" : "#FFF6DF"}
+                  newId="miqat"
                   onPress={() => {
                     void markFeatureSeen("miqat")
                     router.push("/miqat-alert" as any)
                   }}
-                >
-                  <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
-                    <Ionicons name="airplane" size={26} color={GOLD} />
-                  </View>
-                  <View style={styles.cardInfo}>
-                    <Text style={[styles.cardTitle, { color: theme.text }]}>{t("mqTitle")}</Text>
-                    <Text style={styles.cardSub}>{t("mqGuideSub")}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-                </TouchableOpacity>
-              </NewGlow>
-            </>
-          ) : null}
-
-          {/* Listen to the Quran: opens the reciter / surah screen */}
-          <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/quran-listen" as any)}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
-              <Ionicons name="headset" size={26} color={GOLD} />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("qaListenTitle")}</Text>
-              <Text style={styles.cardSub}>{t("qaHomeSub")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-          </TouchableOpacity>
-
-          {showAlKahfCard ? (
-            <TouchableOpacity
-              style={[
-                styles.guideCard,
-                styles.alKahfCard,
-                { backgroundColor: theme.card, borderColor: theme.gold },
-              ]}
-              onPress={() => router.push("/quran/kahf" as any)}
-            >
-              <View style={[styles.cardIcon, { backgroundColor: isDark ? "#3a2f14" : "#FFF6DF" }]}>
-                <AppIcon name="book" size={28} />
-              </View>
-              <View style={styles.cardInfo}>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>
-                  {t("alKahfCardTitle")}
-                </Text>
-                <Text style={styles.cardSub}>{t("alKahfCardSub")}</Text>
-                <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
-                  {t("alKahfCardDesc")}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-            </TouchableOpacity>
-          ) : null}
-
-          {showAlMulkCard ? (
-            <TouchableOpacity
-              style={[
-                styles.guideCard,
-                styles.alKahfCard,
-                { backgroundColor: theme.card, borderColor: theme.gold },
-              ]}
-              onPress={() => router.push("/quran/mulk" as any)}
-            >
-              <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a2240" : "#E8ECF8" }]}>
-                <Ionicons name="moon" size={26} color={GOLD} />
-              </View>
-              <View style={styles.cardInfo}>
-                <Text style={[styles.cardTitle, { color: theme.text }]}>{t("alMulkCardTitle")}</Text>
-                <Text style={styles.cardSub}>{mulkDone ? `✓ ${t("alMulkCompletedBadge")}` : t("alMulkCardSub")}</Text>
-                <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{t("alMulkCardDesc")}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/AIGuideScreen")}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#1a2a3a" : "#E6F1FB" }]}>
-              <AppIcon name="sparkles" size={28}  />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("ui_aiGuide")}</Text>
-              <Text style={styles.cardSub}>{t("ui_askAnything")}</Text>
-              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
-                Umrah, Hajj, Haram navigation & app help
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.guideCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/islamic-calendar")}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: isDark ? "#2a1a3a" : "#EEEDFE" }]}>
-              <AppIcon name="calendar" size={28}  />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t("islamicDates")}</Text>
-              <Text style={styles.cardSub}>{t("islamicDatesSub")}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={theme.gold} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.comingSoon, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => router.push("/qiblah")}
-            activeOpacity={0.7}
-          >
-            <View style={styles.comingSoonItem}>
-              <Ionicons name="compass-outline" size={20} color={theme.gold} />
-              <Text style={[styles.comingSoonText, { color: theme.text }]}>{t("qiblaDirection")}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-            </View>
-          </TouchableOpacity>
+                />
+              </>
+            ) : null}
+          </View>
         </View>
 
         <View style={{ height: tabScrollBottom(insets.bottom) }} />
@@ -539,12 +500,52 @@ export default function GuideScreen() {
   )
 }
 
+/** One tool in the Guide tab grid: icon, name, short line, and a small "New" pill for new Premium tools. */
+function ToolCard({
+  label,
+  sub,
+  icon,
+  iconBg,
+  onPress,
+  newId,
+}: {
+  label: string
+  sub: string
+  icon: ReactNode
+  iconBg: string
+  onPress: () => void
+  newId?: PremiumFeatureId
+}) {
+  const { theme } = useTheme()
+  const { t } = useTranslation()
+  const { isNew } = useFeatureIsNew(newId ?? "companion")
+  const showNew = !!newId && isNew
+  return (
+    <TouchableOpacity
+      style={[styles.toolCard, { backgroundColor: theme.card, borderColor: showNew ? GOLD : theme.border }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.toolTop}>
+        <View style={[styles.toolIcon, { backgroundColor: iconBg }]}>{icon}</View>
+        {showNew ? (
+          <View style={styles.newPill}>
+            <Text style={styles.newPillText}>{t("pwNew")}</Text>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+        )}
+      </View>
+      <Text style={[styles.toolLabel, { color: theme.text }]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.toolSub, { color: theme.textSecondary }]} numberOfLines={1}>{sub}</Text>
+    </TouchableOpacity>
+  )
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  heroArea: { overflow: "hidden", backgroundColor: "#1E3A5F", minHeight: 520 },
-  heroImage: { resizeMode: "cover", opacity: 0.9 },
-  overlayTop: { position: "absolute", top: 0, left: 0, right: 0, height: "50%", backgroundColor: "rgba(15,28,58,0.93)" },
-  overlayBottom: { position: "absolute", top: "35%", left: 0, right: 0, bottom: 0, backgroundColor: "rgba(10,18,40,0.45)" },
+  heroArea: { overflow: "hidden", backgroundColor: NAVY },
 
   header: { padding: 20, paddingBottom: 0 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
@@ -553,6 +554,36 @@ const styles = StyleSheet.create({
   adhanBtn: { marginTop: 18, width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(201,168,76,0.15)", borderWidth: 0.5, borderColor: "rgba(201,168,76,0.4)", alignItems: "center", justifyContent: "center" },
 
   content: { padding: 16, gap: 12 },
+  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", marginTop: 6, marginLeft: 2 },
+  tileRow: { flexDirection: "row", gap: 12 },
+  bigTile: { flex: 1, minHeight: 168, borderRadius: 20, padding: 16, borderWidth: ui.hairline },
+  bigTileNavy: { backgroundColor: NAVY, borderColor: NAVY },
+  bigTileIcon: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  bigTileIconNavy: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 14, backgroundColor: "rgba(201,168,76,0.16)" },
+  bigTileTitle: { fontSize: 17, fontWeight: "800" },
+  bigTileTitleLight: { fontSize: 17, fontWeight: "800", color: "#fff" },
+  bigTileSub: { fontSize: 12.5, marginTop: 4, lineHeight: 17 },
+  bigTileSubLight: { fontSize: 12.5, marginTop: 4, lineHeight: 17, color: "rgba(255,255,255,0.72)" },
+  bigTileArrow: { position: "absolute", right: 14, bottom: 14 },
+  dueCard: { borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1 },
+  dueIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  dueTitle: { fontSize: 15, fontWeight: "700" },
+  midTile: { flex: 1, borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: ui.hairline },
+  midIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  midTitle: { fontSize: 15, fontWeight: "700" },
+  midSub: { fontSize: 11.5, marginTop: 2 },
+  aiCard: { borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: ui.hairline },
+  aiIcon: { width: 50, height: 50, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  aiTitle: { fontSize: 16, fontWeight: "800" },
+  aiGo: { width: 38, height: 38, borderRadius: 19, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
+  toolGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12 },
+  toolCard: { width: "48.3%", borderRadius: 18, padding: 14, borderWidth: ui.hairline },
+  toolTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
+  toolIcon: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  toolLabel: { fontSize: 15, fontWeight: "700" },
+  toolSub: { fontSize: 12, marginTop: 2 },
+  newPill: { backgroundColor: GOLD, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  newPillText: { color: NAVY, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
   guideCard: { borderRadius: ui.radius, padding: ui.cardPad, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: ui.hairline },
   alKahfCard: { borderWidth: 1 },
   cardIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },

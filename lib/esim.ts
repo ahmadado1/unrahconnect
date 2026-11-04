@@ -1,5 +1,10 @@
+import { Platform } from "react-native"
+
 export const ESIM_MARKER = "787351"
-export const ESIM_PROJECT = "583145"
+// Travelpayouts project IDs ("trs"): App Store project on iPhone, Google Play project on Android.
+export const ESIM_PROJECT_IOS = "594751"
+export const ESIM_PROJECT_ANDROID = "594750"
+export const ESIM_PROJECT = Platform.OS === "ios" ? ESIM_PROJECT_IOS : ESIM_PROJECT_ANDROID
 export const ESIM_PROGRAM = "8979"
 export const ESIM_CAMPAIGN = "629"
 export const ESIM_SUB_ID = "app_esim"
@@ -24,7 +29,14 @@ export const ESIM_PLANS: EsimPlan[] = [
 ]
 
 export function buildSailyEsimLink() {
-  return "https://tp.media/r?campaign_id=629&marker=787351&p=8979&trs=583145&sub_id=app_esim&u=https%3A%2F%2Fsaily.com%2Fesim-saudi-arabia%2F"
+  return (
+    `https://tp.media/r?campaign_id=${ESIM_CAMPAIGN}` +
+    `&marker=${ESIM_MARKER}` +
+    `&p=${ESIM_PROGRAM}` +
+    `&trs=${ESIM_PROJECT}` +
+    `&sub_id=${ESIM_SUB_ID}` +
+    `&u=${encodeURIComponent(SAILY_SAUDI_URL)}`
+  )
 }
 
 export const AIRALO_PROGRAM = "8310"

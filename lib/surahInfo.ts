@@ -43,13 +43,25 @@ export async function getSurahInfo(surah: number, appLanguage: string): Promise<
     const saved = await AsyncStorage.getItem(KEY(surah, lang))
     if (saved) return JSON.parse(saved) as SurahInfo
   } catch {}
-  try {
-    const { data, error } = await supabase.functions.invoke("surah-info", { body: { surah, lang } })
-    if (error || !data?.text) return null
-    const info: SurahInfo = { blocks: toBlocks(String(data.text)), short: String(data.short_text ?? ""), source: String(data.source ?? "") }
+  const save = async (raw: { text?: unknown; short_text?: unknown; source?: unknown }) => {
+    const info: SurahInfo = { blocks: toBlocks(String(raw.text)), short: String(raw.short_text ?? ""), source: String(raw.source ?? "") }
     await AsyncStorage.setItem(KEY(surah, lang), JSON.stringify(info)).catch(() => {})
     return info
-  } catch {
-    return null
   }
+  // 1) Our Supabase function (Quran Foundation API, cached in the database).
+  try {
+    const { data, error } = await supabase.functions.invoke("surah-info", { body: { surah, lang } })
+    if (!error && data?.text) return await save(data)
+  } catch {}
+  // 2) Fallback: Quran.com's public API (no key). Falls back to English if this language has no text.
+  for (const l of lang === "en" ? ["en"] : [lang, "en"]) {
+    try {
+      const res = await fetch(`https://api.quran.com/api/v4/chapters/${surah}/info?language=${l}`)
+      if (!res.ok) continue
+      const json = await res.json()
+      const info = json?.chapter_info
+      if (info?.text) return await save(info)
+    } catch {}
+  }
+  return null
 }
