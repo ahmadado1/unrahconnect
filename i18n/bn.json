@@ -2585,5 +2585,22 @@
   "copyAyahDone": "আয়াত কপি হয়েছে",
   "translationSizeSection": "অনুবাদের আকার",
   "quranQuickActions": "দ্রুত অ্যাকশন",
-  "offlineBanner": "ইন্টারনেট নেই · সংরক্ষিত কনটেন্ট দেখানো হচ্ছে"
+  "offlineBanner": "ইন্টারনেট নেই · সংরক্ষিত কনটেন্ট দেখানো হচ্ছে",
+  "aiWelcome": "আসসালামু আলাইকুম! আমি আপনার UmrahConnect AI গাইড।",
+  "aiWelcomeName": "আসসালামু আলাইকুম, {{name}}! আমি আপনার UmrahConnect AI গাইড।",
+  "aiWelcomeStep": "আপনি ধাপ {{step}}-এ আছেন: {{name}}।",
+  "aiWelcomeBegin": "{{name}} দিয়ে শুরু করতে প্রস্তুত?",
+  "aiWelcomeAsk": "উমরাহ, হজ, নামাজ, হারাম বা অ্যাপের যেকোনো ফিচার সম্পর্কে জিজ্ঞাসা করুন।",
+  "aiThinking": "ভাবছে…",
+  "aiHelping": "{{name}}-কে সাহায্য করছি",
+  "aiCompanion": "আপনার উমরাহ সঙ্গী",
+  "aiNewChat": "নতুন চ্যাট",
+  "aiClearConfirm": "আপনি কি নিশ্চিতভাবে চ্যাট মুছে ফেলতে চান?",
+  "aiPlaceholder": "উমরাহ, হজ, ইসলাম বা অ্যাপ সম্পর্কে জিজ্ঞাসা করুন...",
+  "aiQTawaf": "কীভাবে তাওয়াফ করব?",
+  "aiQZamzam": "নিকটতম জমজম স্টেশন",
+  "aiQChecklist": "উমরাহর চেকলিস্ট কী?",
+  "aiQFajr": "ফজরের নামাজের ধাপ",
+  "bismillahMeaning": "পরম করুণাময়, অতি দয়ালু আল্লাহর নামে",
+  "yes": "হ্যাঁ"
 }

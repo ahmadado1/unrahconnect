@@ -2585,5 +2585,22 @@
   "copyAyahDone": "Ayet kopyalandı",
   "translationSizeSection": "Meal yazı boyutu",
   "quranQuickActions": "Hızlı erişim",
-  "offlineBanner": "İnternet yok · kayıtlı içerik gösteriliyor"
+  "offlineBanner": "İnternet yok · kayıtlı içerik gösteriliyor",
+  "aiWelcome": "Esselamu aleykum! Ben UmrahConnect yapay zekâ rehberinizim.",
+  "aiWelcomeName": "Esselamu aleykum, {{name}}! Ben UmrahConnect yapay zekâ rehberinizim.",
+  "aiWelcomeStep": "{{step}}. adımdasınız: {{name}}.",
+  "aiWelcomeBegin": "{{name}} ile başlamaya hazır mısınız?",
+  "aiWelcomeAsk": "Umre, Hac, namaz, Harem veya uygulamanın herhangi bir özelliği hakkında sorun.",
+  "aiThinking": "Düşünüyor…",
+  "aiHelping": "{{name}} için yardım",
+  "aiCompanion": "Umre yol arkadaşınız",
+  "aiNewChat": "Yeni sohbet",
+  "aiClearConfirm": "Sohbeti silmek istediğinize emin misiniz?",
+  "aiPlaceholder": "Umre, Hac, İslam veya uygulama hakkında sorun...",
+  "aiQTawaf": "Tavaf nasıl yapılır?",
+  "aiQZamzam": "En yakın zemzem noktası",
+  "aiQChecklist": "Umre kontrol listesi nedir?",
+  "aiQFajr": "Sabah namazının adımları",
+  "bismillahMeaning": "Rahmân ve Rahîm olan Allah'ın adıyla",
+  "yes": "Evet"
 }

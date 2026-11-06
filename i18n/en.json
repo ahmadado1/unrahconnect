@@ -2585,5 +2585,22 @@
   "copyAyahDone": "Ayah copied",
   "translationSizeSection": "Translation size",
   "quranQuickActions": "Quick actions",
-  "offlineBanner": "No internet · showing saved content"
+  "offlineBanner": "No internet · showing saved content",
+  "aiWelcome": "Assalamu Alaikum! I'm your UmrahConnect AI guide.",
+  "aiWelcomeName": "Assalamu Alaikum, {{name}}! I'm your UmrahConnect AI guide.",
+  "aiWelcomeStep": "You're on step {{step}}: {{name}}.",
+  "aiWelcomeBegin": "Ready to begin with {{name}}?",
+  "aiWelcomeAsk": "Ask me about Umrah, Hajj, prayer, the Haram, or any app feature.",
+  "aiThinking": "Thinking…",
+  "aiHelping": "Helping {{name}}",
+  "aiCompanion": "Your Umrah companion",
+  "aiNewChat": "New chat",
+  "aiClearConfirm": "Are you sure you want to clear the chat?",
+  "aiPlaceholder": "Ask about Umrah, Hajj, Islam, or the app...",
+  "aiQTawaf": "How do I perform Tawaf?",
+  "aiQZamzam": "Nearest Zamzam station",
+  "aiQChecklist": "What is the Umrah checklist?",
+  "aiQFajr": "Fajr prayer steps",
+  "bismillahMeaning": "In the name of Allah, the Most Gracious, the Most Merciful",
+  "yes": "Yes"
 }

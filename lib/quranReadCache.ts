@@ -28,6 +28,60 @@ const TRANSLATION_EDITIONS: Record<string, string> = {
 
 const memoryCache = new Map<string, ReadVerse[]>()
 
+/** True when most verses have a translation. A surah saved while the translation failed is incomplete. */
+export function hasTranslation(verses: ReadVerse[] | null | undefined, language?: string): boolean {
+  if (!verses?.length) return false
+  const withText = verses.filter(v => v.translation?.trim()).length
+  if (withText < Math.ceil(verses.length * 0.8)) return false
+  return language ? translationMatchesLanguage(verses, language) : true
+}
+
+/**
+ * Checks the saved translation is really in the chosen language.
+ * Older app versions could save the English translation under another language.
+ */
+function translationMatchesLanguage(verses: ReadVerse[], language: string): boolean {
+  const lang = normalizeReadLanguage(language)
+  const sample = verses.slice(0, 8).map(v => v.translation ?? "").join(" ")
+  if (!sample.trim()) return false
+  const arabicScript = /[\u0600-\u06FF]/.test(sample)
+  switch (lang) {
+    case "ar":
+      return arabicScript && !/[ےںٹڈڑگ]/.test(sample)
+    case "ur":
+      // Urdu uses letters Arabic doesn't (ے ں ٹ ڈ ڑ گ)
+      return arabicScript && /[ےںٹڈڑگ]/.test(sample)
+    case "bn":
+      return /[\u0980-\u09FF]/.test(sample)
+    case "tr":
+      return /[çğıöşüÇĞİÖŞÜ]/.test(sample)
+    case "fr":
+      return !/[ğışİ]/.test(sample) && /[éèàêâçùûîô]|\b(le|la|les|des|du|et|qui|est)\b/i.test(sample)
+    default:
+      return !arabicScript && /\b(the|and|of|is|you|who)\b/i.test(sample)
+  }
+}
+
+/** Download the translation for one surah, trying twice (big surahs can be slow). */
+async function fetchTranslation(surah: number, language: string): Promise<string[] | null> {
+  const edition = getTranslationEdition(language)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchWithTimeout(
+        `https://api.alquran.cloud/v1/surah/${surah}/${edition}`,
+        {},
+        attempt === 0 ? 15000 : 25000
+      )
+      const data = await res.json()
+      if (data?.status === "OK" && Array.isArray(data.data?.ayahs)) {
+        return data.data.ayahs.map((a: { text: string }) => a.text ?? "")
+      }
+    } catch {}
+    if (attempt === 0) await new Promise(r => setTimeout(r, 1500))
+  }
+  return null
+}
+
 export function normalizeReadLanguage(language: string) {
   const base = language.split("-")[0].toLowerCase()
   return TRANSLATION_EDITIONS[base] ? base : "en"
@@ -121,7 +175,8 @@ export async function readSurahOfflineFirst(
   )
   for (const code of fallbackLangs) {
     const cached = await readCachedSurah(surah, code)
-    if (cached?.length) return cached
+    // Show the Arabic only; a translation in another language confuses readers.
+    if (cached?.length) return cached.map(v => ({ ...v, translation: "" }))
   }
   return null
 }
@@ -131,7 +186,16 @@ export async function fetchAndCacheSurah(
   language: string
 ): Promise<ReadVerse[] | null> {
   const existing = await readCachedSurah(surah, language)
-  if (existing?.length) return existing
+  if (existing?.length && hasTranslation(existing, language)) return existing
+
+  // Saved earlier without a translation: download only the translation and fill it in.
+  if (existing?.length) {
+    const translations = await fetchTranslation(surah, language)
+    if (!translations) return existing
+    const repaired = existing.map((v, i) => ({ ...v, translation: translations[i] ?? "" }))
+    await writeCachedSurah(surah, language, repaired).catch(() => {})
+    return repaired
+  }
 
   // Offline fallback: Arabic text from another language cache
   const offlineFallback = await readSurahOfflineFirst(surah, language)
@@ -148,19 +212,7 @@ export async function fetchAndCacheSurah(
       return offlineFallback
     }
 
-    let translations: string[] = []
-    try {
-      const edition = getTranslationEdition(language)
-      const transRes = await fetchWithTimeout(
-        `https://api.alquran.cloud/v1/surah/${surah}/${edition}`,
-        {},
-        10000
-      )
-      const transData = await transRes.json()
-      if (transData.status === "OK") {
-        translations = transData.data.ayahs.map((a: { text: string }) => a.text)
-      }
-    } catch {}
+    const translations = (await fetchTranslation(surah, language)) ?? []
 
     const combined: ReadVerse[] = arabicData.data.ayahs.map(
       (ayah: { numberInSurah: number; number: number; text: string; page: number }, index: number) => {
@@ -270,7 +322,9 @@ export async function ensureQpcText(surah: number, language: string, verses: Rea
   const merged = verses.map(v => (qpc[v.number] ? { ...v, qpc: qpc[v.number] } : v))
   // Only trust it if (almost) every verse got its text.
   if (merged.filter(v => v.qpc).length < verses.length) return verses
-  await writeCachedSurah(surah, language, merged).catch(() => {})
+  // Don't save another language's translation under this language (it would stick forever).
+  const toSave = hasTranslation(merged, language) ? merged : merged.map(v => ({ ...v, translation: "" }))
+  await writeCachedSurah(surah, language, toSave).catch(() => {})
   return merged
 }
 
@@ -307,7 +361,7 @@ export async function getMissingSurahNumbers(language: string): Promise<number[]
     }
     try {
       const parsed = JSON.parse(value)
-      if (!Array.isArray(parsed) || parsed.length === 0) missing.push(index + 1)
+      if (!Array.isArray(parsed) || parsed.length === 0 || !hasTranslation(parsed, language)) missing.push(index + 1)
     } catch {
       missing.push(index + 1)
     }

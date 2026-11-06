@@ -60,6 +60,16 @@ const phases = [
 
         {/* Header, always navy */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
+          {/* Back to the page you came from (Guide tab, Home, search…) */}
+          <TouchableOpacity
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/umrah"))}
+            style={styles.listBack}
+            accessibilityRole="button"
+            accessibilityLabel={t("back", { defaultValue: "Back" })}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.title}>{t("umrahGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeUmrah")}</Text>
         </View>
@@ -123,6 +133,7 @@ const phases = [
 }
 
 const styles = StyleSheet.create({
+  listBack: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", marginTop: 10, marginBottom: 4 },
   screen: { flex: 1 },
   safeTop: { backgroundColor: "#1E3A5F" },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 24 },

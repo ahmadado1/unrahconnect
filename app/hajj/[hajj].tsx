@@ -75,8 +75,11 @@ export default function HajjPhaseDetailScreen() {
     if (newState === true) void considerStoreReview()
   }
 
+  // Back: return to wherever the user came from (normally the steps list). "Next step" replaces
+  // this screen instead of stacking, so back never walks through every step again.
   const goToHajjGuide = useCallback(() => {
-    router.navigate("/hajj")
+    if (router.canGoBack()) router.back()
+    else router.replace("/hajj")
   }, [router])
 
   useFocusEffect(
@@ -236,7 +239,7 @@ export default function HajjPhaseDetailScreen() {
 
         <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
           {nextPhase ? (
-            <TouchableOpacity style={styles.nextBtn} onPress={() => router.push(`/hajj/${nextPhase.id}`)}>
+            <TouchableOpacity style={styles.nextBtn} onPress={() => router.replace(`/hajj/${nextPhase.id}`)}>
               <View style={styles.nextBtnContent}>
                 <View>
                   <Text style={styles.nextBtnLabel}>{t("nextStep")}</Text>

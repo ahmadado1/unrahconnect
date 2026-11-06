@@ -86,6 +86,7 @@ import {
   normalizeReadLanguage,
   peekCachedSurah,
   readSurahOfflineFirst,
+  hasTranslation,
 } from "../../lib/quranReadCache"
 
 function revelationLabel(type: string, t: (key: string) => string) {
@@ -1397,6 +1398,12 @@ export default function SurahScreen() {
       if (instant?.length) {
         if (loadRequestRef.current !== requestId) return
         await applyLoadedVerses(instant, requestId)
+        if (!hasTranslation(instant, lang)) {
+          void fetchAndCacheSurah(surahNum, lang).then(fresh => {
+            if (loadRequestRef.current !== requestId || !fresh?.length) return
+            if (normalizeReadLanguage(i18n.language) === lang && hasTranslation(fresh, lang)) setVerseList(fresh)
+          })
+        }
         return
       }
 
@@ -1837,7 +1844,7 @@ const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </Text>
                   <Text style={[styles.bismillahTranslation, { color: theme.textSecondary }]}>
-                    In the name of Allah, the Most Gracious, the Most Merciful
+                    {t("bismillahMeaning", { defaultValue: "In the name of Allah, the Most Gracious, the Most Merciful" })}
                   </Text>
                 </View>
               )}

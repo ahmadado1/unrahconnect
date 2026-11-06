@@ -54,11 +54,12 @@ const UMRAH_STEPS = [
   { id: "7", name: "Umrah Complete" },
 ]
 
-const SUGGESTED_QUESTIONS = [
-  "How do I perform Tawaf?",
-  "Nearest Zamzam station",
-  "What is the Umrah checklist?",
-  "Fajr prayer steps",
+// Translated in the screen (see suggestedQuestions below).
+const SUGGESTED_KEYS = [
+  ["aiQTawaf", "How do I perform Tawaf?"],
+  ["aiQZamzam", "Nearest Zamzam station"],
+  ["aiQChecklist", "What is the Umrah checklist?"],
+  ["aiQFajr", "Fajr prayer steps"],
 ]
 
 function buildMarkdownStyles(theme) {
@@ -619,6 +620,9 @@ export default function AIGuideScreen() {
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
   const { i18n, t } = useTranslation()
+  const suggestedQuestions = SUGGESTED_KEYS.map(([key, fallback]) => t(key, { defaultValue: fallback }))
+  // Umrah progress for the welcome message (set when the account loads).
+  const [progressInfo, setProgressInfo] = useState(null)
   const listRef = useRef(null)
   const abortRef = useRef(null)
   const { messages, setMessages, loading, setLoading, clearChat } = useAIGuide()
@@ -658,6 +662,7 @@ export default function AIGuideScreen() {
         if (cancelled) return
 
         setUserName(name)
+        setProgressInfo(progress)
         userContextRef.current = { userName: name, ...progress }
 
         setMessages((prev) => {
@@ -690,12 +695,12 @@ export default function AIGuideScreen() {
 
   const confirmClearChat = () => {
     Alert.alert(
-      "New Chat",
-      "Are you sure you want to clear the chat?",
+      t("aiNewChat", { defaultValue: "New chat" }),
+      t("aiClearConfirm", { defaultValue: "Are you sure you want to clear the chat?" }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("cancel", { defaultValue: "Cancel" }), style: "cancel" },
         {
-          text: "Yes",
+          text: t("yes", { defaultValue: "Yes" }),
           style: "destructive",
           onPress: () => {
             abortRef.current?.abort()
@@ -883,8 +888,26 @@ export default function AIGuideScreen() {
     }
   }
 
+  // Welcome message, always in the app language (shown instead of the stored English text).
+  const welcomeText = (() => {
+    const name = userName && userName !== "Pilgrim" ? userName : null
+    const parts = [name ? t("aiWelcomeName", { name, defaultValue: "Assalamu Alaikum, {{name}}! I'm your UmrahConnect AI guide." }) : t("aiWelcome", { defaultValue: "Assalamu Alaikum! I'm your UmrahConnect AI guide." })]
+    if (progressInfo) {
+      const step = progressInfo.currentStep
+      const stepName = t(`phase_umrah_${step}_title`, { defaultValue: progressInfo.currentStepName })
+      parts.push(
+        progressInfo.completedSteps.length > 0
+          ? t("aiWelcomeStep", { step, name: stepName, defaultValue: "You're on step {{step}}: {{name}}." })
+          : t("aiWelcomeBegin", { name: stepName, defaultValue: "Ready to begin with {{name}}?" })
+      )
+    }
+    parts.push(t("aiWelcomeAsk", { defaultValue: "Ask me about Umrah, Hajj, prayer, the Haram, or any app feature." }))
+    return parts.join(" ")
+  })()
+
   const renderMessage = ({ item }) => {
     const isUser = item.role === "user"
+    if (!isUser && String(item.id).startsWith("welcome")) item = { ...item, content: welcomeText }
     const links = !isUser && Array.isArray(item.links) ? item.links : []
     const showTyping = !isUser && item.streaming && !String(item.content || "").trim()
 
@@ -909,7 +932,7 @@ export default function AIGuideScreen() {
           ) : showTyping ? (
             <View style={styles.typingRow}>
               <ActivityIndicator size="small" color={GOLD} />
-              <Text style={[styles.typingText, { color: theme.textSecondary }]}>Thinking…</Text>
+              <Text style={[styles.typingText, { color: theme.textSecondary }]}>{t("aiThinking", { defaultValue: "Thinking…" })}</Text>
             </View>
           ) : item.streaming ? (
             <Text style={[styles.bubbleText, { color: theme.text }]}>
@@ -957,9 +980,11 @@ export default function AIGuideScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>AI Guide</Text>
+          <Text style={styles.headerTitle}>{t("ui_aiGuide")}</Text>
           <Text style={styles.headerSub}>
-            {userName !== "Pilgrim" ? `Helping ${userName}` : "Your Umrah companion"}
+            {userName !== "Pilgrim"
+              ? t("aiHelping", { name: userName, defaultValue: "Helping {{name}}" })
+              : t("aiCompanion", { defaultValue: "Your Umrah companion" })}
           </Text>
           {premium.isPremium ? (
             <View style={[styles.planPill, styles.planPillPremium]}>
@@ -977,7 +1002,7 @@ export default function AIGuideScreen() {
         <TouchableOpacity
           onPress={confirmClearChat}
           style={styles.backBtn}
-          accessibilityLabel="New Chat"
+          accessibilityLabel={t("aiNewChat", { defaultValue: "New chat" })}
         >
           <Ionicons name="trash-outline" size={20} color="#fff" />
         </TouchableOpacity>
@@ -995,7 +1020,7 @@ export default function AIGuideScreen() {
             contentContainerStyle={styles.chipsRow}
             keyboardShouldPersistTaps="handled"
           >
-            {SUGGESTED_QUESTIONS.map((question) => (
+            {suggestedQuestions.map((question) => (
               <TouchableOpacity
                 key={question}
                 style={styles.chip}
@@ -1040,7 +1065,7 @@ export default function AIGuideScreen() {
                 borderColor: theme.border,
               },
             ]}
-            placeholder="Ask about Umrah, Hajj, Islam, or the app..."
+            placeholder={t("aiPlaceholder", { defaultValue: "Ask about Umrah, Hajj, Islam, or the app..." })}
             placeholderTextColor={theme.textMuted}
             value={input}
             onChangeText={setInput}

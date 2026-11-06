@@ -2585,5 +2585,22 @@
   "copyAyahDone": "آیت کاپی ہو گئی",
   "translationSizeSection": "ترجمے کا سائز",
   "quranQuickActions": "فوری رسائی",
-  "offlineBanner": "انٹرنیٹ نہیں · محفوظ مواد دکھایا جا رہا ہے"
+  "offlineBanner": "انٹرنیٹ نہیں · محفوظ مواد دکھایا جا رہا ہے",
+  "aiWelcome": "السلام علیکم! میں آپ کا UmrahConnect AI رہنما ہوں۔",
+  "aiWelcomeName": "السلام علیکم، {{name}}! میں آپ کا UmrahConnect AI رہنما ہوں۔",
+  "aiWelcomeStep": "آپ مرحلہ {{step}} پر ہیں: {{name}}۔",
+  "aiWelcomeBegin": "کیا آپ {{name}} سے شروع کرنے کے لیے تیار ہیں؟",
+  "aiWelcomeAsk": "مجھ سے عمرہ، حج، نماز، حرم یا ایپ کے کسی بھی فیچر کے بارے میں پوچھیں۔",
+  "aiThinking": "سوچ رہا ہے…",
+  "aiHelping": "{{name}} کی مدد",
+  "aiCompanion": "آپ کا عمرہ ساتھی",
+  "aiNewChat": "نئی گفتگو",
+  "aiClearConfirm": "کیا آپ واقعی گفتگو صاف کرنا چاہتے ہیں؟",
+  "aiPlaceholder": "عمرہ، حج، اسلام یا ایپ کے بارے میں پوچھیں...",
+  "aiQTawaf": "طواف کیسے کریں؟",
+  "aiQZamzam": "قریب ترین زمزم اسٹیشن",
+  "aiQChecklist": "عمرہ کی چیک لسٹ کیا ہے؟",
+  "aiQFajr": "نمازِ فجر کے مراحل",
+  "bismillahMeaning": "اللہ کے نام سے جو بڑا مہربان، نہایت رحم والا ہے",
+  "yes": "ہاں"
 }

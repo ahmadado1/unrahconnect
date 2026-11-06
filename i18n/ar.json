@@ -2589,5 +2589,22 @@
   "copyAyahDone": "تم نسخ الآية",
   "translationSizeSection": "حجم الترجمة",
   "quranQuickActions": "اختصارات",
-  "offlineBanner": "لا يوجد اتصال · يتم عرض المحتوى المحفوظ"
+  "offlineBanner": "لا يوجد اتصال · يتم عرض المحتوى المحفوظ",
+  "aiWelcome": "السلام عليكم! أنا مرشدك الذكي في UmrahConnect.",
+  "aiWelcomeName": "السلام عليكم يا {{name}}! أنا مرشدك الذكي في UmrahConnect.",
+  "aiWelcomeStep": "أنت في الخطوة {{step}}: {{name}}.",
+  "aiWelcomeBegin": "هل أنت مستعد للبدء بـ {{name}}؟",
+  "aiWelcomeAsk": "اسألني عن العمرة والحج والصلاة والحرم أو أي ميزة في التطبيق.",
+  "aiThinking": "جارٍ التفكير…",
+  "aiHelping": "نساعد {{name}}",
+  "aiCompanion": "رفيقك في العمرة",
+  "aiNewChat": "محادثة جديدة",
+  "aiClearConfirm": "هل تريد بالتأكيد مسح المحادثة؟",
+  "aiPlaceholder": "اسأل عن العمرة أو الحج أو الإسلام أو التطبيق...",
+  "aiQTawaf": "كيف أؤدي الطواف؟",
+  "aiQZamzam": "أقرب نقطة ماء زمزم",
+  "aiQChecklist": "ما قائمة تجهيزات العمرة؟",
+  "aiQFajr": "خطوات صلاة الفجر",
+  "bismillahMeaning": "بسم الله الرحمن الرحيم",
+  "yes": "نعم"
 }

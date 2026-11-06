@@ -2585,5 +2585,22 @@
   "copyAyahDone": "Verset copié",
   "translationSizeSection": "Taille de la traduction",
   "quranQuickActions": "Accès rapide",
-  "offlineBanner": "Pas d'internet · contenu enregistré affiché"
+  "offlineBanner": "Pas d'internet · contenu enregistré affiché",
+  "aiWelcome": "Assalamu Alaikum ! Je suis votre guide IA UmrahConnect.",
+  "aiWelcomeName": "Assalamu Alaikum, {{name}} ! Je suis votre guide IA UmrahConnect.",
+  "aiWelcomeStep": "Vous êtes à l'étape {{step}} : {{name}}.",
+  "aiWelcomeBegin": "Prêt à commencer par {{name}} ?",
+  "aiWelcomeAsk": "Posez-moi vos questions sur la Omra, le Hajj, la prière, le Haram ou l'application.",
+  "aiThinking": "Réflexion…",
+  "aiHelping": "J'aide {{name}}",
+  "aiCompanion": "Votre compagnon de Omra",
+  "aiNewChat": "Nouvelle discussion",
+  "aiClearConfirm": "Voulez-vous vraiment effacer la discussion ?",
+  "aiPlaceholder": "Posez une question sur la Omra, le Hajj, l'Islam ou l'app...",
+  "aiQTawaf": "Comment accomplir le Tawaf ?",
+  "aiQZamzam": "Point de Zamzam le plus proche",
+  "aiQChecklist": "Quelle est la liste de la Omra ?",
+  "aiQFajr": "Étapes de la prière du Fajr",
+  "bismillahMeaning": "Au nom d'Allah, le Tout Miséricordieux, le Très Miséricordieux",
+  "yes": "Oui"
 }

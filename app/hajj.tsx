@@ -67,6 +67,16 @@ export default function HajjGuideScreen() {
         automaticallyAdjustContentInsets={false}
       >
         <View style={[styles.header, { paddingTop: insets.top }]}>
+          {/* Back to the page you came from (Guide tab, Home, search…) */}
+          <TouchableOpacity
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/umrah"))}
+            style={styles.listBack}
+            accessibilityRole="button"
+            accessibilityLabel={t("back", { defaultValue: "Back" })}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.title}>{t("hajjGuideTitle")}</Text>
           <Text style={styles.subtitle}>{t("completeHajj")}</Text>
         </View>
@@ -132,6 +142,7 @@ export default function HajjGuideScreen() {
 }
 
 const styles = StyleSheet.create({
+  listBack: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", marginTop: 10, marginBottom: 4 },
   screen: { flex: 1 },
   header: { backgroundColor: "#1E3A5F", padding: 20, paddingBottom: 34 },
   title: { color: "#fff", fontSize: 26, fontWeight: "bold", marginTop: 40 },
