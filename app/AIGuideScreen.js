@@ -1,4 +1,5 @@
 import { useAIGuide } from "@/context/AIGuideContext"
+import OfflineBanner from "@/app/components/OfflineBanner"
 import { useTheme } from "@/context/themeContext"
 import { isNetworkError } from "@/lib/networkError"
 import { getUmrahProgress, getUserFast, supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase"
@@ -13,7 +14,6 @@ import {
   Alert,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,6 +21,8 @@ import {
   TextInput,
   View,
 } from "react-native"
+// Keyboard handling from react-native-keyboard-controller: works the same on every Android version (edge-to-edge).
+import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 import TouchableOpacity from "@/app/components/AppPressable"
 import Markdown from "react-native-markdown-display"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -947,6 +949,8 @@ export default function AIGuideScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
 
       <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

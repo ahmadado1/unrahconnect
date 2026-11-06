@@ -20,7 +20,6 @@ import {
   ActivityIndicator,
   I18nManager,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -29,6 +28,8 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native"
+// Keyboard handling from react-native-keyboard-controller: works the same on every Android version (edge-to-edge).
+import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const PRIORITY_COUNTRIES = ["NG", "SA", "EG", "PK", "IN", "BD", "TR", "GB", "US"]

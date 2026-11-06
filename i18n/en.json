@@ -2584,5 +2584,6 @@
   "copyAyah": "Copy ayah",
   "copyAyahDone": "Ayah copied",
   "translationSizeSection": "Translation size",
-  "quranQuickActions": "Quick actions"
+  "quranQuickActions": "Quick actions",
+  "offlineBanner": "No internet · showing saved content"
 }

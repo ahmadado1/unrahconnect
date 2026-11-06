@@ -1,4 +1,5 @@
 import { localizeCountryName } from "@/lib/countries"
+import OfflineBanner from "@/app/components/OfflineBanner"
 import { useTheme } from "@/context/themeContext"
 import {
   getAgentCountForCountry,
@@ -74,6 +75,8 @@ export default function FindAgentCountriesScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#fff" />

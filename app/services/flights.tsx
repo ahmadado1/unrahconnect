@@ -1,4 +1,5 @@
 import FindFlightsCard from "@/app/components/FindFlightsCard"
+import OfflineBanner from "@/app/components/OfflineBanner"
 import KayakFlightsCard from "@/app/components/KayakFlightsCard"
 import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon } from "@/components/AppIcon"
@@ -24,6 +25,8 @@ export default function FlightsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel={t("back")}>

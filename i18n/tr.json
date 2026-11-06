@@ -2584,5 +2584,6 @@
   "copyAyah": "Ayeti kopyala",
   "copyAyahDone": "Ayet kopyalandı",
   "translationSizeSection": "Meal yazı boyutu",
-  "quranQuickActions": "Hızlı erişim"
+  "quranQuickActions": "Hızlı erişim",
+  "offlineBanner": "İnternet yok · kayıtlı içerik gösteriliyor"
 }

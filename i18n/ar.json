@@ -2588,5 +2588,6 @@
   "copyAyah": "نسخ الآية",
   "copyAyahDone": "تم نسخ الآية",
   "translationSizeSection": "حجم الترجمة",
-  "quranQuickActions": "اختصارات"
+  "quranQuickActions": "اختصارات",
+  "offlineBanner": "لا يوجد اتصال · يتم عرض المحتوى المحفوظ"
 }

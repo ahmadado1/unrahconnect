@@ -36,6 +36,7 @@ import StoreReviewPrompt from "@/components/StoreReviewPrompt";
 import PrayerAlertProvider from "./components/PrayerAlertProvider";
 import QuranBackgroundDownload from "./components/QuranBackgroundDownload";
 import PremiumPromptHost from "./components/PremiumPromptHost";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 // If a screen crashes, show a friendly "Try again" screen instead of closing the app.
 export { default as ErrorBoundary } from "./components/AppErrorScreen"
@@ -349,6 +350,8 @@ const checkAuth = async () => {
 
 
   return (
+    // KeyboardProvider: one keyboard system for the whole app (fixes the Android keyboard open/close loop).
+    <KeyboardProvider>
     <ThemeProvider>
       <AIGuideProvider>
         <PrayerAlertProvider>
@@ -382,6 +385,7 @@ const checkAuth = async () => {
         </PrayerAlertProvider>
       </AIGuideProvider>
     </ThemeProvider>
+    </KeyboardProvider>
   )
 }
 

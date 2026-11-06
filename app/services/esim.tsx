@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import OfflineBanner from "@/app/components/OfflineBanner"
 import { buildSailyEsimLink, ESIM_PLANS } from "@/lib/esim"
 import { GOLD, NAVY, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
@@ -24,6 +25,8 @@ export default function EsimScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel={t("back")}>

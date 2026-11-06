@@ -5,9 +5,16 @@ import { useTheme } from "@/context/themeContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Keyboard, KeyboardAvoidingView, Platform, StyleSheet,
-    Text, TextInput, TouchableWithoutFeedback, View
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native"
+// Keyboard handling from react-native-keyboard-controller: works the same on every Android version (edge-to-edge).
+import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { sendAccountEmail } from "@/lib/accountEmails"

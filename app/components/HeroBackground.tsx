@@ -1,4 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient"
+// expo-image keeps downloaded photos on the phone, so they still show with no internet.
+import { Image as CachedImage } from "expo-image"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import {
   ActivityIndicator,
@@ -95,9 +97,11 @@ export default function HeroBackground({
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, { opacity }]}
       >
-        <Image resizeMethod="resize"
+        <CachedImage
           source={source}
-          resizeMode={resizeMode}
+          contentFit={resizeMode === "stretch" ? "fill" : resizeMode}
+          cachePolicy="memory-disk"
+          transition={0}
           onLoadEnd={() => {
             if (activeKeyRef.current === key) reveal()
           }}

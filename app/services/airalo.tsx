@@ -1,4 +1,5 @@
 import TouchableOpacity from "@/app/components/AppPressable"
+import OfflineBanner from "@/app/components/OfflineBanner"
 import { useTheme } from "@/context/themeContext"
 import { AIRALO_PLANS, buildAiraloEsimLink } from "@/lib/esim"
 import { GOLD, NAVY, ui } from "@/lib/ui"
@@ -24,6 +25,8 @@ export default function AiraloScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel={t("back")}>

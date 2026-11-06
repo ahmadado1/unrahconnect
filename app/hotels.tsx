@@ -5,6 +5,7 @@
 //   • Smart search ("cheap near haram", "5 star clock tower", "hilton madinah", small typos ok).
 //   • Sections, each hotel shown once: Featured → 5 Star → 4 Star → Budget Friendly.
 //   • "Book now" opens Booking.com through our affiliate link, with the trip dates if saved.
+import OfflineBanner from "@/app/components/OfflineBanner"
 import TouchableOpacity from "@/app/components/AppPressable"
 import HeroBackground from "@/app/components/HeroBackground"
 import KayakCompareSheet from "@/app/components/KayakCompareSheet"
@@ -137,6 +138,9 @@ function CitySwitch({
   )
 }
 
+/** Shown when a hotel photo can't load (no internet and not saved yet). */
+const OFFLINE_HOTEL_IMAGE = require("../assets/images/image56.jpg")
+
 export default function HotelsScreen() {
   const router = useRouter()
   const { theme } = useTheme()
@@ -236,6 +240,9 @@ export default function HotelsScreen() {
       setShowLogo(hotel.imageType === "logo")
     }, [hotel.id, hotel.image, hotel.imageType])
 
+    // Photo failed: try the fallback, then the Makkah placeholder, then a photo saved in the app
+    // (so with no internet the card shows a picture instead of spinning or flickering).
+    const [useLocal, setUseLocal] = useState(false)
     const onImageError = () => {
       if (imageUri !== hotel.imageFallback) {
         setImageUri(hotel.imageFallback)
@@ -243,6 +250,9 @@ export default function HotelsScreen() {
       } else if (imageUri !== HOTEL_IMAGE_PLACEHOLDER) {
         setImageUri(HOTEL_IMAGE_PLACEHOLDER)
         setShowLogo(false)
+      } else {
+        setShowLogo(false)
+        setUseLocal(true)
       }
     }
 
@@ -285,7 +295,7 @@ export default function HotelsScreen() {
       </View>
     ) : (
       <HeroBackground
-        source={{ uri: imageUri }}
+        source={useLocal ? OFFLINE_HOTEL_IMAGE : { uri: imageUri }}
         style={cardStyles.image}
         imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
         onError={onImageError}
@@ -343,6 +353,8 @@ export default function HotelsScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: NAVY }]}>
       <StatusBar style="light" />
+      {/* "No internet" pill: this screen needs the internet */}
+      <OfflineBanner />
       <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets
         style={styles.body}
         contentContainerStyle={{ backgroundColor: theme.background, flexGrow: 1 }}
