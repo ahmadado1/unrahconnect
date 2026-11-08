@@ -493,6 +493,7 @@ async function loadHorizon(lat: number, lng: number, today: HorizonDay): Promise
 }
 
 async function cancelPrayerNotifications() {
+  lastPrayerSig = "" // next booking must run again (e.g. alerts switched back on)
   // Android full-Adhan player alarms and iPhone AlarmKit alarms too (no-ops elsewhere / older builds).
   cancelAdhanAlarms()
   void cancelIosAdhanAlarms()
@@ -554,6 +555,26 @@ export async function schedulePrayerNotifications(
     }
 
     const adhanId = resolveAdhanId(selectedAdhan || (await getSelectedAdhanId()))
+
+    // Nothing changed since the last booking (same times, voice, prayer modes, language, day)?
+    // Then the alarms are already right: skip. Budget Android phones were re-booking every
+    // alarm and channel every 2 seconds. A real change (new voice, mode, day) books at once.
+    const sig = JSON.stringify([
+      prayerTimes,
+      adhanId,
+      [...(await loadOffPrayers())].sort(),
+      [...(await loadQuietPrayers())].sort(),
+      i18n.language,
+      localDateKey(new Date()),
+    ])
+    if (sig === lastPrayerSig && Date.now() - lastPrayerAt < PRAYER_RESYNC_MS) return
+    lastPrayerSig = sig
+    lastPrayerAt = Date.now()
+
+    // Find what keeps asking (logs who called if it happens a lot).
+    prayerCallTimes = prayerCallTimes.filter(t => Date.now() - t < 60_000)
+    prayerCallTimes.push(Date.now())
+    if (prayerCallTimes.length > 5) console.warn("[Notifications] prayer booking asked often by:", new Error().stack)
 
     const granted = await requestNotificationPermission()
     if (!granted) {
@@ -791,6 +812,10 @@ export async function schedulePrayerNotifications(
   await next
 }
 let pendingPrayerRun: Promise<void> | null = null
+let lastPrayerSig = ""
+let lastPrayerAt = 0
+let prayerCallTimes: number[] = []
+const PRAYER_RESYNC_MS = 30 * 60 * 1000
 let latestPrayerRun: (() => Promise<void>) | null = null
 
 /**
