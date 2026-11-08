@@ -27,6 +27,8 @@ import { LANGUAGES, getLanguageLabel } from "./components/LanguageDropdown"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useTranslation } from "react-i18next"
+import * as Application from "expo-application"
+import * as Updates from "expo-updates"
 
 export default function SettingsScreen() {
   const router = useRouter()
@@ -206,7 +208,15 @@ export default function SettingsScreen() {
 
         {/* Version */}
         <View style={styles.versionBox}>
-          <Text style={[styles.versionText, { color: theme.textSecondary }]}>UmrahConnect v1.0</Text>
+          <Text style={[styles.versionText, { color: theme.textSecondary }]}>
+            UmrahConnect v{Application.nativeApplicationVersion ?? "?"} ({Application.nativeBuildVersion ?? "?"})
+          </Text>
+          {/* Which over-the-air update is running: lets us check an update really arrived. */}
+          <Text style={[styles.versionSub, { color: theme.textSecondary }]}>
+            {Updates.isEmbeddedLaunch || !Updates.updateId
+              ? "Update: built-in"
+              : `Update: ${Updates.updateId.slice(0, 8)} · ${Updates.createdAt ? Updates.createdAt.toLocaleString() : ""}`}
+          </Text>
           <Text style={[styles.versionText, { color: theme.textSecondary }]}>{t("version")}</Text>
           <Text style={styles.versionSub}>{t("madeInEgypt")}</Text>
         </View>
