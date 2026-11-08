@@ -1,3 +1,4 @@
+import { ensureLocationPermission } from "@/lib/locationPermission"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
@@ -29,8 +30,8 @@ export default function MapsScreen() {
   const [locationLabel, setLocationLabel] = useState<string | null>(null)
 
   useEffect(() => {
-    Location.requestForegroundPermissionsAsync().then(({ status }) => {
-      if (status !== "granted") return
+    ensureLocationPermission().then(granted => {
+      if (!granted) return
       Location.getCurrentPositionAsync({})
         .then(pos => {
           setLocationLabel(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)

@@ -1,3 +1,4 @@
+import { ensureLocationPermission } from "./locationPermission"
 import { PRAYER_NAMES } from "@/lib/prayerConstants"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Location from "expo-location"
@@ -161,8 +162,8 @@ async function resolveCoordinates(): Promise<{
   let city = "Makkah"
 
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status !== "granted") return { lat, lng, city }
+    // Check first; never re-open the permission screen (caused an endless loop on Android).
+    if (!(await ensureLocationPermission())) return { lat, lng, city }
 
     let lastKnown: { lat: number; lng: number } | null = null
     try {

@@ -309,6 +309,30 @@ export async function requestNotificationPermission(): Promise<boolean> {
   console.log("Notification permission (current):", permissions.status)
 
   if (permissions.status !== "granted") {
+    // Already said no (or Android won't show the question again): don't open the permission
+    // screen again — on Android that flips the app to the background and back, which made loops.
+    if (permissions.status === "denied" || permissions.canAskAgain === false) return false
+    if (notificationAsk) return notificationAsk
+    notificationAsk = requestNotificationPermissionOnce().finally(() => {
+      notificationAsk = null
+    })
+    return notificationAsk
+  }
+
+  // Android 13+ needs POST_NOTIFICATIONS; also ensure prayer channels exist early.
+  if (Platform.OS === "android") {
+    await setupPrayerNotificationChannel().catch(e =>
+      console.warn("[Notifications] Android channel setup failed:", e)
+    )
+  }
+
+  return true
+}
+
+let notificationAsk: Promise<boolean> | null = null
+
+async function requestNotificationPermissionOnce(): Promise<boolean> {
+  {
     const newPermissions = await Notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,

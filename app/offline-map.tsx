@@ -1,3 +1,4 @@
+import { ensureLocationPermission } from "@/lib/locationPermission"
 import PremiumUpsellCard from "@/app/components/PremiumUpsellCard"
 // Offline map for Makkah and Madinah (Premium).
 //   • Map: OpenStreetMap tiles are saved on the phone as you look at them. "Save map for offline"
@@ -100,8 +101,8 @@ export default function OfflineMapScreen() {
     let headSub: Location.LocationSubscription | null = null
     let cancelled = false
     ;(async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted" || cancelled) return
+      const granted = await ensureLocationPermission()
+      if (!granted || cancelled) return
       posSub = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 5 }, pos => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         // First GPS fix: if you're in Madinah, switch to Madinah.

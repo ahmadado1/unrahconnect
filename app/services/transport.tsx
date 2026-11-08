@@ -1,3 +1,4 @@
+import { askLocationPermission } from "@/lib/locationPermission"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
@@ -32,8 +33,8 @@ const HARAM_LNG = 39.8262
 
 async function openNearestSaptcoStop() {
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status === "granted") {
+    // The user tapped this button on purpose, so it may ask again.
+    if (await askLocationPermission()) {
       const pos = await Location.getCurrentPositionAsync({})
       const { latitude, longitude } = pos.coords
       const query = encodeURIComponent("SAPTCO bus stop")

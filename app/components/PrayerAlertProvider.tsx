@@ -129,8 +129,15 @@ export default function PrayerAlertProvider({ children }: { children: React.Reac
       void fetchAndCachePrayerTimes({ force: true })
     }, 6 * 60 * 60 * 1000)
 
+    // Refresh when the app comes back, but at most every 2 minutes: system screens (permissions,
+    // share sheet, keyboard pickers) also send the app to the background for a moment, and
+    // refreshing each time made an endless loop on Android.
+    let lastActiveRefresh = Date.now()
     const onAppState = (state: AppStateStatus) => {
-      if (state === "active") refresh()
+      if (state !== "active") return
+      if (Date.now() - lastActiveRefresh < 2 * 60 * 1000) return
+      lastActiveRefresh = Date.now()
+      refresh()
     }
     const sub = AppState.addEventListener("change", onAppState)
 

@@ -1,3 +1,4 @@
+import { ensureLocationPermission } from "@/lib/locationPermission"
 import { AppIcon, ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -213,8 +214,8 @@ export default function QiblahScreen() {
         void startHeadingWatch()
       }
 
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted") {
+      const granted = await ensureLocationPermission()
+      if (!granted) {
         if (!cached) {
           setErrorMsg(
             t("qiblaPermissionNeeded", {
