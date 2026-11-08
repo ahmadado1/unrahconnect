@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import * as FileSystem from "expo-file-system/legacy"
 import { fetchWithTimeout } from "./fetchWithTimeout"
 import { showKasraWithShadda } from "./quranArabicMarks"
 import { readCachedPage, TOTAL_MUSHAF_PAGES } from "./quranPageCache"
@@ -95,7 +96,75 @@ export function surahCacheKey(surah: number, language: string) {
   return `quran_surah_${surah}_${normalizeReadLanguage(language)}`
 }
 
-/** Instant read from in-memory cache (no AsyncStorage). */
+// ---------------------------------------------------------------------------
+// Where saved surahs live.
+// On Android, AsyncStorage is capped at 6 MB. The 114 surahs (Arabic + translation + Mushaf text)
+// are bigger than that, so the storage filled up ("database or disk is full") and EVERY save in the
+// app started failing (login, settings, progress) — a big cause of Android problems.
+// Surahs are now saved as small files on the phone (like the Mushaf pages and tafsir).
+// Old copies in AsyncStorage are moved to files the first time they are read, which frees the space.
+// ---------------------------------------------------------------------------
+const READ_DIR = FileSystem.documentDirectory ? `${FileSystem.documentDirectory}quran_read_v1/` : null
+let readDirReady: Promise<void> | null = null
+
+function surahFile(key: string) {
+  return `${READ_DIR}${key}.json`
+}
+
+async function ensureReadDir() {
+  if (!READ_DIR) return
+  if (!readDirReady) {
+    readDirReady = (async () => {
+      const info = await FileSystem.getInfoAsync(READ_DIR)
+      if (!info.exists) await FileSystem.makeDirectoryAsync(READ_DIR, { intermediates: true })
+    })().catch(() => {
+      readDirReady = null
+    })
+  }
+  await readDirReady
+}
+
+/** Read one saved surah (file first, then the old AsyncStorage copy, which gets moved to a file). */
+async function storedGet(key: string): Promise<string | null> {
+  if (READ_DIR) {
+    try {
+      const path = surahFile(key)
+      const info = await FileSystem.getInfoAsync(path)
+      if (info.exists) return await FileSystem.readAsStringAsync(path)
+    } catch {}
+  }
+  try {
+    const legacy = await AsyncStorage.getItem(key)
+    if (legacy && READ_DIR) {
+      // Move it out of AsyncStorage to free space there.
+      await storedSet(key, legacy)
+    }
+    return legacy
+  } catch {
+    return null
+  }
+}
+
+/** Save one surah as a file (and drop any old AsyncStorage copy). */
+async function storedSet(key: string, value: string): Promise<void> {
+  if (!READ_DIR) {
+    await AsyncStorage.setItem(key, value).catch(() => {})
+    return
+  }
+  try {
+    await ensureReadDir()
+    await FileSystem.writeAsStringAsync(surahFile(key), value)
+    await AsyncStorage.removeItem(key).catch(() => {})
+  } catch (e) {
+    console.log("Surah save error:", e)
+  }
+}
+
+async function storedGetMany(keys: string[]): Promise<[string, string | null][]> {
+  return Promise.all(keys.map(async key => [key, await storedGet(key)] as [string, string | null]))
+}
+
+/** Instant read from in-memory cache (no storage read). */
 function withVisibleKasra(verses: ReadVerse[]): ReadVerse[] {
   return verses.map(verse => ({
     ...verse,
@@ -112,7 +181,7 @@ export function peekCachedSurah(surah: number, language: string): ReadVerse[] | 
 export async function warmReadCacheForLanguage(language: string): Promise<number> {
   const lang = normalizeReadLanguage(language)
   const keys = Array.from({ length: 114 }, (_, i) => surahCacheKey(i + 1, lang))
-  const pairs = await AsyncStorage.multiGet(keys)
+  const pairs = await storedGetMany(keys)
   let loaded = 0
 
   pairs.forEach(([key, value]) => {
@@ -138,7 +207,7 @@ export async function readCachedSurah(
     const inMemory = memoryCache.get(key)
     if (inMemory?.length) return withVisibleKasra(inMemory)
 
-    const cached = await AsyncStorage.getItem(key)
+    const cached = await storedGet(key)
     if (!cached) return null
 
     const parsed: ReadVerse[] = JSON.parse(cached)
@@ -159,7 +228,7 @@ export async function writeCachedSurah(
 ): Promise<void> {
   const key = surahCacheKey(surah, language)
   memoryCache.set(key, verses)
-  await AsyncStorage.setItem(key, JSON.stringify(verses))
+  await storedSet(key, JSON.stringify(verses))
 }
 
 /** Prefer requested language; fall back to any offline language so reading works offline. */
@@ -351,7 +420,7 @@ export async function downloadSurahList(): Promise<boolean> {
 
 export async function getMissingSurahNumbers(language: string): Promise<number[]> {
   const keys = Array.from({ length: 114 }, (_, i) => surahCacheKey(i + 1, language))
-  const pairs = await AsyncStorage.multiGet(keys)
+  const pairs = await storedGetMany(keys)
   const missing: number[] = []
 
   pairs.forEach(([, value], index) => {
@@ -368,4 +437,30 @@ export async function getMissingSurahNumbers(language: string): Promise<number[]
   })
 
   return missing
+}
+
+/**
+ * One-time clean-up on app start: moves every surah saved in AsyncStorage (old app versions)
+ * into files, so Android's 6 MB AsyncStorage has room again for login, settings and progress.
+ */
+export async function migrateLegacySurahCache(): Promise<number> {
+  if (!READ_DIR) return 0
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter(k => /^quran_surah_\d+_[a-z]+$/.test(k))
+    let moved = 0
+    for (const key of keys) {
+      try {
+        const value = await AsyncStorage.getItem(key)
+        if (value) {
+          await storedSet(key, value) // writes the file, then removes the AsyncStorage copy
+          moved++
+        } else {
+          await AsyncStorage.removeItem(key)
+        }
+      } catch {}
+    }
+    return moved
+  } catch {
+    return 0
+  }
 }

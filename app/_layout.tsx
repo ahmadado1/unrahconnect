@@ -173,6 +173,15 @@ export default function RootLayout() {
   }, [status])
 
   useEffect(() => {
+    // Android: agent code that came through Google Play (agent QR -> Play Store -> install)
+    void import("@/lib/installReferrer").then(m => m.captureInstallReferrer()).catch(() => {})
+    // Android: move old saved surahs out of the 6 MB AsyncStorage box into files (frees space).
+    setTimeout(() => {
+      void import("@/lib/quranReadCache").then(m => m.migrateLegacySurahCache()).catch(() => {})
+    }, 3000)
+  }, [])
+
+  useEffect(() => {
     void purgeEmptyCachedPages().then(() => {
       if (__DEV__) void auditAllMushafPages()
     })
