@@ -27,7 +27,31 @@ const TRANSLATION_EDITIONS: Record<string, string> = {
   en: "en.sahih",
 }
 
-const memoryCache = new Map<string, ReadVerse[]>()
+// Keeps only the last few opened surahs in memory. Keeping all 114 (whole Quran with
+// translation and Mushaf text) used tens of MB and got the app killed on low-memory phones.
+const MEMORY_SURAHS = 6
+class SmallCache extends Map<string, ReadVerse[]> {
+  get(key: string) {
+    const value = super.get(key)
+    if (value) {
+      // Mark as recently used
+      super.delete(key)
+      super.set(key, value)
+    }
+    return value
+  }
+  set(key: string, value: ReadVerse[]) {
+    super.delete(key)
+    super.set(key, value)
+    while (this.size > MEMORY_SURAHS) {
+      const oldest = this.keys().next().value
+      if (oldest === undefined) break
+      super.delete(oldest)
+    }
+    return this
+  }
+}
+const memoryCache = new SmallCache()
 
 /** True when most verses have a translation. A surah saved while the translation failed is incomplete. */
 export function hasTranslation(verses: ReadVerse[] | null | undefined, language?: string): boolean {
@@ -177,25 +201,22 @@ export function peekCachedSurah(surah: number, language: string): ReadVerse[] | 
   return cached?.length ? withVisibleKasra(cached) : null
 }
 
-/** Load all cached surahs for a language into memory for instant read mode. */
+/**
+ * Used to load all 114 surahs into memory. That used too much memory on budget Android phones,
+ * so now it only loads the surah the reader was last on (others load from files when opened).
+ * Returns how many surahs are saved on the phone for this language.
+ */
 export async function warmReadCacheForLanguage(language: string): Promise<number> {
   const lang = normalizeReadLanguage(language)
-  const keys = Array.from({ length: 114 }, (_, i) => surahCacheKey(i + 1, lang))
-  const pairs = await storedGetMany(keys)
-  let loaded = 0
-
-  pairs.forEach(([key, value]) => {
-    if (!value) return
-    try {
-      const parsed: ReadVerse[] = JSON.parse(value)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        memoryCache.set(key, withVisibleKasra(parsed))
-        loaded++
-      }
-    } catch {}
-  })
-
-  return loaded
+  try {
+    if (READ_DIR) {
+      const info = await FileSystem.getInfoAsync(READ_DIR)
+      if (!info.exists) return 0
+      const files = await FileSystem.readDirectoryAsync(READ_DIR)
+      return files.filter(f => f.endsWith(`_${lang}.json`)).length
+    }
+  } catch {}
+  return 0
 }
 
 export async function readCachedSurah(

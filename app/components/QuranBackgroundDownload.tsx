@@ -1,71 +1,71 @@
+// Saves the whole Quran (Mushaf pages + read mode) on the phone in the background,
+// so it works offline.
+//
+// Made gentle for budget phones and mobile data (it used to start at every launch, retry
+// every 30 seconds forever and re-check the whole Quran every minute):
+//   * waits 1 minute after the app opens, so the first screens stay smooth
+//   * only downloads on Wi-Fi (pilgrims' mobile data is expensive)
+//   * at most 3 tries per app session
+//   * runs again only when the language changes (new translation needed)
+// Users can still download right away from the Quran screen.
 import { downloadFullQuran, isQuranFullyCached } from "@/lib/quranDownload"
-import { normalizeReadLanguage, warmReadCacheForLanguage } from "@/lib/quranReadCache"
 import i18n from "@/i18n"
-import AsyncStorage from "@react-native-async-storage/async-storage"
+import * as Network from "expo-network"
 import { useEffect } from "react"
 
-const RETRY_DELAY_MS = 30_000
-const LANGUAGE_CHECK_MS = 60_000
+const START_DELAY_MS = 60_000
+const RETRY_DELAY_MS = 5 * 60_000
+const MAX_TRIES = 3
+
+async function onWifi() {
+  try {
+    const state = await Network.getNetworkStateAsync()
+    return state.type === Network.NetworkStateType.WIFI && state.isInternetReachable !== false
+  } catch {
+    return false
+  }
+}
 
 export default function QuranBackgroundDownload() {
   useEffect(() => {
     let cancelled = false
-    let retryTimer: ReturnType<typeof setTimeout> | undefined
-    let languageTimer: ReturnType<typeof setInterval> | undefined
-    let lastLanguage = ""
-
-    const currentLanguage = async () => {
-      const lang = normalizeReadLanguage(i18n.language || (await AsyncStorage.getItem("language")) || "en")
-      await AsyncStorage.setItem("language", lang)
-      return lang
-    }
-
-    const warmIfReady = async () => {
-      const language = await currentLanguage()
-      await warmReadCacheForLanguage(language)
-    }
-
-    const ensureDownloaded = async (): Promise<boolean> => {
-      if (await isQuranFullyCached()) {
-        await warmIfReady()
-        return true
-      }
-      return downloadFullQuran()
-    }
+    let running = false
+    let timer: ReturnType<typeof setTimeout> | undefined
 
     const run = async () => {
-      while (!cancelled) {
-        try {
-          const ready = await ensureDownloaded()
-          if (ready || cancelled) return
-        } catch (e) {
-          console.log("[QuranDownload] Error:", e)
+      if (running || cancelled) return
+      running = true
+      try {
+        for (let attempt = 0; attempt < MAX_TRIES && !cancelled; attempt++) {
+          if (await isQuranFullyCached()) return
+          if (await onWifi()) {
+            try {
+              if (await downloadFullQuran()) return
+            } catch (e) {
+              console.log("[QuranDownload] Error:", e)
+            }
+          }
+          await new Promise<void>(resolve => {
+            timer = setTimeout(resolve, RETRY_DELAY_MS)
+          })
         }
-
-        await new Promise<void>(resolve => {
-          retryTimer = setTimeout(resolve, RETRY_DELAY_MS)
-        })
+      } finally {
+        running = false
       }
     }
 
-    run()
+    timer = setTimeout(run, START_DELAY_MS)
 
-    languageTimer = setInterval(async () => {
-      if (cancelled) return
-      const language = await currentLanguage()
-      if (language === lastLanguage && (await isQuranFullyCached())) return
-      lastLanguage = language
-      if (!(await isQuranFullyCached())) {
-        downloadFullQuran().catch(console.log)
-      } else {
-        warmReadCacheForLanguage(language).catch(console.log)
-      }
-    }, LANGUAGE_CHECK_MS)
+    // New language = new translation to save.
+    const onLanguage = () => {
+      setTimeout(run, 5_000)
+    }
+    i18n.on("languageChanged", onLanguage)
 
     return () => {
       cancelled = true
-      if (retryTimer) clearTimeout(retryTimer)
-      if (languageTimer) clearInterval(languageTimer)
+      if (timer) clearTimeout(timer)
+      i18n.off("languageChanged", onLanguage)
     }
   }, [])
 

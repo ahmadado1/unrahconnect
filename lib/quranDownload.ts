@@ -127,17 +127,26 @@ async function getDownloadLanguage() {
   return fromI18n
 }
 
+// Remembers "everything is saved for this language", so we don't re-check 604 pages and
+// 114 surahs (reading and parsing the whole Quran) every time — that was slow and used a lot
+// of memory on budget phones.
+const readyKey = (language: string) => `quran_ready_${normalizeReadLanguage(language)}_v1`
+
 export async function isQuranFullyCached(): Promise<boolean> {
   try {
     const flag = await AsyncStorage.getItem(QURAN_DOWNLOAD_FLAG_KEY)
     if (flag !== "true") return false
 
+    const language = await getDownloadLanguage()
+    if ((await AsyncStorage.getItem(readyKey(language))) === "true") return true
+
     const missingPages = await getMissingPageNumbers()
     if (missingPages.length > 0) return false
 
-    const language = await getDownloadLanguage()
     const missingSurahs = await getMissingSurahNumbers(language)
-    return missingSurahs.length === 0
+    const ready = missingSurahs.length === 0
+    if (ready) await AsyncStorage.setItem(readyKey(language), "true").catch(() => {})
+    return ready
   } catch {
     return false
   }
@@ -281,5 +290,7 @@ export async function ensureQuranForLanguage(language: string): Promise<boolean>
 
 export async function resetQuranCache(): Promise<void> {
   await clearQuranDownloadFlag()
+  const keys = (await AsyncStorage.getAllKeys().catch(() => [] as readonly string[])).filter(k => k.startsWith("quran_ready_"))
+  if (keys.length) await AsyncStorage.multiRemove(keys).catch(() => {})
   emit({ status: "idle", done: 0, total: TOTAL_ITEMS, label: "" })
 }
