@@ -20,6 +20,7 @@ import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Linking, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
+import AgentEarningsCard from "@/app/components/AgentEarningsCard"
 import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
@@ -267,6 +268,9 @@ export default function AgentDashboard() {
             </View>
           </View>
         ) : null}
+
+        {/* ─── Earnings: 10% of Premium paid by pilgrims this agent brought ─ */}
+        <AgentEarningsCard agentId={agent.id} />
 
         {/* ─── Preview my public profile (only when listed) ────────────── */}
         {mode === "active" ? (

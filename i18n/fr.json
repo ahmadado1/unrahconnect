@@ -2602,5 +2602,14 @@
   "aiQChecklist": "Quelle est la liste de la Omra ?",
   "aiQFajr": "Étapes de la prière du Fajr",
   "bismillahMeaning": "Au nom d'Allah, le Tout Miséricordieux, le Très Miséricordieux",
-  "yes": "Oui"
+  "yes": "Oui",
+  "earnTitle": "Vos gains",
+  "earnRule": "Vous gagnez 10 % du Premium payé par les pèlerins qui rejoignent avec votre code, pendant leurs 12 premiers mois.",
+  "earnReferred": "Pèlerins apportés",
+  "earnPremium": "En Premium",
+  "earnPending": "En attente",
+  "earnReady": "Prêt à payer",
+  "earnPaid": "Payé",
+  "earnNone": "Pas encore de gains. Partagez votre QR code pour que les pèlerins rejoignent avec votre code.",
+  "earnHint": "Les gains sont prêts 30 jours après le paiement du pèlerin. Nous versons les gains prêts chaque mois (minimum 10 $)."
 }

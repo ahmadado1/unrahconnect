@@ -2602,5 +2602,14 @@
   "aiQChecklist": "What is the Umrah checklist?",
   "aiQFajr": "Fajr prayer steps",
   "bismillahMeaning": "In the name of Allah, the Most Gracious, the Most Merciful",
-  "yes": "Yes"
+  "yes": "Yes",
+  "earnTitle": "Your earnings",
+  "earnRule": "You earn 10% of the Premium paid by pilgrims who join with your code, for their first 12 months.",
+  "earnReferred": "Pilgrims you brought",
+  "earnPremium": "On Premium",
+  "earnPending": "Pending",
+  "earnReady": "Ready to pay",
+  "earnPaid": "Paid",
+  "earnNone": "No earnings yet. Share your QR code so pilgrims join with your code.",
+  "earnHint": "Earnings become ready 30 days after the pilgrim pays. We pay ready earnings every month (minimum $10)."
 }

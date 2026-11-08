@@ -42,6 +42,51 @@ async function premiumFromRevenueCat(appUserId: string, secret: string) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Agent commission (10% of what we receive) for Premium paid in the App Store / Google Play.
+// The database function decides if the pilgrim was brought by an agent and if it still counts
+// (paid after joining, within 12 months). Refunds cancel the commission.
+// Sandbox (test) purchases are ignored unless COMMISSION_INCLUDE_SANDBOX=true is set.
+// ---------------------------------------------------------------------------
+const PAID_EVENTS = ["INITIAL_PURCHASE", "RENEWAL", "NON_RENEWING_PURCHASE", "PRODUCT_CHANGE"]
+
+// deno-lint-ignore no-explicit-any
+async function handleCommission(supabase: any, event: any) {
+  const type = String(event.type ?? "")
+  const source = event.store === "APP_STORE" ? "apple" : event.store === "PLAY_STORE" ? "google" : String(event.store ?? "store").toLowerCase()
+  const ref = String(event.transaction_id ?? event.id ?? "")
+  if (!ref) return
+  if (event.environment === "SANDBOX" && Deno.env.get("COMMISSION_INCLUDE_SANDBOX") !== "true") return
+
+  // Refund: Apple/Google gave the money back, so the agent gets nothing for it.
+  if (type === "CANCELLATION" && event.cancel_reason === "CUSTOMER_SUPPORT") {
+    await supabase.rpc("reverse_agent_commission", { p_source: source, p_ref: ref })
+    return
+  }
+
+  if (!PAID_EVENTS.includes(type) || event.period_type === "TRIAL") return
+  const userId = typeof event.app_user_id === "string" && UUID.test(event.app_user_id) ? event.app_user_id : null
+  const gross = Number(event.price ?? 0) // USD
+  if (!userId || !(gross > 0)) return
+  // What we keep after Apple/Google's cut (and tax). RevenueCat sends it as a fraction, e.g. 0.85.
+  const takehome = Number(event.takehome_percentage)
+  const net = gross * (takehome > 0 && takehome <= 1 ? takehome : 0.85)
+  const plan = /year|annual/i.test(String(event.product_id ?? "")) ? "yearly" : "monthly"
+  const paidAt = event.purchased_at_ms ? new Date(Number(event.purchased_at_ms)).toISOString() : new Date().toISOString()
+
+  const { error } = await supabase.rpc("record_agent_commission", {
+    p_user: userId,
+    p_source: source,
+    p_ref: ref,
+    p_plan: plan,
+    p_gross: Math.round(gross * 100) / 100,
+    p_net: Math.round(net * 100) / 100,
+    p_currency: "USD",
+    p_paid_at: paidAt,
+  })
+  if (error) console.error("commission error:", error.message)
+}
+
 serve(async req => {
   if (req.method !== "POST") return reply({ error: "method" }, 405)
   const auth = Deno.env.get("REVENUECAT_WEBHOOK_AUTH")
@@ -99,6 +144,13 @@ serve(async req => {
         }
       }
     }
+    // Agent commission (never blocks the Premium update above).
+    try {
+      await handleCommission(supabase, event)
+    } catch (e) {
+      console.error("commission failed:", e)
+    }
+
     return reply({ ok: true })
   } catch (e) {
     console.error("revenuecat-webhook error:", e)

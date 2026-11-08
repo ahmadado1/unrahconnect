@@ -2602,5 +2602,14 @@
   "aiQChecklist": "Umre kontrol listesi nedir?",
   "aiQFajr": "Sabah namazının adımları",
   "bismillahMeaning": "Rahmân ve Rahîm olan Allah'ın adıyla",
-  "yes": "Evet"
+  "yes": "Evet",
+  "earnTitle": "Kazançlarınız",
+  "earnRule": "Kodunuzla katılan hacıların ödediği Premium'un %10'unu ilk 12 ay boyunca kazanırsınız.",
+  "earnReferred": "Getirdiğiniz hacılar",
+  "earnPremium": "Premium'da",
+  "earnPending": "Beklemede",
+  "earnReady": "Ödemeye hazır",
+  "earnPaid": "Ödendi",
+  "earnNone": "Henüz kazanç yok. Hacıların kodunuzla katılması için QR kodunuzu paylaşın.",
+  "earnHint": "Kazançlar, hacı ödeme yaptıktan 30 gün sonra hazır olur. Hazır kazançları her ay öderiz (en az 10 $)."
 }
