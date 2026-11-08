@@ -108,7 +108,20 @@ export function getNextPrayerFromTimes(
   return { name: "Fajr" as const, time: times.Fajr }
 }
 
+// Screens refresh prayer times every time they open. Re-booking every alarm each time was far
+// too much work for budget phones, so the same times are booked at most once every 30 minutes.
+// (Changing a setting — Adhan voice, prayer mode — books again straight away through
+// reschedulePrayerNotificationsFromCache, which does not pass through here.)
+let lastSyncKey = ""
+let lastSyncAt = 0
+const SYNC_EVERY_MS = 30 * 60 * 1000
+
 async function syncPrayerNotifications(times: CachedPrayerTimes) {
+  const key = [times.gregorianDate, times.Fajr, times.Dhuhr, times.Asr, times.Maghrib, times.Isha].join("|")
+  if (key === lastSyncKey && Date.now() - lastSyncAt < SYNC_EVERY_MS) return
+  lastSyncKey = key
+  lastSyncAt = Date.now()
+
   const notifEnabled = await AsyncStorage.getItem("notifications_enabled")
   if (notifEnabled === "false") return
 

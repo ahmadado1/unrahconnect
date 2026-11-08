@@ -770,10 +770,28 @@ export async function schedulePrayerNotifications(
     await logPendingAlerts("after prayers")
   }
 
-  const next = schedulePrayerChain.then(run, run)
-  schedulePrayerChain = next.catch(() => {})
+  // Many screens ask to book prayer alerts (home, Umrah tab, prayer widget, alert service...).
+  // Booking 55 alarms + all sound channels each time kept budget Android phones busy nonstop
+  // (hundreds of times in a few minutes). Now requests that arrive while one is waiting are
+  // merged: only the newest one runs.
+  latestPrayerRun = run
+  if (pendingPrayerRun) {
+    await pendingPrayerRun
+    return
+  }
+  const runLatest = () => {
+    pendingPrayerRun = null
+    const r = latestPrayerRun
+    latestPrayerRun = null
+    return r ? r() : undefined
+  }
+  const next = schedulePrayerChain.then(runLatest, runLatest)
+  pendingPrayerRun = next.catch(() => {})
+  schedulePrayerChain = pendingPrayerRun
   await next
 }
+let pendingPrayerRun: Promise<void> | null = null
+let latestPrayerRun: (() => Promise<void>) | null = null
 
 /**
  * iPhone test: the FULL Adhan in parts, starting in `seconds`. Uses the same parts as prayer time.
