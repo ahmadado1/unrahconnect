@@ -2616,5 +2616,9 @@
   "batteryTipBody": "آپ کا فون بیٹری بچانے کے لیے UmrahConnect کو محدود کر سکتا ہے۔ تب اذان دیر سے یا بالکل نہیں بجتی اور ایپ بند ہو سکتی ہے۔",
   "batteryTipSteps": "سیٹنگز کھولیں ← بیٹری ← «غیر محدود» (یا «کوئی پابندی نہیں») منتخب کریں۔",
   "batteryTipOpen": "سیٹنگز کھولیں",
-  "batteryTipLater": "ابھی نہیں"
+  "batteryTipLater": "ابھی نہیں",
+  "agentMatchTitle": "کیا آپ کو کسی ایجنسی نے بھیجا ہے؟",
+  "agentMatchBody": "کیا {{name}} نے آپ کو UmrahConnect پر بلایا؟ ان کی اپ ڈیٹس اور مدد کے لیے ان سے جڑیں۔",
+  "agentMatchNo": "نہیں",
+  "agentMatchYes": "ہاں، جڑیں"
 }

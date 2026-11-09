@@ -174,7 +174,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Android: agent code that came through Google Play (agent QR -> Play Store -> install)
-    void import("@/lib/installReferrer").then(m => m.captureInstallReferrer()).catch(() => {})
+    // Android: agent code that came through Google Play. Then (mainly iPhone) "Were you sent by …?"
+    void import("@/lib/installReferrer")
+      .then(m => m.captureInstallReferrer())
+      .catch(() => null)
+      .then(() => new Promise(resolve => setTimeout(resolve, 4000)))
+      .then(() => import("@/lib/agentMatch"))
+      .then(m => m.checkAgentMatchOnce())
+      .catch(() => {})
     // Android: move old saved surahs out of the 6 MB AsyncStorage box into files (frees space).
     setTimeout(() => {
       void import("@/lib/quranReadCache").then(m => m.migrateLegacySurahCache()).catch(() => {})

@@ -2616,5 +2616,9 @@
   "batteryTipBody": "Telefonunuz pil tasarrufu için UmrahConnect'i kısıtlayabilir. Bu durumda ezan gecikebilir veya hiç çalmayabilir ve uygulama kapanabilir.",
   "batteryTipSteps": "Ayarları açın → Pil → “Kısıtlanmamış” (veya “Kısıtlama yok”) seçin.",
   "batteryTipOpen": "Ayarları aç",
-  "batteryTipLater": "Şimdi değil"
+  "batteryTipLater": "Şimdi değil",
+  "agentMatchTitle": "Sizi bir acente mi gönderdi?",
+  "agentMatchBody": "{{name}} sizi UmrahConnect'e davet etti mi? Duyurularını ve desteğini almak için katılın.",
+  "agentMatchNo": "Hayır",
+  "agentMatchYes": "Evet, katıl"
 }

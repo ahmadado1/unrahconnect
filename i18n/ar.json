@@ -2620,5 +2620,9 @@
   "batteryTipBody": "قد يقيّد هاتفك تطبيق UmrahConnect لتوفير البطارية، فيتأخر الأذان أو لا يعمل وقد يُغلق التطبيق.",
   "batteryTipSteps": "افتح الإعدادات ← البطارية ← اختر «غير مقيّد» (أو «بلا قيود»).",
   "batteryTipOpen": "فتح الإعدادات",
-  "batteryTipLater": "ليس الآن"
+  "batteryTipLater": "ليس الآن",
+  "agentMatchTitle": "هل أرسلتك وكالة؟",
+  "agentMatchBody": "هل دعتك {{name}} إلى UmrahConnect؟ انضم إليها لتصلك تحديثاتها ودعمها.",
+  "agentMatchNo": "لا",
+  "agentMatchYes": "نعم، انضم"
 }

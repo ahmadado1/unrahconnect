@@ -2616,5 +2616,9 @@
   "batteryTipBody": "Your phone may limit UmrahConnect to save battery. Then the Adhan can be late or missing and the app may close.",
   "batteryTipSteps": "Open settings → Battery → choose “Unrestricted” (or “No restrictions”).",
   "batteryTipOpen": "Open settings",
-  "batteryTipLater": "Not now"
+  "batteryTipLater": "Not now",
+  "agentMatchTitle": "Were you sent by an agency?",
+  "agentMatchBody": "Did {{name}} invite you to UmrahConnect? Join them to get their updates and support.",
+  "agentMatchNo": "No",
+  "agentMatchYes": "Yes, join"
 }

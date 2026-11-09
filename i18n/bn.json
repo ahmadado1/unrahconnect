@@ -2616,5 +2616,9 @@
   "batteryTipBody": "ব্যাটারি বাঁচাতে আপনার ফোন UmrahConnect সীমিত করতে পারে। তখন আজান দেরিতে বাজতে বা না বাজতে পারে এবং অ্যাপ বন্ধ হয়ে যেতে পারে।",
   "batteryTipSteps": "সেটিংস খুলুন → ব্যাটারি → “Unrestricted” (বা “কোনো সীমাবদ্ধতা নেই”) বেছে নিন।",
   "batteryTipOpen": "সেটিংস খুলুন",
-  "batteryTipLater": "এখন নয়"
+  "batteryTipLater": "এখন নয়",
+  "agentMatchTitle": "কোনো এজেন্সি কি আপনাকে পাঠিয়েছে?",
+  "agentMatchBody": "{{name}} কি আপনাকে UmrahConnect-এ আমন্ত্রণ জানিয়েছে? তাদের আপডেট ও সহায়তা পেতে যোগ দিন।",
+  "agentMatchNo": "না",
+  "agentMatchYes": "হ্যাঁ, যোগ দিন"
 }

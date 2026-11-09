@@ -2616,5 +2616,9 @@
   "batteryTipBody": "Votre téléphone peut limiter UmrahConnect pour économiser la batterie. L’Adhan peut alors être en retard ou absent, et l’app peut se fermer.",
   "batteryTipSteps": "Ouvrez les paramètres → Batterie → choisissez « Non restreinte » (ou « Aucune restriction »).",
   "batteryTipOpen": "Ouvrir les paramètres",
-  "batteryTipLater": "Plus tard"
+  "batteryTipLater": "Plus tard",
+  "agentMatchTitle": "Une agence vous a-t-elle envoyé ?",
+  "agentMatchBody": "{{name}} vous a-t-elle invité sur UmrahConnect ? Rejoignez-la pour recevoir ses annonces et son aide.",
+  "agentMatchNo": "Non",
+  "agentMatchYes": "Oui, rejoindre"
 }
