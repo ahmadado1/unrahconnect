@@ -145,7 +145,7 @@ export async function getAgentByCode(code: string): Promise<PublicAgent | null> 
   if (!normalized) return null
 
   const { data, error } = await supabase
-    .from("active_agents")
+    .from("agent_lookup")
     .select(PUBLIC_COLUMNS)
     .eq("agent_code", normalized)
     .maybeSingle()
@@ -170,7 +170,7 @@ export async function getMyAgent(): Promise<PublicAgent | null> {
   if (!link?.agent_id) return null
 
   const { data: agent, error: agentError } = await supabase
-    .from("active_agents")
+    .from("agent_lookup")
     .select(PUBLIC_COLUMNS)
     .eq("id", link.agent_id)
     .maybeSingle()
@@ -334,7 +334,7 @@ export function agentCodeFromScan(raw: string): string | null {
 /** One active agency by id (null when it is not live: not verified, unpaid or suspended). */
 export async function getActiveAgentById(id: string): Promise<PublicAgent | null> {
   const { data, error } = await supabase
-    .from("active_agents")
+    .from("agent_lookup")
     .select(PUBLIC_COLUMNS)
     .eq("id", id)
     .maybeSingle()
