@@ -2611,5 +2611,10 @@
   "earnReady": "Ready to pay",
   "earnPaid": "Paid",
   "earnNone": "No earnings yet. Share your QR code so pilgrims join with your code.",
-  "earnHint": "Earnings become ready 30 days after the pilgrim pays. We pay ready earnings every month (minimum $10)."
+  "earnHint": "Earnings become ready 30 days after the pilgrim pays. We pay ready earnings every month (minimum $10).",
+  "batteryTipTitle": "Keep prayer alerts on time",
+  "batteryTipBody": "Your phone may limit UmrahConnect to save battery. Then the Adhan can be late or missing and the app may close.",
+  "batteryTipSteps": "Open settings → Battery → choose “Unrestricted” (or “No restrictions”).",
+  "batteryTipOpen": "Open settings",
+  "batteryTipLater": "Not now"
 }

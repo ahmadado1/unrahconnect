@@ -2611,5 +2611,10 @@
   "earnReady": "Ödemeye hazır",
   "earnPaid": "Ödendi",
   "earnNone": "Henüz kazanç yok. Hacıların kodunuzla katılması için QR kodunuzu paylaşın.",
-  "earnHint": "Kazançlar, hacı ödeme yaptıktan 30 gün sonra hazır olur. Hazır kazançları her ay öderiz (en az 10 $)."
+  "earnHint": "Kazançlar, hacı ödeme yaptıktan 30 gün sonra hazır olur. Hazır kazançları her ay öderiz (en az 10 $).",
+  "batteryTipTitle": "Namaz uyarıları zamanında gelsin",
+  "batteryTipBody": "Telefonunuz pil tasarrufu için UmrahConnect'i kısıtlayabilir. Bu durumda ezan gecikebilir veya hiç çalmayabilir ve uygulama kapanabilir.",
+  "batteryTipSteps": "Ayarları açın → Pil → “Kısıtlanmamış” (veya “Kısıtlama yok”) seçin.",
+  "batteryTipOpen": "Ayarları aç",
+  "batteryTipLater": "Şimdi değil"
 }

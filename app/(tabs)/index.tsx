@@ -50,6 +50,7 @@ import {
   type AppStateStatus,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BatteryTipCard from "@/app/components/BatteryTipCard";
 
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -687,6 +688,9 @@ export default function HomeScreen() {
 
         {/* ── Premium ends in the next 3 days ── */}
         <PremiumEndingBanner />
+
+        {/* ── Android brands that restrict battery: one-time "set to Unrestricted" tip ── */}
+        <BatteryTipCard />
 
         {/* ── In Makkah: Tawaf / Sa'i counters and My duas, for the whole stay ── */}
         <MakkahStayCard />

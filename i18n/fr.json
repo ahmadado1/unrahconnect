@@ -2611,5 +2611,10 @@
   "earnReady": "Prêt à payer",
   "earnPaid": "Payé",
   "earnNone": "Pas encore de gains. Partagez votre QR code pour que les pèlerins rejoignent avec votre code.",
-  "earnHint": "Les gains sont prêts 30 jours après le paiement du pèlerin. Nous versons les gains prêts chaque mois (minimum 10 $)."
+  "earnHint": "Les gains sont prêts 30 jours après le paiement du pèlerin. Nous versons les gains prêts chaque mois (minimum 10 $).",
+  "batteryTipTitle": "Gardez les alertes de prière à l’heure",
+  "batteryTipBody": "Votre téléphone peut limiter UmrahConnect pour économiser la batterie. L’Adhan peut alors être en retard ou absent, et l’app peut se fermer.",
+  "batteryTipSteps": "Ouvrez les paramètres → Batterie → choisissez « Non restreinte » (ou « Aucune restriction »).",
+  "batteryTipOpen": "Ouvrir les paramètres",
+  "batteryTipLater": "Plus tard"
 }
