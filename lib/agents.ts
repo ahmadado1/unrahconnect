@@ -123,6 +123,8 @@ export async function getActiveAgents(country?: string): Promise<PublicAgent[]> 
   const { data, error } = await supabase
     .from("active_agents")
     .select(PUBLIC_COLUMNS)
+    // Test/internal agencies (e.g. the founder's MeMo) still work by code, but are not listed.
+    .eq("hidden", false)
     .order("plan", { ascending: true })
     .order("business_name", { ascending: true })
 
