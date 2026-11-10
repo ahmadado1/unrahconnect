@@ -268,6 +268,12 @@ export default function RootLayout() {
       // Keep the account's language up to date (used for emails in the user's language).
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) setTimeout(() => void syncUserLanguage(i18n.language), 0)
       if (event === "SIGNED_OUT") setTimeout(() => void logoutPurchases(), 0)
+      // Cloud backup of settings: restore after login (reinstall / new phone), then keep saving.
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+        setTimeout(() => {
+          void import("@/lib/cloudSync").then(m => m.syncSettings({ force: true })).catch(() => {})
+        }, 1500)
+      }
       // A pilgrim who tapped "Join" or scanned an agent QR before signing in gets linked now.
       // Deferred with setTimeout: calling Supabase inside this callback can lock up other auth calls.
       if (event === "SIGNED_IN" && session?.user?.user_metadata?.profile_complete) {
@@ -286,6 +292,14 @@ export default function RootLayout() {
         setStatus("login")
         router.replace("/auth/login")
       }
+    })
+
+    // Settings backup: save changes every few minutes and whenever the app goes to the background.
+    const settingsTimer = setInterval(() => {
+      void import("@/lib/cloudSync").then(m => m.syncSettingsIfDue()).catch(() => {})
+    }, 60 * 1000)
+    const settingsAppState = AppState.addEventListener("change", state => {
+      if (state === "background") void import("@/lib/cloudSync").then(m => m.syncSettings()).catch(() => {})
     })
 
     const onLanguageChanged = (lng: string) => void syncUserLanguage(lng)
@@ -326,6 +340,8 @@ export default function RootLayout() {
     })
 
     return () => {
+      clearInterval(settingsTimer)
+      settingsAppState.remove()
       authListener.subscription.unsubscribe()
       i18n.off("languageChanged", onLanguageChanged)
       responseListener.remove()
