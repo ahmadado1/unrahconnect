@@ -66,7 +66,7 @@ type GPlace = {
   photos?: { name: string; authorAttributions?: { displayName?: string; uri?: string }[] }[]
 }
 
-async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS, lang: string) {
+async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS, lang: string, debug = false) {
   const center = CENTERS[city]
   const { types, radius } = KINDS[kind]
   const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
@@ -81,7 +81,8 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
       ].join(","),
     },
     body: JSON.stringify({
-      includedTypes: types,
+      includedPrimaryTypes: types,
+      excludedPrimaryTypes: ["lodging", "hotel", "resort_hotel"],
       maxResultCount: 20,
       rankPreference: "POPULARITY",
       languageCode: lang,
@@ -91,6 +92,8 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) throw new Error(data?.error?.message || `Google Places error ${res.status}`)
+  // ?debug=1: show what Google sent for the first two places (to check photos)
+  if (debug) return { debug: true, sample: (data?.places ?? []).slice(0, 2), count: (data?.places ?? []).length }
 
   const seenPhotos = new Set<string>()
   const places = ((data?.places ?? []) as GPlace[])
@@ -148,6 +151,24 @@ serve(async (req) => {
   const langRaw = (url.searchParams.get("lang") || "en").slice(0, 2).toLowerCase()
   const lang = LANGS.has(langRaw) ? langRaw : "en"
   if (!CENTERS[city] || !KINDS[kind]) return json({ error: "Unknown city or kind" }, 400)
+
+  // ?details=<place id>: ask Google for that one place's photos (check whether photos exist at all)
+  const details = url.searchParams.get("details")
+  if (details) {
+    if (!/^[\w-]+$/.test(details)) return json({ error: "Bad id" }, 400)
+    const res = await fetch(`https://places.googleapis.com/v1/places/${details}`, {
+      headers: { "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "id,displayName,photos" },
+    })
+    return json(await res.json().catch(() => ({ error: res.status })), res.ok ? 200 : 502)
+  }
+
+  if (url.searchParams.get("debug") === "1") {
+    try {
+      return json(await searchNearby(city, kind, lang, true))
+    } catch (e) {
+      return json({ error: String(e) }, 502)
+    }
+  }
 
   const cacheKey = `${city}:${kind}:${lang}`
   const hit = cache.get(cacheKey)

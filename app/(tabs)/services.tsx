@@ -1,8 +1,8 @@
 // Services tab.
 //   1. Big hotel card (photo + "Book on Booking.com")
-//   2. Travel essentials: flights, eSIM
-//   3. Near the holy mosques: restaurants, malls, hospitals, transport (live from Google)
-//   4. Travel agencies: Find an Agent
+//   2. Travel agencies: Find an Agent
+//   3. Travel essentials: flights, eSIM
+//   4. Near the holy mosques: restaurants, malls, hospitals, transport (live from Google)
 import TouchableOpacity from "@/app/components/AppPressable"
 import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMarks"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
@@ -94,7 +94,24 @@ export default function ServicesScreen() {
           </ImageBackground>
         </TouchableOpacity>
 
-        {/* ─── 2. Travel essentials ─── */}
+        {/* ─── 2. Travel agencies (right under the hotels) ─── */}
+        <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcAgencies")}</Text>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/agent" as any)} accessibilityRole="button">
+          <LinearGradient colors={[NAVY, "#2C5282"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.agentCard}>
+            <View style={styles.agentIcon}>
+              <AppIcon name="handshake" size={22} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.agentTitle}>{t("findAgent")}</Text>
+              <Text style={styles.agentSub} numberOfLines={2}>{t("findAgentSub")}</Text>
+            </View>
+            <View style={styles.verifiedChip}>
+              <Ionicons name="shield-checkmark" size={12} color={NAVY} />
+              <Text style={styles.verifiedText}>{t("agentVerified")}</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+        {/* ─── 3. Travel essentials ─── */}
         <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcTravel")}</Text>
         <View style={styles.essentials}>
           {ESSENTIALS.map((item) => (
@@ -111,7 +128,7 @@ export default function ServicesScreen() {
           ))}
         </View>
 
-        {/* ─── 3. Near the holy mosques ─── */}
+        {/* ─── 4. Near the holy mosques ─── */}
         <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcNear")}</Text>
         <View style={styles.grid}>
           {NEAR.map((item) => (
@@ -130,23 +147,6 @@ export default function ServicesScreen() {
           ))}
         </View>
 
-        {/* ─── 4. Travel agencies ─── */}
-        <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcAgencies")}</Text>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/agent" as any)} accessibilityRole="button">
-          <LinearGradient colors={[NAVY, "#2C5282"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.agentCard}>
-            <View style={styles.agentIcon}>
-              <AppIcon name="handshake" size={22} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.agentTitle}>{t("findAgent")}</Text>
-              <Text style={styles.agentSub} numberOfLines={2}>{t("findAgentSub")}</Text>
-            </View>
-            <View style={styles.verifiedChip}>
-              <Ionicons name="shield-checkmark" size={12} color={NAVY} />
-              <Text style={styles.verifiedText}>{t("agentVerified")}</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   )
