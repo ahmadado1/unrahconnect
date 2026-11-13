@@ -18,8 +18,9 @@ import {
   chainLogo,
   formatMeters,
   getNearbyPlaces,
-  nearbyPhotoUrl,
+  placePhotoUrl,
   priceSymbols,
+  type CategoryBanner,
   type NearbyCategory,
   type NearbyCity,
   type NearbyKind,
@@ -50,7 +51,7 @@ const CAT_STYLE: Record<NearbyCategory, { icon: keyof typeof Ionicons.glyphMap; 
 function Thumb({ place }: { place: NearbyPlace }) {
   const look = CAT_STYLE[place.category] ?? CAT_STYLE.other
   if (place.photo) {
-    return <Image source={{ uri: nearbyPhotoUrl(place.photo.name, 200) }} style={styles.thumb} contentFit="cover" transition={150} cachePolicy="memory-disk" />
+    return <Image source={{ uri: placePhotoUrl(place.photo, 240) }} style={styles.thumb} contentFit="cover" transition={150} cachePolicy="memory-disk" />
   }
   const logo = chainLogo(place.name)
   if (logo) {
@@ -77,13 +78,16 @@ export default function NearbyScreen() {
   const [city, setCity] = useState<NearbyCity>(params.city === "madinah" ? "madinah" : "makkah")
   const [category, setCategory] = useState<NearbyCategory | "all">("all")
   const [places, setPlaces] = useState<NearbyPlace[] | null>(null)
+  const [banners, setBanners] = useState<Partial<Record<string, CategoryBanner>>>({})
   const [error, setError] = useState(false)
 
   const load = useCallback(async () => {
     setError(false)
     setPlaces(null)
     try {
-      setPlaces(await getNearbyPlaces(city, kind, (i18n.language || "en").slice(0, 2)))
+      const result = await getNearbyPlaces(city, kind, (i18n.language || "en").slice(0, 2))
+      setPlaces(result.places)
+      setBanners(result.banners)
     } catch (e) {
       console.log("Nearby load error:", e)
       setError(true)
@@ -141,9 +145,16 @@ export default function NearbyScreen() {
               </Text>
             ) : null}
           </View>
-          {/* Google's rule: name the photographer when showing their photo */}
+          {/* Credit the photographer (Google) or author + licence (Wikimedia Commons) */}
           {item.photo?.author ? (
-            <Text style={styles.credit} numberOfLines={1}>{t("nearbyPhotoBy", { name: item.photo.author })}</Text>
+            <Text
+              style={styles.credit}
+              numberOfLines={1}
+              onPress={() => item.photo?.authorUrl && Linking.openURL(item.photo.authorUrl).catch(() => {})}
+            >
+              {t("nearbyPhotoBy", { name: item.photo.author })}
+              {item.photo.source === "wikimedia" ? ` · ${item.photo.license ? `${item.photo.license}, ` : ""}Wikimedia Commons` : ""}
+            </Text>
           ) : null}
         </View>
         <View style={styles.dirIcon}>
@@ -218,6 +229,21 @@ export default function NearbyScreen() {
         <ActivityIndicator color={GOLD} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          ListHeaderComponent={(() => {
+            const key = category === "all" ? chips[0] : category
+            const banner = key ? banners[key] : undefined
+            if (!banner) return null
+            return (
+              <View style={styles.banner}>
+                <Image source={{ uri: banner.url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+                <View style={styles.bannerShade} />
+                <Text style={styles.bannerTitle}>{key ? t(CAT_STYLE[key].labelKey) : ""}</Text>
+                <Text style={styles.bannerCredit} onPress={() => Linking.openURL(banner.pageUrl).catch(() => {})}>
+                  {t("nearbyPhotoBy", { name: banner.author })} · {banner.source || "Pexels"}
+                </Text>
+              </View>
+            )
+          })()}
           data={shown}
           keyExtractor={(p) => p.id}
           renderItem={renderItem}
@@ -264,5 +290,9 @@ const styles = StyleSheet.create({
   retry: { backgroundColor: GOLD, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16 },
   retryText: { color: NAVY, fontWeight: "bold" },
   credit: { fontSize: 10, color: "#8A97A5" },
+  banner: { height: 120, borderRadius: 16, overflow: "hidden", justifyContent: "flex-end", padding: 12, marginBottom: 2 },
+  bannerShade: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,30,50,0.35)" },
+  bannerTitle: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  bannerCredit: { color: "#E2E8F0", fontSize: 10, marginTop: 2 },
   powered: { fontSize: 11, textAlign: "center", marginTop: 8 },
 })

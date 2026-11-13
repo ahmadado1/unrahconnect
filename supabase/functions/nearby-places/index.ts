@@ -15,6 +15,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const KEY = (Deno.env.get("GOOGLE_PLACES_API_KEY") || "").trim()
+// Optional: free key from pexels.com/api, for one banner photo per category
+const PEXELS_KEY = (Deno.env.get("PEXELS_API_KEY") || "").trim()
+const UA = "UmrahConnect/1.0 (https://myumrahconnect.com; info@myumrahconnect.com)"
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -162,13 +165,221 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
         // Walking is longer than a straight line: ~1.3× the distance at ~75 m per minute
         walkMinutes: Math.max(1, Math.round((m * 1.3) / 75)),
         mapsUrl: p.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`,
-        photo: photo ? { name: photo.name, author: author?.displayName || "", authorUrl: author?.uri || "" } : null,
+        photo: photo
+          ? { source: "google", name: photo.name, url: "", author: author?.displayName || "", authorUrl: author?.uri || "", license: "" }
+          : null,
       })
     }
   })
   // Closest to the mosque first
   places.sort((a, b) => a.meters - b.meters)
-  return { places, categories: groups.map((g) => g.category), attribution: "Google" }
+  // Places Google has no photo for: try a real photo of that place on Wikimedia Commons (free)
+  await addWikimediaPhotos(center, places as unknown as OutPlace[])
+  const banners = await categoryBanners(kind)
+  const missing = (places as unknown as OutPlace[]).filter((p) => !p.photo).map((p) => p.name)
+  return { places, categories: groups.map((g) => g.category), banners, missing, attribution: "Google" }
+}
+
+type OutPhoto = { source: string; name: string; url: string; author: string; authorUrl: string; license: string }
+type OutPlace = { name: string; lat: number; lng: number; photo: OutPhoto | null }
+
+// ─── Wikimedia Commons: free photos with a location (credit + licence must be shown) ───
+// One search per city: all photos taken within 10 km of the mosque. A photo is used for a place only if
+// it was taken within 250 m of it AND its file name contains a word from the place's name, so we never
+// show a photo of the wrong place.
+const GENERIC = new Set([
+  "restaurant", "restaurants", "mall", "malls", "makkah", "mecca", "makka", "madinah", "medina", "madina", "cafe", "coffee",
+  "hotel", "tower", "towers", "center", "centre", "the", "and", "food", "court", "shop", "store", "market", "branch",
+  "مطعم", "مكة", "المدينة", "مول", "مركز", "كافيه", "مقهى", "فرع",
+])
+
+function words(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^file:/, "")
+    .replace(/\.(jpe?g|png|webp|tiff?)$/i, "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 4 && !GENERIC.has(w))
+}
+
+const commonsCache = new Map<string, { at: number; files: { title: string; lat: number; lng: number }[] }>()
+
+async function commonsFilesNear(center: { lat: number; lng: number }) {
+  const key = `${center.lat},${center.lng}`
+  const hit = commonsCache.get(key)
+  if (hit && Date.now() - hit.at < 24 * 3600 * 1000) return hit.files
+  const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=geosearch&gsnamespace=6&gslimit=500&gsradius=10000&gscoord=${center.lat}%7C${center.lng}`
+  const res = await fetch(url, { headers: { "User-Agent": UA } })
+  const data = await res.json().catch(() => null)
+  const files = ((data?.query?.geosearch ?? []) as { title: string; lat: number; lon: number }[]).map((f) => ({ title: f.title, lat: f.lat, lng: f.lon }))
+  commonsCache.set(key, { at: Date.now(), files })
+  return files
+}
+
+function stripHtml(text: string) {
+  return String(text || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+}
+
+async function addWikimediaPhotos(center: { lat: number; lng: number }, places: OutPlace[]) {
+  const need = places.filter((p) => !p.photo)
+  if (!need.length) return
+  let files: { title: string; lat: number; lng: number }[] = []
+  try {
+    files = await commonsFilesNear(center)
+  } catch {
+    return
+  }
+  const used = new Set<string>()
+  const chosen = new Map<OutPlace, string>()
+  for (const place of need) {
+    const nameWords = words(place.name)
+    if (!nameWords.length) continue
+    let best: { title: string; d: number } | null = null
+    for (const f of files) {
+      if (used.has(f.title)) continue
+      const d = metres(place, f)
+      if (d > 250) continue
+      const fileWords = words(f.title)
+      if (!nameWords.some((w) => fileWords.some((fw) => fw.includes(w) || w.includes(fw)))) continue
+      if (!best || d < best.d) best = { title: f.title, d }
+    }
+    if (best) {
+      used.add(best.title) // never the same photo twice
+      chosen.set(place, best.title)
+    }
+  }
+  if (!chosen.size) return
+
+  // Image address, author and licence for the chosen files (50 per request)
+  const titles = [...new Set(chosen.values())]
+  const info = new Map<string, OutPhoto>()
+  for (let i = 0; i < titles.length; i += 50) {
+    const batch = titles.slice(i, i + 50)
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=500&iiextmetadatafilter=Artist%7CLicenseShortName&titles=${encodeURIComponent(batch.join("|"))}`
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": UA } })
+      const data = await res.json()
+      for (const page of Object.values(data?.query?.pages ?? {}) as { title: string; imageinfo?: { thumburl?: string; url?: string; descriptionurl?: string; extmetadata?: Record<string, { value?: string }> }[] }[]) {
+        const ii = page.imageinfo?.[0]
+        if (!ii) continue
+        info.set(page.title, {
+          source: "wikimedia",
+          name: page.title,
+          url: ii.thumburl || ii.url || "",
+          author: stripHtml(ii.extmetadata?.Artist?.value || "") || "Wikimedia Commons",
+          authorUrl: ii.descriptionurl || "",
+          license: stripHtml(ii.extmetadata?.LicenseShortName?.value || ""),
+        })
+      }
+    } catch {
+      // skip this batch
+    }
+  }
+  for (const [place, title] of chosen) {
+    const photo = info.get(title)
+    if (photo?.url) place.photo = photo
+  }
+}
+
+// ─── Pexels: one banner photo per category (general photo, not of a specific place) ───
+const BANNER_QUERIES: Record<string, string> = {
+  fast: "fried chicken burger fast food",
+  arabic: "arabic food mandi kabsa",
+  asian: "indian curry biryani",
+  cafe: "arabic coffee dates",
+  other: "restaurant dinner table",
+  mall: "shopping mall interior",
+  supermarket: "supermarket aisle",
+  department: "clothing store",
+}
+let bannerCache: { at: number; data: Record<string, unknown> } | null = null
+
+// Without a Pexels key: the banner comes from Wikimedia Commons instead (free, no key)
+const COMMONS_BANNER_QUERIES: Record<string, string> = {
+  fast: "broasted chicken meal",
+  arabic: "Kabsa",
+  asian: "Biryani",
+  cafe: "Arabic coffee dallah dates",
+  other: "Saudi cuisine",
+  mall: "Abraj Al Bait shopping mall",
+  supermarket: "supermarket interior Saudi Arabia",
+  department: "shopping mall interior clothes store",
+}
+let commonsBannerCache: { at: number; data: Record<string, unknown> } | null = null
+
+async function commonsBanners() {
+  if (commonsBannerCache && Date.now() - commonsBannerCache.at < 24 * 3600 * 1000) return commonsBannerCache.data
+  const data: Record<string, unknown> = {}
+  await Promise.all(
+    Object.entries(COMMONS_BANNER_QUERIES).map(async ([category, query]) => {
+      try {
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=${encodeURIComponent(`${query} filetype:bitmap`)}&prop=imageinfo&iiprop=url%7Csize%7Cextmetadata&iiurlwidth=900&iiextmetadatafilter=Artist%7CLicenseShortName`
+        const res = await fetch(url, { headers: { "User-Agent": UA } })
+        const json = await res.json()
+        const pages = Object.values(json?.query?.pages ?? {}) as { index?: number; title: string; imageinfo?: { thumburl?: string; width?: number; height?: number; descriptionurl?: string; extmetadata?: Record<string, { value?: string }> }[] }[]
+        // Best search match that is a wide, big enough photo
+        const pick = pages
+          .sort((a, b) => (a.index ?? 99) - (b.index ?? 99))
+          .find((pg) => {
+            const ii = pg.imageinfo?.[0]
+            return ii?.thumburl && (ii.width ?? 0) >= 800 && (ii.width ?? 0) >= (ii.height ?? 0)
+          })
+        const ii = pick?.imageinfo?.[0]
+        if (ii?.thumburl) {
+          const license = stripHtml(ii.extmetadata?.LicenseShortName?.value || "")
+          data[category] = {
+            url: ii.thumburl,
+            author: `${stripHtml(ii.extmetadata?.Artist?.value || "") || "Wikimedia Commons"}${license ? ` (${license})` : ""}`,
+            authorUrl: ii.descriptionurl || "",
+            pageUrl: ii.descriptionurl || "https://commons.wikimedia.org",
+            source: "Wikimedia Commons",
+          }
+        }
+      } catch {
+        // no banner for this category
+      }
+    }),
+  )
+  commonsBannerCache = { at: Date.now(), data }
+  return data
+}
+
+async function categoryBanners(kind: keyof typeof KINDS) {
+  const wantedCats = new Set<string>(KINDS[kind].groups.map((g) => g.category))
+  if (!PEXELS_KEY) {
+    const data = await commonsBanners()
+    return Object.fromEntries(Object.entries(data).filter(([k]) => wantedCats.has(k)))
+  }
+  if (!bannerCache || Date.now() - bannerCache.at > 24 * 3600 * 1000) {
+    const data: Record<string, unknown> = {}
+    await Promise.all(
+      Object.entries(BANNER_QUERIES).map(async ([category, query]) => {
+        try {
+          const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
+            headers: { Authorization: PEXELS_KEY },
+          })
+          const json = await res.json()
+          const photo = json?.photos?.[0]
+          if (photo?.src) {
+            data[category] = {
+              url: photo.src.landscape || photo.src.large || photo.src.medium,
+              author: photo.photographer || "",
+              authorUrl: photo.photographer_url || "",
+              pageUrl: photo.url || "https://www.pexels.com",
+              source: "Pexels",
+            }
+          }
+        } catch {
+          // no banner for this category
+        }
+      }),
+    )
+    bannerCache = { at: Date.now(), data }
+  }
+  const wanted = new Set<string>(KINDS[kind].groups.map((g) => g.category))
+  return Object.fromEntries(Object.entries(bannerCache.data).filter(([k]) => wanted.has(k)))
 }
 
 serve(async (req) => {

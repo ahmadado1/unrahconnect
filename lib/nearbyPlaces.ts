@@ -27,31 +27,46 @@ export type NearbyPlace = {
   meters: number
   walkMinutes: number
   mapsUrl: string
-  photo: { name: string; author: string; authorUrl: string } | null
+  /**
+   * google: url is empty, load it with nearbyPhotoUrl(name)
+   * wikimedia: url is the image; show author + licence
+   */
+  photo: { source: "google" | "wikimedia"; name: string; url: string; author: string; authorUrl: string; license: string } | null
 }
 
+/** One general photo per category (Pexels), shown as a banner, never as a specific place. */
+export type CategoryBanner = { url: string; author: string; authorUrl: string; pageUrl: string; source?: string }
+
+export type NearbyResult = { places: NearbyPlace[]; banners: Partial<Record<string, CategoryBanner>>; missing: string[] }
+
 // Kept in memory while the app is open, so switching Makkah/Madinah is instant
-const memory = new Map<string, { at: number; places: NearbyPlace[] }>()
+const memory = new Map<string, { at: number; result: NearbyResult }>()
 const KEEP_MS = 30 * 60 * 1000
 
-export async function getNearbyPlaces(city: NearbyCity, kind: NearbyKind, lang: string): Promise<NearbyPlace[]> {
+export async function getNearbyPlaces(city: NearbyCity, kind: NearbyKind, lang: string): Promise<NearbyResult> {
   const key = `${city}:${kind}:${lang}`
   const hit = memory.get(key)
-  if (hit && Date.now() - hit.at < KEEP_MS) return hit.places
+  if (hit && Date.now() - hit.at < KEEP_MS) return hit.result
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 15000)
   try {
     const res = await fetch(`${FN_URL}?city=${city}&kind=${kind}&lang=${encodeURIComponent(lang)}`, { signal: controller.signal })
     const data = await res.json().catch(() => null)
     if (!res.ok || !Array.isArray(data?.places)) throw new Error(data?.error || "Could not load places")
-    memory.set(key, { at: Date.now(), places: data.places })
-    return data.places
+    const result: NearbyResult = { places: data.places, banners: data.banners ?? {}, missing: data.missing ?? [] }
+    memory.set(key, { at: Date.now(), result })
+    return result
   } finally {
     clearTimeout(timer)
   }
 }
 
-/** Image address for a place photo (the server redirects to Google's image). */
+/** Image address for a place photo: Wikimedia gives it directly, Google goes through our server. */
+export function placePhotoUrl(photo: NonNullable<NearbyPlace["photo"]>, width = 300) {
+  return photo.url || nearbyPhotoUrl(photo.name, width)
+}
+
+/** Image address for a Google place photo (the server redirects to Google's image). */
 export function nearbyPhotoUrl(photoName: string, width = 600) {
   return `${FN_URL}?photo=${encodeURIComponent(photoName).replace(/%2F/g, "/")}&w=${width}`
 }
