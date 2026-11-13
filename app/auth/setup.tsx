@@ -216,7 +216,12 @@ export default function SetupScreen() {
                 { backgroundColor: theme.card, borderColor: theme.border },
                 userType === "agent" && styles.typeCardActive
               ]}
-              onPress={() => setUserType("agent")}
+              onPress={() => {
+                // Agencies go straight to the application (details, then documents)
+                setUserType("agent")
+                setLangOpen(false)
+                if (!loading) finishAgent()
+              }}
             >
               <AppIcon name="business" size={36} color={ICON_GOLD} />
               <View style={{ flex: 1 }}>

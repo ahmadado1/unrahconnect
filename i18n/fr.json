@@ -2663,5 +2663,9 @@
   "completeBodyDocs": "Envoyez vos documents pour que nous puissions vous vérifier. Il en manque encore {{count}}.",
   "completeBtn": "Continuer",
   "reviewBody": "Nous examinons vos documents. Cela prend en général jusqu'à 2 jours ouvrés. Nous vous écrirons dès que vous serez vérifié.",
-  "dashActiveFreeBody": "Les pèlerins peuvent vous trouver dans Trouver une agence. Partagez votre code et votre QR avec vos pèlerins."
+  "dashActiveFreeBody": "Les pèlerins peuvent vous trouver dans Trouver une agence. Partagez votre code et votre QR avec vos pèlerins.",
+  "applyUpload": "Téléverser",
+  "applyFromCamera": "Prendre une photo",
+  "applyFromPhotos": "Choisir dans les photos",
+  "applyFromFiles": "Choisir un fichier (PDF)"
 }

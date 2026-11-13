@@ -43,8 +43,8 @@ export type VerificationForm = {
   officeAddress: string
 }
 
-/** A document chosen in the app but not uploaded yet. */
-export type PickedDoc = { uri: string; mimeType: string }
+/** A document chosen in the app but not uploaded yet (photo or PDF). */
+export type PickedDoc = { uri: string; mimeType: string; name?: string }
 
 // ─── Load ─────────────────────────────────────────────────────────────────
 export async function getMyApplication(): Promise<MyApplication | null> {
@@ -71,7 +71,7 @@ export function applicationStage(app: MyApplication | null): "details" | "docume
   return applicationGaps(app).length ? "documents" : "review"
 }
 
-// ─── Photo library (only if this app build has it; older builds use the camera only) ───
+// ─── Photo library and files (only if this app build has them; older builds use the camera only) ───
 export function canPickFromLibrary() {
   return Boolean(requireOptionalNativeModule("ExponentImagePicker"))
 }
@@ -83,6 +83,28 @@ export async function pickFromLibrary(): Promise<PickedDoc | null> {
   if (result.canceled || !result.assets?.[0]) return null
   const asset = result.assets[0]
   return { uri: asset.uri, mimeType: asset.mimeType || "image/jpeg" }
+}
+
+export function canPickFiles() {
+  return Boolean(requireOptionalNativeModule("ExpoDocumentPicker"))
+}
+
+/** A PDF or image from Files / Google Drive / Downloads. */
+export async function pickFromFiles(): Promise<PickedDoc | null> {
+  if (!canPickFiles()) return null
+  const DocumentPicker = await import("expo-document-picker")
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
+    copyToCacheDirectory: true,
+    multiple: false,
+  })
+  if (result.canceled || !result.assets?.[0]) return null
+  const asset = result.assets[0]
+  const name = asset.name || ""
+  const lower = name.toLowerCase()
+  const mimeType = asset.mimeType
+    || (lower.endsWith(".pdf") ? "application/pdf" : lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : "image/jpeg")
+  return { uri: asset.uri, mimeType, name }
 }
 
 // ─── Upload ───────────────────────────────────────────────────────────────
@@ -100,7 +122,8 @@ async function uploadDoc(userId: string, key: DocKey, doc: PickedDoc) {
   const base64 = await FileSystem.readAsStringAsync(doc.uri, { encoding: FileSystem.EncodingType.Base64 })
   const bytes = base64ToBytes(base64)
   if (bytes.byteLength > MAX_BYTES) throw new Error("TOO_BIG")
-  const ext = doc.mimeType === "image/png" ? "png" : doc.mimeType === "image/webp" ? "webp" : "jpg"
+  // Same file types the website accepts: PDF, JPEG, PNG, WebP
+  const ext = doc.mimeType === "application/pdf" ? "pdf" : doc.mimeType === "image/png" ? "png" : doc.mimeType === "image/webp" ? "webp" : "jpg"
   const contentType = ext === "jpg" ? "image/jpeg" : doc.mimeType
   const path = `${userId}/${key}-${Date.now()}.${ext}`
   const { error } = await supabase.storage.from("agent-docs").upload(path, bytes.buffer as ArrayBuffer, { upsert: false, contentType })

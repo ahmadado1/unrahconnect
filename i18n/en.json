@@ -2663,5 +2663,9 @@
   "completeBodyDocs": "Upload your documents so we can verify you. {{count}} still missing.",
   "completeBtn": "Continue",
   "reviewBody": "We're reviewing your documents. This usually takes up to 2 working days. We'll email you when you're verified.",
-  "dashActiveFreeBody": "Pilgrims can find you in Find an Agent. Share your code and QR with your pilgrims."
+  "dashActiveFreeBody": "Pilgrims can find you in Find an Agent. Share your code and QR with your pilgrims.",
+  "applyUpload": "Upload",
+  "applyFromCamera": "Take a photo",
+  "applyFromPhotos": "Choose from photos",
+  "applyFromFiles": "Choose a file (PDF)"
 }

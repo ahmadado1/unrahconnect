@@ -19,9 +19,11 @@ import { useTheme } from "@/context/themeContext"
 import {
   applicationGaps,
   applicationStage,
+  canPickFiles,
   canPickFromLibrary,
   DOC_KEYS,
   getMyApplication,
+  pickFromFiles,
   pickFromLibrary,
   saveVerification,
   type DocKey,
@@ -86,6 +88,9 @@ export default function AgentApplyScreen() {
   const cameraRef = useRef<CameraView>(null)
   const [capturing, setCapturing] = useState(false)
   const libraryAvailable = useMemo(() => canPickFromLibrary(), [])
+  const filesAvailable = useMemo(() => canPickFiles(), [])
+  // "Upload" sheet: which document is being uploaded (Camera / Photos / File)
+  const [uploadFor, setUploadFor] = useState<DocKey | null>(null)
 
   // Countries in the app language; we save the English name so lists and filters stay consistent.
   const countryOptions = useMemo(
@@ -191,6 +196,27 @@ export default function AgentApplyScreen() {
     } catch (e) {
       console.log("Library pick error:", e)
     }
+  }
+
+  const chooseFile = async (key: DocKey) => {
+    try {
+      const picked = await pickFromFiles()
+      if (picked) setDocs(d => ({ ...d, [key]: picked }))
+    } catch (e) {
+      console.log("File pick error:", e)
+    }
+  }
+
+  // Close the sheet first, then open the camera / picker (two modals at once misbehave on iOS)
+  const uploadWith = (how: "camera" | "photos" | "file") => {
+    const key = uploadFor
+    setUploadFor(null)
+    if (!key) return
+    setTimeout(() => {
+      if (how === "camera") openCamera(key)
+      else if (how === "photos") chooseFromLibrary(key)
+      else chooseFile(key)
+    }, 350)
   }
 
   // ─── Save form 2 ──────────────────────────────────────────────────────────
@@ -364,23 +390,25 @@ export default function AgentApplyScreen() {
                       {picked ? t("applyReady") : uploaded ? t("applyUploaded") : t("applyMissing")}
                     </Text>
                   </View>
-                  {picked ? <Image source={{ uri: picked.uri }} style={styles.preview} /> : null}
+                  {/* Preview: the photo, or the PDF's name */}
+                  {picked && picked.mimeType === "application/pdf" ? (
+                    <View style={styles.pdfRow}>
+                      <Ionicons name="document-attach-outline" size={22} color={NAVY} />
+                      <Text style={styles.pdfName} numberOfLines={1}>{picked.name || "PDF"}</Text>
+                    </View>
+                  ) : picked ? (
+                    <Image source={{ uri: picked.uri }} style={styles.preview} />
+                  ) : null}
                   <View style={styles.docBtns}>
-                    <TouchableOpacity style={styles.docBtn} onPress={() => openCamera(key)}>
-                      <Ionicons name="camera-outline" size={16} color={NAVY} />
-                      <Text style={styles.docBtnText}>{picked || uploaded ? t("applyRetake") : t("applyTakePhoto")}</Text>
+                    <TouchableOpacity style={styles.docBtn} onPress={() => setUploadFor(key)}>
+                      <Ionicons name="cloud-upload-outline" size={16} color={NAVY} />
+                      <Text style={styles.docBtnText}>{picked || uploaded ? t("applyRetake") : t("applyUpload")}</Text>
                     </TouchableOpacity>
-                    {libraryAvailable ? (
-                      <TouchableOpacity style={[styles.docBtn, styles.docBtnLine]} onPress={() => chooseFromLibrary(key)}>
-                        <Ionicons name="images-outline" size={16} color={NAVY} />
-                        <Text style={styles.docBtnText}>{t("applyChoosePhoto")}</Text>
-                      </TouchableOpacity>
-                    ) : null}
                   </View>
                 </View>
               )
             })}
-            <Text style={[styles.hint, { color: theme.textSecondary }]}>{t("applyPdfHint")}</Text>
+            {!filesAvailable ? <Text style={[styles.hint, { color: theme.textSecondary }]}>{t("applyPdfHint")}</Text> : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {busy ? <Text style={[styles.hint, { color: theme.textSecondary, textAlign: "center" }]}>{t("applyUploading")}</Text> : null}
@@ -396,6 +424,34 @@ export default function AgentApplyScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* ─── Upload: Camera / Photos / File ────────────────────────────────── */}
+      <Modal visible={Boolean(uploadFor)} transparent animationType="fade" onRequestClose={() => setUploadFor(null)}>
+        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={() => setUploadFor(null)}>
+          <View style={[styles.sheet, { backgroundColor: theme.card, paddingBottom: insets.bottom + 16 }]}>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>{uploadFor ? t(DOC_LABEL[uploadFor]) : ""}</Text>
+            <TouchableOpacity style={[styles.sheetRow, { borderColor: theme.border }]} onPress={() => uploadWith("camera")}>
+              <Ionicons name="camera-outline" size={22} color={GOLD} />
+              <Text style={[styles.sheetText, { color: theme.text }]}>{t("applyFromCamera")}</Text>
+            </TouchableOpacity>
+            {libraryAvailable ? (
+              <TouchableOpacity style={[styles.sheetRow, { borderColor: theme.border }]} onPress={() => uploadWith("photos")}>
+                <Ionicons name="images-outline" size={22} color={GOLD} />
+                <Text style={[styles.sheetText, { color: theme.text }]}>{t("applyFromPhotos")}</Text>
+              </TouchableOpacity>
+            ) : null}
+            {filesAvailable ? (
+              <TouchableOpacity style={[styles.sheetRow, { borderColor: theme.border }]} onPress={() => uploadWith("file")}>
+                <Ionicons name="document-outline" size={22} color={GOLD} />
+                <Text style={[styles.sheetText, { color: theme.text }]}>{t("applyFromFiles")}</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={styles.sheetCancel} onPress={() => setUploadFor(null)}>
+              <Text style={[styles.sheetCancelText, { color: theme.textSecondary }]}>{t("cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ─── Camera for one document ───────────────────────────────────────── */}
       <Modal visible={Boolean(cameraFor)} animationType="slide" onRequestClose={() => setCameraFor(null)}>
@@ -453,6 +509,15 @@ const styles = StyleSheet.create({
   docBtns: { flexDirection: "row", gap: 8, marginTop: 10 },
   docBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: GOLD, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
   docBtnLine: { backgroundColor: "transparent", borderWidth: 1, borderColor: GOLD },
+  pdfRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, padding: 10, borderRadius: 10, backgroundColor: "#F3EAD2" },
+  pdfName: { flex: 1, color: NAVY, fontWeight: "600" },
+  sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  sheetTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
+  sheetRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 15, borderBottomWidth: 0.5 },
+  sheetText: { fontSize: 16, fontWeight: "600" },
+  sheetCancel: { alignItems: "center", paddingTop: 16 },
+  sheetCancelText: { fontSize: 15, fontWeight: "600" },
   docBtnText: { color: NAVY, fontWeight: "bold", fontSize: 13 },
   doneCard: { borderWidth: 1.5, borderRadius: 18, padding: 22, alignItems: "center", marginTop: 8 },
   doneIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: GREEN, alignItems: "center", justifyContent: "center", marginBottom: 12 },

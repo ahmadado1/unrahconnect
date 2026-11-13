@@ -2663,5 +2663,9 @@
   "completeBodyDocs": "Sizi doğrulayabilmemiz için belgelerinizi yükleyin. {{count}} eksik var.",
   "completeBtn": "Devam",
   "reviewBody": "Belgelerinizi inceliyoruz. Bu genellikle 2 iş gününe kadar sürer. Doğrulandığınızda size e-posta göndereceğiz.",
-  "dashActiveFreeBody": "Hacılar sizi Acente Bul bölümünde bulabilir. Kodunuzu ve QR kodunuzu hacılarınızla paylaşın."
+  "dashActiveFreeBody": "Hacılar sizi Acente Bul bölümünde bulabilir. Kodunuzu ve QR kodunuzu hacılarınızla paylaşın.",
+  "applyUpload": "Yükle",
+  "applyFromCamera": "Fotoğraf çek",
+  "applyFromPhotos": "Fotoğraflardan seç",
+  "applyFromFiles": "Dosya seç (PDF)"
 }
