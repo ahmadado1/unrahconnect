@@ -2674,5 +2674,15 @@
   "applyFromFiles": "اختيار ملف (PDF)",
   "applyOpenForm": "فتح نموذج الطلب",
   "applyWebIntro": "أضف بيانات وكالتك ثم ارفع مستنداتك (PDF أو صور أو الكاميرا). يستغرق ذلك نحو 5 دقائق.",
-  "applyUseAppForm": "التعبئة داخل التطبيق بدلًا من ذلك"
+  "applyUseAppForm": "التعبئة داخل التطبيق بدلًا من ذلك",
+  "agencyFeatureTitle": "مشمولة للوكالات",
+  "agencyFeatureBody": "هذه الميزة مشمولة لوكالات السفر، وتُفعَّل فور التحقق من وكالتك.",
+  "ok": "حسنًا",
+  "agencyPilgrims": "المعتمرون",
+  "agencyContactsWeek": "جهات اتصال جديدة هذا الأسبوع",
+  "agencyShareQr": "مشاركة رمز QR",
+  "agencyPostUpdate": "نشر إعلان",
+  "agencyPublicProfile": "عرض ملفي العام",
+  "agencyPersonal": "شخصي",
+  "agencyShareMsg": "السلام عليكم! انضم إلى {{name}} على UmrahConnect، تطبيق العمرة والحج المجاني، لتصلك أخبار رحلتنا: {{url}} (رمز الوكيل {{code}})"
 }

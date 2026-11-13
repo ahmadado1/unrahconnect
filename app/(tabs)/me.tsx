@@ -1,5 +1,7 @@
 import { getIonIconColor } from "@/components/AppIcon";
 import AgentApplyBanner from "@/app/components/AgentApplyBanner"
+import AgencyOverviewCard, { shareAgencyQr } from "@/app/components/AgencyOverviewCard"
+import { getMyAgentProfile } from "@/lib/agents"
 import { useTheme } from "@/context/themeContext";
 import { getUserFast, supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +24,8 @@ type MenuItem = {
   action?: () => void
   danger?: boolean
   agentOnly?: boolean
+  /** Hidden for agency accounts (e.g. Premium) */
+  pilgrimOnly?: boolean
 }
 
 export default function MeScreen() {
@@ -41,10 +45,9 @@ export default function MeScreen() {
   const agencyName = user?.user_metadata?.agency_name
 
   const menuItems: MenuItem[] = [
-    { icon: "star-outline", labelKey: "pw_menu", route: "/premium" },
+    { icon: "star-outline", labelKey: "pw_menu", route: "/premium", pilgrimOnly: true },
     { icon: "person-outline", labelKey: "profile", route: "/profile" },
     { icon: "heart-outline", labelKey: "favorites", route: "/favorites" },
-    { icon: "briefcase-outline", labelKey: "agentDashboard", route: "/agent/dashboard", agentOnly: true },
     { icon: "map-outline", labelKey: "sgMenu", route: "/start-guide" },
     { icon: "notifications-outline", labelKey: "notifications", route: "/notifications" },
     { icon: "settings-outline", labelKey: "settings", route: "/settings" },
@@ -67,6 +70,8 @@ export default function MeScreen() {
   // Filter menu — agents see all, pilgrims don't see agentOnly items
   const visibleMenuItems = menuItems.filter(item => {
     if (item.agentOnly) return isAgent
+    // Agencies don't see Premium
+    if (item.pilgrimOnly) return !isAgent
     return true
   })
 
@@ -76,14 +81,14 @@ export default function MeScreen() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <View style={[styles.avatar, premium.isPremium && styles.avatarPremium]}>
+        <View style={[styles.avatar, premium.isPremium && !premium.agency && styles.avatarPremium]}>
           <Text style={styles.avatarText}>{fullName[0]?.toUpperCase() || "?"}</Text>
         </View>
         <Text style={styles.userName}>{fullName}</Text>
         <Text style={styles.userEmail}>{user?.email || (user?.phone ? `+${String(user.phone).replace(/^\+/, "")}` : "")}</Text>
 
         {/* Premium badge (status only, no prices or links in the app) */}
-        {premium.isPremium && (
+        {premium.isPremium && !premium.agency && (
           <View style={styles.premiumBadge}>
             <Ionicons name="star" size={12} color="#1E3A5F" />
             <Text style={styles.premiumBadgeText}>{t("premiumBadge")}</Text>
@@ -111,19 +116,47 @@ export default function MeScreen() {
         {/* Agencies that haven't finished their application */}
         {isAgent ? <AgentApplyBanner style={{ marginBottom: 12 }} /> : null}
 
-        {/* Agent quick stats, only for agents */}
-        {isAgent && (
-          <TouchableOpacity
-            style={styles.agentCard}
-            onPress={() => router.push("/agent/dashboard" as any)}
-          >
-            <View style={styles.agentCardLeft}>
-              <Text style={styles.agentCardTitle}>{t("ui_agencyDashboard")}</Text>
-              <Text style={styles.agentCardSub}>{t("ui_agencyDashboardSub")}</Text>
+        {/* ─── My Agency (agencies only): numbers + one-tap actions first ─── */}
+        {isAgent ? (
+          <>
+            <AgencyOverviewCard style={{ marginBottom: 12 }} />
+            <View style={[styles.menuSection, { backgroundColor: theme.card, borderColor: theme.border, marginBottom: 16 }]}>
+              {[
+                { icon: "speedometer-outline" as const, label: t("agentDashboard"), onPress: () => router.push("/agent/dashboard" as any) },
+                {
+                  icon: "qr-code-outline" as const,
+                  label: t("agencyShareQr"),
+                  onPress: async () => {
+                    const mine = await getMyAgentProfile().catch(() => null)
+                    if (mine) await shareAgencyQr(mine)
+                  },
+                },
+                { icon: "megaphone-outline" as const, label: t("agencyPostUpdate"), onPress: () => router.push("/agent/dashboard?focus=announce" as any) },
+                {
+                  icon: "eye-outline" as const,
+                  label: t("agencyPublicProfile"),
+                  onPress: async () => {
+                    const mine = await getMyAgentProfile().catch(() => null)
+                    if (mine) router.push(`/agent/${mine.id}` as any)
+                  },
+                },
+              ].map((row, i, all) => (
+                <TouchableOpacity
+                  key={row.label}
+                  style={[styles.menuItem, i < all.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: 0.5 }]}
+                  onPress={row.onPress}
+                >
+                  <View style={[styles.menuIconBg, { backgroundColor: "rgba(201,168,76,0.15)" }]}>
+                    <Ionicons name={row.icon} size={20} color="#C9A84C" />
+                  </View>
+                  <Text style={[styles.menuText, { color: theme.text }]}>{row.label}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+                </TouchableOpacity>
+              ))}
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#C9A84C" />
-          </TouchableOpacity>
-        )}
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t("agencyPersonal")}</Text>
+          </>
+        ) : null}
 
         {/* Menu */}
         <View style={[styles.menuSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -198,4 +231,5 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: "row", alignItems: "center", gap: 14, padding: ui.cardPad },
   menuIconBg: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   menuText: { flex: 1, fontSize: 15, fontWeight: "500" },
+  sectionLabel: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
 })

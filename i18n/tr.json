@@ -2670,5 +2670,15 @@
   "applyFromFiles": "Dosya seç (PDF)",
   "applyOpenForm": "Başvuru formunu aç",
   "applyWebIntro": "Acente bilgilerinizi ekleyin, ardından belgelerinizi yükleyin (PDF, fotoğraf veya kamera). Yaklaşık 5 dakika sürer.",
-  "applyUseAppForm": "Bunun yerine uygulamada doldur"
+  "applyUseAppForm": "Bunun yerine uygulamada doldur",
+  "agencyFeatureTitle": "Acenteler için dahil",
+  "agencyFeatureBody": "Bu özellik seyahat acenteleri için dahildir. Acenteniz doğrulanır doğrulanmaz açılır.",
+  "ok": "Tamam",
+  "agencyPilgrims": "Hacılar",
+  "agencyContactsWeek": "Bu hafta yeni iletişim",
+  "agencyShareQr": "QR kodumu paylaş",
+  "agencyPostUpdate": "Duyuru paylaş",
+  "agencyPublicProfile": "Herkese açık profilimi gör",
+  "agencyPersonal": "Kişisel",
+  "agencyShareMsg": "Esselamu aleyküm! Seyahat duyurularımızı almak için ücretsiz Umre ve Hac uygulaması UmrahConnect'te {{name}} acentesine katılın: {{url}} (acente kodu {{code}})"
 }

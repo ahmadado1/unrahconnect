@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import ScreenState from "@/app/components/ScreenState"
+import { usePremium } from "@/lib/premium"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -38,6 +39,8 @@ export default function AgentProfileScreen() {
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
+  // Agency accounts look at other agencies but don't "join" them
+  const { agency: viewerIsAgency } = usePremium()
 
   const [agent, setAgent] = useState<PublicAgent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -207,8 +210,8 @@ export default function AgentProfileScreen() {
           ) : null}
         </View>
 
-        {/* Join this agency */}
-        <View style={[styles.card, styles.joinCard, { borderColor: isMine ? "#2F855A" : GOLD, backgroundColor: theme.card }]}>
+        {/* Join this agency (pilgrims only) */}
+        {viewerIsAgency ? null : <View style={[styles.card, styles.joinCard, { borderColor: isMine ? "#2F855A" : GOLD, backgroundColor: theme.card }]}>
           {isMine ? (
             <Text style={[styles.joinedText]}>{t("agentJoined")}</Text>
           ) : (
@@ -228,7 +231,7 @@ export default function AgentProfileScreen() {
           <Text style={[styles.codeLine, { color: theme.textSecondary }]}>
             {t("agentCodeLabel")}: <Text style={styles.code}>{agent.agent_code}</Text>
           </Text>
-        </View>
+        </View>}
 
         {agent.description ? (
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>

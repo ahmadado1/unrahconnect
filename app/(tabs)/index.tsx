@@ -52,6 +52,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BatteryTipCard from "@/app/components/BatteryTipCard";
 import AgentApplyBanner from "@/app/components/AgentApplyBanner";
+import AgencyOverviewCard from "@/app/components/AgencyOverviewCard";
 
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -690,6 +691,9 @@ export default function HomeScreen() {
         {/* ── Premium ends in the next 3 days ── */}
         <PremiumEndingBanner />
 
+        {/* ── Agencies: live agency card (pilgrims, contacts, Share my QR, Post update) ── */}
+        {isAgent ? <AgencyOverviewCard style={{ marginHorizontal: 16, marginBottom: 12 }} /> : null}
+
         {/* ── Agencies that haven't finished their application ── */}
         <AgentApplyBanner style={{ marginHorizontal: 16, marginBottom: 12 }} />
 
@@ -700,7 +704,8 @@ export default function HomeScreen() {
         <MakkahStayCard />
 
         {/* ── PREMIUM: UmrahConnect Guide → Trip Planner. FREE: Continue My Umrah Journey ── */}
-        {premium.isPremium ? (
+        {/* (pilgrims only: agencies don't get personal trip / journey nudges) */}
+        {isAgent ? null : premium.isPremium ? (
           <PremiumJourneyCard />
         ) : (
         <TouchableOpacity

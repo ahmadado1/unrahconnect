@@ -2670,5 +2670,15 @@
   "applyFromFiles": "Choose a file (PDF)",
   "applyOpenForm": "Open the application form",
   "applyWebIntro": "Add your agency details, then upload your documents (PDF, photos or camera). It takes about 5 minutes.",
-  "applyUseAppForm": "Fill in the app instead"
+  "applyUseAppForm": "Fill in the app instead",
+  "agencyFeatureTitle": "Included for agencies",
+  "agencyFeatureBody": "This feature is included for travel agencies. It unlocks as soon as your agency is verified.",
+  "ok": "OK",
+  "agencyPilgrims": "Pilgrims",
+  "agencyContactsWeek": "New contacts this week",
+  "agencyShareQr": "Share my QR",
+  "agencyPostUpdate": "Post update",
+  "agencyPublicProfile": "See my public profile",
+  "agencyPersonal": "Personal",
+  "agencyShareMsg": "Assalamu alaikum! Join {{name}} on UmrahConnect, the free Umrah & Hajj app, to get our trip updates: {{url}} (agent code {{code}})"
 }

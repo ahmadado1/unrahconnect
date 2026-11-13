@@ -1,4 +1,5 @@
 import { useTheme } from "@/context/themeContext"
+import { useIsAgent } from "@/lib/accountType"
 import { NATIONALITIES, nationalityLabel } from "@/lib/countries"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
@@ -27,6 +28,7 @@ import PremiumPlanCard from "./components/PremiumPlanCard"
 
 
 export default function ProfileScreen() {
+  const isAgentAccount = useIsAgent()
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
@@ -328,7 +330,8 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={[styles.field, { borderBottomWidth: 0 }]}>
+        {/* "Agent code" is for pilgrims joining an agency, not for agencies */}
+        {isAgentAccount ? null : <View style={[styles.field, { borderBottomWidth: 0 }]}>
           <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
             {t("agentCodeOptional")}
           </Text>
@@ -356,7 +359,7 @@ export default function ProfileScreen() {
               {agentCode || t("notSet")}
             </Text>
           )}
-        </View>
+        </View>}
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>

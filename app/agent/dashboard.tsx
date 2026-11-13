@@ -14,9 +14,9 @@ import { AnimatedHeroIcon } from "@/components/AnimatedHeroIcon"
 import * as Clipboard from "expo-clipboard"
 import { useTheme } from "@/context/themeContext"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect, useRouter } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Linking, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
@@ -65,6 +65,16 @@ export default function AgentDashboard() {
   const [body, setBody] = useState("")
   const [posting, setPosting] = useState(false)
   const [postMsg, setPostMsg] = useState("")
+
+  // "Post update" from Home / My Agency: scroll straight to the message box
+  const { focus } = useLocalSearchParams<{ focus?: string }>()
+  const scrollRef = useRef<ScrollView>(null)
+  const [announceY, setAnnounceY] = useState<number | null>(null)
+  useEffect(() => {
+    if (focus === "announce" && announceY !== null) {
+      setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, announceY - 12), animated: true }), 250)
+    }
+  }, [focus, announceY])
 
   // ─── Load everything each time the screen opens ────────────────────────────
   useFocusEffect(
@@ -179,7 +189,7 @@ export default function AgentDashboard() {
       <StatusBar style="light" />
       {header}
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
         {/* ─── Application not finished (details/documents missing, or more info asked) ─── */}
         <AgentApplyBanner style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }} />
 
@@ -294,7 +304,10 @@ export default function AgentDashboard() {
 
         {/* ─── Announcement to my pilgrims (only when listed) ──────────── */}
         {mode === "active" ? (
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View
+            onLayout={e => setAnnounceY(e.nativeEvent.layout.y)}
+            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+          >
             <Text style={[styles.cardTitle, { color: theme.text }]}>{t("dashAnnTitle")}</Text>
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text }]}

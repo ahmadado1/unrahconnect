@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { useTranslation } from "react-i18next"
 import { StyleSheet, Text, View } from "react-native"
+import { usePremium } from "@/lib/premium"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
@@ -17,6 +18,29 @@ export default function PremiumUpsellCard({ variant = "banner" }: Props) {
   const router = useRouter()
   const { t } = useTranslation()
   const locked = variant === "locked"
+  const { agency } = usePremium()
+
+  // Agency accounts: no Premium offers. A pending agency sees why this screen is locked.
+  if (agency) {
+    if (!locked) return null
+    return (
+      <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/agent/dashboard" as any)} style={[styles.wrap, styles.wrapLocked]}>
+        <LinearGradient colors={[NAVY, "#2C5282"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, styles.cardLocked]}>
+          <View style={[styles.star, styles.starBig]}>
+            <Ionicons name="shield-checkmark" size={28} color={NAVY} />
+          </View>
+          <View style={styles.textLocked}>
+            <Text style={[styles.title, styles.center]}>{t("agencyFeatureTitle")}</Text>
+            <Text style={[styles.sub, styles.center]}>{t("agencyFeatureBody")}</Text>
+          </View>
+          <View style={[styles.btn, styles.btnLocked]}>
+            <Text style={styles.btnText}>{t("agentDashboard")}</Text>
+            <Ionicons name="chevron-forward" size={14} color={NAVY} />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    )
+  }
 
   return (
     <TouchableOpacity

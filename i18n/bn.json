@@ -2670,5 +2670,15 @@
   "applyFromFiles": "ফাইল বেছে নিন (PDF)",
   "applyOpenForm": "আবেদন ফর্ম খুলুন",
   "applyWebIntro": "এজেন্সির তথ্য যোগ করুন, তারপর কাগজপত্র আপলোড করুন (PDF, ছবি বা ক্যামেরা)। প্রায় 5 মিনিট লাগে।",
-  "applyUseAppForm": "বরং অ্যাপেই পূরণ করুন"
+  "applyUseAppForm": "বরং অ্যাপেই পূরণ করুন",
+  "agencyFeatureTitle": "এজেন্সির জন্য অন্তর্ভুক্ত",
+  "agencyFeatureBody": "এই সুবিধাটি ট্রাভেল এজেন্সির জন্য অন্তর্ভুক্ত। আপনার এজেন্সি যাচাই হলেই চালু হবে।",
+  "ok": "ঠিক আছে",
+  "agencyPilgrims": "হাজি",
+  "agencyContactsWeek": "এই সপ্তাহে নতুন যোগাযোগ",
+  "agencyShareQr": "আমার QR শেয়ার করুন",
+  "agencyPostUpdate": "ঘোষণা দিন",
+  "agencyPublicProfile": "আমার পাবলিক প্রোফাইল দেখুন",
+  "agencyPersonal": "ব্যক্তিগত",
+  "agencyShareMsg": "আসসালামু আলাইকুম! আমাদের সফরের আপডেট পেতে ফ্রি উমরাহ ও হজ অ্যাপ UmrahConnect-এ {{name}}-এ যোগ দিন: {{url}} (এজেন্ট কোড {{code}})"
 }

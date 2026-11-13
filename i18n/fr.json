@@ -2670,5 +2670,15 @@
   "applyFromFiles": "Choisir un fichier (PDF)",
   "applyOpenForm": "Ouvrir le formulaire",
   "applyWebIntro": "Ajoutez les informations de votre agence, puis envoyez vos documents (PDF, photos ou caméra). Cela prend environ 5 minutes.",
-  "applyUseAppForm": "Remplir dans l'application"
+  "applyUseAppForm": "Remplir dans l'application",
+  "agencyFeatureTitle": "Inclus pour les agences",
+  "agencyFeatureBody": "Cette fonction est incluse pour les agences de voyage. Elle s'active dès que votre agence est vérifiée.",
+  "ok": "OK",
+  "agencyPilgrims": "Pèlerins",
+  "agencyContactsWeek": "Nouveaux contacts cette semaine",
+  "agencyShareQr": "Partager mon QR",
+  "agencyPostUpdate": "Publier une annonce",
+  "agencyPublicProfile": "Voir mon profil public",
+  "agencyPersonal": "Personnel",
+  "agencyShareMsg": "Assalamou alaykoum ! Rejoignez {{name}} sur UmrahConnect, l'application gratuite pour la Omra et le Hajj, pour recevoir nos informations de voyage : {{url}} (code agence {{code}})"
 }

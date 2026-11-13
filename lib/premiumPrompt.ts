@@ -5,6 +5,7 @@
 import i18n from "@/i18n"
 import { router } from "expo-router"
 import { Alert } from "react-native"
+import { agencyAccessNow } from "./premium"
 
 type Host = (beforeOpen?: () => void) => void
 const hosts: Host[] = []
@@ -21,11 +22,24 @@ export function registerPremiumPromptHost(host: Host) {
 /** Opens the Premium screen. beforeOpen: e.g. close a pop-up first so Premium isn't hidden behind it. */
 export function openPremiumScreen(beforeOpen?: () => void) {
   beforeOpen?.()
+  // Agency accounts never see Premium: their agency dashboard instead
+  if (agencyAccessNow()) {
+    setTimeout(() => router.push("/agent/dashboard" as any), beforeOpen ? 300 : 0)
+    return
+  }
   setTimeout(() => router.push("/premium" as any), beforeOpen ? 300 : 0)
 }
 
 /** Show the Premium card. beforeOpen runs only if the user taps "See Premium". */
 export function showPremiumPrompt(beforeOpen?: () => void) {
+  // Agency still being verified: explain instead of offering Premium
+  if (agencyAccessNow()) {
+    Alert.alert(i18n.t("agencyFeatureTitle"), i18n.t("agencyFeatureBody"), [
+      { text: i18n.t("ok", { defaultValue: "OK" }), style: "cancel" },
+      { text: i18n.t("agentDashboard"), onPress: () => router.push("/agent/dashboard" as any) },
+    ])
+    return
+  }
   const host = hosts[hosts.length - 1]
   if (host) {
     host(beforeOpen)

@@ -6,6 +6,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useIsAgent } from "@/lib/accountType";
 
 const GOLD = "#C9A84C"
 
@@ -37,6 +38,7 @@ function StandardTabs() {
   const { theme } = useTheme()
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const isAgent = useIsAgent()
   const tabBarHeight = 56 + Math.max(insets.bottom, 8)
 
   return (
@@ -63,7 +65,17 @@ function StandardTabs() {
       <Tabs.Screen name="umrah" options={{ title: t("guide"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} /> }} />
       <Tabs.Screen name="maps" options={{ title: t("maps"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "map" : "map-outline"} size={24} color={color} /> }} />
       <Tabs.Screen name="services" options={{ title: t("services"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} /> }} />
-      <Tabs.Screen name="me" options={{ title: t("me"), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} /> }} />
+      {/* Agencies: "My Agency" tab (same screen, agency layout). Pilgrims: "Me". */}
+      <Tabs.Screen
+        name="me"
+        options={{
+          title: isAgent ? t("myAgency") : t("me"),
+          tabBarIcon: ({ color, focused }) =>
+            isAgent
+              ? <Ionicons name={focused ? "briefcase" : "briefcase-outline"} size={24} color={color} />
+              : <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />,
+        }}
+      />
     </Tabs>
   )
 }
@@ -72,6 +84,7 @@ function NativeTabsLayout() {
   const { t } = useTranslation()
   const { isDark } = useTheme()
   const iconColor = nativeIconColors()
+  const isAgent = useIsAgent()
 
   return (
     <NativeTabs
@@ -97,8 +110,11 @@ function NativeTabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }} drawable="ic_menu_manage" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="me">
-        <NativeTabs.Trigger.Label>{t("me")}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} drawable="ic_menu_myplaces" />
+        <NativeTabs.Trigger.Label>{isAgent ? t("myAgency") : t("me")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={isAgent ? { default: "briefcase", selected: "briefcase.fill" } : { default: "person", selected: "person.fill" }}
+          drawable="ic_menu_myplaces"
+        />
       </NativeTabs.Trigger>
     </NativeTabs>
   )

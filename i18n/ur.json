@@ -2670,5 +2670,15 @@
   "applyFromFiles": "فائل منتخب کریں (PDF)",
   "applyOpenForm": "درخواست فارم کھولیں",
   "applyWebIntro": "اپنی ایجنسی کی تفصیلات شامل کریں، پھر اپنی دستاویزات اپ لوڈ کریں (PDF، تصاویر یا کیمرہ)۔ اس میں تقریباً 5 منٹ لگتے ہیں۔",
-  "applyUseAppForm": "اس کے بجائے ایپ میں پُر کریں"
+  "applyUseAppForm": "اس کے بجائے ایپ میں پُر کریں",
+  "agencyFeatureTitle": "ایجنسیوں کے لیے شامل",
+  "agencyFeatureBody": "یہ سہولت ٹریول ایجنسیوں کے لیے شامل ہے۔ آپ کی ایجنسی کی تصدیق ہوتے ہی کھل جائے گی۔",
+  "ok": "ٹھیک ہے",
+  "agencyPilgrims": "زائرین",
+  "agencyContactsWeek": "اس ہفتے نئے رابطے",
+  "agencyShareQr": "میرا QR شیئر کریں",
+  "agencyPostUpdate": "اعلان شائع کریں",
+  "agencyPublicProfile": "میری عوامی پروفائل دیکھیں",
+  "agencyPersonal": "ذاتی",
+  "agencyShareMsg": "السلام علیکم! ہمارے سفر کی تازہ معلومات کے لیے مفت عمرہ و حج ایپ UmrahConnect پر {{name}} میں شامل ہوں: {{url}} (ایجنٹ کوڈ {{code}})"
 }

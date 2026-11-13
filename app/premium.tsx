@@ -9,7 +9,7 @@ import { startPremiumWelcome } from "@/lib/premiumNew"
 import { buyPlan, lastPlansProblem, loadPlans, websiteLinkAllowed, manageSubscription, readStorePremiumUntil, restorePlans, setupPurchases, type PlanOption } from "@/lib/purchases"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"
-import { useRouter } from "expo-router"
+import { useRouter, Redirect } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
 import * as WebBrowser from "expo-web-browser"
 import { StatusBar } from "expo-status-bar"
@@ -34,7 +34,14 @@ const FEATURES: { icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { icon: "phone-portrait", key: "pw_f10" },
 ]
 
-export default function PremiumScreen() {
+/** Agency accounts never see Premium (offers, prices): straight to their agency dashboard. */
+export default function PremiumRoute() {
+  const { agency } = usePremium()
+  if (agency) return <Redirect href={"/agent/dashboard" as any} />
+  return <PremiumScreen />
+}
+
+function PremiumScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()

@@ -13,11 +13,14 @@ const GOLD = "#C9A84C"
 export default function PremiumPlanCard() {
   const { theme, isDark } = useTheme()
   const { t, i18n } = useTranslation()
-  const { isPremium, until, autoRenew } = usePremium()
+  const { isPremium, until, autoRenew, agency } = usePremium()
 
   const date = until
     ? new Date(`${until}T00:00:00`).toLocaleDateString(i18n.language || "en", { day: "numeric", month: "long", year: "numeric" })
     : ""
+
+  // Agency accounts: no Premium plan to show
+  if (agency) return null
 
   // ─── Free ─────────────────────────────────────────────────────────────────
   if (!isPremium) {

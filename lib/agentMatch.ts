@@ -23,6 +23,8 @@ export async function checkAgentMatchOnce(): Promise<void> {
     // Already have a code (deep link, Android install, typed)? Nothing to ask.
     if (await getPendingReferral()) return
     const { data: { user } } = await getUserFast()
+    // Agencies aren't pilgrims: never ask them to join an agency
+    if (user?.user_metadata?.user_type === "agent") return
     if (user && (await pilgrimHasAgent(user.id))) return
 
     const controller = new AbortController()
