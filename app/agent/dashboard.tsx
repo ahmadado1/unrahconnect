@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Linking, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import AgentEarningsCard from "@/app/components/AgentEarningsCard"
+import AgentApplyBanner from "@/app/components/AgentApplyBanner"
 import { tabScrollBottom } from "@/lib/ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { supabase } from "../../lib/supabase"
@@ -38,7 +39,8 @@ function modeFor(agent: AgentProfile): Mode {
   if (status === "pending") return "pending"
   if (status === "suspended") return "suspended"
   const today = new Date().toISOString().slice(0, 10)
-  if (status === "active" && agent.paid_until && agent.paid_until.slice(0, 10) >= today) return "active"
+  // Free founding agencies are active with no paid-until date; a past date means expired.
+  if (status === "active" && (!agent.paid_until || agent.paid_until.slice(0, 10) >= today)) return "active"
   return "inactive"
 }
 
@@ -163,12 +165,8 @@ export default function AgentDashboard() {
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <StatusBar style="light" />
         {header}
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 16 }]}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{t("agentReceivedTitle")}</Text>
-          <Text style={[styles.body, { color: theme.textSecondary }]}>{t("agentReceivedBody")}</Text>
-          <AddressChip copied={copied === "site"} onPress={() => copy(SITE_ADDRESS, "site")} t={t} />
-          <Text style={[styles.small, { color: theme.textSecondary }]}>{t("agentSameEmail")}</Text>
-        </View>
+        {/* No agency yet: finish the application here in the app */}
+        <AgentApplyBanner style={{ marginHorizontal: 16, marginTop: 16 }} />
       </View>
     )
   }
@@ -182,6 +180,9 @@ export default function AgentDashboard() {
       {header}
 
       <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
+        {/* ─── Application not finished (details/documents missing, or more info asked) ─── */}
+        <AgentApplyBanner style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }} />
+
         {/* ─── Status card ─────────────────────────────────────────────── */}
         <View
           style={[
@@ -208,14 +209,16 @@ export default function AgentDashboard() {
           </View>
           <Text style={[styles.body, { color: theme.textSecondary }]}>
             {mode === "active"
-              ? t("dashActiveBody", { date: formatDate(agent.paid_until as string, i18n.language) })
+              ? agent.paid_until
+                ? t("dashActiveBody", { date: formatDate(agent.paid_until, i18n.language) })
+                : t("dashActiveFreeBody")
               : mode === "pending"
-                ? t("dashPendingBody")
+                ? t("reviewBody")
                 : mode === "suspended"
                   ? t("dashSuspendedBody")
                   : t("dashInactiveBody")}
           </Text>
-          {mode !== "active" ? (
+          {mode === "inactive" || mode === "suspended" ? (
             <AddressChip copied={copied === "site"} onPress={() => copy(SITE_ADDRESS, "site")} t={t} />
           ) : null}
         </View>

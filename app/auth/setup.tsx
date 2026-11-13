@@ -90,8 +90,8 @@ export default function SetupScreen() {
     })
   }, [])
 
-  // Agents: the agency details and documents are filled in on the website.
-  // Here we only save that this account is an agent and show where to go next.
+  // Agents: save that this account is an agent, then go straight to the in-app application
+  // (form 1: agency details, form 2: documents). They can also finish on the website.
   const finishAgent = async () => {
     setError("")
     setLoading(true)
@@ -99,7 +99,7 @@ export default function SetupScreen() {
       await withTimeout(supabase.auth.updateUser({
         data: { user_type: "agent", language: selectedLang, profile_complete: true },
       }), 20000)
-      router.replace("/agent/welcome" as any)
+      router.replace("/agent/apply" as any)
     } catch (e) {
       console.log("Setup error:", e)
       setError(t("somethingWentWrong"))

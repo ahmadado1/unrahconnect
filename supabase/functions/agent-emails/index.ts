@@ -16,8 +16,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || ""
 const AGENT_EMAILS_KEY = (Deno.env.get("AGENT_EMAILS_KEY") || "").trim()
 // Platform key used for database calls. May be the new sb_secret_ key, so it is not the incoming auth check.
 const SERVICE_ROLE_KEY = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim()
-const WHATSAPP_NUMBER = "+201041436778"
-const WHATSAPP_URL = "https://wa.me/201041436778"
+const WHATSAPP_NUMBER = "+20 122 215 1335"
+const WHATSAPP_URL = "https://wa.me/201222151335"
 
 type EmailType =
   | "application_received"
@@ -64,6 +64,29 @@ function formatDate(value: string | null) {
   })
 }
 
+// Founding offer: the first 100 agencies are free, so emails don't talk about paying.
+const FREE_FOR_AGENCIES = true
+
+/** Contact box without any payment talk. */
+function helpLine() {
+  return `
+    <p style="margin:20px 0 0;padding:14px 16px;background:${BRAND.cream};border:1px solid ${BRAND.border};border-radius:10px;color:${BRAND.text};">
+      <strong style="color:${BRAND.navy};">Need help?</strong>
+      Email <a href="mailto:${INFO_EMAIL}" style="color:${BRAND.navy};font-weight:600;text-decoration:none;">${INFO_EMAIL}</a>
+      or WhatsApp <a href="${WHATSAPP_URL}" style="color:${BRAND.navy};font-weight:600;text-decoration:none;">${WHATSAPP_NUMBER}</a>.
+    </p>
+  `
+}
+
+/** Founding offer note. */
+function foundingLine() {
+  return `
+    <p style="margin:16px 0 0;padding:12px 16px;background:#EEF6EE;border:1px solid #B7DFC0;border-radius:10px;color:${BRAND.text};">
+      <strong style="color:#2F855A;">Founding agency: free.</strong> The first 100 agencies join UmrahConnect for free. No card and no monthly fee.
+    </p>
+  `
+}
+
 function renewLine() {
   return `
     <p style="margin:20px 0 0;padding:14px 16px;background:${BRAND.cream};border:1px solid ${BRAND.border};border-radius:10px;color:${BRAND.text};">
@@ -95,9 +118,9 @@ function buildEmail(agent: AgentMail) {
         ${greeting(name)}
         <p style="margin:0 0 16px;color:${BRAND.muted};">
           We received the agent application for <strong style="color:${BRAND.navy};">${business}</strong>.
-          It is pending review. We will email you when the account is activated.
+          It is pending review. We will email you as soon as you are verified and live in the app.
         </p>
-        ${renewLine()}
+        ${FREE_FOR_AGENCIES ? `${foundingLine()}${helpLine()}` : renewLine()}
         ${ctaButton("Email us", `mailto:${INFO_EMAIL}`)}
         <p style="margin:18px 0 0;color:${BRAND.navy};font-size:14px;font-weight:600;">
           Barak Allahu feekum,<br />
@@ -118,7 +141,7 @@ function buildEmail(agent: AgentMail) {
         <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;color:${BRAND.navy};font-weight:700;">Account activated</h1>
         ${greeting(name)}
         <p style="margin:0 0 16px;color:${BRAND.muted};">
-          <strong style="color:${BRAND.navy};">${business}</strong> is now active on UmrahConnect.
+          <strong style="color:${BRAND.navy};">${business}</strong> is now verified and live on UmrahConnect.
           Share this code with your pilgrims.
         </p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.cream};border:1px solid ${BRAND.border};border-radius:10px;margin:0 0 8px;">
@@ -127,11 +150,11 @@ function buildEmail(agent: AgentMail) {
               <p style="margin:0 0 6px;font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Agent code</p>
               <p style="margin:0 0 14px;color:${BRAND.navy};font-size:22px;font-weight:700;letter-spacing:2px;">${code}</p>
               <p style="margin:0 0 6px;font-size:12px;color:${BRAND.muted};text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Plan</p>
-              <p style="margin:0;color:${BRAND.text};font-weight:600;">${plan}</p>
+              <p style="margin:0;color:${BRAND.text};font-weight:600;">${FREE_FOR_AGENCIES ? "Founding agency (free)" : plan}</p>
             </td>
           </tr>
         </table>
-        ${renewLine()}
+        ${FREE_FOR_AGENCIES ? helpLine() : renewLine()}
         ${ctaButton("Email us", `mailto:${INFO_EMAIL}`)}
         <p style="margin:18px 0 0;color:${BRAND.navy};font-size:14px;font-weight:600;">
           Barak Allahu feekum,<br />

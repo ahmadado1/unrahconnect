@@ -183,8 +183,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "UmrahConnect uses the camera to scan your travel agent's QR code.",
+          "cameraPermission": "UmrahConnect uses the camera to scan your travel agent's QR code and, for travel agencies, to photograph verification documents.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Travel agencies can choose photos of their verification documents from the photo library.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       "@bacons/apple-targets",

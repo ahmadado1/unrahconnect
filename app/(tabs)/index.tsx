@@ -51,6 +51,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BatteryTipCard from "@/app/components/BatteryTipCard";
+import AgentApplyBanner from "@/app/components/AgentApplyBanner";
 
 
 const UMRAH_PHASE_TITLE_KEYS = [
@@ -688,6 +689,9 @@ export default function HomeScreen() {
 
         {/* ── Premium ends in the next 3 days ── */}
         <PremiumEndingBanner />
+
+        {/* ── Agencies that haven't finished their application ── */}
+        <AgentApplyBanner style={{ marginHorizontal: 16, marginBottom: 12 }} />
 
         {/* ── Android brands that restrict battery: one-time "set to Unrestricted" tip ── */}
         <BatteryTipCard />

@@ -1,4 +1,5 @@
 import { getIonIconColor } from "@/components/AppIcon";
+import AgentApplyBanner from "@/app/components/AgentApplyBanner"
 import { useTheme } from "@/context/themeContext";
 import { getUserFast, supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -106,6 +107,9 @@ export default function MeScreen() {
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
+
+        {/* Agencies that haven't finished their application */}
+        {isAgent ? <AgentApplyBanner style={{ marginBottom: 12 }} /> : null}
 
         {/* Agent quick stats, only for agents */}
         {isAgent && (

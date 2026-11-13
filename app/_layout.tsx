@@ -484,6 +484,7 @@ function AppStack() {
       <Stack.Screen name="auth/setup" />
       <Stack.Screen name="auth/plans" />
       <Stack.Screen name="agent/dashboard" />
+      <Stack.Screen name="agent/apply" />
       <Stack.Screen name="agent/index" />
       <Stack.Screen name="agent/[id]" />
       <Stack.Screen name="join" />
