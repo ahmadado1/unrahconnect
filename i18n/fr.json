@@ -2667,5 +2667,8 @@
   "applyUpload": "Téléverser",
   "applyFromCamera": "Prendre une photo",
   "applyFromPhotos": "Choisir dans les photos",
-  "applyFromFiles": "Choisir un fichier (PDF)"
+  "applyFromFiles": "Choisir un fichier (PDF)",
+  "applyOpenForm": "Ouvrir le formulaire",
+  "applyWebIntro": "Ajoutez les informations de votre agence, puis envoyez vos documents (PDF, photos ou caméra). Cela prend environ 5 minutes.",
+  "applyUseAppForm": "Remplir dans l'application"
 }

@@ -2667,5 +2667,8 @@
   "applyUpload": "اپ لوڈ کریں",
   "applyFromCamera": "تصویر لیں",
   "applyFromPhotos": "تصاویر سے منتخب کریں",
-  "applyFromFiles": "فائل منتخب کریں (PDF)"
+  "applyFromFiles": "فائل منتخب کریں (PDF)",
+  "applyOpenForm": "درخواست فارم کھولیں",
+  "applyWebIntro": "اپنی ایجنسی کی تفصیلات شامل کریں، پھر اپنی دستاویزات اپ لوڈ کریں (PDF، تصاویر یا کیمرہ)۔ اس میں تقریباً 5 منٹ لگتے ہیں۔",
+  "applyUseAppForm": "اس کے بجائے ایپ میں پُر کریں"
 }

@@ -2667,5 +2667,8 @@
   "applyUpload": "আপলোড",
   "applyFromCamera": "ছবি তুলুন",
   "applyFromPhotos": "ছবি থেকে বেছে নিন",
-  "applyFromFiles": "ফাইল বেছে নিন (PDF)"
+  "applyFromFiles": "ফাইল বেছে নিন (PDF)",
+  "applyOpenForm": "আবেদন ফর্ম খুলুন",
+  "applyWebIntro": "এজেন্সির তথ্য যোগ করুন, তারপর কাগজপত্র আপলোড করুন (PDF, ছবি বা ক্যামেরা)। প্রায় 5 মিনিট লাগে।",
+  "applyUseAppForm": "বরং অ্যাপেই পূরণ করুন"
 }

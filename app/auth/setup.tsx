@@ -99,7 +99,7 @@ export default function SetupScreen() {
       await withTimeout(supabase.auth.updateUser({
         data: { user_type: "agent", language: selectedLang, profile_complete: true },
       }), 20000)
-      router.replace("/agent/apply" as any)
+      router.replace("/agent/apply?auto=1" as any)
     } catch (e) {
       console.log("Setup error:", e)
       setError(t("somethingWentWrong"))

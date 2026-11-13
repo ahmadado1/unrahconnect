@@ -1,4 +1,7 @@
-// Agency application in the app: the two forms after an agency signs up.
+// Agency application in the app.
+// Main way: the website form opens in the in-app browser, already logged in
+//   (agency details, then documents: PDF, photos or camera all work there).
+// Backup: the same two forms built into the app ("Fill in the app instead").
 //   Step 1: agency details (name, owner, country, cities, phone, WhatsApp…)
 //   Step 2: verification (licence number + 4 documents, photographed with the camera
 //           or chosen from the photo library when this app build supports it)
@@ -31,6 +34,7 @@ import {
   type PickedDoc,
 } from "@/lib/agentApplication"
 import { submitAgentApplication } from "@/lib/agentSignup"
+import { openAgentWebApplication } from "@/lib/agentWebApply"
 import { COUNTRY_DIALS, countryName } from "@/lib/countries"
 import { getUserFast } from "@/lib/supabase"
 
@@ -51,14 +55,16 @@ const DOC_ICON: Record<DocKey, keyof typeof Ionicons.glyphMap> = {
   doc_office_photo: "storefront-outline",
 }
 
-type Step = "loading" | "details" | "documents" | "done"
+type Step = "loading" | "web" | "details" | "documents" | "done"
 
 export default function AgentApplyScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
-  const params = useLocalSearchParams<{ step?: string }>()
+  // ?auto=1 → open the browser form straight away (from sign-up and the reminder card)
+  // ?step=details|documents → use the in-app forms
+  const params = useLocalSearchParams<{ step?: string; auto?: string; done?: string; later?: string }>()
 
   const [step, setStep] = useState<Step>("loading")
   const [app, setApp] = useState<MyApplication | null>(null)
@@ -88,6 +94,27 @@ export default function AgentApplyScreen() {
   const cameraRef = useRef<CameraView>(null)
   const [capturing, setCapturing] = useState(false)
   const libraryAvailable = useMemo(() => canPickFromLibrary(), [])
+  const autoOpened = useRef(false)
+  const [webOpen, setWebOpen] = useState(false)
+
+  // ─── Open the website form in the in-app browser, then refresh where they are ───
+  const openWebForm = async () => {
+    if (webOpen) return
+    setWebOpen(true)
+    setError("")
+    try {
+      await openAgentWebApplication()
+      const fresh = await getMyApplication()
+      setApp(fresh)
+      const stage = applicationStage(fresh)
+      setStep(stage === "review" || stage === "verified" ? "done" : "web")
+    } catch (e) {
+      console.log("Web application error:", e)
+      setError(t("somethingWentWrong"))
+    } finally {
+      setWebOpen(false)
+    }
+  }
   const filesAvailable = useMemo(() => canPickFiles(), [])
   // "Upload" sheet: which document is being uploaded (Camera / Photos / File)
   const [uploadFor, setUploadFor] = useState<DocKey | null>(null)
@@ -121,9 +148,16 @@ export default function AgentApplyScreen() {
         setOfficeAddress(mine?.office_address || "")
 
         const stage = applicationStage(mine)
-        if (params.step === "details" || stage === "details") setStep("details")
-        else if (stage === "documents") setStep("documents")
-        else setStep("done")
+        if (stage === "review" || stage === "verified") setStep("done")
+        else if (params.step === "details") setStep("details")
+        else if (params.step === "documents") setStep(stage === "details" ? "details" : "documents")
+        else {
+          setStep("web")
+          if (params.auto === "1" && !autoOpened.current) {
+            autoOpened.current = true
+            void openWebForm()
+          }
+        }
       } catch (e) {
         console.log("Apply load error:", e)
         if (!cancelled) setStep("details")
@@ -262,7 +296,7 @@ export default function AgentApplyScreen() {
     </View>
   )
 
-  const stepNumber = step === "details" ? 1 : 2
+  const stepNumber = step === "details" || (step === "web" && applicationStage(app) === "details") ? 1 : 2
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.headerRow}>
@@ -271,7 +305,7 @@ export default function AgentApplyScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("applyTitle")}</Text>
       </View>
-      {step === "details" || step === "documents" ? (
+      {step === "details" || step === "documents" || step === "web" ? (
         <>
           <Text style={styles.stepOf}>{t("applyStepOf", { n: stepNumber })}</Text>
           <View style={styles.progress}>
@@ -290,6 +324,46 @@ export default function AgentApplyScreen() {
         <StatusBar style="light" />
         {header}
         <ActivityIndicator color={GOLD} style={{ marginTop: 40 }} />
+      </View>
+    )
+  }
+
+  // ─── Main: open the secure application form (website) in the in-app browser ───
+  if (step === "web") {
+    const stage = applicationStage(app)
+    const missing = applicationGaps(app).length
+    return (
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <StatusBar style="light" />
+        {header}
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}>
+          {app?.info_request ? (
+            <View style={[styles.infoBox, { borderColor: GOLD }]}>
+              <Text style={styles.infoTitle}>{t("applyInfoNeeded")}</Text>
+              <Text style={styles.infoText}>{app.info_request}</Text>
+            </View>
+          ) : null}
+          <View style={[styles.doneCard, { backgroundColor: theme.card, borderColor: GOLD }]}>
+            <View style={[styles.doneIcon, { backgroundColor: GOLD }]}>
+              <Ionicons name={stage === "details" ? "business-outline" : "document-text-outline"} size={28} color={NAVY} />
+            </View>
+            <Text style={[styles.doneTitle, { color: theme.text }]}>{t("completeTitle")}</Text>
+            <Text style={[styles.body, { color: theme.textSecondary, textAlign: "center" }]}>
+              {stage === "details" ? t("applyWebIntro") : t("completeBodyDocs", { count: missing })}
+            </Text>
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity style={[styles.primaryBtn, webOpen && { opacity: 0.6 }]} onPress={openWebForm} disabled={webOpen}>
+            {webOpen ? <ActivityIndicator color={NAVY} /> : <Text style={styles.primaryBtnText}>{t("applyOpenForm")}</Text>}
+          </TouchableOpacity>
+          <View style={styles.freeNote}>
+            <Ionicons name="gift-outline" size={18} color={GREEN} />
+            <Text style={styles.freeNoteText}>{t("applyFreeNote")}</Text>
+          </View>
+          <TouchableOpacity style={styles.linkBtn} onPress={() => setStep(stage === "details" ? "details" : "documents")}>
+            <Text style={[styles.linkBtnText, { color: theme.textSecondary }]}>{t("applyUseAppForm")}</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     )
   }

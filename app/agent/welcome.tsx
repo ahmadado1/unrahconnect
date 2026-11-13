@@ -3,5 +3,5 @@
 import { Redirect } from "expo-router"
 
 export default function AgentWelcomeScreen() {
-  return <Redirect href={"/agent/apply" as any} />
+  return <Redirect href={"/agent/apply?auto=1" as any} />
 }

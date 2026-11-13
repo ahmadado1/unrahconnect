@@ -2671,5 +2671,8 @@
   "applyUpload": "رفع",
   "applyFromCamera": "التقاط صورة",
   "applyFromPhotos": "اختيار من الصور",
-  "applyFromFiles": "اختيار ملف (PDF)"
+  "applyFromFiles": "اختيار ملف (PDF)",
+  "applyOpenForm": "فتح نموذج الطلب",
+  "applyWebIntro": "أضف بيانات وكالتك ثم ارفع مستنداتك (PDF أو صور أو الكاميرا). يستغرق ذلك نحو 5 دقائق.",
+  "applyUseAppForm": "التعبئة داخل التطبيق بدلًا من ذلك"
 }

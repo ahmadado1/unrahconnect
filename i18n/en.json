@@ -2667,5 +2667,8 @@
   "applyUpload": "Upload",
   "applyFromCamera": "Take a photo",
   "applyFromPhotos": "Choose from photos",
-  "applyFromFiles": "Choose a file (PDF)"
+  "applyFromFiles": "Choose a file (PDF)",
+  "applyOpenForm": "Open the application form",
+  "applyWebIntro": "Add your agency details, then upload your documents (PDF, photos or camera). It takes about 5 minutes.",
+  "applyUseAppForm": "Fill in the app instead"
 }

@@ -58,7 +58,7 @@ export default function AgentApplyBanner({ style }: { style?: object }) {
   return (
     <TouchableOpacity
       style={[styles.card, style]}
-      onPress={() => router.push(`/agent/apply${stage === "details" ? "?step=details" : ""}` as any)}
+      onPress={() => router.push("/agent/apply?auto=1" as any)}
     >
       <View style={styles.icon}>
         <Ionicons name={app?.info_request ? "chatbubble-ellipses-outline" : "document-text-outline"} size={20} color={NAVY} />
