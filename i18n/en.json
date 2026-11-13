@@ -2704,5 +2704,16 @@
   "nearbyPoweredBy": "Places, ratings and photos from Google",
   "nearbyError": "We couldn't load places right now. Check your internet and try again.",
   "nearbyEmpty": "No places found.",
-  "nearbySavedList": "See our saved restaurant list"
+  "nearbySavedList": "See our saved restaurant list",
+  "catAll": "All",
+  "catFast": "Fast food",
+  "catArabic": "Arabic & Middle Eastern",
+  "catAsian": "Indian & Asian",
+  "catCafe": "Cafés & desserts",
+  "catOther": "Restaurants",
+  "catMall": "Malls",
+  "catSupermarket": "Supermarkets",
+  "catDepartment": "Department stores",
+  "nearbyWalkShort": "{{min}} min walk · {{dist}}",
+  "nearbyPhotosCredit": "photo credits shown on Google Maps"
 }

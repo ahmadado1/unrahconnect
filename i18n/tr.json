@@ -2704,5 +2704,16 @@
   "nearbyPoweredBy": "Yerler, puanlar ve fotoğraflar Google'dan",
   "nearbyError": "Yerler şu an yüklenemedi. İnternetinizi kontrol edip tekrar deneyin.",
   "nearbyEmpty": "Yer bulunamadı.",
-  "nearbySavedList": "Kayıtlı restoran listemizi gör"
+  "nearbySavedList": "Kayıtlı restoran listemizi gör",
+  "catAll": "Tümü",
+  "catFast": "Fast food",
+  "catArabic": "Arap ve Orta Doğu",
+  "catAsian": "Hint ve Asya",
+  "catCafe": "Kafeler ve tatlılar",
+  "catOther": "Restoranlar",
+  "catMall": "AVM'ler",
+  "catSupermarket": "Süpermarketler",
+  "catDepartment": "Mağazalar",
+  "nearbyWalkShort": "{{min}} dk yürüme · {{dist}}",
+  "nearbyPhotosCredit": "fotoğraf kaynakları Google Haritalar'da"
 }

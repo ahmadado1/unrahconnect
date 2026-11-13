@@ -2704,5 +2704,16 @@
   "nearbyPoweredBy": "স্থান, রেটিং ও ছবি Google থেকে",
   "nearbyError": "এখন স্থানগুলো লোড করা যায়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।",
   "nearbyEmpty": "কোনো স্থান পাওয়া যায়নি।",
-  "nearbySavedList": "আমাদের সংরক্ষিত রেস্টুরেন্ট তালিকা দেখুন"
+  "nearbySavedList": "আমাদের সংরক্ষিত রেস্টুরেন্ট তালিকা দেখুন",
+  "catAll": "সব",
+  "catFast": "ফাস্ট ফুড",
+  "catArabic": "আরব ও মধ্যপ্রাচ্য",
+  "catAsian": "ভারতীয় ও এশীয়",
+  "catCafe": "ক্যাফে ও ডেজার্ট",
+  "catOther": "রেস্টুরেন্ট",
+  "catMall": "মল",
+  "catSupermarket": "সুপারমার্কেট",
+  "catDepartment": "ডিপার্টমেন্ট স্টোর",
+  "nearbyWalkShort": "{{min}} মিনিট হাঁটা · {{dist}}",
+  "nearbyPhotosCredit": "ছবির কৃতিত্ব Google Maps-এ"
 }

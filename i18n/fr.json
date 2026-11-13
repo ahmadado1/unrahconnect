@@ -2704,5 +2704,16 @@
   "nearbyPoweredBy": "Lieux, avis et photos fournis par Google",
   "nearbyError": "Impossible de charger les lieux pour le moment. Vérifiez votre connexion et réessayez.",
   "nearbyEmpty": "Aucun lieu trouvé.",
-  "nearbySavedList": "Voir notre liste de restaurants"
+  "nearbySavedList": "Voir notre liste de restaurants",
+  "catAll": "Tout",
+  "catFast": "Restauration rapide",
+  "catArabic": "Arabe et oriental",
+  "catAsian": "Indien et asiatique",
+  "catCafe": "Cafés et desserts",
+  "catOther": "Restaurants",
+  "catMall": "Centres commerciaux",
+  "catSupermarket": "Supermarchés",
+  "catDepartment": "Grands magasins",
+  "nearbyWalkShort": "{{min}} min à pied · {{dist}}",
+  "nearbyPhotosCredit": "crédits photo sur Google Maps"
 }

@@ -2708,5 +2708,16 @@
   "nearbyPoweredBy": "الأماكن والتقييمات والصور من Google",
   "nearbyError": "تعذّر تحميل الأماكن الآن. تحقق من الإنترنت وحاول مجددًا.",
   "nearbyEmpty": "لم يتم العثور على أماكن.",
-  "nearbySavedList": "عرض قائمة المطاعم المحفوظة"
+  "nearbySavedList": "عرض قائمة المطاعم المحفوظة",
+  "catAll": "الكل",
+  "catFast": "وجبات سريعة",
+  "catArabic": "عربي وشرق أوسطي",
+  "catAsian": "هندي وآسيوي",
+  "catCafe": "مقاهٍ وحلويات",
+  "catOther": "مطاعم",
+  "catMall": "مولات",
+  "catSupermarket": "سوبرماركت",
+  "catDepartment": "متاجر كبرى",
+  "nearbyWalkShort": "{{min}} دقيقة سيرًا · {{dist}}",
+  "nearbyPhotosCredit": "حقوق الصور على خرائط Google"
 }

@@ -1,5 +1,6 @@
 // Restaurants and malls near the two holy mosques, live from Google Places (through our
 // "nearby-places" server function, which keeps the Google key secret).
+import { CHAIN_LOGOS } from "./restaurantImages"
 import { supabaseUrl } from "./supabase"
 
 const FN_URL = `${supabaseUrl}/functions/v1/nearby-places`
@@ -7,9 +8,15 @@ const FN_URL = `${supabaseUrl}/functions/v1/nearby-places`
 export type NearbyKind = "restaurants" | "malls"
 export type NearbyCity = "makkah" | "madinah"
 
+export type NearbyCategory = "fast" | "arabic" | "asian" | "cafe" | "other" | "mall" | "supermarket" | "department"
+
 export type NearbyPlace = {
   id: string
   name: string
+  /** Our category (one Google search each) */
+  category: NearbyCategory
+  /** Google's own label, e.g. "Fast Food Restaurant" (in the app language) */
+  typeLabel: string
   rating: number | null
   ratingCount: number
   priceLevel: string | null
@@ -63,4 +70,19 @@ export function priceSymbols(level: string | null) {
     case "PRICE_LEVEL_VERY_EXPENSIVE": return "$$$$"
     default: return ""
   }
+}
+
+/** Brand logo for well-known chains (used when Google has no photo). */
+const CHAIN_MATCH: [RegExp, keyof typeof CHAIN_LOGOS][] = [
+  [/al\s*baik|البيك/i, "alBaik"], [/\bkfc\b|كنتاكي/i, "kfc"], [/mc\s*donald|ماكدونالدز/i, "mcdonalds"],
+  [/burger\s*king|برجر كنج/i, "burgerKing"], [/pizza\s*hut|بيتزا هت/i, "pizzaHut"], [/subway|صب واي/i, "subway"],
+  [/starbucks|ستاربكس/i, "starbucks"], [/popeyes|بوبايز/i, "popeyes"], [/shake\s*shack/i, "shakeShack"],
+  [/domino|دومينوز/i, "dominos"], [/tim\s*horton/i, "timHortons"], [/hardee|هارديز/i, "hardees"],
+  [/nando/i, "nandos"], [/kudu|كودو/i, "kudu"], [/herfy|هرفي/i, "herfy"], [/tazaj|الطازج/i, "alTazaj"],
+  [/romansiah|الرومانسية/i, "romansiah"], [/bateel|بتيل/i, "bateel"],
+]
+
+export function chainLogo(name: string): string | null {
+  for (const [re, key] of CHAIN_MATCH) if (re.test(name)) return CHAIN_LOGOS[key]
+  return null
 }

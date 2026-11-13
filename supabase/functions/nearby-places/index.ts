@@ -27,10 +27,27 @@ const CENTERS = {
   madinah: { lat: 24.4672, lng: 39.6112 },
 } as const
 
-// What to search for, and how far from the mosque (metres)
+// What to search for, in categories, and how far from the mosque (metres).
+// Each category is its own Google search (up to 20 places each), so every category has enough places.
 const KINDS = {
-  restaurants: { types: ["restaurant", "fast_food_restaurant", "cafe"], radius: 1500 },
-  malls: { types: ["shopping_mall", "department_store"], radius: 3000 },
+  restaurants: {
+    radius: 1500,
+    groups: [
+      { category: "fast", types: ["fast_food_restaurant", "hamburger_restaurant", "pizza_restaurant", "sandwich_shop"] },
+      { category: "arabic", types: ["middle_eastern_restaurant", "lebanese_restaurant", "turkish_restaurant"] },
+      { category: "asian", types: ["indian_restaurant", "chinese_restaurant", "asian_restaurant"] },
+      { category: "cafe", types: ["cafe", "coffee_shop", "bakery", "ice_cream_shop"] },
+      { category: "other", types: ["restaurant", "seafood_restaurant"] },
+    ],
+  },
+  malls: {
+    radius: 3000,
+    groups: [
+      { category: "mall", types: ["shopping_mall"] },
+      { category: "supermarket", types: ["supermarket", "grocery_store"] },
+      { category: "department", types: ["department_store"] },
+    ],
+  },
 } as const
 
 const LANGS = new Set(["en", "ar", "fr", "tr", "ur", "bn"])
@@ -57,6 +74,7 @@ type GPlace = {
   rating?: number
   userRatingCount?: number
   priceLevel?: string
+  primaryTypeDisplayName?: { text?: string }
   formattedAddress?: string
   shortFormattedAddress?: string
   location?: { latitude: number; longitude: number }
@@ -66,20 +84,17 @@ type GPlace = {
   photos?: { name: string; authorAttributions?: { displayName?: string; uri?: string }[] }[]
 }
 
-async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS, lang: string, debug = false) {
-  const center = CENTERS[city]
-  const { types, radius } = KINDS[kind]
+const FIELD_MASK = [
+  "places.id", "places.displayName", "places.rating", "places.userRatingCount", "places.priceLevel",
+  "places.formattedAddress", "places.shortFormattedAddress", "places.location", "places.googleMapsUri",
+  "places.currentOpeningHours.openNow", "places.businessStatus", "places.photos", "places.primaryTypeDisplayName",
+].join(",")
+
+/** One Google search for one category. */
+async function searchGroup(center: { lat: number; lng: number }, radius: number, types: readonly string[], lang: string) {
   const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": KEY,
-      "X-Goog-FieldMask": [
-        "places.id", "places.displayName", "places.rating", "places.userRatingCount", "places.priceLevel",
-        "places.formattedAddress", "places.shortFormattedAddress", "places.location", "places.googleMapsUri",
-        "places.currentOpeningHours.openNow", "places.businessStatus", "places.photos",
-      ].join(","),
-    },
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": FIELD_MASK },
     body: JSON.stringify({
       includedPrimaryTypes: types,
       excludedPrimaryTypes: ["lodging", "hotel", "resort_hotel"],
@@ -92,22 +107,50 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) throw new Error(data?.error?.message || `Google Places error ${res.status}`)
-  // ?debug=1: show what Google sent for the first two places (to check photos)
-  if (debug) return { debug: true, sample: (data?.places ?? []).slice(0, 2), count: (data?.places ?? []).length }
+  return (data?.places ?? []) as GPlace[]
+}
 
+async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS, lang: string, debug = false) {
+  const center = CENTERS[city]
+  const { radius, groups } = KINDS[kind]
+
+  // All categories at once; a category that fails is skipped, the others still show
+  const results = await Promise.allSettled(groups.map((g) => searchGroup(center, radius, g.types, lang)))
+  if (debug) {
+    return {
+      debug: true,
+      groups: results.map((r, i) => ({
+        category: groups[i].category,
+        ok: r.status === "fulfilled",
+        count: r.status === "fulfilled" ? r.value.length : 0,
+        error: r.status === "rejected" ? String(r.reason) : undefined,
+        sample: r.status === "fulfilled" ? r.value.slice(0, 1) : undefined,
+      })),
+    }
+  }
+  if (results.every((r) => r.status === "rejected")) {
+    throw new Error(String((results[0] as PromiseRejectedResult).reason))
+  }
+
+  const seenIds = new Set<string>()
   const seenPhotos = new Set<string>()
-  const places = ((data?.places ?? []) as GPlace[])
-    .filter((p) => p.location && p.displayName?.text && p.businessStatus !== "CLOSED_PERMANENTLY")
-    .map((p) => {
-      const loc = { lat: p.location!.latitude, lng: p.location!.longitude }
+  const places: Array<{ meters: number } & Record<string, unknown>> = []
+  results.forEach((r, i) => {
+    if (r.status !== "fulfilled") return
+    for (const p of r.value) {
+      if (!p.location || !p.displayName?.text || p.businessStatus === "CLOSED_PERMANENTLY" || seenIds.has(p.id)) continue
+      seenIds.add(p.id)
+      const loc = { lat: p.location.latitude, lng: p.location.longitude }
       const m = metres(center, loc)
       // One photo per place, never the same photo twice
       const photo = (p.photos ?? []).find((ph) => ph.name && !seenPhotos.has(ph.name))
       if (photo) seenPhotos.add(photo.name)
       const author = photo?.authorAttributions?.[0]
-      return {
+      places.push({
         id: p.id,
-        name: p.displayName!.text!,
+        name: p.displayName.text,
+        category: groups[i].category,
+        typeLabel: p.primaryTypeDisplayName?.text || "",
         rating: p.rating ?? null,
         ratingCount: p.userRatingCount ?? 0,
         priceLevel: p.priceLevel ?? null,
@@ -120,12 +163,12 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
         walkMinutes: Math.max(1, Math.round((m * 1.3) / 75)),
         mapsUrl: p.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`,
         photo: photo ? { name: photo.name, author: author?.displayName || "", authorUrl: author?.uri || "" } : null,
-      }
-    })
-    // Closest to the mosque first
-    .sort((a, b) => a.meters - b.meters)
-
-  return { places, attribution: "Google" }
+      })
+    }
+  })
+  // Closest to the mosque first
+  places.sort((a, b) => a.meters - b.meters)
+  return { places, categories: groups.map((g) => g.category), attribution: "Google" }
 }
 
 serve(async (req) => {

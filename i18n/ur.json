@@ -2704,5 +2704,16 @@
   "nearbyPoweredBy": "جگہیں، ریٹنگ اور تصاویر Google سے",
   "nearbyError": "ابھی جگہیں لوڈ نہیں ہو سکیں۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔",
   "nearbyEmpty": "کوئی جگہ نہیں ملی۔",
-  "nearbySavedList": "ہماری محفوظ ریستوران فہرست دیکھیں"
+  "nearbySavedList": "ہماری محفوظ ریستوران فہرست دیکھیں",
+  "catAll": "سب",
+  "catFast": "فاسٹ فوڈ",
+  "catArabic": "عربی اور مشرقِ وسطیٰ",
+  "catAsian": "ہندوستانی اور ایشیائی",
+  "catCafe": "کیفے اور میٹھے",
+  "catOther": "ریستوران",
+  "catMall": "مالز",
+  "catSupermarket": "سپر مارکیٹ",
+  "catDepartment": "ڈیپارٹمنٹ اسٹورز",
+  "nearbyWalkShort": "{{min}} منٹ پیدل · {{dist}}",
+  "nearbyPhotosCredit": "تصاویر کے حقوق Google Maps پر"
 }

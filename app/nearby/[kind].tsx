@@ -1,22 +1,26 @@
-// Restaurants or malls near Masjid al-Haram / Masjid an-Nabawi, live from Google:
-// real photo, rating, open now, walking time from the mosque, and Directions.
+// Restaurants or malls near Masjid al-Haram / Masjid an-Nabawi, live from Google.
 //   /nearby/restaurants   /nearby/malls
-// Google's rules: show "Google" as the source and the photo author's name.
+// Category chips at the top, then compact rows: picture, name, type, rating, open now,
+// walking time from the mosque. Tap a row for directions in Google Maps.
+// Picture: Google photo when Google has one, else the chain's logo, else a category icon.
+// Google's rules: show "Google" as the source and the photographer's name.
 import { Ionicons } from "@expo/vector-icons"
 import { Image } from "expo-image"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, FlatList, Linking, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, FlatList, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useTheme } from "@/context/themeContext"
 import {
+  chainLogo,
   formatMeters,
   getNearbyPlaces,
   nearbyPhotoUrl,
   priceSymbols,
+  type NearbyCategory,
   type NearbyCity,
   type NearbyKind,
   type NearbyPlace,
@@ -26,6 +30,43 @@ const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
 const GREEN = "#2F855A"
 
+// Order, label and look of each category
+const CATEGORIES: Record<NearbyKind, NearbyCategory[]> = {
+  restaurants: ["fast", "arabic", "asian", "cafe", "other"],
+  malls: ["mall", "supermarket", "department"],
+}
+const CAT_STYLE: Record<NearbyCategory, { icon: keyof typeof Ionicons.glyphMap; tint: string; labelKey: string }> = {
+  fast: { icon: "fast-food-outline", tint: "#EF6C3A", labelKey: "catFast" },
+  arabic: { icon: "restaurant-outline", tint: "#B7791F", labelKey: "catArabic" },
+  asian: { icon: "flame-outline", tint: "#C53030", labelKey: "catAsian" },
+  cafe: { icon: "cafe-outline", tint: "#7B4F2C", labelKey: "catCafe" },
+  other: { icon: "restaurant-outline", tint: NAVY, labelKey: "catOther" },
+  mall: { icon: "bag-handle-outline", tint: "#B83280", labelKey: "catMall" },
+  supermarket: { icon: "cart-outline", tint: GREEN, labelKey: "catSupermarket" },
+  department: { icon: "shirt-outline", tint: "#2B6CB0", labelKey: "catDepartment" },
+}
+
+/** Small square picture for a row. */
+function Thumb({ place }: { place: NearbyPlace }) {
+  const look = CAT_STYLE[place.category] ?? CAT_STYLE.other
+  if (place.photo) {
+    return <Image source={{ uri: nearbyPhotoUrl(place.photo.name, 200) }} style={styles.thumb} contentFit="cover" transition={150} cachePolicy="memory-disk" />
+  }
+  const logo = chainLogo(place.name)
+  if (logo) {
+    return (
+      <View style={[styles.thumb, styles.logoBox]}>
+        <Image source={{ uri: logo }} style={styles.logo} contentFit="contain" cachePolicy="memory-disk" />
+      </View>
+    )
+  }
+  return (
+    <View style={[styles.thumb, styles.iconBox, { backgroundColor: `${look.tint}1A` }]}>
+      <Ionicons name={look.icon} size={26} color={look.tint} />
+    </View>
+  )
+}
+
 export default function NearbyScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -34,6 +75,7 @@ export default function NearbyScreen() {
   const params = useLocalSearchParams<{ kind?: string; city?: string }>()
   const kind: NearbyKind = params.kind === "malls" ? "malls" : "restaurants"
   const [city, setCity] = useState<NearbyCity>(params.city === "madinah" ? "madinah" : "makkah")
+  const [category, setCategory] = useState<NearbyCategory | "all">("all")
   const [places, setPlaces] = useState<NearbyPlace[] | null>(null)
   const [error, setError] = useState(false)
 
@@ -52,64 +94,62 @@ export default function NearbyScreen() {
     void load()
   }, [load])
 
+  // Only show category chips that have places
+  const chips = useMemo(() => {
+    const present = new Set((places ?? []).map((p) => p.category))
+    return CATEGORIES[kind].filter((c) => present.has(c))
+  }, [places, kind])
+  const shown = useMemo(
+    () => (places ?? []).filter((p) => category === "all" || p.category === category),
+    [places, category],
+  )
+
   const mosque = city === "makkah" ? t("nearbyHaram") : t("nearbyNabawi")
   const title = kind === "malls" ? t("nearbyMallsTitle") : t("nearbyRestaurantsTitle")
 
   const renderItem = ({ item }: { item: NearbyPlace }) => {
     const price = priceSymbols(item.priceLevel)
     return (
-      <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        {/* Photo (from Google, with the photographer's name) */}
-        {item.photo ? (
-          <View>
-            <Image source={{ uri: nearbyPhotoUrl(item.photo.name, 800) }} style={styles.photo} contentFit="cover" transition={200} cachePolicy="memory-disk" />
-            {item.photo.author ? (
-              <Text style={styles.photoCredit} numberOfLines={1} onPress={() => item.photo?.authorUrl && Linking.openURL(item.photo.authorUrl)}>
-                {t("nearbyPhotoBy", { name: item.photo.author })}
-              </Text>
-            ) : null}
-          </View>
-        ) : (
-          <View style={[styles.photo, styles.noPhoto]}>
-            <Ionicons name={kind === "malls" ? "bag-handle-outline" : "restaurant-outline"} size={40} color={GOLD} />
-          </View>
-        )}
-
-        <View style={styles.body}>
-          <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
-
+      <TouchableOpacity
+        style={[styles.row, { backgroundColor: theme.card, borderColor: theme.border }]}
+        onPress={() => Linking.openURL(item.mapsUrl).catch(() => {})}
+        accessibilityRole="button"
+      >
+        <Thumb place={item} />
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
           <View style={styles.metaRow}>
             {item.rating ? (
               <View style={styles.meta}>
-                <Ionicons name="star" size={13} color={GOLD} />
+                <Ionicons name="star" size={12} color={GOLD} />
                 <Text style={[styles.metaText, { color: theme.text }]}>
                   {item.rating.toFixed(1)} <Text style={{ color: theme.textSecondary }}>({item.ratingCount.toLocaleString()})</Text>
                 </Text>
               </View>
             ) : null}
             {price ? <Text style={[styles.metaText, { color: theme.textSecondary }]}>{price}</Text> : null}
+            {item.typeLabel ? <Text style={[styles.metaText, { color: theme.textSecondary }]} numberOfLines={1}>{item.typeLabel}</Text> : null}
+          </View>
+          <View style={styles.meta}>
+            <Ionicons name="walk-outline" size={13} color={NAVY} />
+            <Text style={[styles.metaText, { color: theme.textSecondary }]} numberOfLines={1}>
+              {t("nearbyWalkShort", { min: item.walkMinutes, dist: formatMeters(item.meters) })}
+            </Text>
             {item.openNow !== null ? (
               <Text style={[styles.metaText, { color: item.openNow ? GREEN : "#C53030", fontWeight: "700" }]}>
-                {item.openNow ? t("nearbyOpenNow") : t("nearbyClosedNow")}
+                · {item.openNow ? t("nearbyOpenNow") : t("nearbyClosedNow")}
               </Text>
             ) : null}
           </View>
-
-          {/* Walking time from the mosque */}
-          <View style={styles.meta}>
-            <Ionicons name="walk-outline" size={15} color={NAVY} />
-            <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-              {t("nearbyWalk", { min: item.walkMinutes, dist: formatMeters(item.meters), place: mosque })}
-            </Text>
-          </View>
-          {item.address ? <Text style={[styles.address, { color: theme.textSecondary }]} numberOfLines={1}>{item.address}</Text> : null}
-
-          <TouchableOpacity style={styles.dirBtn} onPress={() => Linking.openURL(item.mapsUrl).catch(() => {})}>
-            <Ionicons name="navigate" size={15} color={NAVY} />
-            <Text style={styles.dirText}>{t("getDirections")}</Text>
-          </TouchableOpacity>
+          {/* Google's rule: name the photographer when showing their photo */}
+          {item.photo?.author ? (
+            <Text style={styles.credit} numberOfLines={1}>{t("nearbyPhotoBy", { name: item.photo.author })}</Text>
+          ) : null}
         </View>
-      </View>
+        <View style={styles.dirIcon}>
+          <Ionicons name="navigate" size={16} color={NAVY} />
+        </View>
+      </TouchableOpacity>
     )
   }
 
@@ -129,19 +169,44 @@ export default function NearbyScreen() {
         {/* Makkah / Madinah */}
         <View style={styles.toggle}>
           {(["makkah", "madinah"] as NearbyCity[]).map((c) => (
-            <TouchableOpacity key={c} style={[styles.toggleBtn, city === c && styles.toggleOn]} onPress={() => setCity(c)}>
+            <TouchableOpacity key={c} style={[styles.toggleBtn, city === c && styles.toggleOn]} onPress={() => { setCity(c); setCategory("all") }}>
               <Text style={[styles.toggleText, city === c && styles.toggleTextOn]}>{c === "makkah" ? t("makkah") : t("madinah")}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
+      {/* Categories */}
+      {places && chips.length > 1 ? (
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            {(["all", ...chips] as (NearbyCategory | "all")[]).map((c) => {
+              const on = category === c
+              const look = c === "all" ? null : CAT_STYLE[c]
+              return (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.chip, { borderColor: theme.border, backgroundColor: on ? NAVY : theme.card }]}
+                  onPress={() => setCategory(c)}
+                >
+                  {look ? <Ionicons name={look.icon} size={14} color={on ? GOLD : look.tint} /> : null}
+                  <Text style={[styles.chipText, { color: on ? "#fff" : theme.text }]}>
+                    {c === "all" ? t("catAll") : t(look!.labelKey)}
+                    {c === "all" ? "" : ` · ${(places ?? []).filter((p) => p.category === c).length}`}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {error ? (
         <View style={styles.center}>
           <Ionicons name="cloud-offline-outline" size={40} color={GOLD} />
           <Text style={[styles.centerText, { color: theme.textSecondary }]}>{t("nearbyError")}</Text>
-          <TouchableOpacity style={styles.dirBtn} onPress={load}>
-            <Text style={styles.dirText}>{t("tryAgain")}</Text>
+          <TouchableOpacity style={styles.retry} onPress={load}>
+            <Text style={styles.retryText}>{t("tryAgain")}</Text>
           </TouchableOpacity>
           {kind === "restaurants" ? (
             <TouchableOpacity onPress={() => router.push("/restaurants" as any)} style={{ marginTop: 12 }}>
@@ -153,13 +218,15 @@ export default function NearbyScreen() {
         <ActivityIndicator color={GOLD} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={places}
+          data={shown}
           keyExtractor={(p) => p.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40, gap: 14 }}
-          ListEmptyComponent={<Text style={[styles.centerText, { color: theme.textSecondary }]}>{t("nearbyEmpty")}</Text>}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: insets.bottom + 40, gap: 10 }}
+          ListEmptyComponent={<Text style={[styles.centerText, { color: theme.textSecondary, marginTop: 30 }]}>{t("nearbyEmpty")}</Text>}
           ListFooterComponent={
-            <Text style={[styles.powered, { color: theme.textSecondary }]}>{t("nearbyPoweredBy")}</Text>
+            <Text style={[styles.powered, { color: theme.textSecondary }]}>
+              {t("nearbyPoweredBy")}
+            </Text>
           }
         />
       )}
@@ -179,19 +246,23 @@ const styles = StyleSheet.create({
   toggleOn: { backgroundColor: GOLD },
   toggleText: { color: "#fff", fontWeight: "700" },
   toggleTextOn: { color: NAVY },
-  card: { borderRadius: 18, borderWidth: 0.5, overflow: "hidden" },
-  photo: { width: "100%", height: 170, backgroundColor: "#EEF2F7" },
-  noPhoto: { alignItems: "center", justifyContent: "center", backgroundColor: "#F3EAD2" },
-  photoCredit: { position: "absolute", bottom: 6, right: 8, color: "#fff", fontSize: 10, backgroundColor: "rgba(0,0,0,0.45)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, maxWidth: "70%" },
-  body: { padding: 14, gap: 6 },
-  name: { fontSize: 17, fontWeight: "bold" },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  meta: { flexDirection: "row", alignItems: "center", gap: 5 },
-  metaText: { fontSize: 13 },
-  address: { fontSize: 12 },
-  dirBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: GOLD, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, marginTop: 6 },
-  dirText: { color: NAVY, fontWeight: "bold", fontSize: 13 },
+  chips: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12 },
+  chipText: { fontSize: 13, fontWeight: "700" },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, borderWidth: 0.5, padding: 10 },
+  thumb: { width: 64, height: 64, borderRadius: 12, backgroundColor: "#EEF2F7" },
+  logoBox: { backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 0.5, borderColor: "#E2E8F0" },
+  logo: { width: 46, height: 46 },
+  iconBox: { alignItems: "center", justifyContent: "center" },
+  name: { fontSize: 15, fontWeight: "bold" },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  meta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 12 },
+  dirIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
   center: { alignItems: "center", padding: 32, gap: 10 },
   centerText: { fontSize: 14, textAlign: "center" },
-  powered: { fontSize: 11, textAlign: "center", marginTop: 6 },
+  retry: { backgroundColor: GOLD, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16 },
+  retryText: { color: NAVY, fontWeight: "bold" },
+  credit: { fontSize: 10, color: "#8A97A5" },
+  powered: { fontSize: 11, textAlign: "center", marginTop: 8 },
 })
