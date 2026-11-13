@@ -30,8 +30,9 @@ export type NearbyPlace = {
   /**
    * google: url is empty, load it with nearbyPhotoUrl(name)
    * wikimedia: url is the image; show author + licence
+   * tripadvisor: url is the image; show "Photo: user · Tripadvisor"
    */
-  photo: { source: "google" | "wikimedia"; name: string; url: string; author: string; authorUrl: string; license: string } | null
+  photo: { source: "google" | "wikimedia" | "tripadvisor"; name: string; url: string; author: string; authorUrl: string; license: string } | null
 }
 
 /** One general photo per category (Pexels), shown as a banner, never as a specific place. */
@@ -95,6 +96,8 @@ const CHAIN_MATCH: [RegExp, keyof typeof CHAIN_LOGOS][] = [
   [/domino|دومينوز/i, "dominos"], [/tim\s*horton/i, "timHortons"], [/hardee|هارديز/i, "hardees"],
   [/nando/i, "nandos"], [/kudu|كودو/i, "kudu"], [/herfy|هرفي/i, "herfy"], [/tazaj|الطازج/i, "alTazaj"],
   [/romansiah|الرومانسية/i, "romansiah"], [/bateel|بتيل/i, "bateel"],
+  [/bin\s*dawood|bindawood|بن داود/i, "binDawood"], [/panda|بنده/i, "panda"], [/danube|الدانوب/i, "danube"],
+  [/\blulu\b|لولو/i, "lulu"], [/othaim|العثيم/i, "othaim"], [/tamimi|التميمي/i, "tamimi"],
 ]
 
 export function chainLogo(name: string): string | null {

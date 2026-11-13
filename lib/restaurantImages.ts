@@ -53,6 +53,13 @@ export const CHAIN_LOGOS = {
   swissotel: brandFavicon("swissotel.com"),
   oberoi: brandFavicon("oberoihotels.com"),
   movenpick: brandFavicon("movenpick.com"),
+  // Supermarkets and malls (official-site icons)
+  binDawood: brandFavicon("bindawood.com"),
+  panda: brandFavicon("panda.com.sa"),
+  danube: brandFavicon("danube.sa"),
+  lulu: brandFavicon("luluhypermarket.com"),
+  othaim: brandFavicon("othaimmarkets.com"),
+  tamimi: brandFavicon("tamimimarkets.com"),
   /** Generic fork/knife mark for independent local venues */
   localVenue:
     "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Food_font_awesome.svg/250px-Food_font_awesome.svg.png",

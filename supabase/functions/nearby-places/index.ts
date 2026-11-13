@@ -13,11 +13,17 @@
 //
 // Costs are kept low: each list is kept for 6 hours per server and only the first photo of each place is used.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 
 const KEY = (Deno.env.get("GOOGLE_PLACES_API_KEY") || "").trim()
 // Optional: free key from pexels.com/api, for one banner photo per category
 const PEXELS_KEY = (Deno.env.get("PEXELS_API_KEY") || "").trim()
 const UA = "UmrahConnect/1.0 (https://myumrahconnect.com; info@myumrahconnect.com)"
+// Optional: Tripadvisor Content API key (free plan: 1,000 requests a month)
+const TA_KEY = (Deno.env.get("TRIPADVISOR_API_KEY") || "").trim()
+const db = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
+  auth: { persistSession: false },
+})
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -142,6 +148,8 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
     if (r.status !== "fulfilled") return
     for (const p of r.value) {
       if (!p.location || !p.displayName?.text || p.businessStatus === "CLOSED_PERMANENTLY" || seenIds.has(p.id)) continue
+      // Leave out tiny or unknown shops (few reviews)
+      if ((p.userRatingCount ?? 0) < (kind === "malls" ? 50 : 30)) continue
       seenIds.add(p.id)
       const loc = { lat: p.location.latitude, lng: p.location.longitude }
       const m = metres(center, loc)
@@ -175,13 +183,95 @@ async function searchNearby(city: keyof typeof CENTERS, kind: keyof typeof KINDS
   places.sort((a, b) => a.meters - b.meters)
   // Places Google has no photo for: try a real photo of that place on Wikimedia Commons (free)
   await addWikimediaPhotos(center, places as unknown as OutPlace[])
+  // Still no photo: Tripadvisor (saved for 30 days, a few new places per visit)
+  await addTripadvisorPhotos(places as unknown as OutPlace[], kind)
   const banners = await categoryBanners(kind)
   const missing = (places as unknown as OutPlace[]).filter((p) => !p.photo).map((p) => p.name)
   return { places, categories: groups.map((g) => g.category), banners, missing, attribution: "Google" }
 }
 
 type OutPhoto = { source: string; name: string; url: string; author: string; authorUrl: string; license: string }
-type OutPlace = { name: string; lat: number; lng: number; photo: OutPhoto | null }
+type OutPlace = { id: string; name: string; lat: number; lng: number; photo: OutPhoto | null }
+
+// ─── Tripadvisor: real photos of restaurants and malls (free plan, so used carefully) ───
+// Each place is looked up once and the answer is saved for 30 days in public.place_photos
+// (also when nothing was found), and at most 12 new look-ups happen per list, so a month
+// stays well under the 1,000 free requests (1 search + 1 photo request per place).
+const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
+const TA_KEEP_DAYS = 30
+const TA_MAX_NEW = 12
+
+async function taGet(path: string) {
+  const sep = path.includes("?") ? "&" : "?"
+  const res = await fetch(`${TA_BASE}${path}${sep}key=${TA_KEY}`, {
+    headers: { accept: "application/json", Referer: "https://myumrahconnect.com", "User-Agent": UA },
+  })
+  if (!res.ok) throw new Error(`Tripadvisor ${res.status}`)
+  return res.json()
+}
+
+/** Find the place on Tripadvisor (name near the same spot) and take its first photo. */
+async function tripadvisorPhoto(place: OutPlace, kind: keyof typeof KINDS): Promise<OutPhoto | null> {
+  const category = kind === "restaurants" ? "restaurants" : "attractions"
+  const search = await taGet(
+    `/location/search?searchQuery=${encodeURIComponent(place.name)}&latLong=${place.lat},${place.lng}&category=${category}&language=en`,
+  )
+  const nameWords = words(place.name)
+  const match = (search?.data ?? []).find((loc: { name?: string }) => {
+    const w = words(String(loc.name || ""))
+    return nameWords.some((a) => w.some((b) => a.includes(b) || b.includes(a)))
+  })
+  if (!match?.location_id) return null
+  const photos = await taGet(`/location/${match.location_id}/photos?language=en&limit=1`)
+  const ph = photos?.data?.[0]
+  const url = ph?.images?.large?.url || ph?.images?.medium?.url || ph?.images?.original?.url
+  if (!url) return null
+  return {
+    source: "tripadvisor",
+    name: String(match.location_id),
+    url,
+    author: ph?.user?.username || "Tripadvisor",
+    authorUrl: `https://www.tripadvisor.com/Search?q=${encodeURIComponent(place.name)}`,
+    license: "Tripadvisor",
+  }
+}
+
+async function addTripadvisorPhotos(places: OutPlace[], kind: keyof typeof KINDS) {
+  if (!TA_KEY) return
+  const need = places.filter((p) => !p.photo)
+  if (!need.length) return
+  // What we already know (found or not found) from earlier look-ups
+  const { data: saved } = await db.from("place_photos").select("*").in("google_place_id", need.map((p) => p.id))
+  const known = new Map((saved ?? []).map((r: { google_place_id: string }) => [r.google_place_id, r]))
+  const fresh = Date.now() - TA_KEEP_DAYS * 86_400_000
+  let newLookups = 0
+  for (const place of need) {
+    const row = known.get(place.id) as { source: string; url: string; author: string; link: string; checked_at: string } | undefined
+    if (row && new Date(row.checked_at).getTime() > fresh) {
+      if (row.source === "tripadvisor" && row.url) {
+        place.photo = { source: "tripadvisor", name: place.id, url: row.url, author: row.author || "Tripadvisor", authorUrl: row.link || "", license: "Tripadvisor" }
+      }
+      continue
+    }
+    if (newLookups >= TA_MAX_NEW) continue // the rest next time
+    newLookups++
+    try {
+      const photo = await tripadvisorPhoto(place, kind)
+      if (photo) place.photo = photo
+      await db.from("place_photos").upsert({
+        google_place_id: place.id,
+        source: photo ? "tripadvisor" : "none",
+        url: photo?.url ?? null,
+        author: photo?.author ?? null,
+        link: photo?.authorUrl ?? null,
+        checked_at: new Date().toISOString(),
+      })
+    } catch (e) {
+      console.error("tripadvisor", place.name, String(e))
+      if (String(e).includes("429")) break // monthly or per-second limit: stop for now
+    }
+  }
+}
 
 // ─── Wikimedia Commons: free photos with a location (credit + licence must be shown) ───
 // One search per city: all photos taken within 10 km of the mosque. A photo is used for a place only if
@@ -324,7 +414,7 @@ async function commonsBanners() {
           .sort((a, b) => (a.index ?? 99) - (b.index ?? 99))
           .find((pg) => {
             const ii = pg.imageinfo?.[0]
-            return ii?.thumburl && (ii.width ?? 0) >= 800 && (ii.width ?? 0) >= (ii.height ?? 0)
+            return ii?.thumburl && (ii.width ?? 0) >= 600
           })
         const ii = pick?.imageinfo?.[0]
         if (ii?.thumburl) {

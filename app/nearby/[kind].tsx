@@ -154,6 +154,7 @@ export default function NearbyScreen() {
             >
               {t("nearbyPhotoBy", { name: item.photo.author })}
               {item.photo.source === "wikimedia" ? ` · ${item.photo.license ? `${item.photo.license}, ` : ""}Wikimedia Commons` : ""}
+              {item.photo.source === "tripadvisor" ? " · Tripadvisor" : ""}
             </Text>
           ) : null}
         </View>
