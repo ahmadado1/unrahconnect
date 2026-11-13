@@ -138,9 +138,10 @@ const SCREEN_ROUTES = {
   flights: "/services/flights",
   esim: "/services/esim",
   airalo: "/services/airalo",
-  restaurants: "/restaurants",
+  restaurants: "/nearby/restaurants",
+  malls: "/nearby/malls",
   transport: "/services/transport",
-  shopping: "/services/shopping",
+  shopping: "/nearby/malls",
   "find-agent": "/agent",
   "scan-agent": "/agent/scan",
   profile: "/profile",
@@ -371,7 +372,7 @@ const DEEP_LINK_RULES = [
   {
     id: "restaurants",
     label: "Restaurants",
-    route: "/restaurants",
+    route: "/nearby/restaurants",
     patterns: [/\brestaurants?\b/i, /مطعم/, /مطاعم/],
   },
   {

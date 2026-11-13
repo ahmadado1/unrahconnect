@@ -5,6 +5,7 @@ import { useTheme } from "@/context/themeContext"
 import {
   getActiveAgentById,
   getMyAgentId,
+  getMyAgentProfile,
   isSignedIn,
   joinAgent,
   recordLead,
@@ -45,14 +46,21 @@ export default function AgentProfileScreen() {
   const [agent, setAgent] = useState<PublicAgent | null>(null)
   const [loading, setLoading] = useState(true)
   const [myAgentId, setMyAgentId] = useState<string | null>(null)
+  // The agency looking at its own public profile sees everything
+  const [ownAgencyId, setOwnAgencyId] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
   const [joinMessage, setJoinMessage] = useState("")
 
   const load = useCallback(async () => {
     try {
-      const [row, mine] = await Promise.all([getActiveAgentById(String(id)), getMyAgentId()])
+      const [row, mine, own] = await Promise.all([
+        getActiveAgentById(String(id)),
+        getMyAgentId(),
+        getMyAgentProfile().catch(() => null),
+      ])
       setAgent(row)
       setMyAgentId(mine)
+      setOwnAgencyId(own?.id ?? null)
     } catch (e) {
       console.log("Agent profile load error:", e)
     } finally {
@@ -118,6 +126,9 @@ export default function AgentProfileScreen() {
   const featured = agent.plan === "featured"
   const hasWhatsapp = Boolean(digits(agent.whatsapp) || digits(agent.phone))
   const isMine = myAgentId === agent.id
+  const isOwnAgency = ownAgencyId === agent.id
+  // WhatsApp / call / email / website only after the pilgrim connects (or for the agency itself)
+  const showContacts = isMine || isOwnAgency
   const linkedElsewhere = Boolean(myAgentId && myAgentId !== agent.id)
   const since = agent.created_at
     ? new Date(agent.created_at).toLocaleDateString(i18n.language || "en", { month: "long", year: "numeric" })
@@ -177,8 +188,8 @@ export default function AgentProfileScreen() {
           ) : null}
         </View>
 
-        {/* Contact first: this is what pilgrims came for */}
-        <View style={styles.contactSection}>
+        {/* Contacts: shown once the pilgrim has connected with this agency */}
+        {showContacts ? <View style={styles.contactSection}>
           <Text style={[styles.cardTitle, { color: theme.text, marginHorizontal: 16, marginBottom: 12 }]}>
             {t("agentContact")}
           </Text>
@@ -208,16 +219,23 @@ export default function AgentProfileScreen() {
               <Text style={[styles.contactBtnText, { color: theme.text }]}>{t("agentWebsite")}</Text>
             </TouchableOpacity>
           ) : null}
-        </View>
+        </View> : null}
 
-        {/* Join this agency (pilgrims only) */}
+        {/* Other agencies: contacts are only for connected pilgrims */}
+        {viewerIsAgency && !isOwnAgency ? (
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.bioText, { color: theme.textSecondary }]}>{t("agentContactsForPilgrims")}</Text>
+          </View>
+        ) : null}
+
+        {/* Connect with this agency (pilgrims only): unlocks WhatsApp, call, email and website */}
         {viewerIsAgency ? null : <View style={[styles.card, styles.joinCard, { borderColor: isMine ? "#2F855A" : GOLD, backgroundColor: theme.card }]}>
           {isMine ? (
             <Text style={[styles.joinedText]}>{t("agentJoined")}</Text>
           ) : (
             <>
               <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 4 }]}>{t("agentJoinTitle")}</Text>
-              <Text style={[styles.bioText, { color: theme.textSecondary, marginBottom: 12 }]}>{t("agentJoinBody")}</Text>
+              <Text style={[styles.bioText, { color: theme.textSecondary, marginBottom: 12 }]}>{t("agentConnectBody")}</Text>
               {linkedElsewhere ? (
                 <Text style={[styles.bioText, { color: theme.textSecondary }]}>{t("agentJoinedOther")}</Text>
               ) : (

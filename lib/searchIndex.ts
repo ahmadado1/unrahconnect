@@ -325,7 +325,7 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       icon: "restaurant",
       category: "Services",
       action: "navigate",
-      target: "/restaurants",
+      target: "/nearby/restaurants",
       keywords: kw("restaurant", "restaurants", "food", "eat", "halal", "dining", "cafe", "grill"),
       boost: 12,
     }),

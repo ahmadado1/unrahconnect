@@ -444,3 +444,7 @@ entrypoint = "./functions/ai-guide/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/agent-emails/index.ts"
+
+[functions.nearby-places]
+enabled = true
+verify_jwt = false

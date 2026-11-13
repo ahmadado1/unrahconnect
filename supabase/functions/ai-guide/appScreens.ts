@@ -61,9 +61,10 @@ export const APP_SCREENS: { key: string; what: string }[] = [
   { key: "flights", what: "Flights (Aviasales search)" },
   { key: "esim", what: "Saily eSIM" },
   { key: "airalo", what: "Airalo eSIM plans" },
-  { key: "restaurants", what: "Restaurants" },
+  { key: "restaurants", what: "Restaurants near the Haram / Nabawi (live photos, ratings, open now, walking time)" },
+  { key: "malls", what: "Malls and shopping centres near the Haram / Nabawi (live)" },
   { key: "transport", what: "Transport: Haramain train, SAPTCO buses, Uber" },
-  { key: "shopping", what: "Shopping" },
+  { key: "shopping", what: "Malls and shopping (same as malls)" },
   { key: "find-agent", what: "Find an Agent: verified travel agencies by country" },
   { key: "scan-agent", what: "Scan an agency's QR code" },
   // Account and app

@@ -1,3 +1,8 @@
+// Services tab.
+//   1. Big hotel card (photo + "Book on Booking.com")
+//   2. Travel essentials: flights, eSIM
+//   3. Near the holy mosques: restaurants, malls, hospitals, transport (live from Google)
+//   4. Travel agencies: Find an Agent
 import TouchableOpacity from "@/app/components/AppPressable"
 import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMarks"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
@@ -8,140 +13,30 @@ import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useTranslation } from "react-i18next"
-import { I18nManager, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
+import { I18nManager, ImageBackground, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-type Cover = {
-  id: string
-  titleKey: string
-  subKey: string
-  route: string
-  mark: "hotel" | "aviasales" | "saily" | "airalo" | "food" | "agent"
-  accent: readonly [string, string, ...string[]]
-  fill: readonly [string, string]
-  fillDark: readonly [string, string]
-  border: string
-  borderDark: string
-}
+const BOOKING_BLUE = "#003580"
 
-const COVERS: Cover[] = [
-  {
-    id: "hotels",
-    titleKey: "hotelsNearHaram",
-    subKey: "hotelsSub",
-    route: "/hotels",
-    mark: "hotel",
-    accent: ["#C9A84C", "#E8D5A3"],
-    fill: ["#FBF7EE", "#F3E6C8"],
-    fillDark: ["#2C281C", "#241F16"],
-    border: "#E4D2A4",
-    borderDark: "#6E5A32",
-  },
-  {
-    id: "aviasales",
-    titleKey: "coverAviasales",
-    subKey: "flightsCompare",
-    route: "/services/flights",
-    mark: "aviasales",
-    accent: ["#3A6DFF", "#7AA2FF"],
-    fill: ["#F4F7FF", "#E6EDFF"],
-    fillDark: ["#1A2744", "#152033"],
-    border: "#C9D7FF",
-    borderDark: "#2E4A86",
-  },
-  {
-    id: "saily",
-    titleKey: "coverSaily",
-    subKey: "esimCardSub",
-    route: "/services/esim",
-    mark: "saily",
-    accent: ["#F5D000", "#FFE566"],
-    fill: ["#FFFDF4", "#FFF6C8"],
-    fillDark: ["#2C2814", "#241F12"],
-    border: "#F0D56A",
-    borderDark: "#6A5A20",
-  },
-  {
-    id: "airalo",
-    titleKey: "coverAiralo",
-    subKey: "esimAiraloSub",
-    route: "/services/airalo",
-    mark: "airalo",
-    accent: ["#F6B73D", "#F58A2A", "#F15B4A", "#E23D7A"],
-    fill: ["#FFF6EE", "#FDEAF2"],
-    fillDark: ["#2E221C", "#2A1A22"],
-    border: "#F3C2B4",
-    borderDark: "#6A4038",
-  },
-  {
-    id: "restaurants",
-    titleKey: "restaurantsTitle",
-    subKey: "restaurantsSub",
-    route: "/restaurants",
-    mark: "food",
-    accent: ["#F59E0B", "#EF6C3A", "#E0483B"],
-    fill: ["#FFF4E8", "#FFE4D6"],
-    fillDark: ["#2E2216", "#2A1A16"],
-    border: "#F5C9A6",
-    borderDark: "#6A4430",
-  },
-  {
-    id: "agents",
-    titleKey: "findAgent",
-    subKey: "findAgentSub",
-    route: "/agent",
-    mark: "agent",
-    accent: ["#1E3A5F", "#3B6FA8", "#C9A84C"],
-    fill: ["#EEF4FB", "#DCE8F6"],
-    fillDark: ["#17243A", "#14203A"],
-    border: "#BFD3EA",
-    borderDark: "#34507A",
-  },
+// Flights and eSIM partners
+const ESSENTIALS = [
+  { id: "flights", titleKey: "coverAviasales", subKey: "flightsCompare", route: "/services/flights", mark: "aviasales" as const },
+  { id: "saily", titleKey: "coverSaily", subKey: "esimCardSub", route: "/services/esim", mark: "saily" as const },
+  { id: "airalo", titleKey: "coverAiralo", subKey: "esimAiraloSub", route: "/services/airalo", mark: "airalo" as const },
 ]
 
-const LIST: {
-  id: string
-  sectionKey?: string
-  icon: AppIconKey
-  titleKey: string
-  subKey: string
-  route?: string
-  fill: string
-  fillDark: string
-  border: string
-  borderDark: string
-}[] = [
-  { id: "hospitals", icon: "medkit", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", fill: "#F3F8F4", fillDark: "#1A2820", border: "#D3E6D8", borderDark: "#3A5644" },
-  { id: "transport", sectionKey: "transport", icon: "train", titleKey: "transport", subKey: "transportSub", route: "/services/transport", fill: "#F3F7F8", fillDark: "#1A2628", border: "#D0E0E4", borderDark: "#3A5258" },
-  { id: "shopping", sectionKey: "shopping", icon: "bag", titleKey: "shopping", subKey: "shoppingSub", route: "/services/shopping", fill: "#FBF6F8", fillDark: "#2A2226", border: "#E8D6DE", borderDark: "#5A4450" },
-  { id: "booking", sectionKey: "comingSoon", icon: "calendar", titleKey: "booking", subKey: "bookingSub", fill: "#F7F5F2", fillDark: "#242220", border: "#E4DDD4", borderDark: "#4A453E" },
+// Near Masjid al-Haram / Masjid an-Nabawi
+const NEAR: { id: string; titleKey: string; subKey: string; route: string; icon: AppIconKey; tint: string; fill: string; fillDark: string }[] = [
+  { id: "restaurants", titleKey: "restaurantsTitle", subKey: "svcRestaurantsSub", route: "/nearby/restaurants", icon: "restaurant", tint: "#EF6C3A", fill: "#FFF4EC", fillDark: "#2E2216" },
+  { id: "malls", titleKey: "svcMalls", subKey: "svcMallsSub", route: "/nearby/malls", icon: "bag", tint: "#B83280", fill: "#FBF1F6", fillDark: "#2A1A24" },
+  { id: "hospitals", titleKey: "hospitals", subKey: "hospitalsSub", route: "/maps/hospital-makkah", icon: "medkit", tint: "#2F855A", fill: "#F0F8F3", fillDark: "#1A2820" },
+  { id: "transport", titleKey: "transport", subKey: "transportSub", route: "/services/transport", icon: "train", tint: "#2B6CB0", fill: "#EFF5FB", fillDark: "#1A2433" },
 ]
 
-function CoverMark({ mark }: { mark: Cover["mark"] }) {
-  if (mark === "hotel") {
-    return (
-      <View style={styles.hotelMark}>
-        <AppIcon name="bed" size={20} />
-      </View>
-    )
-  }
-  if (mark === "food") {
-    return (
-      <View style={[styles.hotelMark, { backgroundColor: "rgba(239,108,58,0.18)" }]}>
-        <AppIcon name="restaurant" size={20} />
-      </View>
-    )
-  }
-  if (mark === "agent") {
-    return (
-      <View style={[styles.hotelMark, { backgroundColor: "rgba(59,111,168,0.18)" }]}>
-        <AppIcon name="handshake" size={20} />
-      </View>
-    )
-  }
-  if (mark === "aviasales") return <AviasalesMark size={34} />
-  if (mark === "saily") return <SailyMark size={34} />
-  return <AiraloMark size={34} />
+function EssentialMark({ mark }: { mark: "aviasales" | "saily" | "airalo" }) {
+  if (mark === "aviasales") return <AviasalesMark size={36} />
+  if (mark === "saily") return <SailyMark size={36} />
+  return <AiraloMark size={36} />
 }
 
 export default function ServicesScreen() {
@@ -150,7 +45,7 @@ export default function ServicesScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
-  const boxWidth = (width - ui.space * 2 - 12) / 2
+  const half = (width - ui.space * 2 - 12) / 2
   const chevron = I18nManager.isRTL ? "chevron-back" : "chevron-forward"
 
   return (
@@ -163,79 +58,95 @@ export default function ServicesScreen() {
             <Text style={styles.title}>{t("services")}</Text>
             <Text style={styles.subtitle}>{t("servicesSub")}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => router.push("/search" as any)}
-            accessibilityRole="button"
-          >
+          <TouchableOpacity style={styles.searchBtn} onPress={() => router.push("/search" as any)} accessibilityRole="button">
             <Ionicons name="search-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: tabScrollBottom(insets.bottom) }]}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
       >
-        <View style={styles.grid}>
-          {COVERS.map(cover => (
+        {/* ─── 1. Hotels: big photo card with the Booking.com badge ─── */}
+        <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/hotels" as any)} accessibilityRole="button">
+          <ImageBackground source={require("../../assets/photos/tawaf-header.jpg")} style={styles.hero} imageStyle={styles.heroImg}>
+            <LinearGradient colors={["rgba(15,30,50,0.05)", "rgba(15,30,50,0.85)"]} style={styles.heroShade}>
+              <View style={styles.bookingBadge}>
+                <Text style={styles.bookingSmall}>{t("svcBookOn")}</Text>
+                <Text style={styles.bookingName}>
+                  Booking<Text style={styles.bookingDot}>.com</Text>
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.heroTitle}>{t("hotelsNearHaram")}</Text>
+                <Text style={styles.heroSub}>{t("svcHotelsSub")}</Text>
+                <View style={styles.heroBtn}>
+                  <Text style={styles.heroBtnText}>{t("svcSeeHotels")}</Text>
+                  <Ionicons name={chevron} size={16} color={NAVY} />
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* ─── 2. Travel essentials ─── */}
+        <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcTravel")}</Text>
+        <View style={styles.essentials}>
+          {ESSENTIALS.map((item) => (
             <TouchableOpacity
-              key={cover.id}
-              style={[styles.cover, { width: boxWidth, borderColor: theme.dark ? cover.borderDark : cover.border }]}
-              onPress={() => router.push(cover.route as any)}
+              key={item.id}
+              style={[styles.essential, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => router.push(item.route as any)}
               accessibilityRole="button"
             >
-              <LinearGradient colors={cover.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.accent} />
-              <LinearGradient colors={theme.dark ? cover.fillDark : cover.fill} style={styles.coverBody}>
-                <CoverMark mark={cover.mark} />
-                <Text style={[styles.coverTitle, { color: theme.text }]} numberOfLines={2}>{t(cover.titleKey)}</Text>
-                <Text style={[styles.coverSub, { color: theme.textSecondary }]} numberOfLines={2}>{t(cover.subKey)}</Text>
-                <View style={styles.coverFooter}>
-                  <Ionicons name={chevron} size={16} color={GOLD} />
-                </View>
-              </LinearGradient>
+              <EssentialMark mark={item.mark} />
+              <Text style={[styles.essentialTitle, { color: theme.text }]} numberOfLines={1}>{t(item.titleKey)}</Text>
+              <Text style={[styles.essentialSub, { color: theme.textSecondary }]} numberOfLines={2}>{t(item.subKey)}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {LIST.map(service => {
-          const showSection = Boolean(service.sectionKey && service.sectionKey !== service.titleKey)
-          return (
-            <View key={service.id}>
-              {showSection ? (
-                <Text style={[styles.section, { color: theme.textSecondary }]}>{t(service.sectionKey!)}</Text>
-              ) : null}
-              <TouchableOpacity
-                style={[
-                  styles.row,
-                  {
-                    backgroundColor: theme.dark ? service.fillDark : service.fill,
-                    borderColor: theme.dark ? service.borderDark : service.border,
-                  },
-                  !service.route && styles.rowSoon,
-                ]}
-                disabled={!service.route}
-                onPress={() => service.route && router.push(service.route as any)}
-                accessibilityRole="button"
-              >
-                <AppIcon name={service.icon} size={26} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>{t(service.titleKey)}</Text>
-                  <Text style={[styles.rowSub, { color: theme.textSecondary }]} numberOfLines={1}>{t(service.subKey)}</Text>
-                </View>
-                {service.route ? (
-                  <Ionicons name={chevron} size={18} color={GOLD} />
-                ) : (
-                  <View style={styles.soonTag}>
-                    <Text style={styles.soonText}>{t("comingSoonLabel")}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+        {/* ─── 3. Near the holy mosques ─── */}
+        <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcNear")}</Text>
+        <View style={styles.grid}>
+          {NEAR.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.tile, { width: half, backgroundColor: theme.dark ? item.fillDark : item.fill, borderColor: theme.border }]}
+              onPress={() => router.push(item.route as any)}
+              accessibilityRole="button"
+            >
+              <View style={[styles.tileIcon, { backgroundColor: `${item.tint}22` }]}>
+                <AppIcon name={item.icon} size={22} />
+              </View>
+              <Text style={[styles.tileTitle, { color: theme.text }]} numberOfLines={1}>{t(item.titleKey)}</Text>
+              <Text style={[styles.tileSub, { color: theme.textSecondary }]} numberOfLines={2}>{t(item.subKey)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ─── 4. Travel agencies ─── */}
+        <Text style={[styles.section, { color: theme.textSecondary }]}>{t("svcAgencies")}</Text>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/agent" as any)} accessibilityRole="button">
+          <LinearGradient colors={[NAVY, "#2C5282"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.agentCard}>
+            <View style={styles.agentIcon}>
+              <AppIcon name="handshake" size={22} />
             </View>
-          )
-        })}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.agentTitle}>{t("findAgent")}</Text>
+              <Text style={styles.agentSub} numberOfLines={2}>{t("findAgentSub")}</Text>
+            </View>
+            <View style={styles.verifiedChip}>
+              <Ionicons name="shield-checkmark" size={12} color={NAVY} />
+              <Text style={styles.verifiedText}>{t("agentVerified")}</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   )
@@ -249,46 +160,33 @@ const styles = StyleSheet.create({
   subtitle: { color: GOLD, fontSize: 13, marginTop: 4 },
   searchBtn: { backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 20, padding: 10, marginBottom: 2 },
   content: { padding: ui.space },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
-  cover: {
-    height: 158,
-    borderRadius: ui.radius,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  accent: { height: 4 },
-  coverBody: { flex: 1, padding: 12 },
-  hotelMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "rgba(201,168,76,0.22)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverTitle: { fontSize: 14, fontWeight: "700", marginTop: 8 },
-  coverSub: { fontSize: 11, lineHeight: 15, marginTop: 3, flex: 1 },
-  coverFooter: { flexDirection: "row", justifyContent: "flex-end" },
-  section: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: ui.cardPad,
-    borderRadius: ui.radius,
-    borderWidth: ui.hairline,
-    marginBottom: 10,
-  },
-  rowSoon: { opacity: 0.5 },
-  rowTitle: { fontSize: 15, fontWeight: "700" },
-  rowSub: { fontSize: 12, marginTop: 2 },
-  soonTag: { backgroundColor: "rgba(0,0,0,0.06)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  soonText: { fontSize: 10, color: "#888", fontWeight: "600" },
+  // Hotels hero
+  hero: { height: 210, borderRadius: 20, overflow: "hidden" },
+  heroImg: { borderRadius: 20 },
+  heroShade: { flex: 1, padding: 16, justifyContent: "space-between" },
+  bookingBadge: { alignSelf: "flex-start", backgroundColor: BOOKING_BLUE, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  bookingSmall: { color: "#BFD7FF", fontSize: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+  bookingName: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  bookingDot: { color: "#5BBAFF" },
+  heroTitle: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+  heroSub: { color: "#E2E8F0", fontSize: 13, marginTop: 2 },
+  heroBtn: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: GOLD, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, marginTop: 10 },
+  heroBtnText: { color: NAVY, fontWeight: "bold", fontSize: 13 },
+  // Sections
+  section: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase", marginTop: 20, marginBottom: 10 },
+  essentials: { flexDirection: "row", gap: 10 },
+  essential: { flex: 1, borderRadius: 16, borderWidth: ui.hairline, padding: 12, gap: 6 },
+  essentialTitle: { fontSize: 13, fontWeight: "700" },
+  essentialSub: { fontSize: 11, lineHeight: 14 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  tile: { borderRadius: 16, borderWidth: ui.hairline, padding: 14, minHeight: 120 },
+  tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  tileTitle: { fontSize: 15, fontWeight: "700" },
+  tileSub: { fontSize: 12, lineHeight: 16, marginTop: 3 },
+  agentCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, padding: 16 },
+  agentIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
+  agentTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  agentSub: { color: "#D7DEEA", fontSize: 12, marginTop: 2 },
+  verifiedChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#E8F1FB", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  verifiedText: { color: NAVY, fontSize: 11, fontWeight: "700" },
 })
