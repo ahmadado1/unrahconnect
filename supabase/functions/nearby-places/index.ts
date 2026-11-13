@@ -281,6 +281,10 @@ const GENERIC = new Set([
   "restaurant", "restaurants", "mall", "malls", "makkah", "mecca", "makka", "madinah", "medina", "madina", "cafe", "coffee",
   "hotel", "tower", "towers", "center", "centre", "the", "and", "food", "court", "shop", "store", "market", "branch",
   "مطعم", "مكة", "المدينة", "مول", "مركز", "كافيه", "مقهى", "فرع",
+  // Landmark words that appear in many photo names of the mosque area (not the shop itself)
+  "king", "haram", "abraj", "bait", "jabal", "omar", "zamzam", "clock", "gate", "masjid", "mosque", "nabawi",
+  "souk", "foods", "panoramio", "hypermarket", "supermarket", "plaza", "royal", "diamond", "umrah", "hajj",
+  "الحرم", "حرم", "ابراج", "أبراج", "البيت", "جبل", "عمر", "زمزم", "الساعة", "سوق", "المسجد", "الشريف", "المكي", "النبوي",
 ])
 
 function words(text: string) {
@@ -332,7 +336,7 @@ async function addWikimediaPhotos(center: { lat: number; lng: number }, places: 
       const d = metres(place, f)
       if (d > 250) continue
       const fileWords = words(f.title)
-      if (!nameWords.some((w) => fileWords.some((fw) => fw.includes(w) || w.includes(fw)))) continue
+      if (!nameWords.some((w) => fileWords.includes(w))) continue
       if (!best || d < best.d) best = { title: f.title, d }
     }
     if (best) {
@@ -504,6 +508,36 @@ serve(async (req) => {
       headers: { "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "id,displayName,photos" },
     })
     return json(await res.json().catch(() => ({ error: res.status })), res.ok ? 200 : 502)
+  }
+
+  // ?tatest=<place name>: show exactly what Tripadvisor answers (search + first photo)
+  const tatest = url.searchParams.get("tatest")
+  if (tatest) {
+    if (!TA_KEY) return json({ error: "TRIPADVISOR_API_KEY is not set" })
+    const c = CENTERS[city] ?? CENTERS.makkah
+    // Only the length and last 4 characters, to check the saved key is the right one (never the whole key)
+    const out: Record<string, unknown> = { keyLength: TA_KEY.length, keyEndsWith: TA_KEY.slice(-4), keyHasQuotes: /["']/.test(TA_KEY) }
+    try {
+      const q = `/location/search?searchQuery=${encodeURIComponent(tatest)}&latLong=${c.lat},${c.lng}&language=en`
+      const res = await fetch(`${TA_BASE}${q}&key=${TA_KEY}`, {
+        headers: { accept: "application/json", Referer: "https://myumrahconnect.com", "User-Agent": UA },
+      })
+      out.searchStatus = res.status
+      out.search = await res.json().catch(async () => await res.text().catch(() => ""))
+      const first = (out.search as { data?: { location_id?: string }[] })?.data?.[0]
+      if (first?.location_id) {
+        const r2 = await fetch(`${TA_BASE}/location/${first.location_id}/photos?language=en&limit=1&key=${TA_KEY}`, {
+          headers: { accept: "application/json", Referer: "https://myumrahconnect.com", "User-Agent": UA },
+        })
+        out.photosStatus = r2.status
+        out.photos = await r2.json().catch(() => null)
+      }
+    } catch (e) {
+      out.error = String(e)
+    }
+    const { count } = await db.from("place_photos").select("*", { count: "exact", head: true })
+    out.savedRows = count
+    return json(out)
   }
 
   if (url.searchParams.get("debug") === "1") {

@@ -85,8 +85,11 @@ export default function SetupScreen() {
   }, [])
 
   useEffect(() => {
+    // Came from an agency's QR or join link: they are a pilgrim, so pick that for them
     getPendingReferral().then(code => {
-      if (code) setReferralCode(normalizeReferralCode(code))
+      if (!code) return
+      setReferralCode(normalizeReferralCode(code))
+      setUserType(current => current ?? "pilgrim")
     })
   }, [])
 
@@ -189,6 +192,12 @@ export default function SetupScreen() {
             />
 
             <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t("iAmA")}</Text>
+
+            {referralCode ? (
+              <Text style={[styles.typeSub, { color: "#C9A84C", marginBottom: 8 }]}>
+                {t("agentCodeApplied")}: {referralCode}
+              </Text>
+            ) : null}
 
             <TouchableOpacity
               style={[

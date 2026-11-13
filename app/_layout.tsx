@@ -52,7 +52,7 @@ export { default as ErrorBoundary } from "./components/AppErrorScreen"
 }
 
 export default function RootLayout() {
-  const [status, setStatus] = useState<"loading" | "onboarding" | "login" | "home">("loading")
+  const [status, setStatus] = useState<"loading" | "onboarding" | "login" | "home" | "ready">("loading")
   const router = useRouter()
   const statusRef = useRef(status)
   const pendingNotificationRef = useRef<{
@@ -153,7 +153,7 @@ export default function RootLayout() {
   >(() => {})
 
   openNotificationRef.current = (identifier, data, deliveredAt) => {
-    if (statusRef.current !== "home") {
+    if (statusRef.current !== "home" && statusRef.current !== "ready") {
       pendingNotificationRef.current = { identifier, data, deliveredAt }
       return
     }
@@ -162,7 +162,7 @@ export default function RootLayout() {
   }
 
   useEffect(() => {
-    if (status !== "home" || !pendingNotificationRef.current) return
+    if ((status !== "home" && status !== "ready") || !pendingNotificationRef.current) return
 
     const pending = pendingNotificationRef.current
     pendingNotificationRef.current = null
@@ -282,6 +282,12 @@ export default function RootLayout() {
             if (code) void linkPilgrimToAgent(code)
           })
         }, 0)
+      }
+      // Signed in from the login screen: stop the start-up "go to login" redirect, otherwise
+      // (Android) it fires again and sends the user back to login after setup.
+      // The login and setup screens choose where to go next themselves.
+      if (event === "SIGNED_IN" && session && (statusRef.current === "login" || statusRef.current === "onboarding")) {
+        setStatus("ready")
       }
       if (event === "SIGNED_OUT") {
         setStatus("login")
