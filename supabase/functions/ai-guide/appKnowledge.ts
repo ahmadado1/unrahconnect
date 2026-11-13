@@ -8,24 +8,27 @@ export const appKnowledge = `
 WHAT UMRAHCONNECT IS
 UmrahConnect is an Umrah and Hajj companion app for iPhone and Android, with a website at myumrahconnect.com. Tagline: "Your complete Umrah & Hajj companion." It was made by Ahmad Ado Muktar (founder and developer), based in Egypt. The About Us screen says "Made in Egypt."
 Most of the app is free. UmrahConnect Premium is an optional subscription that adds extra features (see PREMIUM). All Quran audio is free for everyone.
-The app is a guide and a middleman for travel. It does not sell Umrah or Hajj packages. Hotels, flights, eSIMs, and licensed travel agents are booked on the partner's own site, at that partner's normal prices. Partners: Booking.com for hotels, Aviasales for flights, Saily and Airalo for eSIM, and licensed agents listed in the app. The only payments UmrahConnect takes are for Premium and for agency listings.
+The app is a guide and a middleman for travel. It does not sell Umrah or Hajj packages. Hotels, flights, eSIMs, and licensed travel agents are booked on the partner's own site, at that partner's normal prices. Partners: Booking.com for hotels, Aviasales for flights, Saily and Airalo for eSIM, and licensed agents listed in the app. The only payment UmrahConnect takes is for Premium (pilgrims). Agency listings are free for now (see the travel agencies section).
 Languages in the app: English, العربية, বাংলা, Français, اردو, Türkçe. Arabic and Urdu use right-to-left layout. Hausa is not an app language.
 You can use much of the app without an account. An account saves your profile, favorites, Umrah and Hajj progress, Quran bookmarks, and Premium.
+Cloud backup: when you are logged in, the app backs up your settings and progress to your account automatically: favourite hotels, Quran last read and bookmarks, reciters, fonts, Kahf/Mulk progress, prayer log, Adhan and notification choices, adhkar times, My duas, tasbih, Trip Planner details, language and dark mode. On a new phone, log in with the same account and they come back.
 
 TABS AND WHERE THINGS ARE
-Bottom tabs: Home, Guide, Maps, Services, Me.
+Bottom tabs: Home, Guide, Maps, Services, Me. For travel agency accounts the last tab is called "My Agency" (briefcase icon) instead of "Me".
 Home: greeting, search, and the AI button. Next Prayer countdown. Umrah journey card (Premium users see the UmrahConnect Guide or Trip Planner card instead). A "Get Premium" card for free users. Morning and Evening Adhkar cards at their times. Quran card (start or continue reading) and the Quran player. Islamic calendar. Quick Access. A Maidabo Foundation card ("Learn more" opens maidabofoundation.com; it is not a donate button). My Bookings, if any.
 Guide: prayer times and the Adhan voice button (headset). Cards: Umrah Guide, Hajj Guide, Quran Reader, Listen to the Quran, Al-Kahf (Thursday Maghrib to Friday Isha), Al-Mulk, AI Guide ("Ask anything"), Islamic Dates, Qibla Direction.
 Maps: My Location, Sites (Masjid Al-Haram, Masjid Nabawi, Mina, Arafah, Zamzam Well, Safa and Marwah, Lost & Found), Makkah Places to See (including Abraj Al Bait Mall and the Clock Tower Museum). The Offline Map of Makkah and Madinah is Premium.
 Services: search button. Big cards: Hotels near the Haram, Aviasales flights, Saily eSIM, Airalo, Restaurants (food), Find an Agent. Then Hospitals, Transport, Shopping. "Book a Stay" is Coming soon.
-Me: name and email, then UmrahConnect Premium, Profile, Favorites, Agency Dashboard (agents only), App guide, Notifications, Settings, Rate the app, About Us, Contact Us, Logout.
+Me (pilgrims): name and email, then UmrahConnect Premium, Profile, Favorites, App guide, Notifications, Settings, Rate the app, About Us, Contact Us, Logout.
+My Agency (agencies): the agency card (pilgrims, new contacts this week, agent code, Share my QR, Post update), then Agency Dashboard, Share my QR, Post update, See my public profile, then a "Personal" section with Profile, Favorites, App guide, Notifications, Settings, Rate the app, About Us, Contact Us, Logout. Agency accounts do not see Premium.
+Android tip: on some phones (Tecno, Infinix, itel, Xiaomi, Oppo...) a "Set battery to Unrestricted" card appears on Home once, so prayer alerts arrive on time.
 App guide (Me → App guide): a short checklist of the most useful features: prayer times, Quran, Quran audio, dhikr, adhkar, duas, AI Guide, then Umrah guide and Qibla.
 
 PREMIUM
 Where: Me → UmrahConnect Premium, the "Get Premium" card on Home, or "See Premium" on any locked feature.
 Premium adds: 3 more Adhan voices (Sheikh Muhammad Marwan Qassas, Sheikh Ali Ahmed Mulla, Sheikh Farooq Al-Hadrawi); all Mushaf fonts; Trip Planner (trip dates countdown and checklist, unlocks on Home after the UmrahConnect guide); Offline Map of Makkah and Madinah; guided Al-Kahf, Al-Mulk and Friday Salawat reminders; unlimited AI Guide (free users get 12 questions every 7 days).
 Free for everyone: prayer times and Adhan (3 voices, full Adhan), the Quran with all reciters, verse-by-verse audio, whole surahs, downloads, tafsir, the Umrah and Hajj guides, duas, adhkar, tasbih, Qibla, maps, hotels and all services.
-Plans: Monthly and Yearly. In the app you subscribe on the Premium screen and pay with Apple (App Store) or Google Play; the Premium screen shows the price in your own currency. Never quote other prices.
+Plans: the plans available are shown on the Premium screen. In the app you subscribe on the Premium screen and pay with Apple (App Store) or Google Play; the Premium screen shows the price in your own currency. Never quote other prices.
 STORE RULE (very important): inside the app, never tell people to buy or pay for Premium on the website, and never give website prices, payment links, or OPay, MyNita or PayPal steps for Premium. Only point them to the Premium screen in the app. If someone already has Premium on their UmrahConnect account, say: log in with the same account and it unlocks automatically.
 Premium on the account works everywhere: on any phone where you log in to the same account.
 Restore: on the Premium screen tap "Restore purchases" (for a new phone or after reinstalling).
@@ -60,16 +63,23 @@ Hotels: Services → Hotels near the Haram. Switch Makkah / Madinah at the top. 
 Flights: Services → Aviasales. From, To (Jeddah, Madinah, or another city), Depart, Return, passengers, Search flights. Booking is on Aviasales. Never quote a fare.
 eSIM: Services → Saily eSIM (Get eSIM) or Airalo (View Airalo plans). Bought on their site.
 Restaurants, Transport (Haramain train, SAPTCO, Uber), Hospitals (and pharmacies like Nahdi), Shopping: in Services.
-Agents: Services → Find an Agent → country → agent → Call, WhatsApp, Email, Website. Agents book on their own terms.
+Agents: Services → Find an Agent → filter by country or search → agency → Call, WhatsApp, Email, Website. Only agencies verified by UmrahConnect are listed (blue ✓ Verified badge). Agents book on their own terms. Pilgrims can join their agency to get its announcements: tap "Join" on the agency's page, scan the agency's QR (Find an Agent → QR button), or enter the agent code in Me → Profile → Agent code. A pilgrim can be linked to one agency. If a pilgrim came through an agency's link, the app may ask once "Were you sent by an agency?".
 Favorites: Me → Favorites (hotels and restaurants, needs an account).
 Language and theme: Me → Settings.
 Profile and password: Me → Profile.
 AI Guide: AI button on Home, or Guide → AI Guide.
-Contact: Me → Contact Us. WhatsApp and phone +201041436778, info@myumrahconnect.com, support@myumrahconnect.com.
+Contact: Me → Contact Us. WhatsApp +20 122 215 1335 (wa.me/201222151335), info@myumrahconnect.com, support@myumrahconnect.com. The website's Contact page also has live chat and a "Chat on WhatsApp" button.
 Not in the app: selling packages, Hausa, "Book a Stay" (Coming soon). If a feature is not listed here, it is not available yet.
 
 FOR TRAVEL AGENCIES
-Agencies can be listed in Find an Agent. Agencies apply and manage their listing at myumrahconnect.com/agents. Do not give agency prices or payment steps in the app; say the details are on the agencies page of the website. Listing goes live after checks. Agents also get an Agency Dashboard in the app (Me → Agency Dashboard) with clients, referral code and bookings. Pilgrims can enter an agent code in Me → Profile.
+Free for the first 100 agencies (founding agencies): no card, no monthly fee. Do not quote any agency price.
+How to join in the app: create an account, choose "Travel agent" at sign-up, and the agency application opens straight away (already logged in): 1) Agency details (agency name, owner name, country, cities, phone, WhatsApp, website, about), 2) Documents. Or on the website: myumrahconnect.com/agents → Become a partner agent (same account works in both).
+Documents needed: Hajj/Umrah licence number, plus 4 files: business registration certificate, Hajj/Umrah licence, owner's ID (passport or national ID), and a photo of the office. They can upload PDF files, photos from the gallery, or take a photo with the camera. Documents are private: only the UmrahConnect team sees them.
+If they stop half-way: a gold "Finish your agency application" card on Home and My Agency reopens the form where they stopped. "Save and finish later" keeps what they did.
+Verification: the UmrahConnect team checks the documents, usually within 2 working days. The agency gets emails in its own language: "Application received", "Documents received", and "You are verified". The team may ask for more information by email; the message also shows in the app and at the top of the form. As soon as the agency is verified it is live in Find an Agent with the ✓ Verified badge. Only verified agencies are listed.
+After verification (My Agency tab and Agency Dashboard): agent code and QR code; Share my QR (sends a ready WhatsApp message with the join link); Post update (announcements that the agency's pilgrims see in the app); number of pilgrims who joined and contacts this week; See my public profile; earnings (agencies earn a share when their pilgrims buy Premium; it is shown in the dashboard).
+Agency accounts never see Premium; once verified, all app features are included for them.
+Agency Zone on the website (myumrahconnect.com/agents/login, same login): Home, Pilgrims, Earnings, Profile, to edit the listing and documents.
 
 HOW TO
 Sign up: login screen → Create Account. Full name, I am (Male or Female), Email, password (at least 6 characters). Or Continue with Google, Apple (iPhone) or phone.
@@ -77,7 +87,7 @@ Log in: Email and Password → Login, or Google / Apple / phone.
 Reset password: Login → Forgot password?, enter email, enter the code, set a new password. While logged in: Me → Profile → Change Password.
 Change language: Me → Settings → Language.
 Set the Adhan voice: Guide → headset button → Choose Adhan → Preview → Select → Done. Premium voices show a lock for free users.
-Get Premium: Me → UmrahConnect Premium → choose Monthly or Yearly → Subscribe → confirm with Apple or Google.
+Get Premium: Me → UmrahConnect Premium → choose a plan → Subscribe → confirm with Apple or Google.
 Restore Premium on a new phone: Me → UmrahConnect Premium → Restore purchases (same Apple ID or Google account), and log in to the same UmrahConnect account.
 Listen to a surah offline: open the surah in Read mode or the player → Download. Downloaded surahs play without internet.
 Read a tafsir: Quran Reader → Verse View → tafsir button on the verse → pick a tafsir at the top if there are several.
@@ -88,8 +98,8 @@ Delete your account: Me → Profile → Delete Account, choose a reason. Or emai
 ${hotelKnowledge}
 
 WEBSITE
-https://myumrahconnect.com. Home (features, screenshots, download buttons), /account (your account), /agents (for travel agencies), /hotels, /contact, /advertise, /privacy-policy, /terms, /delete-account.
-Emails: info@myumrahconnect.com, support@myumrahconnect.com. WhatsApp and phone: +201041436778. Instagram: @umrahconnectapp.
+https://myumrahconnect.com. Home (features, screenshots, download buttons), /get (one link that opens the App Store or Google Play for your phone), /account (your account), /agents (for travel agencies), /pricing, /hotels, /contact (live chat and WhatsApp), /privacy-policy, /terms, /delete-account.
+Emails: info@myumrahconnect.com, support@myumrahconnect.com. WhatsApp: +20 122 215 1335. Instagram: @umrahconnectapp.
 
 STORES
 App Store: https://apps.apple.com/app/id6778753426

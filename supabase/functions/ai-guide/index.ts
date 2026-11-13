@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
 import { appKnowledge } from "./appKnowledge.ts"
+import { appScreensText } from "./appScreens.ts"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")
 // Which Claude model answers. Haiku is fast and about a third of Sonnet's price.
@@ -63,6 +64,8 @@ type GuideContext = {
   completedSteps?: string[]
   currentStep?: number
   currentStepName?: string
+  /** "pilgrim" | "agency" | "agency-pending" (sent by the app) */
+  accountType?: string
 }
 
 // The big, unchanging part of the instructions. It is the same for every user, so Claude can
@@ -82,55 +85,27 @@ RULES:
 - Travel questions linked to the trip are allowed (visas in general terms, packing, weather in Makkah, getting from Jeddah to Makkah, health tips for pilgrims). Do not give legal, medical, or price-specific advice. Point the user to official sources, a doctor, or the relevant section of the app.
 - Always respond in: the user's language (see USER at the end)
 
-DEEP LINK MARKERS (REQUIRED WHEN RELEVANT):
-At the end of your response, when the user can open a specific screen in the app, include up to 3 markers in this exact format (on their own lines):
-[LINK: screenPath | Label]
+APP SCREEN BUTTONS:
+When the answer is about something the user can open in the app, end the reply with up to 3 buttons, each on its own line, in exactly this format:
+[LINK: key | Short button label in the user's language]
 
 Rules:
-- Maximum 3 [LINK: ...] markers per response
-- Place them at the very end of the reply
-- Do not wrap markers in code fences or markdown links
-- For general Islamic knowledge with no matching app screen, omit markers entirely
-- Prefer the most specific destination (exact surah, exact Umrah/Hajj step, exact map site)
+- Use ONLY a key from the list below, copied exactly. Never make up a key, a path, or a screen. If no key fits exactly, add no button.
+- The button must open the screen the answer is about. Choose the most specific key (the exact Umrah/Hajj step, the exact surah, the exact map site), not a general tab.
+- Only add a button when it helps the user do what they asked. For a purely religious answer (a ruling, a hadith, a meaning), usually add none, or only the exact guide step or surah.
+- For "where is X in the app" questions, always give the button for X.
+- Never give "premium" to an agency account, and never "agency-dashboard" or "agency-apply" to a pilgrim (see USER).
+- Put the buttons at the very end, plain text, no markdown or code fences, at most 3.
 
-Allowed screenPath values (examples):
-- quran/18 → open Surah Al-Kahf
-- quran/36 → open Surah Ya-Sin
-- quran → Quran list
-- umrah/1 → Madinah Visit step
-- umrah/2 → Ihram
-- umrah/3 → Arriving in Makkah
-- umrah/4 or umrah/tawaf → Tawaf
-- umrah/5 or umrah/sai → Sa'i
-- umrah/6 or umrah/halq → Halq/Taqsir
-- umrah/7 → Umrah Complete
-- umrah-guide → full Umrah checklist
-- hajj → Hajj guide overview
-- hajj/4 → Day of Arafah (Hajj step 4)
-- maps/haram or maps/makkah → Makkah / Masjid al-Haram map
-- maps/nabawi or maps/madinah → Madinah / Masjid Nabawi map (Rawdah, Prophet's grave)
-- maps/zamzam → Zamzam
-- maps/safa → Safa & Marwah
-- maps/mina → Mina
-- maps/arafah → Arafah
-- maps/hospital-makkah or hospitals → Hospitals & Nahdi Pharmacy
-- makkah-places → Makkah Places to See (Abraj Al Bait Mall, Clock Tower Museum)
-- makkah-place/clock-tower-museum → Clock Tower Museum detail + video
-- makkah-place/abraj-mall → Abraj Al Bait Mall
-- qiblah → Qibla compass
-- hotels → Hotels (Featured Hotels · Book Now · budget browse links)
-- restaurants → Restaurants
-- travel-agents → Find an agent
-- home → Home / prayer times
-- services → Services tab
+Allowed keys:
+${appScreensText}
 
 Examples:
+[LINK: umrah/4 | Tawaf guide]
 [LINK: quran/18 | Read Al-Kahf]
-[LINK: umrah/tawaf | Tawaf Guide]
-[LINK: maps/madinah | Madinah Map]
-[LINK: hotels | Featured Hotels]
-[LINK: makkah-places | Places to See]
-[LINK: maps/hospital-makkah | Hospitals & Pharmacy]
+[LINK: maps/nabawi | Madinah map]
+[LINK: notification-check | Check my reminders]
+[LINK: find-agent | Find an Agent]
 
 FEATURED HOTELS (Hotels screen: Book Now opens Booking.com):
 Makkah near Haram: Swissotel Al Maqam, Swissotel Makkah, Pullman ZamZam Makkah, Mövenpick Hajar Tower, Makkah Marriott, Al Safwah, Hyatt Regency Makkah, Fairmont Clock Royal Tower, Jabal Omar Jumeirah
@@ -192,7 +167,20 @@ function buildSystemPrompt(ctx: GuideContext) {
       ? ctx.completedSteps.join(", ")
       : "None yet"
 
+  // Who is asking, so answers and buttons fit what they can actually open
+  const ACCOUNTS: Record<string, string> = {
+    "agency":
+      "Travel agency, verified. All features are included for them: never offer, sell or mention Premium, and never use the \"premium\" key. Their last tab is \"My Agency\" (not \"Me\"). Help with agency tools: agency-dashboard, Share my QR, Post update, find-agent.",
+    "agency-pending":
+      "Travel agency, NOT verified yet. Never offer Premium or use the \"premium\" key. Premium-only screens (trip-planner, offline-map, makkah-companion, miqat-alert) are locked for them until verified: say so. Help them finish the application with the \"agency-apply\" key. Their last tab is \"My Agency\".",
+    "pilgrim-premium":
+      "Pilgrim WITH Premium: every Premium feature is already unlocked (Trip Planner, Offline Map, Makkah companion, Miqat alert, all Adhan voices and Mushaf fonts, unlimited AI). Never suggest buying Premium. Use the \"premium\" key only to manage, restore or cancel the subscription. Never use agency keys.",
+    "pilgrim-free":
+      "Pilgrim on the FREE plan (no Premium). When the answer points to a Premium-only screen (trip-planner, offline-map, makkah-companion, miqat-alert, extra Adhan voices, Mushaf fonts), clearly say it is part of Premium, and you may add the \"premium\" key as a second button. Never say they already have Premium. Never use agency keys.",
+  }
+  const account = ACCOUNTS[ctx.accountType || ""] || ACCOUNTS["pilgrim-free"]
   const userBlock = `USER (use this for the answer):
+Account: ${account}
 Name: ${userName} (address them by this name naturally)
 Language: ${language} (always respond in ${language})
 Umrah Progress: Step ${currentStep} of 7, ${currentStepName}
@@ -221,6 +209,7 @@ serve(async (req) => {
       completedSteps,
       currentStep,
       currentStepName,
+      accountType,
       stream: wantStream = true,
     } = body
 
@@ -232,6 +221,7 @@ serve(async (req) => {
       completedSteps,
       currentStep,
       currentStepName,
+      accountType,
     })
 
     if (!ANTHROPIC_API_KEY) {

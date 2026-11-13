@@ -105,68 +105,93 @@ function buildMarkdownStyles(theme) {
 
 const LINK_MARKER_RE = /\[LINK:\s*([^|\]]+?)\s*\|\s*([^\]]+?)\]/gi
 
-/** Slug aliases Claude may emit → real expo routes */
-const LINK_ALIASES = {
+/**
+ * The ONLY screens the AI guide can open. Same keys as supabase/functions/ai-guide/appScreens.ts.
+ * A key that isn't here (or a made-up path) gives NO button, so a button never opens the wrong screen.
+ */
+const SCREEN_ROUTES = {
   home: "/(tabs)",
-  prayer: "/(tabs)",
-  "prayer-times": "/(tabs)",
-  quran: "/quran",
-  qibla: "/qiblah",
-  qiblah: "/qiblah",
-  hajj: "/hajj",
-  umrah: "/umrah-guide",
-  "umrah-guide": "/umrah-guide",
-  checklist: "/umrah-guide",
+  guide: "/(tabs)/umrah",
+  maps: "/(tabs)/maps",
   services: "/(tabs)/services",
-  hotels: "/hotels",
-  restaurants: "/restaurants",
-  hospitals: "/maps/hospital-makkah",
-  pharmacy: "/maps/hospital-makkah",
-  pharmacies: "/maps/hospital-makkah",
-  nahdi: "/maps/hospital-makkah",
+  me: "/(tabs)/me",
+  "umrah-guide": "/umrah-guide",
+  hajj: "/hajj",
+  "makkah-companion": "/makkah-companion",
+  "miqat-alert": "/miqat-alert",
+  "trip-planner": "/trip-planner",
+  quran: "/quran",
+  "quran-listen": "/quran-listen",
+  kahf: "/quran/kahf",
+  mulk: "/quran/mulk",
+  duas: "/duas",
+  dhikr: "/dhikr",
+  "morning-adhkar": "/MorningAdhkarScreen",
+  "evening-adhkar": "/EveningAdhkarScreen",
+  qiblah: "/qiblah",
+  "islamic-calendar": "/islamic-calendar",
+  "offline-map": "/offline-map",
   "makkah-places": "/makkah-places",
-  "places-to-see": "/makkah-places",
-  "clock-tower-museum": "/makkah-place/clock-tower-museum",
-  "abraj-mall": "/makkah-place/abraj-mall",
-  "travel-agents": "/travel-agents",
-  agents: "/travel-agents",
-  "maps/makkah": "/maps/haram",
-  "maps/madinah": "/maps/nabawi",
-  "maps/rawdah": "/maps/nabawi",
-  "maps/prophet": "/maps/nabawi",
-  "maps/hospital-makkah": "/maps/hospital-makkah",
-  "umrah/tawaf": "/umrah/4",
-  "umrah/sai": "/umrah/5",
-  "umrah/sa'i": "/umrah/5",
-  "umrah/ihram": "/umrah/2",
-  "umrah/madinah": "/umrah/1",
-  "umrah/makkah": "/umrah/3",
-  "umrah/halq": "/umrah/6",
-  "umrah/taqsir": "/umrah/6",
-  "umrah/complete": "/umrah/7",
-  "hajj/arafah": "/hajj/4",
-  "hajj/mina": "/hajj/3",
-  "hajj/muzdalifah": "/hajj/5",
-  "hajj/jamarat": "/hajj/6",
+  "makkah-place/abraj-mall": "/makkah-place/abraj-mall",
+  "makkah-place/clock-tower-museum": "/makkah-place/clock-tower-museum",
+  hotels: "/hotels",
+  flights: "/services/flights",
+  esim: "/services/esim",
+  airalo: "/services/airalo",
+  restaurants: "/restaurants",
+  transport: "/services/transport",
+  shopping: "/services/shopping",
+  "find-agent": "/agent",
+  "scan-agent": "/agent/scan",
+  profile: "/profile",
+  favorites: "/favorites",
+  notifications: "/notifications",
+  "notification-check": "/notification-check",
+  settings: "/settings",
+  premium: "/premium",
+  "start-guide": "/start-guide",
+  contact: "/contact",
+  about: "/about",
+  "agency-dashboard": "/agent/dashboard",
+  "agency-apply": "/agent/apply?auto=1",
 }
 
+// Older names the AI may still use → the right key
+const KEY_ALIASES = {
+  prayer: "home", "prayer-times": "home", qibla: "qiblah", umrah: "umrah-guide", checklist: "umrah-guide",
+  "travel-agents": "find-agent", agents: "find-agent", agent: "find-agent", "find-an-agent": "find-agent",
+  hospitals: "maps/hospital-makkah", hospital: "maps/hospital-makkah", pharmacy: "maps/hospital-makkah", pharmacies: "maps/hospital-makkah", nahdi: "maps/hospital-makkah",
+  "places-to-see": "makkah-places", "clock-tower-museum": "makkah-place/clock-tower-museum", "abraj-mall": "makkah-place/abraj-mall",
+  "maps/makkah": "maps/haram", "maps/madinah": "maps/nabawi", "maps/rawdah": "maps/nabawi", "maps/prophet": "maps/nabawi",
+  "umrah/madinah": "umrah/1", "umrah/ihram": "umrah/2", "umrah/makkah": "umrah/3", "umrah/tawaf": "umrah/4",
+  "umrah/sai": "umrah/5", "umrah/sa'i": "umrah/5", "umrah/halq": "umrah/6", "umrah/taqsir": "umrah/6", "umrah/complete": "umrah/7",
+  "hajj/mina": "hajj/3", "hajj/arafah": "hajj/4", "hajj/muzdalifah": "hajj/5", "hajj/jamarat": "hajj/6", "hajj/tashreeq": "hajj/7", "hajj/wadaa": "hajj/8",
+  "quran/kahf": "kahf", "quran/mulk": "mulk", "al-kahf": "kahf", "al-mulk": "mulk", tasbih: "duas",
+  adhkar: "morning-adhkar", eflights: "flights", "services/flights": "flights", "services/esim": "esim",
+  "services/airalo": "airalo", "services/transport": "transport", "services/shopping": "shopping", "agent/dashboard": "agency-dashboard",
+}
+
+const MAP_SITES = new Set(["haram", "nabawi", "mina", "arafah", "zamzam", "safa", "hospital-makkah", "lost-found"])
+
+/** AI key → real route, or null when it isn't a real screen. */
 function normalizeLinkTarget(raw) {
-  const path = String(raw || "")
-    .trim()
-    .replace(/^\/+/, "")
-    .replace(/\s+/g, "")
-  if (!path) return "/(tabs)"
+  let key = String(raw || "").trim().replace(/^\/+/, "").replace(/\s+/g, "").toLowerCase()
+  if (!key) return null
+  if (KEY_ALIASES[key]) key = KEY_ALIASES[key]
+  if (SCREEN_ROUTES[key]) return SCREEN_ROUTES[key]
 
-  const key = path.toLowerCase()
-  if (LINK_ALIASES[key]) return LINK_ALIASES[key]
-
-  if (/^quran\/\d{1,3}$/i.test(path)) return `/${path}`
-  if (/^umrah\/[1-7]$/i.test(path)) return `/${path}`
-  if (/^hajj\/[1-9]$/i.test(path)) return `/${path}`
-  if (/^maps\/[a-z0-9-]+$/i.test(path)) return `/${path}`
-  if (/^makkah-place\/[a-z0-9-]+$/i.test(path)) return `/${path}`
-
-  return `/${path}`
+  let m = key.match(/^quran\/(\d{1,3})$/)
+  if (m) {
+    const n = Number(m[1])
+    return n >= 1 && n <= 114 ? `/quran/${n}` : null
+  }
+  m = key.match(/^umrah\/([1-7])$/)
+  if (m) return `/umrah/${m[1]}`
+  m = key.match(/^hajj\/([1-9])$/)
+  if (m) return `/hajj/${m[1]}`
+  m = key.match(/^maps\/([a-z-]+)$/)
+  if (m && MAP_SITES.has(m[1])) return `/maps/${m[1]}`
+  return null
 }
 
 function extractLinkMarkers(text) {
@@ -177,7 +202,7 @@ function extractLinkMarkers(text) {
   while ((match = re.exec(text)) !== null && links.length < 3) {
     const route = normalizeLinkTarget(match[1])
     const label = String(match[2] || "").trim()
-    if (!label || seen.has(route)) continue
+    if (!route || !label || seen.has(route)) continue
     seen.add(route)
     links.push({ id: `marker-${links.length}-${route}`, label, route })
   }
@@ -242,7 +267,11 @@ function detectSurahLinks(text) {
   return links
 }
 
-/** Keyword fallback — more specific rules first; max filled later with markers */
+/**
+ * Fallback when the AI added no button: only very specific words in the QUESTION
+ * (Tawaf, Zamzam, Qibla, hotels…). Broad words like "Makkah", "Umrah" or "prayer" no longer
+ * add a button, because they often pointed to the wrong screen.
+ */
 const DEEP_LINK_RULES = [
   {
     id: "tawaf",
@@ -287,35 +316,6 @@ const DEEP_LINK_RULES = [
     patterns: [/\bjamarat\b/i, /\bstoning\b/i, /جمرات/],
   },
   {
-    id: "hajj",
-    label: "Open Hajj Guide",
-    route: "/hajj",
-    patterns: [/\bhajj\b/i, /حج/],
-  },
-  {
-    id: "madinah-map",
-    label: "Madinah Map",
-    route: "/maps/nabawi",
-    patterns: [
-      /\bmadinah\b/i,
-      /\bmadina\b/i,
-      /\bnabawi\b/i,
-      /\brawdah\b/i,
-      /\briyad\b/i,
-      /prophet.?s?\s+grave/i,
-      /قبر\s*النبي/,
-      /الروضة/,
-      /المدينة/,
-      /نبوي/,
-    ],
-  },
-  {
-    id: "makkah-map",
-    label: "Makkah Map",
-    route: "/maps/haram",
-    patterns: [/\bmakkah\b/i, /\bmecca\b/i, /\bkaaba\b/i, /\bharam\b/i, /مكة/, /الكعبة/, /الحرم/],
-  },
-  {
     id: "zamzam",
     label: "Zamzam",
     route: "/maps/zamzam",
@@ -334,43 +334,6 @@ const DEEP_LINK_RULES = [
     patterns: [/\bmina\b/i, /منى/],
   },
   {
-    id: "umrah",
-    label: "Open Umrah Guide",
-    route: "/umrah-guide",
-    patterns: [/\bumrah\b/i, /عمرة/],
-  },
-  {
-    id: "checklist",
-    label: "My Checklist",
-    route: "/umrah-guide",
-    patterns: [/\bchecklist\b/i, /\bnext step\b/i, /\bumrah step\b/i],
-  },
-  {
-    id: "prayer",
-    label: "Prayer Times",
-    route: "/(tabs)",
-    patterns: [
-      /\bprayer\b/i,
-      /\bsalah\b/i,
-      /\bsalat\b/i,
-      /\badhan\b/i,
-      /\bfajr\b/i,
-      /\bdhuhr\b/i,
-      /\basr\b/i,
-      /\bmaghrib\b/i,
-      /\bisha\b/i,
-      /صلاة/,
-      /أذان/,
-      /نماز/,
-    ],
-  },
-  {
-    id: "quran",
-    label: "Open Quran",
-    route: "/quran",
-    patterns: [/\bquran\b/i, /\bverse\b/i, /\bsurah\b/i, /\bayah\b/i, /\baya\b/i, /قرآن/, /سورة/, /آية/],
-  },
-  {
     id: "qibla",
     label: "Open Qibla",
     route: "/qiblah",
@@ -384,7 +347,6 @@ const DEEP_LINK_RULES = [
       /\bhotel\b/i,
       /\bhotels\b/i,
       /\baccommodation\b/i,
-      /\bstay\b/i,
       /\bbooking\.com\b/i,
       /\bbudget hotel\b/i,
       /\bswissotel\b/i,
@@ -410,7 +372,7 @@ const DEEP_LINK_RULES = [
     id: "restaurants",
     label: "Restaurants",
     route: "/restaurants",
-    patterns: [/\brestaurant\b/i, /\bfood\b/i, /\beat\b/i, /\bdine\b/i],
+    patterns: [/\brestaurants?\b/i, /مطعم/, /مطاعم/],
   },
   {
     id: "hospitals",
@@ -439,12 +401,11 @@ const DEEP_LINK_RULES = [
     route: "/(tabs)/services",
     patterns: [/\btransport\b/i, /\bbus\b/i, /\btrain\b/i, /\buber\b/i, /\bharamain\b/i, /\bsaptco\b/i],
   },
-  {
-    id: "maps",
-    label: "Open Maps",
-    route: "/(tabs)/maps",
-    patterns: [/\bmap\b/i, /\bmaps\b/i, /\bdirections\b/i, /\bnavigate\b/i, /\blandmark\b/i],
-  },
+]
+
+const WELCOME_LINKS = [
+  { id: "welcome-umrah", label: "Umrah Guide", route: "/umrah-guide" },
+  { id: "welcome-prayer", label: "Prayer Times", route: "/(tabs)" },
 ]
 
 function getKeywordDeepLinks(...texts) {
@@ -617,6 +578,15 @@ async function streamAiGuide({ body, onText, signal, onQuota }) {
 
 export default function AIGuideScreen() {
   const router = useRouter()
+  // Pilgrim or agency: the AI answers differently, and some buttons are only for one of them
+  // Who is asking: pilgrim (free or Premium) or agency (verified or not).
+  // The AI answers for that account, and buttons that don't fit it are removed.
+  const { agency, isPremium: hasPremium } = usePremium()
+  const accountType =
+    agency === "verified" ? "agency"
+      : agency === "pending" ? "agency-pending"
+        : hasPremium ? "pilgrim-premium"
+          : "pilgrim-free"
   const insets = useSafeAreaInsets()
   const { theme, isDark } = useTheme()
   const { i18n, t } = useTranslation()
@@ -677,7 +647,7 @@ export default function AIGuideScreen() {
             {
               ...prev[0],
               content: `Assalamu Alaikum, ${name}! I'm your UmrahConnect AI guide.${progressHint} Ask me about Umrah, Hajj, prayer, the Haram, or any app feature.`,
-              links: getKeywordDeepLinks("checklist prayer"),
+              links: WELCOME_LINKS,
             },
           ]
         })
@@ -718,7 +688,7 @@ export default function AIGuideScreen() {
                 id: `welcome-${Date.now()}`,
                 role: "assistant",
                 content: `Assalamu Alaikum, ${name}! I'm your UmrahConnect AI guide.${progressHint} Ask me about Umrah, Hajj, prayer, the Haram, or any app feature.`,
-                links: getKeywordDeepLinks("checklist prayer"),
+                links: WELCOME_LINKS,
               },
             ])
           },
@@ -810,6 +780,7 @@ export default function AIGuideScreen() {
           completedSteps: ctx.completedSteps,
           currentStep: ctx.currentStep,
           currentStepName: ctx.currentStepName,
+          accountType,
         },
         onText: (assembled) => {
           setMessages((prev) =>
@@ -830,10 +801,23 @@ export default function AIGuideScreen() {
 
       const { cleaned, links: markerLinks } = extractLinkMarkers(fullReply || "")
       // Prefer Claude's [LINK:] markers; fall back to user-question keywords only
-      const links =
+      const allLinks =
         markerLinks.length > 0
           ? markerLinks.slice(0, 3)
           : getKeywordDeepLinks(trimmed)
+      // Only buttons that fit this account:
+      //  - agencies: never the Premium screen; a verified agency doesn't need "agency-apply"
+      //  - pilgrims: never the agency screens
+      //  - Premium pilgrims: no "Get Premium" button unless they asked about their subscription
+      const asksAboutSubscription = /subscri|cancel|restore|renew|abonn|اشتراك|abonelik|سبسکرپشن|সাবস্ক্রিপশন|premium/i.test(trimmed)
+      const links = allLinks.filter((l) => {
+        const route = String(l.route)
+        const agencyScreen = route.startsWith("/agent/dashboard") || route.startsWith("/agent/apply")
+        if (accountType === "pilgrim-free") return !agencyScreen
+        if (accountType === "pilgrim-premium") return !agencyScreen && (route !== "/premium" || asksAboutSubscription)
+        if (accountType === "agency") return route !== "/premium" && !route.startsWith("/agent/apply")
+        return route !== "/premium" // agency-pending
+      })
 
       setMessages((prev) =>
         prev.map((m) =>
