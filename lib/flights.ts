@@ -226,3 +226,15 @@ export const lateEscapeActive = () => Date.now() < BOOKING_LATE_ESCAPE_ENDS.getT
 
 /** Booking.com attractions: tours, ziyarah trips, tickets. */
 export const BOOKING_ATTRACTIONS_URL = "https://www.kqzyfj.com/click-101805153-17272895?sid=app-attractions"
+
+/** Booking.com "Black Friday Deals: up to 40% off stays", until 2 Dec 2026. Shown before Late Escape while it runs. */
+export const BOOKING_BLACK_FRIDAY_URL = "https://www.dpbolvw.net/click-101805153-17382530?sid=app-black-friday"
+export const BOOKING_BLACK_FRIDAY_ENDS = new Date("2026-12-03T00:00:00+03:00")
+
+/** The Booking.com sale to show on the Hotels screen right now (null when none is running). */
+export function currentHotelDeal(): { url: string; titleKey: string; subKey: string } | null {
+  const now = Date.now()
+  if (now < BOOKING_BLACK_FRIDAY_ENDS.getTime()) return { url: BOOKING_BLACK_FRIDAY_URL, titleKey: "blackFridayTitle", subKey: "blackFridaySub" }
+  if (lateEscapeActive()) return { url: BOOKING_LATE_ESCAPE_URL, titleKey: "lateEscapeTitle", subKey: "lateEscapeSub" }
+  return null
+}

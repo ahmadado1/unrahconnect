@@ -5,6 +5,7 @@
 //   • Smart search ("cheap near haram", "5 star clock tower", "hilton madinah", small typos ok).
 //   • Sections, each hotel shown once: Featured → 5 Star → 4 Star → Budget Friendly.
 //   • "Book now" opens Booking.com through our affiliate link, with the trip dates if saved.
+import BookingLogo from "@/app/components/BookingLogo"
 import OfflineBanner from "@/app/components/OfflineBanner"
 import TouchableOpacity from "@/app/components/AppPressable"
 import HeroBackground from "@/app/components/HeroBackground"
@@ -27,7 +28,7 @@ import type { HotelCity } from "@/lib/hotels"
 import { searchHotels } from "@/lib/hotelSearch"
 import { affiliateWebViewHref } from "@/lib/openAffiliateWebView"
 import { KAYAK_COMPARE_ENABLED } from "@/lib/kayak"
-import { BOOKING_LATE_ESCAPE_URL, lateEscapeActive } from "@/lib/flights"
+import { currentHotelDeal } from "@/lib/flights"
 import { applyStayToBookingUrl } from "@/lib/stayLinks"
 import { getUserFast, supabase, toggleFavorite } from "@/lib/supabase"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -156,6 +157,7 @@ export default function HotelsScreen() {
   const [directoryFavorites, setDirectoryFavorites] = useState<Set<string>>(new Set())
   const [localFavorites, setLocalFavorites] = useState<Set<string>>(new Set())
   const { trip, open: tripOpen, setOpen: setTripOpen, close: closeTrip, onSaved: onTripSaved } = useTripDetails(true)
+  const deal = useMemo(() => currentHotelDeal(), [])
 
   // Shine the city switch until the user has used it once.
   useEffect(() => {
@@ -412,19 +414,19 @@ export default function HotelsScreen() {
           </ScrollView>
         </View>
 
-        {/* Booking.com Late Escape sale (hides itself after 7 Jan 2027) */}
-        {lateEscapeActive() ? (
+        {/* Booking.com sale: Black Friday until 2 Dec, then Late Escape until 7 Jan, then nothing */}
+        {deal ? (
           <TouchableOpacity
             style={styles.dealStrip}
-            onPress={() => router.push(affiliateWebViewHref(BOOKING_LATE_ESCAPE_URL, "Booking.com"))}
+            onPress={() => router.push(affiliateWebViewHref(deal.url, "Booking.com"))}
             accessibilityRole="button"
           >
             <Ionicons name="pricetag" size={18} color="#FEBB02" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.dealTitle}>{t("lateEscapeTitle")}</Text>
-              <Text style={styles.dealSub}>{t("lateEscapeSub")}</Text>
+              <Text style={styles.dealTitle}>{t(deal.titleKey)}</Text>
+              <Text style={styles.dealSub}>{t(deal.subKey)}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#fff" />
+            <BookingLogo height={18} />
           </TouchableOpacity>
         ) : null}
 

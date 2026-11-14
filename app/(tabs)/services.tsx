@@ -3,6 +3,7 @@
 //   2. Travel agencies: Find an Agent
 //   3. Travel essentials: flights, eSIM
 //   4. Near the holy mosques: restaurants, malls, hospitals, transport (live from Google)
+import BookingLogo from "@/app/components/BookingLogo"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMarks"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
@@ -80,9 +81,7 @@ export default function ServicesScreen() {
             <LinearGradient colors={["rgba(15,30,50,0.05)", "rgba(15,30,50,0.85)"]} style={styles.heroShade}>
               <View style={styles.bookingBadge}>
                 <Text style={styles.bookingSmall}>{t("svcBookOn")}</Text>
-                <Text style={styles.bookingName}>
-                  Booking<Text style={styles.bookingDot}>.com</Text>
-                </Text>
+                <BookingLogo height={26} />
               </View>
               <View>
                 <Text style={styles.heroTitle}>{t("hotelsNearHaram")}</Text>
@@ -108,9 +107,12 @@ export default function ServicesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.flightTitle, { color: theme.text }]}>{t("svcFlightsTitle")}</Text>
-            <Text style={[styles.flightSub, { color: theme.textSecondary }]} numberOfLines={1}>
-              {t("svcFlightsSub")} <Text style={{ color: BOOKING_BLUE, fontWeight: "800" }}>Booking.com</Text>
-            </Text>
+            <View style={styles.onRow}>
+              <Text style={[styles.flightSub, { color: theme.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
+                {t("svcFlightsSub")}
+              </Text>
+              <BookingLogo height={15} />
+            </View>
           </View>
           <Ionicons name={chevron} size={18} color={GOLD} />
         </TouchableOpacity>
@@ -127,9 +129,12 @@ export default function ServicesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.flightTitle, { color: theme.text }]}>{t("toursTitle")}</Text>
-            <Text style={[styles.flightSub, { color: theme.textSecondary }]} numberOfLines={1}>
-              {t("toursSub")} <Text style={{ color: BOOKING_BLUE, fontWeight: "800" }}>Booking.com</Text>
-            </Text>
+            <View style={styles.onRow}>
+              <Text style={[styles.flightSub, { color: theme.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
+                {t("toursSub")}
+              </Text>
+              <BookingLogo height={15} />
+            </View>
           </View>
           <Ionicons name={chevron} size={18} color={GOLD} />
         </TouchableOpacity>
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
   hero: { height: 210, borderRadius: 20, overflow: "hidden" },
   heroImg: { borderRadius: 20 },
   heroShade: { flex: 1, padding: 16, justifyContent: "space-between" },
-  bookingBadge: { alignSelf: "flex-start", backgroundColor: BOOKING_BLUE, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  bookingBadge: { alignSelf: "flex-start", backgroundColor: BOOKING_BLUE, borderRadius: 10, paddingHorizontal: 8, paddingTop: 5, paddingBottom: 3 },
   bookingSmall: { color: "#BFD7FF", fontSize: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   bookingName: { color: "#fff", fontSize: 16, fontWeight: "800" },
   bookingDot: { color: "#5BBAFF" },
@@ -227,6 +232,7 @@ const styles = StyleSheet.create({
   flightIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: BOOKING_BLUE, alignItems: "center", justifyContent: "center" },
   flightTitle: { fontSize: 15, fontWeight: "700" },
   flightSub: { fontSize: 12, marginTop: 2 },
+  onRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   agentCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, padding: 16 },
   agentIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
   agentTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },

@@ -1,4 +1,5 @@
 import { askLocationPermission } from "@/lib/locationPermission"
+import BookingLogo from "@/app/components/BookingLogo"
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
@@ -110,6 +111,7 @@ export default function TransportScreen() {
               <Text style={[styles.listTitle, { color: theme.text }]}>{t("airportTaxiTitle")}</Text>
               <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("airportTaxiSub")}</Text>
             </View>
+            <BookingLogo height={18} />
           </View>
           <TouchableOpacity
             style={[styles.actionBtnPrimary, styles.actionBtnFull]}

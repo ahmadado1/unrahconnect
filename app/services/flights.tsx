@@ -1,4 +1,5 @@
 import FindFlightsCard from "@/app/components/FindFlightsCard"
+import BookingLogo from "@/app/components/BookingLogo"
 import OfflineBanner from "@/app/components/OfflineBanner"
 import KayakFlightsCard from "@/app/components/KayakFlightsCard"
 import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
@@ -58,8 +59,8 @@ export default function FlightsScreen() {
               <Ionicons name="airplane" size={24} color="#003580" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.listTitle, { color: theme.text }]}>Booking.com</Text>
-              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("svcFlightsTitle")}</Text>
+              <BookingLogo height={20} />
+              <Text style={[styles.listSub, { color: theme.textSecondary, marginTop: 4 }]}>{t("svcFlightsTitle")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={GOLD} />
           </View>
