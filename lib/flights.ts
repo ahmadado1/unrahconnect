@@ -214,10 +214,14 @@ export function flightSearchUrl(
 
 
 /** Booking.com Flights through our CJ affiliate account (Booking.com MEA). sid tells us the click came from the app. */
-export const BOOKING_FLIGHTS_URL = "https://www.tkqlhce.com/click-101805153-17362736?sid=app-flights"
+// Uses the deep-link link (11891539, same as the hotel links) with url= so Booking.com opens the Flights page.
+// (The banner link 17362736 ignored its destination and opened Booking.com hotels.)
+const deep = (sid: string, dest: string) =>
+  `https://www.kqzyfj.com/click-101805153-11891539?sid=${sid}&url=${encodeURIComponent(dest)}`
+export const BOOKING_FLIGHTS_URL = deep("app-flights", "https://www.booking.com/flights/index.html")
 
 /** Booking.com airport taxis (pre-booked ride from the airport to the hotel), same CJ account. */
-export const BOOKING_TAXI_URL = "https://www.jdoqocy.com/click-101805153-17322848?sid=app-taxi"
+export const BOOKING_TAXI_URL = deep("app-taxi", "https://www.booking.com/taxi/index.html")
 
 /** Booking.com "Late Escape Deals 2026" (15%+ off end-of-year stays). The offer ends 7 Jan 2027; the app hides it after that. */
 export const BOOKING_LATE_ESCAPE_URL = "https://www.anrdoezrs.net/click-101805153-17343550?sid=app-late-escape"

@@ -141,6 +141,7 @@ const SCREEN_ROUTES = {
   restaurants: "/nearby/restaurants",
   malls: "/nearby/malls",
   transport: "/services/transport",
+  tours: "/services/tours",
   shopping: "/nearby/malls",
   "find-agent": "/agent",
   "scan-agent": "/agent/scan",

@@ -9,7 +9,7 @@ import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMark
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
-import { BOOKING_ATTRACTIONS_URL, BOOKING_FLIGHTS_URL } from "@/lib/flights"
+import { BOOKING_FLIGHTS_URL } from "@/lib/flights"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -120,7 +120,7 @@ export default function ServicesScreen() {
         {/* ─── Tours & ziyarah on Booking.com ─── */}
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => openExternalUrl(router, BOOKING_ATTRACTIONS_URL, "Booking.com")}
+          onPress={() => router.push("/services/tours" as any)}
           accessibilityRole="button"
           style={[styles.flightCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}
         >

@@ -10,3 +10,4 @@ create table if not exists public.place_photos (
   checked_at timestamptz not null default now()
 );
 alter table public.place_photos enable row level security;  -- no policies: server only
+

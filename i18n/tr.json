@@ -2726,5 +2726,21 @@
   "toursTitle": "Turlar ve ziyaret gezileri",
   "toursSub": "Turlar, biletler ve günübirlik geziler:",
   "blackFridayTitle": "Black Friday: konaklamalarda %40'a varan indirim",
-  "blackFridaySub": "Booking.com fırsatları · 2 Aralık'a kadar"
+  "blackFridaySub": "Booking.com fırsatları · 2 Aralık'a kadar",
+  "tourMakkah": "Mekke",
+  "tourMakkahHi": "Ziyaret turları: Nur Dağı (Hira), Sevr, Mina, Arafat, müzeler",
+  "tourMadinah": "Medine",
+  "tourMadinahHi": "Ziyaret turları: Kuba, Uhud, Kıbleteyn, Yedi Mescit, hurma bahçeleri",
+  "tourJeddah": "Cidde",
+  "tourJeddahHi": "Tarihi Al-Balad, Corniche, Kızıldeniz tekne turları",
+  "tourTaif": "Taif",
+  "tourTaifHi": "Dağ şehri: gül bahçeleri, Al-Hada, Al-Shafa, teleferik",
+  "tourAlula": "AlUla",
+  "tourAlulaHi": "Hegra (Medayin Salih), Fil Kayası, çöl turları",
+  "tourRiyadh": "Riyad",
+  "tourRiyadhHi": "Diriyah, Dünyanın Kenarı, Boulevard",
+  "toursSee": "Turları gör",
+  "toursSearch": "Ara: Mescid-i Haram, Nebevi, Kuba, Taif…",
+  "toursNone": "Sonuç yok. Mekke, Medine veya Cidde deneyin.",
+  "toursNote": "Turlar ve biletler Booking.com'da normal fiyatlarıyla alınır. UmrahConnect sizden ücret almaz."
 }

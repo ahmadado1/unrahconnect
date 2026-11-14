@@ -582,6 +582,17 @@ export function buildSearchIndex(t: TFunc): SearchResult[] {
       keywords: kw("uber", "taxi", "ride", "car", "careem"),
     }),
     item({
+      id: "tours",
+      title: t("toursTitle", { defaultValue: "Tours & ziyarah trips" }),
+      subtitle: t("toursSub", { defaultValue: "Tours, tickets and day trips" }),
+      icon: "map",
+      category: "Services",
+      action: "navigate",
+      target: "/services/tours",
+      keywords: kw("tour", "tours", "ziyarah", "ziyarat", "trip", "day trip", "attractions", "things to do", "taif", "alula", "jeddah", "hira", "uhud", "quba"),
+      boost: 6,
+    }),
+    item({
       id: "abraj",
       title: t("abrajMall", { defaultValue: "Abraj Al Bait Mall" }),
       subtitle: t("abrajSub", { defaultValue: "Shopping next to the Haram" }),
