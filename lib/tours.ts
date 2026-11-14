@@ -3,6 +3,7 @@
 export type TourCity = {
   id: string
   slug: string // Booking.com city page: booking.com/things-to-do/city/sa/<slug>.html
+  page?: string // a different Booking.com page when the city page does not work
   nameKey: string
   highlightsKey: string
   photo?: number
@@ -14,7 +15,9 @@ export type TourCity = {
 
 export const TOUR_CITIES: TourCity[] = [
   {
-    id: "makkah", slug: "mecca", nameKey: "tourMakkah", highlightsKey: "tourMakkahHi",
+    id: "makkah", slug: "mecca",
+    // Booking.com has no working Makkah city page (it shows "Quai"), so open its Makkah ziyarat tour
+    page: "https://www.booking.com/attractions/sa/prgknzi09pmh-makkahs-mecca-ziyarat-holy-historical-places-private-tour.html", nameKey: "tourMakkah", highlightsKey: "tourMakkahHi",
     photo: require("../assets/photos/tawaf-header.jpg"), icon: "moon", color: "#1E3A5F",
     words: ["makkah", "mecca", "makka", "macca", "haram", "masjid al haram", "masjid al-haram", "kaaba", "kabah", "hira", "jabal nour", "jabal al nour", "thawr", "mina", "arafat", "arafah", "muzdalifah", "clock tower", "ziyarah", "ziyarat", "مكة", "الحرم", "الكعبة", "حراء", "ثور", "منى", "عرفات", "مزدلفة"],
   },
@@ -46,7 +49,7 @@ export const TOUR_CITIES: TourCity[] = [
 ]
 
 export function tourLink(city: TourCity) {
-  const dest = `https://www.booking.com/things-to-do/city/sa/${city.slug}.html`
+  const dest = city.page || `https://www.booking.com/things-to-do/city/sa/${city.slug}.html`
   return `https://www.kqzyfj.com/click-101805153-11891539?sid=app-tours-${city.id}&url=${encodeURIComponent(dest)}`
 }
 

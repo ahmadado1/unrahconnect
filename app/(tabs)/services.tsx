@@ -9,7 +9,7 @@ import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMark
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
-import { BOOKING_FLIGHTS_URL } from "@/lib/flights"
+import { BOOKING_TAXI_URL } from "@/lib/flights"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -98,7 +98,7 @@ export default function ServicesScreen() {
         {/* ─── Flights on Booking.com (same partner as the hotels) ─── */}
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => openExternalUrl(router, BOOKING_FLIGHTS_URL, "Booking.com")}
+          onPress={() => router.push("/services/flights" as any)}
           accessibilityRole="button"
           style={[styles.flightCard, { backgroundColor: theme.card, borderColor: theme.border }]}
         >
@@ -107,12 +107,7 @@ export default function ServicesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.flightTitle, { color: theme.text }]}>{t("svcFlightsTitle")}</Text>
-            <View style={styles.onRow}>
-              <Text style={[styles.flightSub, { color: theme.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
-                {t("svcFlightsSub")}
-              </Text>
-              <BookingLogo height={15} />
-            </View>
+            <Text style={[styles.flightSub, { color: theme.textSecondary }]} numberOfLines={1}>{t("flightsCompare")}</Text>
           </View>
           <Ionicons name={chevron} size={18} color={GOLD} />
         </TouchableOpacity>
@@ -132,6 +127,28 @@ export default function ServicesScreen() {
             <View style={styles.onRow}>
               <Text style={[styles.flightSub, { color: theme.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
                 {t("toursSub")}
+              </Text>
+              <BookingLogo height={15} />
+            </View>
+          </View>
+          <Ionicons name={chevron} size={18} color={GOLD} />
+        </TouchableOpacity>
+
+        {/* ─── Airport taxi (Booking.com) ─── */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => openExternalUrl(router, BOOKING_TAXI_URL, "Booking.com")}
+          accessibilityRole="button"
+          style={[styles.flightCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}
+        >
+          <View style={styles.flightIcon}>
+            <Ionicons name="car" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.flightTitle, { color: theme.text }]}>{t("airportTaxiTitle")}</Text>
+            <View style={styles.onRow}>
+              <Text style={[styles.flightSub, { color: theme.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
+                {t("airportTaxiShort")}
               </Text>
               <BookingLogo height={15} />
             </View>

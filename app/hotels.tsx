@@ -38,7 +38,7 @@ import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Alert, Animated, Easing, Image, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
+import { ActivityIndicator, Alert, Animated, Easing, Image, InteractionManager, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -159,6 +159,15 @@ export default function HotelsScreen() {
   const { trip, open: tripOpen, setOpen: setTripOpen, close: closeTrip, onSaved: onTripSaved } = useTripDetails(true)
   const deal = useMemo(() => currentHotelDeal(), [])
 
+  // Open the screen at once, then draw the hotel cards (many photos) right after the slide-in,
+  // so tapping "Hotels" never feels stuck.
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setReady(true))
+    const fallback = setTimeout(() => setReady(true), 400)
+    return () => { task.cancel(); clearTimeout(fallback) }
+  }, [])
+
   // Shine the city switch until the user has used it once.
   useEffect(() => {
     AsyncStorage.getItem(CITY_SWITCH_USED_KEY)
@@ -214,20 +223,21 @@ export default function HotelsScreen() {
 
   /** Search results: this city first; if nothing here, the other city. */
   const results = useMemo(() => {
-    if (!search) return null
+    if (!search || !ready) return null
     const here = search.hotels.filter(h => h.city === city && matchesDistance(h))
     if (here.length) return { hotels: here, otherCity: null as HotelCity | null }
     const other = search.hotels.filter(h => h.city !== city && matchesDistance(h))
     return { hotels: other, otherCity: other[0]?.city ?? null }
-  }, [search, city, matchesDistance])
+  }, [search, city, matchesDistance, ready])
 
   const sections = useMemo(() => {
+    if (!ready) return []
     const inCity = HOTEL_CATALOG.filter(h => h.city === city && matchesDistance(h))
     return SECTION_ORDER.map(key => ({
       key,
       hotels: inCity.filter(h => hotelSection(h) === key).sort(byDistance),
     })).filter(s => s.hotels.length > 0)
-  }, [city, matchesDistance])
+  }, [city, matchesDistance, ready])
 
   const [compareHotel, setCompareHotel] = useState<CatalogHotel | null>(null)
 
@@ -429,6 +439,8 @@ export default function HotelsScreen() {
             <BookingLogo height={18} />
           </TouchableOpacity>
         ) : null}
+
+        {!ready ? <ActivityIndicator color={GOLD} style={{ marginTop: 40 }} /> : null}
 
         {results ? (
           /* ─── Search results ─── */
