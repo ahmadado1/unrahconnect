@@ -2715,5 +2715,14 @@
   "catSupermarket": "سپر مارکیٹ",
   "catDepartment": "ڈیپارٹمنٹ اسٹورز",
   "nearbyWalkShort": "{{min}} منٹ پیدل · {{dist}}",
-  "nearbyPhotosCredit": "تصاویر کے حقوق Google Maps پر"
+  "nearbyPhotosCredit": "تصاویر کے حقوق Google Maps پر",
+  "svcFlightsTitle": "جدہ اور مدینہ کے لیے پروازیں",
+  "svcFlightsSub": "پروازیں تلاش کریں",
+  "airportTaxiTitle": "ایئرپورٹ ٹیکسی",
+  "airportTaxiSub": "جدہ یا مدینہ ایئرپورٹ سے آپ کے ہوٹل تک۔ پہلے سے بک کریں، مقررہ کرایہ، ڈرائیور آپ کا انتظار کرے گا۔",
+  "airportTaxiBtn": "Booking.com پر ٹیکسی بک کریں",
+  "lateEscapeTitle": "Late Escape ڈیلز: 15% یا زیادہ رعایت",
+  "lateEscapeSub": "Booking.com پر سال کے آخر کے قیام · 7 جنوری تک",
+  "toursTitle": "ٹورز اور زیارات",
+  "toursSub": "ٹورز، ٹکٹیں اور ایک دن کے سفر"
 }

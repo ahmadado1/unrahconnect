@@ -3,6 +3,7 @@ import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { HARAMAIN_STATIONS as HARAMAIN_STATION_MAP } from "@/lib/haramainStations"
 import { openExternalUrl } from "@/lib/openAffiliateWebView"
+import { BOOKING_TAXI_URL } from "@/lib/flights"
 import { openGoogleMapsUrl } from "@/lib/openMaps"
 import { GOLD, NAVY, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
@@ -101,6 +102,24 @@ export default function TransportScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
         contentInsetAdjustmentBehavior="never"
       >
+        {/* Airport taxi on Booking.com (Jeddah / Madinah airport → hotel, booked ahead) */}
+        <View style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftWidth: 4, borderLeftColor: "#003580" }]}>
+          <View style={styles.expandHeader}>
+            <AppIcon name="car" size={26} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.listTitle, { color: theme.text }]}>{t("airportTaxiTitle")}</Text>
+              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("airportTaxiSub")}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.actionBtnPrimary, styles.actionBtnFull]}
+            onPress={() => openExternalUrl(router, BOOKING_TAXI_URL, "Booking.com")}
+          >
+            <Ionicons name="airplane-outline" size={14} color={GOLD} />
+            <Text style={styles.actionBtnPrimaryText}>{t("airportTaxiBtn")}</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={[styles.groupLabel, { color: theme.textSecondary }]}>{t("haramainRailway")}</Text>
         {HARAMAIN_STATIONS.map(station => (
           <TouchableOpacity

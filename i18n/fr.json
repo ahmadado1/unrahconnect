@@ -2715,5 +2715,14 @@
   "catSupermarket": "Supermarchés",
   "catDepartment": "Grands magasins",
   "nearbyWalkShort": "{{min}} min à pied · {{dist}}",
-  "nearbyPhotosCredit": "crédits photo sur Google Maps"
+  "nearbyPhotosCredit": "crédits photo sur Google Maps",
+  "svcFlightsTitle": "Vols vers Djeddah et Médine",
+  "svcFlightsSub": "Chercher des vols sur",
+  "airportTaxiTitle": "Taxi aéroport",
+  "airportTaxiSub": "De l'aéroport de Djeddah ou Médine à votre hôtel. Réservé à l'avance, prix fixe, le chauffeur vous attend.",
+  "airportTaxiBtn": "Réserver un taxi sur Booking.com",
+  "lateEscapeTitle": "Offres Late Escape : 15 % ou plus de réduction",
+  "lateEscapeSub": "Séjours de fin d'année sur Booking.com · jusqu'au 7 janvier",
+  "toursTitle": "Visites et ziyarah",
+  "toursSub": "Visites, billets et excursions sur"
 }

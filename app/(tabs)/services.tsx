@@ -8,6 +8,8 @@ import { AiraloMark, AviasalesMark, SailyMark } from "@/app/components/BrandMark
 import { AppIcon, AppIconKey } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { GOLD, NAVY, tabScrollBottom, ui } from "@/lib/ui"
+import { BOOKING_ATTRACTIONS_URL, BOOKING_FLIGHTS_URL } from "@/lib/flights"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
@@ -92,6 +94,44 @@ export default function ServicesScreen() {
               </View>
             </LinearGradient>
           </ImageBackground>
+        </TouchableOpacity>
+
+        {/* ─── Flights on Booking.com (same partner as the hotels) ─── */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => openExternalUrl(router, BOOKING_FLIGHTS_URL, "Booking.com")}
+          accessibilityRole="button"
+          style={[styles.flightCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+        >
+          <View style={styles.flightIcon}>
+            <Ionicons name="airplane" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.flightTitle, { color: theme.text }]}>{t("svcFlightsTitle")}</Text>
+            <Text style={[styles.flightSub, { color: theme.textSecondary }]} numberOfLines={1}>
+              {t("svcFlightsSub")} <Text style={{ color: BOOKING_BLUE, fontWeight: "800" }}>Booking.com</Text>
+            </Text>
+          </View>
+          <Ionicons name={chevron} size={18} color={GOLD} />
+        </TouchableOpacity>
+
+        {/* ─── Tours & ziyarah on Booking.com ─── */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => openExternalUrl(router, BOOKING_ATTRACTIONS_URL, "Booking.com")}
+          accessibilityRole="button"
+          style={[styles.flightCard, { backgroundColor: theme.card, borderColor: theme.border, marginTop: 10 }]}
+        >
+          <View style={styles.flightIcon}>
+            <Ionicons name="map" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.flightTitle, { color: theme.text }]}>{t("toursTitle")}</Text>
+            <Text style={[styles.flightSub, { color: theme.textSecondary }]} numberOfLines={1}>
+              {t("toursSub")} <Text style={{ color: BOOKING_BLUE, fontWeight: "800" }}>Booking.com</Text>
+            </Text>
+          </View>
+          <Ionicons name={chevron} size={18} color={GOLD} />
         </TouchableOpacity>
 
         {/* ─── 2. Travel agencies (right under the hotels) ─── */}
@@ -183,6 +223,10 @@ const styles = StyleSheet.create({
   tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 10 },
   tileTitle: { fontSize: 15, fontWeight: "700" },
   tileSub: { fontSize: 12, lineHeight: 16, marginTop: 3 },
+  flightCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, borderWidth: ui.hairline, padding: 14, marginTop: 12 },
+  flightIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: BOOKING_BLUE, alignItems: "center", justifyContent: "center" },
+  flightTitle: { fontSize: 15, fontWeight: "700" },
+  flightSub: { fontSize: 12, marginTop: 2 },
   agentCard: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, padding: 16 },
   agentIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: GOLD, alignItems: "center", justifyContent: "center" },
   agentTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },

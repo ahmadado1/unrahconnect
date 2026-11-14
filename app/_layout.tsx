@@ -196,6 +196,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     checkAuth()
+    // New over-the-air updates show up without closing the app twice
+    void import("@/lib/appUpdates").then(m => m.startAutoUpdates()).catch(() => {})
 
     // Book every reminder ahead. Runs at start AND every time the app comes back to the screen
     // (at most every 20 minutes): a built app can stay alive in the background for days

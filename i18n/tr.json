@@ -2715,5 +2715,14 @@
   "catSupermarket": "Süpermarketler",
   "catDepartment": "Mağazalar",
   "nearbyWalkShort": "{{min}} dk yürüme · {{dist}}",
-  "nearbyPhotosCredit": "fotoğraf kaynakları Google Haritalar'da"
+  "nearbyPhotosCredit": "fotoğraf kaynakları Google Haritalar'da",
+  "svcFlightsTitle": "Cidde ve Medine'ye uçuşlar",
+  "svcFlightsSub": "Uçuşları ara:",
+  "airportTaxiTitle": "Havalimanı taksisi",
+  "airportTaxiSub": "Cidde veya Medine havalimanından otelinize. Önceden ayırtın, sabit fiyat, şoför sizi bekler.",
+  "airportTaxiBtn": "Booking.com'da taksi ayırt",
+  "lateEscapeTitle": "Late Escape fırsatları: %15 veya daha fazla indirim",
+  "lateEscapeSub": "Booking.com'da yıl sonu konaklamaları · 7 Ocak'a kadar",
+  "toursTitle": "Turlar ve ziyaret gezileri",
+  "toursSub": "Turlar, biletler ve günübirlik geziler:"
 }

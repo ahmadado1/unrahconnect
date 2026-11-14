@@ -2715,5 +2715,14 @@
   "catSupermarket": "সুপারমার্কেট",
   "catDepartment": "ডিপার্টমেন্ট স্টোর",
   "nearbyWalkShort": "{{min}} মিনিট হাঁটা · {{dist}}",
-  "nearbyPhotosCredit": "ছবির কৃতিত্ব Google Maps-এ"
+  "nearbyPhotosCredit": "ছবির কৃতিত্ব Google Maps-এ",
+  "svcFlightsTitle": "জেদ্দা ও মদিনার ফ্লাইট",
+  "svcFlightsSub": "ফ্লাইট খুঁজুন",
+  "airportTaxiTitle": "এয়ারপোর্ট ট্যাক্সি",
+  "airportTaxiSub": "জেদ্দা বা মদিনা এয়ারপোর্ট থেকে আপনার হোটেল। আগে বুক করুন, নির্দিষ্ট ভাড়া, চালক আপনার জন্য অপেক্ষা করবেন।",
+  "airportTaxiBtn": "Booking.com-এ ট্যাক্সি বুক করুন",
+  "lateEscapeTitle": "Late Escape অফার: ১৫% বা তার বেশি ছাড়",
+  "lateEscapeSub": "Booking.com-এ বছর শেষের থাকা · ৭ জানুয়ারি পর্যন্ত",
+  "toursTitle": "ট্যুর ও যিয়ারত",
+  "toursSub": "ট্যুর, টিকিট ও দিনের ভ্রমণ"
 }

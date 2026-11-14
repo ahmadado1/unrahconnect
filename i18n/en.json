@@ -2715,5 +2715,14 @@
   "catSupermarket": "Supermarkets",
   "catDepartment": "Department stores",
   "nearbyWalkShort": "{{min}} min walk · {{dist}}",
-  "nearbyPhotosCredit": "photo credits shown on Google Maps"
+  "nearbyPhotosCredit": "photo credits shown on Google Maps",
+  "svcFlightsTitle": "Flights to Jeddah & Madinah",
+  "svcFlightsSub": "Search flights on",
+  "airportTaxiTitle": "Airport taxi",
+  "airportTaxiSub": "Jeddah or Madinah airport to your hotel. Book ahead, fixed price, driver waits for you.",
+  "airportTaxiBtn": "Book a taxi on Booking.com",
+  "lateEscapeTitle": "Late Escape deals: 15% or more off",
+  "lateEscapeSub": "End-of-year stays on Booking.com · until 7 January",
+  "toursTitle": "Tours & ziyarah trips",
+  "toursSub": "Tours, tickets and day trips on"
 }

@@ -211,3 +211,18 @@ export function flightSearchUrl(
   }
   return fallback
 }
+
+
+/** Booking.com Flights through our CJ affiliate account (Booking.com MEA). sid tells us the click came from the app. */
+export const BOOKING_FLIGHTS_URL = "https://www.tkqlhce.com/click-101805153-17362736?sid=app-flights"
+
+/** Booking.com airport taxis (pre-booked ride from the airport to the hotel), same CJ account. */
+export const BOOKING_TAXI_URL = "https://www.jdoqocy.com/click-101805153-17322848?sid=app-taxi"
+
+/** Booking.com "Late Escape Deals 2026" (15%+ off end-of-year stays). The offer ends 7 Jan 2027; the app hides it after that. */
+export const BOOKING_LATE_ESCAPE_URL = "https://www.anrdoezrs.net/click-101805153-17343550?sid=app-late-escape"
+export const BOOKING_LATE_ESCAPE_ENDS = new Date("2027-01-08T00:00:00+03:00")
+export const lateEscapeActive = () => Date.now() < BOOKING_LATE_ESCAPE_ENDS.getTime()
+
+/** Booking.com attractions: tours, ziyarah trips, tickets. */
+export const BOOKING_ATTRACTIONS_URL = "https://www.kqzyfj.com/click-101805153-17272895?sid=app-attractions"

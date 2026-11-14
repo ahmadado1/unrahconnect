@@ -2719,5 +2719,14 @@
   "catSupermarket": "سوبرماركت",
   "catDepartment": "متاجر كبرى",
   "nearbyWalkShort": "{{min}} دقيقة سيرًا · {{dist}}",
-  "nearbyPhotosCredit": "حقوق الصور على خرائط Google"
+  "nearbyPhotosCredit": "حقوق الصور على خرائط Google",
+  "svcFlightsTitle": "رحلات إلى جدة والمدينة",
+  "svcFlightsSub": "ابحث عن رحلات على",
+  "airportTaxiTitle": "تاكسي المطار",
+  "airportTaxiSub": "من مطار جدة أو المدينة إلى فندقك. احجز مسبقاً بسعر ثابت، والسائق ينتظرك.",
+  "airportTaxiBtn": "احجز تاكسي على Booking.com",
+  "lateEscapeTitle": "عروض Late Escape: خصم 15% أو أكثر",
+  "lateEscapeSub": "إقامات نهاية العام على Booking.com · حتى 7 يناير",
+  "toursTitle": "جولات وزيارات",
+  "toursSub": "جولات وتذاكر ورحلات يومية على"
 }

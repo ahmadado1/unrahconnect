@@ -27,6 +27,7 @@ import type { HotelCity } from "@/lib/hotels"
 import { searchHotels } from "@/lib/hotelSearch"
 import { affiliateWebViewHref } from "@/lib/openAffiliateWebView"
 import { KAYAK_COMPARE_ENABLED } from "@/lib/kayak"
+import { BOOKING_LATE_ESCAPE_URL, lateEscapeActive } from "@/lib/flights"
 import { applyStayToBookingUrl } from "@/lib/stayLinks"
 import { getUserFast, supabase, toggleFavorite } from "@/lib/supabase"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -411,6 +412,22 @@ export default function HotelsScreen() {
           </ScrollView>
         </View>
 
+        {/* Booking.com Late Escape sale (hides itself after 7 Jan 2027) */}
+        {lateEscapeActive() ? (
+          <TouchableOpacity
+            style={styles.dealStrip}
+            onPress={() => router.push(affiliateWebViewHref(BOOKING_LATE_ESCAPE_URL, "Booking.com"))}
+            accessibilityRole="button"
+          >
+            <Ionicons name="pricetag" size={18} color="#FEBB02" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dealTitle}>{t("lateEscapeTitle")}</Text>
+              <Text style={styles.dealSub}>{t("lateEscapeSub")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </TouchableOpacity>
+        ) : null}
+
         {results ? (
           /* ─── Search results ─── */
           <View style={styles.section}>
@@ -540,6 +557,9 @@ const cardStyles = StyleSheet.create({
 })
 
 const styles = StyleSheet.create({
+  dealStrip: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#003580", borderRadius: 14, padding: 12, marginHorizontal: 16, marginTop: 14 },
+  dealTitle: { color: "#fff", fontSize: 14, fontWeight: "800" },
+  dealSub: { color: "#BFD7FF", fontSize: 12, marginTop: 1 },
   screen: { flex: 1 },
   body: { flex: 1, backgroundColor: NAVY },
   header: { backgroundColor: NAVY, paddingBottom: 16 },

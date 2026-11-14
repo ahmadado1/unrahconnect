@@ -4,7 +4,8 @@ import KayakFlightsCard from "@/app/components/KayakFlightsCard"
 import TripDetailsSheet, { TripDetailsChip, useTripDetails } from "@/app/components/TripDetailsSheet"
 import { AppIcon } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
-import { FLIGHT_PLATFORMS } from "@/lib/flights"
+import { BOOKING_FLIGHTS_URL, FLIGHT_PLATFORMS } from "@/lib/flights"
+import { openExternalUrl } from "@/lib/openAffiliateWebView"
 import { KAYAK_COMPARE_ENABLED } from "@/lib/kayak"
 import { GOLD, NAVY, ui } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
@@ -46,6 +47,23 @@ export default function FlightsScreen() {
         contentInsetAdjustmentBehavior="never"
       >
         <FindFlightsCard />
+        {/* Also search on Booking.com (affiliate) */}
+        <TouchableOpacity
+          style={[styles.expandCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: "#003580" }]}
+          onPress={() => openExternalUrl(router, BOOKING_FLIGHTS_URL, "Booking.com")}
+          activeOpacity={0.85}
+        >
+          <View style={styles.expandHeader}>
+            <View style={[styles.flightIcon, { backgroundColor: "#00358018" }]}>
+              <Ionicons name="airplane" size={24} color="#003580" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.listTitle, { color: theme.text }]}>Booking.com</Text>
+              <Text style={[styles.listSub, { color: theme.textSecondary }]}>{t("svcFlightsTitle")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={GOLD} />
+          </View>
+        </TouchableOpacity>
         <TripDetailsChip trip={trip} onPress={() => setTripOpen(true)} light />
         {KAYAK_COMPARE_ENABLED ? <KayakFlightsCard trip={trip} onNeedTrip={() => setTripOpen(true)} /> : null}
         {FLIGHT_PLATFORMS.map(platform => (
