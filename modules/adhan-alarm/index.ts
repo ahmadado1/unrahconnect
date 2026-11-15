@@ -14,6 +14,8 @@ type AdhanAlarmNative = {
   hasNotificationSound?: (name: string) => boolean
   removeSounds?: (prefix: string) => number
   setPrayerWidgetData?: (json: string) => boolean
+  startPrayerActivity?: (json: string) => Promise<boolean>
+  endPrayerActivities?: () => Promise<boolean>
 }
 
 let cached: AdhanAlarmNative | null | undefined
@@ -127,6 +129,32 @@ export function removeIosSounds(prefix: string): number {
 export function setIosPrayerWidgetData(json: string): boolean {
   try {
     return native()?.setPrayerWidgetData?.(json) === true
+  } catch {
+    return false
+  }
+}
+
+/** Live Activity "Next prayer" countdown (lock screen + Dynamic Island). No-op on builds without it. */
+export async function startIosPrayerActivity(data: {
+  prayer: string
+  at: number
+  city: string
+  next: string
+  now: string
+  tap: string
+}): Promise<boolean> {
+  try {
+    const fn = native()?.startPrayerActivity
+    return typeof fn === "function" ? await fn(JSON.stringify(data)) : false
+  } catch {
+    return false
+  }
+}
+
+export async function endIosPrayerActivities(): Promise<boolean> {
+  try {
+    const fn = native()?.endPrayerActivities
+    return typeof fn === "function" ? await fn() : false
   } catch {
     return false
   }

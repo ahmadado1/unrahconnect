@@ -162,5 +162,6 @@ struct PrayerTimesWidget: Widget {
 struct UmrahConnectWidgets: WidgetBundle {
   var body: some Widget {
     PrayerTimesWidget()
+    PrayerLiveActivity()
   }
 }

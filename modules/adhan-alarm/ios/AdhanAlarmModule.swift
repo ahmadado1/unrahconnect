@@ -20,6 +20,23 @@ nonisolated struct AdhanAlarmMetadata: AlarmMetadata {
 }
 #endif
 
+#if canImport(ActivityKit)
+import ActivityKit
+
+/// Live "Next prayer" countdown. Must stay EXACTLY the same as in targets/prayer-widget/PrayerLiveActivity.swift.
+@available(iOS 16.2, *)
+struct PrayerActivityAttributes: ActivityAttributes {
+  public struct ContentState: Codable, Hashable {
+    var prayer: String
+    var at: Double
+    var nextLabel: String
+    var nowLabel: String
+    var tapLabel: String
+  }
+  var city: String
+}
+#endif
+
 private let idsKey = "umrahconnect_adhan_alarm_ids"
 
 public class AdhanAlarmModule: Module {
@@ -37,6 +54,64 @@ public class AdhanAlarmModule: Module {
       }
       #endif
       return true
+    }
+
+    /// Live Activity: show / update the next prayer countdown. json = { prayer, at (ms), city, next, now, tap }.
+    /// Returns false when Live Activities are off or not supported (older iOS).
+    AsyncFunction("startPrayerActivity") { (json: String) async -> Bool in
+      #if canImport(ActivityKit)
+      if #available(iOS 16.2, *) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled,
+              let data = json.data(using: .utf8),
+              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return false }
+        let at = (obj["at"] as? Double) ?? Double((obj["at"] as? Int) ?? 0)
+        if at <= 0 { return false }
+        let state = PrayerActivityAttributes.ContentState(
+          prayer: (obj["prayer"] as? String) ?? "",
+          at: at,
+          nextLabel: (obj["next"] as? String) ?? "Next prayer",
+          nowLabel: (obj["now"] as? String) ?? "Prayer time",
+          tapLabel: (obj["tap"] as? String) ?? "Tap to hear the full Adhan"
+        )
+        // After prayer time the card shows "tap for the full Adhan" (stale), and goes away 1 hour later.
+        let content = ActivityContent(state: state, staleDate: Date(timeIntervalSince1970: at / 1000))
+        var kept = false
+        for activity in Activity<PrayerActivityAttributes>.activities {
+          if !kept && activity.content.state.at == at {
+            await activity.update(content)
+            kept = true
+          } else {
+            await activity.end(nil, dismissalPolicy: .immediate)
+          }
+        }
+        if kept { return true }
+        do {
+          _ = try Activity.request(
+            attributes: PrayerActivityAttributes(city: (obj["city"] as? String) ?? ""),
+            content: content,
+            pushType: nil
+          )
+          return true
+        } catch {
+          print("[PrayerActivity] could not start: \(error)")
+          return false
+        }
+      }
+      #endif
+      return false
+    }
+
+    /// Live Activity: remove the countdown (Premium ended / switched off).
+    AsyncFunction("endPrayerActivities") { () async -> Bool in
+      #if canImport(ActivityKit)
+      if #available(iOS 16.2, *) {
+        for activity in Activity<PrayerActivityAttributes>.activities {
+          await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        return true
+      }
+      #endif
+      return false
     }
 
     /// True on iOS 26+ (AlarmKit exists).

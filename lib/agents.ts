@@ -304,6 +304,8 @@ export async function postAnnouncement(title: string, body: string): Promise<Age
     .single()
 
   if (error) throw new Error(error.message)
+  // Send it as a phone notification to the agency's pilgrims (in the background).
+  void supabase.functions.invoke("announce-push", { body: { announcementId: data.id } }).catch(() => {})
   return data
 }
 

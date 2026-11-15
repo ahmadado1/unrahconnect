@@ -13,6 +13,9 @@ import {
   type PublicAgent,
 } from "@/lib/agents"
 import { saveReferralCode } from "@/lib/referral"
+import { getMyChecklist, type CheckItem } from "@/lib/tripChecklist"
+import TripChecklistChips from "@/app/components/TripChecklist"
+import { getUserFast } from "@/lib/supabase"
 import { tabScrollBottom } from "@/lib/ui"
 import { Ionicons } from "@expo/vector-icons"
 import { Image } from "expo-image"
@@ -23,7 +26,7 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import ScreenState from "@/app/components/ScreenState"
-import { usePremium } from "@/lib/premium"
+import { useIsAgent } from "@/lib/accountType"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const NAVY = "#1E3A5F"
@@ -41,7 +44,7 @@ export default function AgentProfileScreen() {
   const { theme } = useTheme()
   const { t, i18n } = useTranslation()
   // Agency accounts look at other agencies but don't "join" them
-  const { agency: viewerIsAgency } = usePremium()
+  const viewerIsAgency = useIsAgent()
 
   const [agent, setAgent] = useState<PublicAgent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,6 +53,20 @@ export default function AgentProfileScreen() {
   const [ownAgencyId, setOwnAgencyId] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
   const [joinMessage, setJoinMessage] = useState("")
+  // My trip checklist, ticked by my agency (only shown when connected)
+  const [myChecklist, setMyChecklist] = useState<Set<CheckItem> | null>(null)
+  useEffect(() => {
+    if (!agent?.id || myAgentId !== agent.id) return
+    let cancelled = false
+    void getUserFast().then(async ({ data: { user } }) => {
+      if (!user || cancelled) return
+      const set = await getMyChecklist(agent.id, user.id).catch(() => null)
+      if (!cancelled && set) setMyChecklist(set)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [agent?.id, myAgentId])
 
   const load = useCallback(async () => {
     try {
@@ -188,6 +205,26 @@ export default function AgentProfileScreen() {
           ) : null}
         </View>
 
+        {/* Connect (pilgrims): one button. After connecting, the contacts below appear. */}
+        {viewerIsAgency ? null : (
+          <View style={styles.connectWrap}>
+            {isMine ? (
+              <View style={styles.connectedPill}>
+                <Ionicons name="checkmark-circle" size={20} color="#2F855A" />
+                <Text style={styles.joinedText}>{t("agentJoined")}</Text>
+              </View>
+            ) : linkedElsewhere ? (
+              <Text style={[styles.bioText, { color: theme.textSecondary, textAlign: "center" }]}>{t("agentJoinedOther")}</Text>
+            ) : (
+              <TouchableOpacity style={[styles.connectBtn, joining && { opacity: 0.6 }]} onPress={join} disabled={joining} accessibilityRole="button">
+                {joining ? <ActivityIndicator color={NAVY} /> : <Ionicons name="link" size={18} color={NAVY} />}
+                <Text style={styles.connectBtnText}>{t("agentConnectSimple")}</Text>
+              </TouchableOpacity>
+            )}
+            {joinMessage ? <Text style={[styles.joinMsg, { color: theme.textSecondary, textAlign: "center" }]}>{joinMessage}</Text> : null}
+          </View>
+        )}
+
         {/* Contacts: shown once the pilgrim has connected with this agency */}
         {showContacts ? <View style={styles.contactSection}>
           <Text style={[styles.cardTitle, { color: theme.text, marginHorizontal: 16, marginBottom: 12 }]}>
@@ -228,28 +265,16 @@ export default function AgentProfileScreen() {
           </View>
         ) : null}
 
-        {/* Connect with this agency (pilgrims only): unlocks WhatsApp, call, email and website */}
-        {viewerIsAgency ? null : <View style={[styles.card, styles.joinCard, { borderColor: isMine ? "#2F855A" : GOLD, backgroundColor: theme.card }]}>
-          {isMine ? (
-            <Text style={[styles.joinedText]}>{t("agentJoined")}</Text>
-          ) : (
-            <>
-              <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 4 }]}>{t("agentJoinTitle")}</Text>
-              <Text style={[styles.bioText, { color: theme.textSecondary, marginBottom: 12 }]}>{t("agentConnectBody")}</Text>
-              {linkedElsewhere ? (
-                <Text style={[styles.bioText, { color: theme.textSecondary }]}>{t("agentJoinedOther")}</Text>
-              ) : (
-                <TouchableOpacity style={[styles.joinBtn, joining && { opacity: 0.6 }]} onPress={join} disabled={joining}>
-                  <Text style={styles.joinBtnText}>{t("agentJoinBtn", { name: agent.business_name })}</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-          {joinMessage ? <Text style={[styles.joinMsg, { color: theme.textSecondary }]}>{joinMessage}</Text> : null}
-          <Text style={[styles.codeLine, { color: theme.textSecondary }]}>
-            {t("agentCodeLabel")}: <Text style={styles.code}>{agent.agent_code}</Text>
-          </Text>
-        </View>}
+
+        {isMine && myChecklist ? (
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{t("chkMyTitle")}</Text>
+            <Text style={[styles.bioText, { color: theme.textSecondary }]}>
+              {t("chkMySub", { done: myChecklist.size, total: 6 })}
+            </Text>
+            <TripChecklistChips done={myChecklist} />
+          </View>
+        ) : null}
 
         {agent.description ? (
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -321,6 +346,16 @@ const styles = StyleSheet.create({
   websiteBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 25, padding: 12, borderWidth: 0.5, marginHorizontal: 16, marginTop: 10 },
   card: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, padding: 16, borderWidth: 0.5 },
   joinCard: { borderWidth: 1.5 },
+  connectWrap: { marginHorizontal: 16, marginTop: 16, marginBottom: 4 },
+  connectedPill: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#E6F4EA", borderRadius: 14, paddingVertical: 12 },
+  connectTitle: { fontSize: 17, fontWeight: "800", marginBottom: 10 },
+  perkRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 5 },
+  perkIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: "#F3E9CC", alignItems: "center", justifyContent: "center" },
+  perkText: { fontSize: 14, flex: 1 },
+  connectBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: GOLD, borderRadius: 14, paddingVertical: 14 },
+  connectBtnText: { color: NAVY, fontSize: 15, fontWeight: "800", flexShrink: 1 },
+  noCode: { fontSize: 12, textAlign: "center", marginTop: 8 },
+  connectedRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   joinBtn: { backgroundColor: NAVY, borderRadius: 25, padding: 14, alignItems: "center" },
   joinBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
   joinedText: { color: "#2F855A", fontSize: 15, fontWeight: "bold" },

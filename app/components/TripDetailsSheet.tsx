@@ -54,6 +54,10 @@ function addDays(iso: string, days: number) {
 
 type PickerField = "checkIn" | "checkOut"
 
+function nightsBetween(from: string, to: string) {
+  return Math.max(1, Math.round((parseDateKey(to).getTime() - parseDateKey(from).getTime()) / 86_400_000))
+}
+
 export function useTripDetails(autoPrompt: boolean) {
   const [trip, setTrip] = useState<TripDetails | null>(null)
   const [open, setOpen] = useState(false)
@@ -147,11 +151,9 @@ export default function TripDetailsSheet({
     setQuery("")
     setPicker(null)
     if (initial) {
-      setAirport({
-        code: initial.originCode,
-        city: initial.originCity,
-        country: "",
-      })
+      setAirport(
+        initial.originCode ? { code: initial.originCode, city: initial.originCity, country: "" } : null
+      )
       setCheckIn(initial.checkIn)
       setCheckOut(initial.checkOut)
       setGuests(initial.guests)
@@ -183,17 +185,13 @@ export default function TripDetailsSheet({
   }
 
   const save = async () => {
-    if (!airport) {
-      setError(t("tripOriginRequired"))
-      return
-    }
     if (checkOut <= checkIn) {
       setError(t("tripDatesInvalid"))
       return
     }
     const next: TripDetails = {
-      originCode: airport.code,
-      originCity: airport.city,
+      originCode: airport?.code ?? "",
+      originCity: airport?.city ?? "",
       checkIn,
       checkOut,
       guests,
@@ -212,54 +210,34 @@ export default function TripDetailsSheet({
           <Text style={styles.sub}>{t("tripDetailsSub")}</Text>
 
           <ScrollView keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.form} showsVerticalScrollIndicator={false}>
-            <Text style={styles.label}>{t("tripOriginLabel")}</Text>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={airport ? `${airport.city} (${airport.code})` : t("tripOriginPlaceholder")}
-              placeholderTextColor="rgba(255,255,255,0.45)"
-              style={styles.input}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-            {(query.trim().length > 0 ? matches : DEPARTURE_AIRPORTS.slice(0, 6)).map(item => (
-              <TouchableOpacity
-                key={item.code}
-                style={[styles.airportRow, airport?.code === item.code && styles.airportRowOn]}
-                onPress={() => {
-                  setAirport(item)
-                  setQuery("")
-                }}
-              >
-                <Text style={styles.airportCode}>{item.code}</Text>
-                <Text style={styles.airportCity}>{item.city}</Text>
-              </TouchableOpacity>
-            ))}
-            {showCustomCode ? (
-              <TouchableOpacity
-                style={styles.airportRow}
-                onPress={() => {
-                  setAirport({ code: customCode, city: customCode, country: "" })
-                  setQuery("")
-                }}
-              >
-                <Text style={styles.airportCode}>{customCode}</Text>
-                <Text style={styles.airportCity}>{t("useAirportCode", { code: customCode })}</Text>
-              </TouchableOpacity>
-            ) : null}
-            {airport && !query ? (
-              <Text style={styles.selectedAirport}>
-                {airport.city} ({airport.code})
-              </Text>
-            ) : null}
-
+            {/* 1. When: quick picks, then exact dates if needed */}
+            <Text style={styles.label}>{t("tripWhen")}</Text>
+            <View style={styles.quickRow}>
+              {([14, 30, 60] as const).map(days => {
+                const key = addDays(toDateKey(new Date()), days)
+                const on = checkIn === key
+                return (
+                  <TouchableOpacity
+                    key={days}
+                    style={[styles.quick, on && styles.quickOn]}
+                    onPress={() => {
+                      const nights = nightsBetween(checkIn, checkOut)
+                      setCheckIn(key)
+                      setCheckOut(addDays(key, nights))
+                    }}
+                  >
+                    <Text style={[styles.quickText, on && styles.quickTextOn]}>{t(`tripIn${days}`)}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
             <View style={styles.dateRow}>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setPicker("checkIn")}>
-                <Text style={styles.label}>{t("tripDepartLabel")}</Text>
+                <Text style={styles.dateLabel}>{t("tripDepartLabel")}</Text>
                 <Text style={styles.dateValue}>{formatDay(checkIn)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dateBtn} onPress={() => setPicker("checkOut")}>
-                <Text style={styles.label}>{t("tripReturnLabel")}</Text>
+                <Text style={styles.dateLabel}>{t("tripReturnLabel")}</Text>
                 <Text style={styles.dateValue}>{formatDay(checkOut)}</Text>
               </TouchableOpacity>
             </View>
@@ -289,6 +267,20 @@ export default function TripDetailsSheet({
               </View>
             ) : null}
 
+            {/* 2. How long: one tap sets the return date */}
+            <Text style={styles.label}>{t("tripHowLong")}</Text>
+            <View style={styles.quickRow}>
+              {([7, 10, 14, 21] as const).map(nights => {
+                const on = nightsBetween(checkIn, checkOut) === nights
+                return (
+                  <TouchableOpacity key={nights} style={[styles.quick, on && styles.quickOn]} onPress={() => setCheckOut(addDays(checkIn, nights))}>
+                    <Text style={[styles.quickText, on && styles.quickTextOn]}>{t("tripNights", { count: nights })}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
+            {/* 3. Who */}
             <Text style={styles.label}>{t("tripGuestsLabel")}</Text>
             <View style={styles.stepper}>
               <TouchableOpacity
@@ -305,6 +297,57 @@ export default function TripDetailsSheet({
                 <Ionicons name="add" size={18} color={NAVY} />
               </TouchableOpacity>
             </View>
+
+            {/* 4. Flying from (optional, only used for flights) */}
+            <Text style={styles.label}>{t("tripOriginOptional")}</Text>
+            {airport && !query ? (
+              <View style={styles.pickedRow}>
+                <Text style={styles.selectedAirport}>
+                  ✈ {airport.city} ({airport.code})
+                </Text>
+                <TouchableOpacity onPress={() => setAirport(null)} hitSlop={10}>
+                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t("tripOriginPlaceholder")}
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              style={styles.input}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            {query.trim().length > 0 ? (
+              <>
+                {matches.map(item => (
+                  <TouchableOpacity
+                    key={item.code}
+                    style={[styles.airportRow, airport?.code === item.code && styles.airportRowOn]}
+                    onPress={() => {
+                      setAirport(item)
+                      setQuery("")
+                    }}
+                  >
+                    <Text style={styles.airportCode}>{item.code}</Text>
+                    <Text style={styles.airportCity}>{item.city}</Text>
+                  </TouchableOpacity>
+                ))}
+                {showCustomCode ? (
+                  <TouchableOpacity
+                    style={styles.airportRow}
+                    onPress={() => {
+                      setAirport({ code: customCode, city: customCode, country: "" })
+                      setQuery("")
+                    }}
+                  >
+                    <Text style={styles.airportCode}>{customCode}</Text>
+                    <Text style={styles.airportCity}>{t("useAirportCode", { code: customCode })}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </ScrollView>
 
@@ -371,6 +414,13 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   dateValue: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  dateLabel: { color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: "600", marginBottom: 2 },
+  quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  quick: { borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  quickOn: { backgroundColor: GOLD, borderColor: GOLD },
+  quickText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  quickTextOn: { color: NAVY },
+  pickedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   pickerDone: { color: GOLD, textAlign: "right", fontWeight: "700", paddingVertical: 6 },
   stepper: { flexDirection: "row", alignItems: "center", gap: 16, marginTop: 4 },
   stepBtn: {

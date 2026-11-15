@@ -2,7 +2,7 @@
   "expo": {
     "name": "UmrahConnect",
     "slug": "UmrahConnect",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "orientation": "default",
     "icon": "./assets/images/logo-icon.png",
     "scheme": "umrahconnect",
@@ -10,7 +10,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.umrahconnect.app",
-      "associatedDomains": ["applinks:myumrahconnect.com", "applinks:www.myumrahconnect.com"],
+      "associatedDomains": [
+        "applinks:myumrahconnect.com",
+        "applinks:www.myumrahconnect.com"
+      ],
       "buildNumber": "1",
       "backgroundColor": "#1E3A5F",
       "infoPlist": {
@@ -25,7 +28,8 @@
         ],
         "NSLocationWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "UmrahConnect uses your location for prayer times, Qibla direction, and nearby services.",
-        "NSAlarmKitUsageDescription": "UmrahConnect can use alarms for prayer times."
+        "NSAlarmKitUsageDescription": "UmrahConnect can use alarms for prayer times.",
+        "NSSupportsLiveActivities": true
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDpRj_s5Afsb_dEuIpJUDcT78YZDl_6M6g"
@@ -50,10 +54,21 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "myumrahconnect.com", "pathPrefix": "/a/" },
-            { "scheme": "https", "host": "www.myumrahconnect.com", "pathPrefix": "/a/" }
+            {
+              "scheme": "https",
+              "host": "myumrahconnect.com",
+              "pathPrefix": "/a/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.myumrahconnect.com",
+              "pathPrefix": "/a/"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "versionCode": 1,

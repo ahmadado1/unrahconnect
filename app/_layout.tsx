@@ -23,6 +23,7 @@ import {
 } from "@/lib/notifications";
 import { getPendingReferral, linkPilgrimToAgent, normalizeReferralCode, saveReferralCode } from "@/lib/referral";
 import { agentCodeFromScan } from "@/lib/agents";
+import { triggerPrayerAlert } from "@/lib/prayerAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoLinking from "expo-linking";
 import * as Notifications from "expo-notifications";
@@ -78,6 +79,10 @@ export default function RootLayout() {
       return
     }
 
+    if (data?.screen === "agency-announcement" && typeof data?.agentId === "string") {
+      router.push(`/agent/${data.agentId}` as any)
+      return
+    }
     if (identifier === "journey-reminder-hajj" || (identifier === "journey-reminder" && data?.type === "hajj")) {
       router.push("/hajj")
     } else if (
@@ -249,6 +254,29 @@ export default function RootLayout() {
         await saveReferralCode(normalizeReferralCode(ref))
         console.log("Referral code saved:", ref)
       }
+      // Live prayer countdown tapped at prayer time: play the full Adhan of the prayer that just started.
+      if (parsed.queryParams?.adhan === "1") {
+        void (async () => {
+          const { readCachedPrayerTimes, parsePrayerTimeHourMinute } = await import("@/lib/prayerTimes")
+          const times = await readCachedPrayerTimes()
+          if (!times) return
+          const now = Date.now()
+          let current: { name: "Fajr" | "Dhuhr" | "Asr" | "Maghrib" | "Isha"; at: number } | null = null
+          for (const name of ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"] as const) {
+            const hm = parsePrayerTimeHourMinute(times[name])
+            if (!hm) continue
+            const at = new Date()
+            at.setHours(hm.hour, hm.minute, 0, 0)
+            if (at.getTime() <= now && now - at.getTime() < 60 * 60 * 1000) current = { name, at: at.getTime() }
+          }
+          if (!current) return
+          const prayer = current
+          setTimeout(() => {
+            triggerPrayerAlert(prayer.name, { playSound: false, forceShow: true })
+            void import("@/lib/adhanAudio").then(m => m.playPrayerAdhan(prayer.name, { fromStart: true }))
+          }, 800)
+        })()
+      }
     }
 
     ExpoLinking.getInitialURL().then(url => {
@@ -270,6 +298,12 @@ export default function RootLayout() {
       // Keep the account's language up to date (used for emails in the user's language).
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) setTimeout(() => void syncUserLanguage(i18n.language), 0)
       if (event === "SIGNED_OUT") setTimeout(() => void logoutPurchases(), 0)
+      // Push token for agency announcements (saved to the account).
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user?.id) {
+        const uid = session.user.id
+        setTimeout(() => void import("@/lib/pushTokens").then(m => m.syncPushToken(uid)).catch(() => {}), 3000)
+      }
+      if (event === "SIGNED_OUT") void import("@/lib/pushTokens").then(m => m.removePushTokenOnSignOut()).catch(() => {})
       // Cloud backup of settings: restore after login (reinstall / new phone), then keep saving.
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
         setTimeout(() => {

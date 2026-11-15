@@ -1,6 +1,8 @@
 // Agent Dashboard (in the app).
 // Shows real numbers only: pilgrims joined, contacts this month, listing status.
 // No prices or payment links here (App Store / Play rules) — plans are handled on the website and by email.
+import TripChecklistChips from "@/app/components/TripChecklist"
+import { getAgencyChecklist, setChecklistItem, type CheckItem } from "@/lib/tripChecklist"
 import QRCode from "react-native-qrcode-svg"
 import {
   agentJoinUrl,
@@ -56,6 +58,7 @@ export default function AgentDashboard() {
 
   const [agent, setAgent] = useState<AgentProfile | null>(null)
   const [pilgrims, setPilgrims] = useState<AgentPilgrim[]>([])
+  const [checklist, setChecklist] = useState<Record<string, Set<CheckItem>>>({})
   const [contacts, setContacts] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState("")
@@ -101,6 +104,7 @@ export default function AgentDashboard() {
           if (cancelled) return
           setPilgrims(list)
           setContacts(leads.count ?? 0)
+          getAgencyChecklist(profile.id).then(c => { if (!cancelled) setChecklist(c) }).catch(() => {})
         } catch (e) {
           console.log("Dashboard load error:", e)
         } finally {
@@ -346,10 +350,8 @@ export default function AgentDashboard() {
             </View>
           ) : (
             pilgrims.map((p, i) => (
-              <View
-                key={p.user_id}
-                style={[styles.pilgrimRow, { borderBottomColor: theme.border, borderBottomWidth: i < pilgrims.length - 1 ? 0.5 : 0 }]}
-              >
+              <View key={p.user_id} style={{ borderBottomColor: theme.border, borderBottomWidth: i < pilgrims.length - 1 ? 0.5 : 0, paddingBottom: 10 }}>
+              <View style={styles.pilgrimRow}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{(p.name || "?").trim().charAt(0).toUpperCase()}</Text>
                 </View>
@@ -379,6 +381,22 @@ export default function AgentDashboard() {
                     </TouchableOpacity>
                   ) : null}
                 </View>
+              </View>
+              {/* Trip checklist: tap to tick passport, visa, ticket... (the pilgrim sees it) */}
+              {agent ? (
+                <TripChecklistChips
+                  done={checklist[p.user_id] ?? new Set()}
+                  onToggle={(item, next) => {
+                    setChecklist(cur => {
+                      const set = new Set(cur[p.user_id] ?? [])
+                      if (next) set.add(item)
+                      else set.delete(item)
+                      return { ...cur, [p.user_id]: set }
+                    })
+                    void setChecklistItem(agent.id, p.user_id, item, next).catch(() => {})
+                  }}
+                />
+              ) : null}
               </View>
             ))
           )}

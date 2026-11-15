@@ -71,7 +71,7 @@ export function isTripDetails(value: unknown): value is TripDetails {
   if (!value || typeof value !== "object") return false
   const trip = value as TripDetails
   return (
-    /^[A-Z]{3}$/.test(trip.originCode) &&
+    (trip.originCode === "" || /^[A-Z]{3}$/.test(trip.originCode)) &&
     typeof trip.originCity === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(trip.checkIn) &&
     /^\d{4}-\d{2}-\d{2}$/.test(trip.checkOut) &&
@@ -111,5 +111,6 @@ export async function markTripDetailsPrompted(): Promise<void> {
 export function formatTripSummary(trip: TripDetails, locale: string): string {
   const fmt = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { month: "short", day: "numeric" })
-  return `${trip.originCode} · ${fmt(trip.checkIn)}–${fmt(trip.checkOut)} · ${trip.guests}`
+  const dates = `${fmt(trip.checkIn)}–${fmt(trip.checkOut)} · ${trip.guests}`
+  return trip.originCode ? `${trip.originCode} · ${dates}` : dates
 }

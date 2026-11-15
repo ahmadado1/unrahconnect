@@ -1,4 +1,5 @@
 import TouchableOpacity from "@/app/components/AppPressable";
+import TripHotelsCard from "@/app/components/TripHotelsCard"
 import { usePremium } from "@/lib/premium"
 import GlowText from "@/app/components/GlowText"
 import PremiumEndingBanner from "@/app/components/PremiumEndingBanner"
@@ -731,6 +732,9 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
         )}
+
+        {/* ── Your trip: dates → live Booking.com hotel prices for Makkah / Madinah (pilgrims) ── */}
+        {isAgent ? null : <TripHotelsCard />}
 
         {/* ── FREE: "Get Premium" card ── */}
         {!premium.isPremium ? <PremiumUpsellCard /> : null}

@@ -1,4 +1,6 @@
 import TouchableOpacity from "@/app/components/AppPressable"
+import { LIVE_COUNTDOWN_KEY } from "@/lib/prayerWidget"
+import { usePremium as usePremiumState } from "@/lib/premium"
 import { ICON_GOLD } from "@/components/AppIcon"
 import { useTheme } from "@/context/themeContext"
 import { playAdhan } from "@/lib/adhanAudio"
@@ -22,7 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import DateTimePicker from "@/app/components/ThemedDateTimePicker"
 import { useFocusEffect, useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Alert,
@@ -68,12 +70,17 @@ export default function NotificationsScreen() {
   const { theme, isDark } = useTheme()
   const { t } = useTranslation()
 
+  const { isPremium: isPremiumUser } = usePremiumState()
   const [master, setMaster] = useState(true)
   const [prayerAlerts, setPrayerAlerts] = useState(true)
   const [offPrayers, setOffPrayers] = useState<Set<string>>(new Set())
   const [morningAdhkar, setMorningAdhkar] = useState(true)
   const [eveningAdhkar, setEveningAdhkar] = useState(true)
   const [islamicDates, setIslamicDates] = useState(true)
+  const [liveCountdown, setLiveCountdown] = useState(false)
+  useEffect(() => {
+    void AsyncStorage.getItem(LIVE_COUNTDOWN_KEY).then(v => setLiveCountdown(v === "true")).catch(() => {})
+  }, [])
   const [morningTime, setMorningTime] = useState(() => parseStoredTime(null, null, 8, 0))
   const [eveningTime, setEveningTime] = useState(() => parseStoredTime(null, null, 17, 0))
   const [pickerTarget, setPickerTarget] = useState<"morning" | "evening" | null>(null)
@@ -321,6 +328,27 @@ export default function NotificationsScreen() {
             switchValue={prayerAlerts}
             onSwitch={onPrayerChange}
           />
+          {/* iPhone: lock-screen / Dynamic Island countdown in the hour before each prayer (Premium) */}
+          {Platform.OS === "ios" ? (
+            <Row
+              icon="timer-outline"
+              iconBg="#C9A84C"
+              iconColor="#1E3A5F"
+              label={t("liveCountdown")}
+              value={isPremiumUser ? t("liveCountdownSub") : t("liveCountdownPremium")}
+              switchValue={liveCountdown && isPremiumUser}
+              onSwitch={async val => {
+                if (!isPremiumUser) {
+                  router.push("/premium" as any)
+                  return
+                }
+                setLiveCountdown(val)
+                await AsyncStorage.setItem(LIVE_COUNTDOWN_KEY, String(val))
+                const m = await import("@/lib/prayerWidget")
+                await m.updatePrayerWidget()
+              }}
+            />
+          ) : null}
           {/* What is really scheduled + phone settings that can hide notifications */}
           <TouchableOpacity style={[styles.row, { borderBottomColor: theme.border }]} onPress={() => router.push("/notification-check" as any)}>
             <View style={[styles.iconWrap, { backgroundColor: "#2F855A" }]}>
