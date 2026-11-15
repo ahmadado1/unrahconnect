@@ -2743,5 +2743,10 @@
   "toursSearch": "Ara: Mescid-i Haram, Nebevi, Kuba, Taif…",
   "toursNone": "Sonuç yok. Mekke, Medine veya Cidde deneyin.",
   "toursNote": "Turlar ve biletler Booking.com'da normal fiyatlarıyla alınır. UmrahConnect sizden ücret almaz.",
-  "airportTaxiShort": "Havalimanından otelinize"
+  "airportTaxiShort": "Havalimanından otelinize",
+  "prayerNotifBodyIos": "{{prayer}} {{time}} · ▶ Ezanın tamamını dinlemek için dokunun",
+  "adhanPlayFull": "▶ Ezanın tamamını çal",
+  "iosBannerTitle": "Telefonu kullanırken Ezanı duyun",
+  "iosBannerBody": "Telefonunuzu kullanırken (Instagram, WhatsApp…) iPhone, bildirim kaybolur kaybolmaz Ezanı keser. Bir kez düzeltin: Bildirimler → UmrahConnect → Afiş Stili → Kalıcı.",
+  "iosBannerOpen": "Ayarları aç"
 }

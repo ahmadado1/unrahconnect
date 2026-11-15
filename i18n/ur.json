@@ -2743,5 +2743,10 @@
   "toursSearch": "تلاش: مسجد الحرام، نبوی، قباء، طائف…",
   "toursNone": "کچھ نہیں ملا۔ مکہ، مدینہ یا جدہ آزمائیں۔",
   "toursNote": "ٹورز اور ٹکٹیں Booking.com پر عام قیمت پر بک ہوتی ہیں۔ UmrahConnect آپ سے کچھ نہیں لیتا۔",
-  "airportTaxiShort": "ایئرپورٹ سے ہوٹل تک"
+  "airportTaxiShort": "ایئرپورٹ سے ہوٹل تک",
+  "prayerNotifBodyIos": "{{prayer}} {{time}} پر · ▶ پوری اذان سننے کے لیے ٹیپ کریں",
+  "adhanPlayFull": "▶ پوری اذان سنیں",
+  "iosBannerTitle": "فون استعمال کرتے ہوئے اذان سنیں",
+  "iosBannerBody": "جب آپ فون استعمال کر رہے ہوں (انسٹاگرام، واٹس ایپ…) تو آئی فون بینر غائب ہوتے ہی اذان کاٹ دیتا ہے۔ ایک بار ٹھیک کریں: Notifications ← UmrahConnect ← Banner Style ← Persistent۔",
+  "iosBannerOpen": "سیٹنگز کھولیں"
 }

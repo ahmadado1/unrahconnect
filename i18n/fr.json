@@ -2743,5 +2743,10 @@
   "toursSearch": "Rechercher : Masjid al-Haram, Nabawi, Quba, Taïf…",
   "toursNone": "Aucun résultat. Essayez La Mecque, Médine ou Djeddah.",
   "toursNote": "Visites et billets réservés sur Booking.com à leurs prix habituels. UmrahConnect ne vous facture rien.",
-  "airportTaxiShort": "De l'aéroport à votre hôtel"
+  "airportTaxiShort": "De l'aéroport à votre hôtel",
+  "prayerNotifBodyIos": "{{prayer}} à {{time}} · ▶ Touchez pour écouter l'Adhan complet",
+  "adhanPlayFull": "▶ Écouter l'Adhan complet",
+  "iosBannerTitle": "Entendre l'Adhan pendant que vous utilisez votre téléphone",
+  "iosBannerBody": "Quand vous utilisez votre téléphone (Instagram, WhatsApp…), l'iPhone coupe l'Adhan dès que la bannière disparaît. Corrigez-le une fois : Notifications → UmrahConnect → Style des bannières → Persistant.",
+  "iosBannerOpen": "Ouvrir les Réglages"
 }

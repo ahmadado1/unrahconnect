@@ -2743,5 +2743,10 @@
   "toursSearch": "Search: Masjid al-Haram, Nabawi, Quba, Taif…",
   "toursNone": "No match. Try a city like Makkah, Madinah or Jeddah.",
   "toursNote": "Tours and tickets are booked on Booking.com at their normal prices. UmrahConnect does not charge you.",
-  "airportTaxiShort": "Airport to your hotel"
+  "airportTaxiShort": "Airport to your hotel",
+  "prayerNotifBodyIos": "{{prayer}} at {{time}} · ▶ Tap to hear the full Adhan",
+  "adhanPlayFull": "▶ Play full Adhan",
+  "iosBannerTitle": "Hear the Adhan while using your phone",
+  "iosBannerBody": "When you are using your phone (Instagram, WhatsApp…), iPhone cuts the Adhan as soon as the banner slides away. Fix it once: Notifications → UmrahConnect → Banner Style → Persistent.",
+  "iosBannerOpen": "Open Settings"
 }

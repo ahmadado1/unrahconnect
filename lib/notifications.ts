@@ -61,7 +61,7 @@ import {
   cancelIosAdhanAlarms,
   iosAlarmsAvailable,
 } from "@/modules/adhan-alarm"
-import { Alert, AppState, Platform } from "react-native"
+import { Alert, AppState, Linking, Platform } from "react-native"
 import { adhanPartSounds, chainSupported, ensureAdhanParts, PART_STEP_SECONDS } from "@/lib/adhanChain"
 
 /** One background download of the Adhan parts at a time. */
@@ -96,6 +96,8 @@ type DesiredAlert = {
   at: number
   /** Fingerprint of time + sound + language. Same fingerprint = alert is already right, leave it. */
   sig: string
+  /** iPhone: add the Kaaba picture right before booking (see lib/notifImage.ts). */
+  image?: boolean
   request: Notifications.NotificationRequestInput
 }
 
@@ -130,11 +132,15 @@ async function syncAlertGroup(isMine: (identifier: string) => boolean, desired: 
   for (const alert of [...desired].sort((a, b) => a.at - b.at)) {
     if (keep.has(alert.identifier)) continue
     try {
+      const attachments = alert.image
+        ? await import("@/lib/notifImage").then(m => m.adhanImageAttachment(alert.identifier)).catch(() => null)
+        : null
       await Notifications.scheduleNotificationAsync({
         ...alert.request,
         identifier: alert.identifier,
         content: {
           ...alert.request.content,
+          ...(attachments ? { attachments: attachments as any } : {}),
           data: { ...(alert.request.content.data ?? {}), sig: alert.sig },
         },
       })
@@ -371,6 +377,43 @@ const BATTERY_ASKED_KEY = "battery_prompt_asked_at"
 const ASK_AGAIN_MS = 3 * 24 * 60 * 60 * 1000
 let exactAlarmPromptedThisProcess = false
 
+const IOS_BANNER_ASKED_KEY = "ios_banner_prompt_asked_at"
+let iosBannerPromptedThisProcess = false
+
+/**
+ * iPhone, phone in use (e.g. on Instagram): a "Temporary" banner slides away after a few seconds
+ * and iPhone stops the notification sound with it, so the 30-second Adhan is cut short.
+ * A "Persistent" banner stays until the user acts, and the Adhan plays its full 30 seconds.
+ * Only the user can change it, so when the banner style is Temporary we explain and open Settings.
+ * Asked again every few days (like the Android prompts) until it is Persistent.
+ */
+async function promptIosPersistentBannerIfNeeded() {
+  if (Platform.OS !== "ios") return
+  if (AppState.currentState !== "active" || iosBannerPromptedThisProcess) return
+  try {
+    const perm = await Notifications.getPermissionsAsync()
+    if (perm.status !== "granted") return
+    // 1 = Temporary banner, 2 = Persistent ("Alert"), 0 = no banners
+    if (perm.ios?.alertStyle !== Notifications.IosAlertStyle.BANNER) return
+    if (await askedRecently(IOS_BANNER_ASKED_KEY)) return
+    iosBannerPromptedThisProcess = true
+    await AsyncStorage.setItem(IOS_BANNER_ASKED_KEY, String(Date.now())).catch(() => {})
+    setTimeout(() => {
+      Alert.alert(
+        i18n.t("iosBannerTitle", { defaultValue: "Hear the Adhan while using your phone" }),
+        i18n.t("iosBannerBody", {
+          defaultValue:
+            "When you are using your phone, iPhone cuts the Adhan as soon as the banner slides away. Fix it once: Notifications → UmrahConnect → Banner Style → Persistent.",
+        }),
+        [
+          { text: i18n.t("exactAlarmNotNow"), style: "cancel" },
+          { text: i18n.t("iosBannerOpen", { defaultValue: "Open Settings" }), onPress: () => void Linking.openSettings() },
+        ]
+      )
+    }, 1500)
+  } catch {}
+}
+
 async function askedRecently(key: string) {
   const at = Number((await AsyncStorage.getItem(key).catch(() => null)) || 0)
   return Date.now() - at < ASK_AGAIN_MS
@@ -441,9 +484,20 @@ function prayerDisplayName(name: string) {
   return i18n.t(`prayerName${name}`, { defaultValue: name })
 }
 
-function prayerNotificationCopy(name: string, time: string) {
+function prayerNotificationCopy(name: string, time: string, adhan = false) {
   const prayer = prayerDisplayName(name)
   const clock = formatClock(time)
+  // iPhone plays 30 seconds of the Adhan: invite the tap that continues the full Adhan in the app.
+  if (adhan && Platform.OS === "ios") {
+    return {
+      title: `🕌 ${i18n.t("prayerNotifTitle", { prayer, defaultValue: `Time for ${prayer}` })}`,
+      body: i18n.t("prayerNotifBodyIos", {
+        prayer,
+        time: clock,
+        defaultValue: `${prayer} at ${clock} · ▶ Tap to hear the full Adhan`,
+      }),
+    }
+  }
   return {
     title: i18n.t("prayerNotifTitle", {
       prayer,
@@ -615,6 +669,8 @@ export async function schedulePrayerNotifications(
 
     if (Platform.OS === "android") {
       await promptAndroidExactAlarmIfNeeded()
+    } else {
+      void promptIosPersistentBannerIfNeeded()
     }
 
     const cached = await readCachedPrayerTimes()
@@ -640,7 +696,11 @@ export async function schedulePrayerNotifications(
     const pending = await Notifications.getAllScheduledNotificationsAsync()
     const others = pending.filter(n => !isPrayerAlertId(n.identifier)).length
     const room = Math.max(0, IOS_PENDING_LIMIT - IOS_RESERVED_SLOTS - others)
-    const iosChain = Platform.OS === "ios" && chainSupported()
+    // iPhone: ONE notification per prayer with the 30-second Adhan (Apple's limit), and
+    // "tap / Play full Adhan" opens the app and continues the full Adhan. The old way (the full
+    // Adhan as 5-6 notifications every 29 s) was too many notifications and only fit 2 days of
+    // prayers in iPhone's 64-alert limit. Turned off; this way books 7 days ahead.
+    const iosChain = false && Platform.OS === "ios" && chainSupported()
     const dayLimit =
       Platform.OS === "ios"
         ? Math.max(1, Math.min(iosChain ? IOS_CHAIN_MIN_DAYS : IOS_PRAYER_MAX_DAYS, Math.floor(room / 5)))
@@ -675,20 +735,23 @@ export async function schedulePrayerNotifications(
         const quiet = quietPrayers.has(prayer.name)
         const sound = quiet ? "default" : getNotificationAdhanSound(adhanId, isFajr)
         const channelId = quiet ? quietChannelId : isFajr ? fajrChannelId : regularChannelId
-        const copy = prayerNotificationCopy(prayer.name, prayer.time)
+        const copy = prayerNotificationCopy(prayer.name, prayer.time, !quiet)
         const dateKey = localDateKey(when)
 
         desired.push({
           identifier: `prayer-${prayer.name.toLowerCase()}-${dateKey}`,
           at: when.getTime(),
-          sig: `${when.getTime()}|${sound}|${channelId ?? ""}|${i18n.language}`,
+          sig: `${when.getTime()}|${sound}|${channelId ?? ""}|${i18n.language}|v3`,
+          image: Platform.OS === "ios" && !quiet,
           request: {
             content: {
               title: copy.title,
               body: copy.body,
               sound,
               priority: Notifications.AndroidNotificationPriority.MAX,
-              ...(Platform.OS === "ios" ? { interruptionLevel: "timeSensitive" as const } : {}),
+              ...(Platform.OS === "ios"
+                ? { interruptionLevel: "timeSensitive" as const, ...(quiet ? {} : { categoryIdentifier: ADHAN_CATEGORY }) }
+                : {}),
               data: {
                 screen: "prayer",
                 prayerName: prayer.name,
@@ -1752,6 +1815,12 @@ export async function registerAdhanCategory() {
     await Notifications.setNotificationCategoryAsync(
       ADHAN_CATEGORY,
       [
+        {
+          // Long-press the prayer notification: opens the app and plays the full Adhan
+          identifier: "play-adhan",
+          buttonTitle: i18n.t("adhanPlayFull", { defaultValue: "▶ Play full Adhan" }),
+          options: { opensAppToForeground: true },
+        },
         {
           identifier: "stop-adhan",
           buttonTitle: i18n.t("adhanStop", { defaultValue: "Stop Adhan" }),

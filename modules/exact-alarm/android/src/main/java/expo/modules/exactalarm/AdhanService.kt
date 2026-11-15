@@ -164,8 +164,15 @@ class AdhanService : Service() {
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setColor(0xFF1E3A5F.toInt())
+      // Stand out from other notifications: navy background (allowed for this kind of
+      // "playing now" notification) and the Kaaba picture.
+      .setColorized(true)
       .setAutoCancel(!playing)
       .setOngoing(playing)
+    try {
+      val pic = resources.getIdentifier("adhan_kaaba", "drawable", packageName)
+      if (pic != 0) builder.setLargeIcon(android.graphics.BitmapFactory.decodeResource(resources, pic))
+    } catch (_: Exception) {}
     if (playing) {
       val stop = Intent(this, AdhanService::class.java).apply { action = ACTION_STOP }
       val stopPi = PendingIntent.getService(this, 1, stop, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

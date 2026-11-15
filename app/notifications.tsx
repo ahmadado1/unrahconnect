@@ -14,7 +14,6 @@ import {
   scheduleIslamicDateReminders,
   scheduleJourneyReminders,
   scheduleTestAdhanNotification,
-  scheduleTestFullAdhan,
   setupPrayerNotificationChannel,
   cancelPrayerAlertsOnly,
 } from "@/lib/notifications"
@@ -334,32 +333,6 @@ export default function NotificationsScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
           </TouchableOpacity>
 
-          {/* iPhone: test the full Adhan (30-second parts back to back), starting in 20 seconds */}
-          {Platform.OS === "ios" ? (
-            <TouchableOpacity
-              style={[styles.row, { borderBottomColor: theme.border }]}
-              onPress={async () => {
-                const result = await scheduleTestFullAdhan(20)
-                Alert.alert(
-                  result === "ok" ? t("fullAdhanTestSet") : t("fullAdhanTestFail"),
-                  result === "ok"
-                    ? t("fullAdhanTestSetBody")
-                    : result === "downloading"
-                      ? t("fullAdhanTestDownloading")
-                      : t("fullAdhanTestUnsupported")
-                )
-              }}
-            >
-              <View style={[styles.iconWrap, { backgroundColor: "#C9A84C" }]}>
-                <Ionicons name="volume-high-outline" size={18} color="#1E3A5F" />
-              </View>
-              <View style={styles.info}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("fullAdhanTest")}</Text>
-                <Text style={[styles.sub, { color: theme.textSecondary }]}>{t("fullAdhanTestSub")}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-            </TouchableOpacity>
-          ) : null}
 
           {/* Per-prayer switches: tap a prayer to turn its Adhan on/off */}
           {prayerAlerts && master ? (

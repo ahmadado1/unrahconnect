@@ -2743,5 +2743,10 @@
   "toursSearch": "খুঁজুন: মসজিদুল হারাম, নববী, কুবা, তায়েফ…",
   "toursNone": "কিছু পাওয়া যায়নি। মক্কা, মদিনা বা জেদ্দা লিখে দেখুন।",
   "toursNote": "ট্যুর ও টিকিট Booking.com-এ স্বাভাবিক দামে বুক হয়। UmrahConnect আপনার কাছ থেকে কিছু নেয় না।",
-  "airportTaxiShort": "এয়ারপোর্ট থেকে হোটেল"
+  "airportTaxiShort": "এয়ারপোর্ট থেকে হোটেল",
+  "prayerNotifBodyIos": "{{prayer}} {{time}}-এ · ▶ পুরো আযান শুনতে ট্যাপ করুন",
+  "adhanPlayFull": "▶ পুরো আযান চালান",
+  "iosBannerTitle": "ফোন ব্যবহারের সময় আযান শুনুন",
+  "iosBannerBody": "ফোন ব্যবহারের সময় (ইনস্টাগ্রাম, হোয়াটসঅ্যাপ…) ব্যানার সরে গেলেই আইফোন আযান কেটে দেয়। একবার ঠিক করুন: Notifications → UmrahConnect → Banner Style → Persistent।",
+  "iosBannerOpen": "সেটিংস খুলুন"
 }
