@@ -2790,5 +2790,7 @@
   "agentConfirmTitle": "Êtes-vous une agence de voyage ?",
   "agentConfirmBody": "Réservé aux agences de voyage Omra et Hajj agréées. Les pèlerins doivent choisir « Pèlerin ».",
   "agentConfirmNo": "Non, je suis pèlerin",
-  "agentConfirmYes": "Oui, je suis une agence"
+  "agentConfirmYes": "Oui, je suis une agence",
+  "becomeAgency": "Inscrire mon agence de voyage",
+  "becomeAgencySub": "Pour les agences Omra et Hajj agréées : inscription gratuite, badge vérifié"
 }

@@ -2790,5 +2790,7 @@
   "agentConfirmTitle": "Are you a travel agency?",
   "agentConfirmBody": "This is only for licensed Umrah and Hajj travel agencies. Pilgrims should choose \"Pilgrim\".",
   "agentConfirmNo": "No, I'm a pilgrim",
-  "agentConfirmYes": "Yes, I'm an agency"
+  "agentConfirmYes": "Yes, I'm an agency",
+  "becomeAgency": "Register my travel agency",
+  "becomeAgencySub": "For licensed Umrah & Hajj agencies: free listing, verified badge"
 }

@@ -100,7 +100,7 @@ export default function SetupScreen() {
     setLoading(true)
     try {
       await withTimeout(supabase.auth.updateUser({
-        data: { user_type: "agent", language: selectedLang, profile_complete: true },
+        data: { user_type: "agent", agent_chosen_at: new Date().toISOString(), language: selectedLang, profile_complete: true },
       }), 20000)
       router.replace("/agent/apply?auto=1" as any)
     } catch (e) {

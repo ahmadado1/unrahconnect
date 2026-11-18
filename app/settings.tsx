@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar"
 import { useState } from "react"
 // Opens external links
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -29,6 +30,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useTranslation } from "react-i18next"
 import * as Application from "expo-application"
 import * as Updates from "expo-updates"
+import { useIsAgent } from "@/lib/accountType"
+import { getUserFast, supabase } from "@/lib/supabase"
 
 export default function SettingsScreen() {
   const router = useRouter()
@@ -38,6 +41,28 @@ export default function SettingsScreen() {
   const { t, i18n: i18nInstance } = useTranslation()
 
   const [languageModalOpen, setLanguageModalOpen] = useState(false)
+  const isAgent = useIsAgent()
+
+  // Pilgrim → travel agency: confirm, mark the account as an agency, open the application form
+  const becomeAgency = async () => {
+    const { data: { user } } = await getUserFast()
+    if (!user) {
+      router.push("/auth/login" as any)
+      return
+    }
+    Alert.alert(t("agentConfirmTitle"), t("agentConfirmBody"), [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("agentConfirmYes"),
+        onPress: async () => {
+          try {
+            await supabase.auth.updateUser({ data: { user_type: "agent", agent_chosen_at: new Date().toISOString() } })
+          } catch {}
+          router.push("/agent/apply?auto=1" as any)
+        },
+      },
+    ])
+  }
 
   const selectLanguage = async (code: string) => {
     await i18nInstance.changeLanguage(code)
@@ -125,6 +150,26 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+
+        {/* Travel agencies: a pilgrim account can become an agency (opens the application form) */}
+        {isAgent ? null : (
+          <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t("svcAgencies")}</Text>
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: theme.border, borderBottomWidth: 0 }]}
+              onPress={becomeAgency}
+            >
+              <View style={[styles.settingIcon, { backgroundColor: "#1E3A5F" }]}>
+                <Ionicons name="briefcase" size={18} color="#C9A84C" />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>{t("becomeAgency")}</Text>
+                <Text style={[styles.settingValue, { color: theme.textSecondary }]}>{t("becomeAgencySub")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.gold} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Legal section */}
         <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>

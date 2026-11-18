@@ -2790,5 +2790,7 @@
   "agentConfirmTitle": "Seyahat acentesi misiniz?",
   "agentConfirmBody": "Bu seçenek yalnızca lisanslı Umre ve Hac acenteleri içindir. Hacı adayları \"Hacı\" seçmelidir.",
   "agentConfirmNo": "Hayır, hacı adayıyım",
-  "agentConfirmYes": "Evet, acenteyim"
+  "agentConfirmYes": "Evet, acenteyim",
+  "becomeAgency": "Seyahat acentemi kaydet",
+  "becomeAgencySub": "Lisanslı Umre ve Hac acenteleri için: ücretsiz listeleme, doğrulanmış rozet"
 }
