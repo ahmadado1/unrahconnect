@@ -2785,5 +2785,10 @@
   "agentPerkChecklist": "Suivez passeport, visa et billet dans l'app",
   "agentNoCodeNeeded": "Pas besoin de code agent. Gratuit.",
   "agentConnectedSub": "Leurs contacts sont ci-dessous. Les nouvelles du voyage et votre liste apparaissent ici.",
-  "agentConnectSimple": "Se connecter à l'agence"
+  "agentConnectSimple": "Se connecter à l'agence",
+  "applyImPilgrim": "Je suis un pèlerin, pas une agence",
+  "agentConfirmTitle": "Êtes-vous une agence de voyage ?",
+  "agentConfirmBody": "Réservé aux agences de voyage Omra et Hajj agréées. Les pèlerins doivent choisir « Pèlerin ».",
+  "agentConfirmNo": "Non, je suis pèlerin",
+  "agentConfirmYes": "Oui, je suis une agence"
 }

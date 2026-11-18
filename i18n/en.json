@@ -2785,5 +2785,10 @@
   "agentPerkChecklist": "Track your passport, visa and ticket in the app",
   "agentNoCodeNeeded": "No agent code needed. Free.",
   "agentConnectedSub": "Their contacts are below. Trip updates and your checklist appear here.",
-  "agentConnectSimple": "Connect with agency"
+  "agentConnectSimple": "Connect with agency",
+  "applyImPilgrim": "I'm a pilgrim, not a travel agency",
+  "agentConfirmTitle": "Are you a travel agency?",
+  "agentConfirmBody": "This is only for licensed Umrah and Hajj travel agencies. Pilgrims should choose \"Pilgrim\".",
+  "agentConfirmNo": "No, I'm a pilgrim",
+  "agentConfirmYes": "Yes, I'm an agency"
 }

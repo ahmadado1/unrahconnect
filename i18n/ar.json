@@ -2797,5 +2797,10 @@
   "agentPerkChecklist": "تابع جواز السفر والتأشيرة والتذكرة في التطبيق",
   "agentNoCodeNeeded": "لا حاجة لرمز الوكيل. مجانًا.",
   "agentConnectedSub": "بيانات التواصل بالأسفل. تظهر تحديثات الرحلة وقائمتك هنا.",
-  "agentConnectSimple": "تواصل مع الوكالة"
+  "agentConnectSimple": "تواصل مع الوكالة",
+  "applyImPilgrim": "أنا معتمر/حاج ولست وكالة سفر",
+  "agentConfirmTitle": "هل أنت وكالة سفر؟",
+  "agentConfirmBody": "هذا الخيار لوكالات العمرة والحج المرخّصة فقط. على المعتمرين والحجاج اختيار «معتمر/حاج».",
+  "agentConfirmNo": "لا، أنا معتمر/حاج",
+  "agentConfirmYes": "نعم، أنا وكالة"
 }

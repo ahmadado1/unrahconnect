@@ -36,7 +36,7 @@ import {
 import { submitAgentApplication } from "@/lib/agentSignup"
 import { openAgentWebApplication } from "@/lib/agentWebApply"
 import { COUNTRY_DIALS, countryName } from "@/lib/countries"
-import { getUserFast } from "@/lib/supabase"
+import { getUserFast, supabase } from "@/lib/supabase"
 
 const NAVY = "#1E3A5F"
 const GOLD = "#C9A84C"
@@ -363,6 +363,20 @@ export default function AgentApplyScreen() {
           <TouchableOpacity style={styles.linkBtn} onPress={() => setStep(stage === "details" ? "details" : "documents")}>
             <Text style={[styles.linkBtnText, { color: theme.textSecondary }]}>{t("applyUseAppForm")}</Text>
           </TouchableOpacity>
+          {/* Tapped "Travel agent" by mistake: switch back to a pilgrim account (only before applying) */}
+          {stage === "details" ? (
+            <TouchableOpacity
+              style={styles.linkBtn}
+              onPress={async () => {
+                try {
+                  await supabase.auth.updateUser({ data: { user_type: "pilgrim" } })
+                } catch {}
+                router.replace("/(tabs)" as any)
+              }}
+            >
+              <Text style={[styles.linkBtnText, { color: GOLD }]}>{t("applyImPilgrim")}</Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       </View>
     )

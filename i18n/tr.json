@@ -2785,5 +2785,10 @@
   "agentPerkChecklist": "Pasaport, vize ve biletinizi uygulamada takip edin",
   "agentNoCodeNeeded": "Acente kodu gerekmez. Ücretsiz.",
   "agentConnectedSub": "İletişim bilgileri aşağıda. Duyurular ve kontrol listeniz burada görünür.",
-  "agentConnectSimple": "Acenteye bağlan"
+  "agentConnectSimple": "Acenteye bağlan",
+  "applyImPilgrim": "Ben hacı adayıyım, acente değilim",
+  "agentConfirmTitle": "Seyahat acentesi misiniz?",
+  "agentConfirmBody": "Bu seçenek yalnızca lisanslı Umre ve Hac acenteleri içindir. Hacı adayları \"Hacı\" seçmelidir.",
+  "agentConfirmNo": "Hayır, hacı adayıyım",
+  "agentConfirmYes": "Evet, acenteyim"
 }

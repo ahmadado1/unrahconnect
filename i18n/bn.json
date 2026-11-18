@@ -2785,5 +2785,10 @@
   "agentPerkChecklist": "পাসপোর্ট, ভিসা ও টিকিট অ্যাপে দেখুন",
   "agentNoCodeNeeded": "এজেন্ট কোড লাগবে না। বিনামূল্যে।",
   "agentConnectedSub": "তাদের যোগাযোগ নিচে। সফরের আপডেট ও আপনার চেকলিস্ট এখানে দেখা যাবে।",
-  "agentConnectSimple": "এজেন্সির সাথে যুক্ত হন"
+  "agentConnectSimple": "এজেন্সির সাথে যুক্ত হন",
+  "applyImPilgrim": "আমি একজন হাজী, এজেন্সি নই",
+  "agentConfirmTitle": "আপনি কি ট্রাভেল এজেন্সি?",
+  "agentConfirmBody": "এটি শুধু লাইসেন্সপ্রাপ্ত উমরাহ ও হজ এজেন্সির জন্য। হাজীরা \"হাজী\" বেছে নিন।",
+  "agentConfirmNo": "না, আমি হাজী",
+  "agentConfirmYes": "হ্যাঁ, আমি এজেন্সি"
 }

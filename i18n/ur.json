@@ -2785,5 +2785,10 @@
   "agentPerkChecklist": "پاسپورٹ، ویزا اور ٹکٹ ایپ میں دیکھیں",
   "agentNoCodeNeeded": "ایجنٹ کوڈ کی ضرورت نہیں۔ مفت۔",
   "agentConnectedSub": "ان کے رابطے نیچے ہیں۔ سفر کی اپ ڈیٹس اور آپ کی چیک لسٹ یہاں نظر آئیں گی۔",
-  "agentConnectSimple": "ایجنسی سے جڑیں"
+  "agentConnectSimple": "ایجنسی سے جڑیں",
+  "applyImPilgrim": "میں زائر ہوں، ٹریول ایجنسی نہیں",
+  "agentConfirmTitle": "کیا آپ ٹریول ایجنسی ہیں؟",
+  "agentConfirmBody": "یہ صرف لائسنس یافتہ عمرہ اور حج ایجنسیوں کے لیے ہے۔ زائرین \"زائر\" منتخب کریں۔",
+  "agentConfirmNo": "نہیں، میں زائر ہوں",
+  "agentConfirmYes": "جی ہاں، میں ایجنسی ہوں"
 }

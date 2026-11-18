@@ -6,7 +6,7 @@ import { useRouter } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native"
 import TouchableOpacity from "@/app/components/AppPressable"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import LanguageDropdown from "../components/LanguageDropdown"
@@ -226,10 +226,19 @@ export default function SetupScreen() {
                 userType === "agent" && styles.typeCardActive
               ]}
               onPress={() => {
-                // Agencies go straight to the application (details, then documents)
-                setUserType("agent")
+                // Agencies go straight to the application, after a quick "are you sure?"
+                // (many pilgrims tapped this card by mistake and ended up with an agency account)
                 setLangOpen(false)
-                if (!loading) finishAgent()
+                Alert.alert(t("agentConfirmTitle"), t("agentConfirmBody"), [
+                  { text: t("agentConfirmNo"), style: "cancel", onPress: () => setUserType("pilgrim") },
+                  {
+                    text: t("agentConfirmYes"),
+                    onPress: () => {
+                      setUserType("agent")
+                      if (!loading) finishAgent()
+                    },
+                  },
+                ])
               }}
             >
               <AppIcon name="business" size={36} color={ICON_GOLD} />
