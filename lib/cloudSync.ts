@@ -61,7 +61,9 @@ export const SYNC_KEYS = [
 
 // Saved per item: tafsir choice per language (tafsir_choice_v2_<lang>) and the reciter chosen
 // for Al-Kahf / Al-Mulk listening cards (isolated_reciter_<surah>).
-const SYNC_PREFIXES = ["tafsir_choice_v2_", "isolated_reciter_"]
+// Also per-account copies the app keeps on the phone: Quran "continue reading" and reading goals
+// (these are saved to their own tables too; this is a second copy so nothing is lost).
+const SYNC_PREFIXES = ["tafsir_choice_v2_", "isolated_reciter_", "quran_last_read_v1:", "quran_goals_v2:"]
 
 const SNAPSHOT_KEY = "cloud_sync_snapshot_v1" // { key: value } as last sent/received
 const OWNER_KEY = "cloud_sync_owner_v1" // which account the phone last synced with
@@ -181,6 +183,14 @@ async function runSync({ force }: { force?: boolean }) {
     ])
     if (toSet.length || toRemove.length) {
       console.log(`[CloudSync] restored ${toSet.length + toRemove.length} settings from the account`)
+      // New install / new phone: screens already loaded the default settings. Restart the app once
+      // so everything (language, Adhan, Quran, fonts, tasbih...) shows the restored settings, and so
+      // those defaults can never be saved over the backup.
+      if (switchedAccount && !__DEV__) {
+        setTimeout(() => {
+          void import("expo-updates").then(U => U.reloadAsync()).catch(() => {})
+        }, 400)
+      }
     }
   } catch (e) {
     console.log("[CloudSync] error:", e)
